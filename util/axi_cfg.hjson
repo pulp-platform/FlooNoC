@@ -1,0 +1,29 @@
+# Copyright 2022 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Tim Fischer <fischeti@iis.ee.ethz.ch>
+
+{
+    name: "axi",
+    axi_channels: [
+      {name: 'axi_in', params: {dw: 64, aw: 32, iw: 3, uw: 1 }},
+      {name: 'axi_out', params: {dw: 64, aw: 32, iw: 3, uw: 1 }},
+    ]
+    phys_channels: [
+      'req',
+      'rsp'
+    ],
+    map: {
+      req: ["axi_in_aw", "axi_in_w", "axi_in_ar"],
+      rsp: ["axi_in_b", "axi_in_r"]
+    },
+    meta: {
+      rob_req: 1,
+      rob_idx: 6,
+      dst_id: 6,
+      src_id: 6,
+      last: 1,
+      atop: 1,
+    }
+}

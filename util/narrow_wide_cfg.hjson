@@ -1,0 +1,33 @@
+# Copyright 2022 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Tim Fischer <fischeti@iis.ee.ethz.ch>
+
+{
+    name: "narrow_wide",
+    axi_channels: [
+      {name: 'narrow_in', params: {dw: 64, aw: 48, iw: 4, uw: 5 }},
+      {name: 'narrow_out', params: {dw: 64, aw: 48, iw: 2, uw: 5 }},
+      {name: 'wide_in', params: {dw: 512, aw: 48, iw: 3, uw: 1 }},
+      {name: 'wide_out', params: {dw: 512, aw: 48, iw: 1, uw: 1 }},
+    ]
+    phys_channels: [
+      "narrow_req",
+      "narrow_rsp",
+      "wide",
+    ],
+    map: {
+      narrow_req: ["narrow_in_aw", "narrow_in_w", "narrow_in_ar", "wide_in_ar", "wide_in_aw"],
+      narrow_rsp: ["narrow_in_b", "narrow_in_r", "wide_in_b"]
+      wide: ["wide_in_w", "wide_in_r"]
+    },
+    meta: {
+      rob_req: 1,
+      rob_idx: 8,
+      dst_id: 6,
+      src_id: 6,
+      last: 1,
+      atop: 1
+    }
+}

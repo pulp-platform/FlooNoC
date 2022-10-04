@@ -1,0 +1,19 @@
+.bender
+*modelsim.ini
+*transcript
+*work
+vsim.wlf
+scripts/compile_vsim.tcl
+working_dir/*
+compile.log
+Bender.lock
+.dvt
+dvt_build.log
+.vscode
+
+# spyglass
+scripts/spyglass/*
+
+test/jobs
+*.csv
+**/*.log

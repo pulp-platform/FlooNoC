@@ -1,0 +1,95 @@
+# Copyright 2022 ETH Zurich and University of Bologna.
+# Solderpad Hardware License, Version 0.51, see LICENSE for details.
+# SPDX-License-Identifier: SHL-0.51
+
+# Author: Michael Rogenmoser <michaero@iis.ee.ethz.ch>
+
+variables:
+  VSIM: 'questa-2022.3 vsim'
+  BENDER: 'bender'
+  SPYGLASS: 'spyglass-2022.06 sg_shell'
+
+# workflow:
+#   rules:
+#     - if:
+
+stages:
+  - sources
+  - build
+  - run
+
+collect-bender-sources:
+  stage: sources
+  script:
+    - $BENDER checkout
+  artifacts:
+    paths:
+      - .bender/
+      - Bender.lock
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /noci$/'
+      when: manual
+    - when: always
+
+compile-vsim:
+  stage: build
+  script:
+    - make sim_compile | tee compile.log 2>&1
+    - '! grep "Error: " compile.log'
+  needs:
+    - collect-bender-sources
+  artifacts:
+    paths:
+      - scripts/
+      - work/
+      - modelsim.ini
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /noci$/'
+      when: manual
+    - when: always
+
+run-vsim:
+  stage: run
+  script:
+    - make sim_run_c | tee vsim.log 2>&1
+    - 'grep "Errors: 0," vsim.log'
+  artifacts:
+    paths:
+      - vsim.log
+  parallel:
+    matrix:
+      - VSIM_TB_DUT:
+        - tb_floo_router
+        - tb_floo_axi_chimney
+        - tb_floo_narrow_wide_chimney
+        - tb_floo_rob
+  needs:
+    - collect-bender-sources
+    - compile-vsim
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /noci$/'
+      when: manual
+    - when: always
+
+morty:
+  stage: build
+  script:
+    - $BENDER sources -f > source_list.txt
+    - morty -f source_list.txt
+  needs:
+    - collect-bender-sources
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /noci$/'
+      when: manual
+    - when: always
+
+verible-lint:
+  stage: build
+  script:
+    - verible-verilog-lint src/*.sv src/synth/*.sv include/floo_noc/*.svh --lint_fatal --waiver_files util/verible.waiver
+  needs:
+    - collect-bender-sources
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /noci$/'
+      when: manual
+    - when: always
