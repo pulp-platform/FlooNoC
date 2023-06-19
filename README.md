@@ -8,13 +8,12 @@
 <a href="https://pulp-platform.org">
 <img src="docs/img/pulp_logo_icon.svg" alt="Logo" width="100" align="right">
 </a>
+
 This repository provides modules for the FlooNoC, a Network-on-Chip (NoC) which is part of the [PULP (Parallel Ultra-Low Power) Platform](https://pulp-platform.org/). The repository includes Network Interface IPs (named chimneys), Routers and further NoC components to build a complete NoC. FlooNoC mainly supports [AXI4+ATOPs](https://github.com/pulp-platform/axi/tree/master), but can be easily extended to other On-Chip protocols. Arbitrary topologies are supported with several routing algorithms. FlooNoC is designed to be scalable and modular, and can be easily extended with new components. <br><br><br>
 
 <div align="center">
 
 ![License](https://img.shields.io/badge/license-SHL--0.51-green)
-![Release](https://iis-git.ee.ethz.ch/axi-noc/floo_noc/-/badges/release.svg)
-![Pipeline](https://iis-git.ee.ethz.ch/axi-noc/floo_noc/badges/master/pipeline.svg)
 
 [Design Principles](#-design-principles) •
 [Getting started](#-getting-started) •
