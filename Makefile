@@ -43,7 +43,6 @@ SP_TOP_MODULE ?= floo_mesh
 sources: util/flit_gen.py $(shell find util/*.hjson)
 	./util/flit_gen.py -c util/axi_cfg.hjson
 	./util/flit_gen.py -c util/narrow_wide_cfg.hjson
-	verible-verilog-format --inplace --try_wrap_long_lines src/*flit_pkg.sv
 
 .PHONY: jobs
 jobs: util/gen_jobs.py

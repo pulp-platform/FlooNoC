@@ -4,7 +4,7 @@
 //
 // This file is auto-generated. Do not edit! Edit the template file instead
 
-
+     
 `include "axi/typedef.svh"
 
 package floo_narrow_wide_flit_pkg;
@@ -62,20 +62,16 @@ package floo_narrow_wide_flit_pkg;
   typedef logic [0:0] wide_out_user_t;
 
 
-  `AXI_TYPEDEF_ALL(narrow_in, narrow_in_addr_t, narrow_in_id_t, narrow_in_data_t, narrow_in_strb_t,
-                   narrow_in_user_t)
-  `AXI_TYPEDEF_ALL(narrow_out, narrow_out_addr_t, narrow_out_id_t, narrow_out_data_t,
-                   narrow_out_strb_t, narrow_out_user_t)
-  `AXI_TYPEDEF_ALL(wide_in, wide_in_addr_t, wide_in_id_t, wide_in_data_t, wide_in_strb_t,
-                   wide_in_user_t)
-  `AXI_TYPEDEF_ALL(wide_out, wide_out_addr_t, wide_out_id_t, wide_out_data_t, wide_out_strb_t,
-                   wide_out_user_t)
+  `AXI_TYPEDEF_ALL(narrow_in, narrow_in_addr_t, narrow_in_id_t, narrow_in_data_t, narrow_in_strb_t, narrow_in_user_t)
+  `AXI_TYPEDEF_ALL(narrow_out, narrow_out_addr_t, narrow_out_id_t, narrow_out_data_t, narrow_out_strb_t, narrow_out_user_t)
+  `AXI_TYPEDEF_ALL(wide_in, wide_in_addr_t, wide_in_id_t, wide_in_data_t, wide_in_strb_t, wide_in_user_t)
+  `AXI_TYPEDEF_ALL(wide_out, wide_out_addr_t, wide_out_id_t, wide_out_data_t, wide_out_strb_t, wide_out_user_t)
 
   //////////////////////
   //   AXI Channels   //
   //////////////////////
 
-  typedef enum logic [3:0] {
+  typedef enum logic[3:0] {
     NarrowInAw,
     NarrowInW,
     NarrowInAr,
@@ -104,13 +100,24 @@ package floo_narrow_wide_flit_pkg;
 
   localparam int NumVirtPerPhys[NumPhysChannels] = '{5, 3, 2};
 
-  localparam int PhysChanMapping[NumAxiChannels]
-      = '{PhysNarrowReq, PhysNarrowReq, PhysNarrowReq, PhysNarrowReq, PhysNarrowReq, PhysNarrowRsp,
-          PhysNarrowRsp, PhysNarrowRsp, PhysWide, PhysWide};
+  localparam int PhysChanMapping[NumAxiChannels] = '{
+    PhysNarrowReq,
+    PhysNarrowReq,
+    PhysNarrowReq,
+    PhysNarrowReq,
+    PhysNarrowReq,
+    PhysNarrowRsp,
+    PhysNarrowRsp,
+    PhysNarrowRsp,
+    PhysWide,
+    PhysWide
+  };
 
-  localparam int VirtChanMapping[NumPhysChannels][5]
-      = '{'{NarrowInAw, NarrowInW, NarrowInAr, WideInAr, WideInAw},
-          '{NarrowInB, NarrowInR, WideInB, 0, 0}, '{WideInW, WideInR, 0, 0, 0}};
+  localparam int VirtChanMapping[NumPhysChannels][5] = '{
+    '{NarrowInAw, NarrowInW, NarrowInAr, WideInAr, WideInAw},
+    '{NarrowInB, NarrowInR, WideInB, 0, 0},
+    '{WideInW, WideInR, 0, 0, 0}
+  };
 
   ///////////////////////
   //   Meta Typedefs   //
@@ -290,20 +297,20 @@ package floo_narrow_wide_flit_pkg;
     narrow_in_ar_data_t narrow_in_ar;
     wide_in_ar_data_t wide_in_ar;
     wide_in_aw_data_t wide_in_aw;
-    narrow_req_generic_t gen;
+  narrow_req_generic_t gen;
   } narrow_req_data_t;
 
   typedef union packed {
     narrow_in_b_data_t narrow_in_b;
     narrow_in_r_data_t narrow_in_r;
     wide_in_b_data_t wide_in_b;
-    narrow_rsp_generic_t gen;
+  narrow_rsp_generic_t gen;
   } narrow_rsp_data_t;
 
   typedef union packed {
     wide_in_w_data_t wide_in_w;
     wide_in_r_data_t wide_in_r;
-    wide_generic_t gen;
+  wide_generic_t gen;
   } wide_data_t;
 
 
@@ -311,23 +318,23 @@ package floo_narrow_wide_flit_pkg;
   //   Physical Flit Structs   //
   ///////////////////////////////
 
-  typedef struct packed {
-    logic valid;
-    logic ready;
-    narrow_req_data_t data;
-  } narrow_req_flit_t;
+    typedef struct packed {
+      logic valid;
+      logic ready;
+      narrow_req_data_t data;
+    } narrow_req_flit_t;
 
-  typedef struct packed {
-    logic valid;
-    logic ready;
-    narrow_rsp_data_t data;
-  } narrow_rsp_flit_t;
+    typedef struct packed {
+      logic valid;
+      logic ready;
+      narrow_rsp_data_t data;
+    } narrow_rsp_flit_t;
 
-  typedef struct packed {
-    logic valid;
-    logic ready;
-    wide_data_t data;
-  } wide_flit_t;
+    typedef struct packed {
+      logic valid;
+      logic ready;
+      wide_data_t data;
+    } wide_flit_t;
 
 
   //////////////////////////////
