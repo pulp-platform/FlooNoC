@@ -10,6 +10,7 @@ Bender.lock
 .dvt
 dvt_build.log
 .vscode
+verible*
 
 # spyglass
 scripts/spyglass/*
