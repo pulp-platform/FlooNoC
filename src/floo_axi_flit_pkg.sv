@@ -4,7 +4,7 @@
 //
 // This file is auto-generated. Do not edit! Edit the template file instead
 
-     
+
 `include "axi/typedef.svh"
 
 package floo_axi_flit_pkg;
@@ -41,13 +41,14 @@ package floo_axi_flit_pkg;
 
 
   `AXI_TYPEDEF_ALL(axi_in, axi_in_addr_t, axi_in_id_t, axi_in_data_t, axi_in_strb_t, axi_in_user_t)
-  `AXI_TYPEDEF_ALL(axi_out, axi_out_addr_t, axi_out_id_t, axi_out_data_t, axi_out_strb_t, axi_out_user_t)
+  `AXI_TYPEDEF_ALL(axi_out, axi_out_addr_t, axi_out_id_t, axi_out_data_t, axi_out_strb_t,
+                   axi_out_user_t)
 
   //////////////////////
   //   AXI Channels   //
   //////////////////////
 
-  typedef enum logic[2:0] {
+  typedef enum logic [2:0] {
     AxiInAw,
     AxiInW,
     AxiInAr,
@@ -70,18 +71,10 @@ package floo_axi_flit_pkg;
 
   localparam int NumVirtPerPhys[NumPhysChannels] = '{3, 2};
 
-  localparam int PhysChanMapping[NumAxiChannels] = '{
-    PhysReq,
-    PhysReq,
-    PhysReq,
-    PhysRsp,
-    PhysRsp
-  };
+  localparam int PhysChanMapping[NumAxiChannels] = '{PhysReq, PhysReq, PhysReq, PhysRsp, PhysRsp};
 
-  localparam int VirtChanMapping[NumPhysChannels][3] = '{
-    '{AxiInAw, AxiInW, AxiInAr},
-    '{AxiInB, AxiInR, 0}
-  };
+  localparam int
+      VirtChanMapping[NumPhysChannels][3] = '{'{AxiInAw, AxiInW, AxiInAr}, '{AxiInB, AxiInR, 0}};
 
   ///////////////////////
   //   Meta Typedefs   //
@@ -189,13 +182,13 @@ package floo_axi_flit_pkg;
     axi_in_aw_data_t axi_in_aw;
     axi_in_w_data_t axi_in_w;
     axi_in_ar_data_t axi_in_ar;
-  req_generic_t gen;
+    req_generic_t gen;
   } req_data_t;
 
   typedef union packed {
     axi_in_b_data_t axi_in_b;
     axi_in_r_data_t axi_in_r;
-  rsp_generic_t gen;
+    rsp_generic_t gen;
   } rsp_data_t;
 
 
@@ -203,17 +196,17 @@ package floo_axi_flit_pkg;
   //   Physical Flit Structs   //
   ///////////////////////////////
 
-    typedef struct packed {
-      logic valid;
-      logic ready;
-      req_data_t data;
-    } req_flit_t;
+  typedef struct packed {
+    logic valid;
+    logic ready;
+    req_data_t data;
+  } req_flit_t;
 
-    typedef struct packed {
-      logic valid;
-      logic ready;
-      rsp_data_t data;
-    } rsp_flit_t;
+  typedef struct packed {
+    logic valid;
+    logic ready;
+    rsp_data_t data;
+  } rsp_flit_t;
 
 
   //////////////////////////////
