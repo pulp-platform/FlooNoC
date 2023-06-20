@@ -42,6 +42,26 @@ The names of the IPs are inspired by the [Harry Potter](https://en.wikipedia.org
 ## 🔐 License
 Unless specified otherwise in the respective file headers, all code checked into this repository is made available under a permissive license. All hardware sources and tool scripts are licensed under the Solderpad Hardware License 0.51 (see [`LICENSE`](LICENSE))
 
+## 📚 Publication
+If you use FlooNoC in your research, please cite the following paper:
+<details>
+<summary><b>FlooNoC: A Multi-Tbps Wide NoC for Heterogeneous AXI4 Traffic</b></summary>
+<p>
+
+```
+@misc{fischer2023floonoc,
+      title={FlooNoC: A Multi-Tbps Wide NoC for Heterogeneous AXI4 Traffic},
+      author={Tim Fischer and Michael Rogenmoser and Matheus Cavalcante and Frank K. Gürkaynak and Luca Benini},
+      year={2023},
+      eprint={2305.08562},
+      archivePrefix={arXiv},
+      primaryClass={cs.AR}
+}
+```
+
+</p>
+</details>
+
 ## ⭐ Getting Started
 
 ### Pre-requisites
