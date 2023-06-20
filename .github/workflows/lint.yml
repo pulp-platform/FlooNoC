@@ -1,0 +1,91 @@
+# Copyright 2023 ETH Zurich and University of Bologna.
+# Solderpad Hardware License, Version 0.51, see LICENSE for details.
+# SPDX-License-Identifier: SHL-0.51
+
+# Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
+
+name: lint
+
+on: [push, pull_request]
+
+jobs:
+
+  ###############
+  # Check Clean #
+  ###############
+  check-clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
+      - name: Install bender
+        uses: pulp-platform/pulp-actions/bender-install@v2
+      - name: Check clean make targets
+        run: |
+          make -B update-regs
+          make clean
+          git status && test -z "$(git status --porcelain)"
+
+  ###############
+  # Check Stale #
+  ###############
+  check-stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
+      - name: Install bender
+        uses: pulp-platform/pulp-actions/bender-install@v2
+      - name: Check clean makefile
+        run: |
+          make -B update-regs
+          git status && test -z "$(git status --porcelain)"
+
+  #####################
+  # Bender up-to-date #
+  #####################
+  bender-up-to-date:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Bender up-to-date
+        uses: pulp-platform/pulp-actions/bender-up-to-date@v2
+
+  ################
+  # Verible Lint #
+  ################
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: chipsalliance/verible-linter-action@main
+      with:
+        paths: |
+          ./src
+        exclude_paths: |
+          ./src/regs
+        extra_args: "--waiver_files util/verible.waiver"
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        fail_on_error: true
+        reviewdog_reporter: github-check
+
+  #################
+  # Check License #
+  #################
+  lint-license:
+    runs-on: ubuntu-latest
+    steps:
+      - name: lint license
+        uses: pulp-platform/pulp-actions/lint-license@v2
+        with:
+          license: |
+            Copyright (\d{4}(-\d{4})?\s)?(ETH Zurich and University of Bologna|lowRISC contributors).
+            (Solderpad Hardware License, Version 0.51|Licensed under the Apache License, Version 2.0), see LICENSE for details.
+            SPDX-License-Identifier: (SHL-0.51|Apache-2.0)
