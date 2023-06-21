@@ -1,0 +1,25 @@
+# Copyright 2023 ETH Zurich and University of Bologna.
+# Solderpad Hardware License, Version 0.51, see LICENSE for details.
+# SPDX-License-Identifier: SHL-0.51
+
+# Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
+
+name: gitlab-ci
+
+on: [push, pull_request]
+
+jobs:
+  check:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Mirror and check
+          uses: pulp-platform/pulp-actions/gitlab-ci@v2
+          # Skip on forks or pull requests from forks due to missing secrets.
+          if: >
+            github.repository == 'pulp-platform/FlooNoC' &&
+            (github.event_name != 'pull_request' ||
+            github.event.pull_request.head.repo.full_name == github.repository)
+          with:
+            domain: iis-git.ee.ethz.ch
+            repo: github-mirror/FlooNoC
+            token: ${{ secrets.GITLAB_TOKEN }}
