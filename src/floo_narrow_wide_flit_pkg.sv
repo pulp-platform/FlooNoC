@@ -104,13 +104,24 @@ package floo_narrow_wide_flit_pkg;
 
   localparam int NumVirtPerPhys[NumPhysChannels] = '{5, 3, 2};
 
-  localparam int PhysChanMapping[NumAxiChannels]
-      = '{PhysNarrowReq, PhysNarrowReq, PhysNarrowReq, PhysNarrowReq, PhysNarrowReq, PhysNarrowRsp,
-          PhysNarrowRsp, PhysNarrowRsp, PhysWide, PhysWide};
+  localparam int PhysChanMapping[NumAxiChannels] = '{
+      PhysNarrowReq,
+      PhysNarrowReq,
+      PhysNarrowReq,
+      PhysNarrowReq,
+      PhysNarrowReq,
+      PhysNarrowRsp,
+      PhysNarrowRsp,
+      PhysNarrowRsp,
+      PhysWide,
+      PhysWide
+  };
 
-  localparam int VirtChanMapping[NumPhysChannels][5]
-      = '{'{NarrowInAw, NarrowInW, NarrowInAr, WideInAr, WideInAw},
-          '{NarrowInB, NarrowInR, WideInB, 0, 0}, '{WideInW, WideInR, 0, 0, 0}};
+  localparam int VirtChanMapping[NumPhysChannels][5] = '{
+      '{NarrowInAw, NarrowInW, NarrowInAr, WideInAr, WideInAw},
+      '{NarrowInB, NarrowInR, WideInB, 0, 0},
+      '{WideInW, WideInR, 0, 0, 0}
+  };
 
   ///////////////////////
   //   Meta Typedefs   //
@@ -303,7 +314,7 @@ package floo_narrow_wide_flit_pkg;
   typedef union packed {
     wide_in_w_data_t wide_in_w;
     wide_in_r_data_t wide_in_r;
-    wide_generic_t gen;
+    wide_generic_t   gen;
   } wide_data_t;
 
 

@@ -73,8 +73,10 @@ package floo_axi_flit_pkg;
 
   localparam int PhysChanMapping[NumAxiChannels] = '{PhysReq, PhysReq, PhysReq, PhysRsp, PhysRsp};
 
-  localparam int
-      VirtChanMapping[NumPhysChannels][3] = '{'{AxiInAw, AxiInW, AxiInAr}, '{AxiInB, AxiInR, 0}};
+  localparam int VirtChanMapping[NumPhysChannels][3] = '{
+      '{AxiInAw, AxiInW, AxiInAr},
+      '{AxiInB, AxiInR, 0}
+  };
 
   ///////////////////////
   //   Meta Typedefs   //
@@ -188,7 +190,7 @@ package floo_axi_flit_pkg;
   typedef union packed {
     axi_in_b_data_t axi_in_b;
     axi_in_r_data_t axi_in_r;
-    rsp_generic_t gen;
+    rsp_generic_t   gen;
   } rsp_data_t;
 
 
