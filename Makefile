@@ -21,7 +21,7 @@ VSIM_FLAGS += -t 1ps
 VSIM_FLAGS += -sv_seed 0
 VSIM_FLAGS += -voptargs=+acc
 VSIM_FLAGS_GUI += -do "log -r /*"
-ifneq ("$(wildcard test/$(VSIM_TB_DUT).wave.do)","")
+ifneq ("$(wildcard test/$(VSIM_TB_DUT).wave.tcl)","")
     VSIM_FLAGS_GUI += -do "source test/$(VSIM_TB_DUT).wave.tcl"
 endif
 
