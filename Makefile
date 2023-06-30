@@ -40,11 +40,14 @@ endif
 
 SP_TOP_MODULE ?= floo_mesh
 
+FLIT_CFG ?= $(shell find util -name "*.hjson")
+FLIT_SRC ?= $(patsubst util/%_cfg.hjson,src/floo_%_flit_pkg.sv,$(FLIT_CFG))
+
 .PHONY: sources
-sources: util/flit_gen.py $(shell find util/*.hjson)
-	./util/flit_gen.py -c util/axi_cfg.hjson
-	./util/flit_gen.py -c util/narrow_wide_cfg.hjson
-	$(VERIBLE_FMT) --inplace --try_wrap_long_lines src/*flit_pkg.sv
+sources: $(FLIT_SRC) util/gen_jobs.py
+$(FLIT_SRC): src/floo_%_flit_pkg.sv: util/%_cfg.hjson
+	./util/flit_gen.py -c $< > $@
+	$(VERIBLE_FMT) --inplace --try_wrap_long_lines $@
 
 .PHONY: jobs
 jobs: util/gen_jobs.py
