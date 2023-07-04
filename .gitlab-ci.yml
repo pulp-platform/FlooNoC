@@ -9,10 +9,6 @@ variables:
   BENDER: 'bender'
   SPYGLASS: 'spyglass-2022.06 sg_shell'
 
-# workflow:
-#   rules:
-#     - if:
-
 stages:
   - sources
   - build
@@ -34,7 +30,7 @@ collect-bender-sources:
 compile-vsim:
   stage: build
   script:
-    - make sim_compile | tee compile.log 2>&1
+    - make compile-sim | tee compile.log 2>&1
     - '! grep "Error: " compile.log'
   needs:
     - collect-bender-sources
@@ -51,7 +47,7 @@ compile-vsim:
 run-vsim:
   stage: run
   script:
-    - make sim_run_c | tee vsim.log 2>&1
+    - make run-sim-batch | tee vsim.log 2>&1
     - 'grep "Errors: 0," vsim.log'
   artifacts:
     paths:
