@@ -44,8 +44,8 @@ FLIT_CFG ?= $(shell find util -name "*.hjson")
 FLIT_SRC ?= $(patsubst util/%_cfg.hjson,src/floo_%_flit_pkg.sv,$(FLIT_CFG))
 
 .PHONY: sources
-sources: $(FLIT_SRC) util/gen_jobs.py
-$(FLIT_SRC): src/floo_%_flit_pkg.sv: util/%_cfg.hjson
+sources: $(FLIT_SRC)
+src/floo_%_flit_pkg.sv: util/%_cfg.hjson
 	./util/flit_gen.py -c $< > $@
 	$(VERIBLE_FMT) --inplace --try_wrap_long_lines $@
 
@@ -54,7 +54,7 @@ jobs: util/gen_jobs.py
 	mkdir -p test/jobs
 	./util/gen_jobs.py --out_dir test/jobs
 
-scripts/compile_vsim.tcl: Bender.yml
+scripts/compile_vsim.tcl: Bender.yml $(FLIT_SRC)
 	mkdir -p scripts
 	echo 'set ROOT [file normalize [file dirname [info script]]/..]' > scripts/compile_vsim.tcl
 	$(BENDER) script vsim --vlog-arg="$(VLOG_ARGS)" $(BENDER_FLAGS) | grep -v "set ROOT" >> scripts/compile_vsim.tcl
