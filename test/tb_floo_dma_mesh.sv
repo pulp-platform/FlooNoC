@@ -382,6 +382,7 @@ module tb_floo_dma_mesh;
         .ChannelFifoDepth ( ChannelFifoDepth  ),
         .OutputFifoDepth  ( OutputFifoDepth   ),
         .RouteAlgo        ( RouteAlgo         ),
+        .XYRouteOpt       ( 1'b0              ),
         .id_t             ( xy_id_t           )
       ) i_router (
         .clk_i          ( clk         ),
