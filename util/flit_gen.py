@@ -108,8 +108,6 @@ def main():
     parser = argparse.ArgumentParser(
         description="Generate flit files for a given configuration")
     parser.add_argument("--config", "-c", type=pathlib.Path, required=True, help="Path to the config file")
-    parser.add_argument("--output", "-o", type=pathlib.Path, required=False,
-                        default=script_path / '..' / 'src', help="Path to the output file")
 
     args = parser.parse_args()
 
@@ -125,10 +123,8 @@ def main():
     cfg['phys_ch_sizes'] = ch_sizes
     cfg['rsvd_bits'] = rsvd_bits
 
-    out_file = args.output / f"floo_{cfg['name']}_flit_pkg.sv"
-    with open(out_file, "w") as f:
-        tpl = templates.get_template("floo_flit_pkg.sv.tpl")
-        f.write(tpl.render_unicode(cfg=cfg))
+    tpl = templates.get_template("floo_flit_pkg.sv.tpl")
+    print(tpl.render_unicode(cfg=cfg))
 
 
 if __name__ == "__main__":

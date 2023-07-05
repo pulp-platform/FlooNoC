@@ -352,3 +352,4 @@ package floo_narrow_wide_flit_pkg;
   } flit_t;
 
 endpackage
+
