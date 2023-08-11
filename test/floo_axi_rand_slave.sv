@@ -74,6 +74,7 @@ module floo_axi_rand_slave
     MaxMstTrans:        128,
     FallThrough:        1,
     LatencyMode:        axi_pkg::CUT_ALL_PORTS,
+    PipelineStages:     0,
     AxiIdWidthSlvPorts: AxiIdWidth,
     AxiIdUsedSlvPorts:  AxiIdWidth,
     UniqueIds:          0,
