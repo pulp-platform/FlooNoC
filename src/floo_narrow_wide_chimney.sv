@@ -101,10 +101,14 @@ module floo_narrow_wide_chimney
   axi_narrow_in_rsp_t axi_narrow_out_rsp_id_mapped;
   axi_wide_in_req_t axi_wide_out_req_id_mapped;
   axi_wide_in_rsp_t axi_wide_out_rsp_id_mapped;
-  `AXI_ASSIGN_REQ_STRUCT(axi_narrow_out_req_o, axi_narrow_out_req_id_mapped)
-  `AXI_ASSIGN_RESP_STRUCT(axi_narrow_out_rsp_id_mapped, axi_narrow_out_rsp_i)
-  `AXI_ASSIGN_REQ_STRUCT(axi_wide_out_req_o, axi_wide_out_req_id_mapped)
-  `AXI_ASSIGN_RESP_STRUCT(axi_wide_out_rsp_id_mapped, axi_wide_out_rsp_i)
+  `AXI_ASSIGN_REQ_STRUCT(axi_narrow_out_req_o,
+                         axi_narrow_out_req_id_mapped)
+  `AXI_ASSIGN_RESP_STRUCT(axi_narrow_out_rsp_id_mapped,
+                          axi_narrow_out_rsp_i)
+  `AXI_ASSIGN_REQ_STRUCT(axi_wide_out_req_o,
+                         axi_wide_out_req_id_mapped)
+  `AXI_ASSIGN_RESP_STRUCT(axi_wide_out_rsp_id_mapped,
+                          axi_wide_out_rsp_i)
 
   floo_req_t [WideAr:NarrowAw] floo_req_arb_in;
   floo_rsp_t [WideB:NarrowB] floo_rsp_arb_in;
@@ -641,8 +645,10 @@ module floo_narrow_wide_chimney
     assign dst_id[WideW]  = wide_aw_xy_id_q;
     assign dst_id[WideB]  = wide_aw_out_data_out.src_id;
     assign dst_id[WideR]  = wide_ar_out_data_out.src_id;
-    `FFL(narrow_aw_xy_id_q,narrow_aw_xy_id, axi_narrow_aw_queue_valid_out && axi_narrow_aw_queue_ready_in,'0)
-    `FFL(wide_aw_xy_id_q, wide_aw_xy_id, axi_wide_aw_queue_valid_out && axi_wide_aw_queue_ready_in, '0)
+    `FFL(narrow_aw_xy_id_q,narrow_aw_xy_id, axi_narrow_aw_queue_valid_out &&
+                                            axi_narrow_aw_queue_ready_in,'0)
+    `FFL(wide_aw_xy_id_q, wide_aw_xy_id, axi_wide_aw_queue_valid_out &&
+                                            axi_wide_aw_queue_ready_in, '0)
   end else if (RouteAlgo == IdTable) begin : gen_id_table_routing
     id_t narrow_aw_id_q, narrow_aw_id, narrow_ar_id;
     id_t wide_aw_id_q, wide_aw_id, wide_ar_id;
@@ -661,8 +667,10 @@ module floo_narrow_wide_chimney
     assign dst_id[WideW]  = wide_aw_id_q;
     assign dst_id[WideB]  = wide_aw_out_data_out.src_id;
     assign dst_id[WideR]  = wide_ar_out_data_out.src_id;
-    `FFL(narrow_aw_id_q, narrow_aw_id, axi_narrow_aw_queue_valid_out && axi_narrow_aw_queue_ready_in, '0)
-    `FFL(wide_aw_id_q, wide_aw_id, axi_wide_aw_queue_valid_out && axi_wide_aw_queue_ready_in, '0)
+    `FFL(narrow_aw_id_q, narrow_aw_id, axi_narrow_aw_queue_valid_out &&
+                                       axi_narrow_aw_queue_ready_in, '0)
+    `FFL(wide_aw_id_q, wide_aw_id, axi_wide_aw_queue_valid_out &&
+                                       axi_wide_aw_queue_ready_in, '0)
   end else begin : gen_no_routing
     // TODO: Implement other routing algorithms
     $fatal(1, "Routing algorithm not implemented");
@@ -795,7 +803,8 @@ module floo_narrow_wide_chimney
     if (axi_narrow_aw_queue_valid_out && axi_narrow_aw_queue_ready_in) begin
       narrow_aw_w_sel_d = SelW;
     end
-    if (axi_narrow_in_req_i.w_valid && axi_narrow_in_rsp_o.w_ready && axi_narrow_in_req_i.w.last) begin
+    if (axi_narrow_in_req_i.w_valid && axi_narrow_in_rsp_o.w_ready &&
+        axi_narrow_in_req_i.w.last) begin
       narrow_aw_w_sel_d = SelAw;
     end
     if (axi_wide_aw_queue_valid_out && axi_wide_aw_queue_ready_in) begin
@@ -906,8 +915,10 @@ module floo_narrow_wide_chimney
   logic b_sel_atop, r_sel_atop;
   logic b_rob_pending_q, r_rob_pending_q;
 
-  assign is_atop_b_rsp = AtopSupport && axi_valid_in[NarrowB] && floo_narrow_unpack_rsp_generic.hdr.atop;
-  assign is_atop_r_rsp = AtopSupport && axi_valid_in[NarrowR] && floo_narrow_unpack_rsp_generic.hdr.atop;
+  assign is_atop_b_rsp = AtopSupport && axi_valid_in[NarrowB] &&
+                         floo_narrow_unpack_rsp_generic.hdr.atop;
+  assign is_atop_r_rsp = AtopSupport && axi_valid_in[NarrowR] &&
+                         floo_narrow_unpack_rsp_generic.hdr.atop;
   assign b_sel_atop = is_atop_b_rsp && !b_rob_pending_q;
   assign r_sel_atop = is_atop_r_rsp && !r_rob_pending_q;
 
@@ -992,8 +1003,10 @@ module floo_narrow_wide_chimney
   assign axi_narrow_out_req_id_mapped.ar  = axi_narrow_ar_id_mod;
   assign axi_narrow_b_rob_in              = axi_narrow_unpack_b_data;
   assign axi_narrow_r_rob_in              = axi_narrow_unpack_r_data;
-  assign axi_narrow_in_rsp_o.b            = (b_sel_atop)? axi_narrow_unpack_b_data : axi_narrow_b_rob_out;
-  assign axi_narrow_in_rsp_o.r            = (r_sel_atop)? axi_narrow_unpack_r_data : axi_narrow_r_rob_out;
+  assign axi_narrow_in_rsp_o.b            = (b_sel_atop)? axi_narrow_unpack_b_data
+                                            : axi_narrow_b_rob_out;
+  assign axi_narrow_in_rsp_o.r            = (r_sel_atop)? axi_narrow_unpack_r_data
+                                            : axi_narrow_r_rob_out;
   assign axi_wide_out_req_id_mapped.aw    = axi_wide_aw_id_mod;
   assign axi_wide_out_req_id_mapped.w     = axi_wide_unpack_w_data;
   assign axi_wide_out_req_id_mapped.ar    = axi_wide_ar_id_mod;
@@ -1174,10 +1187,16 @@ module floo_narrow_wide_chimney
   //                                 |=> $stable(rsp_i.data))
   // `ASSERT(WideOutStableData, wide_o.valid && !wide_i.ready |=> $stable(wide_o.data))
   // `ASSERT(WideStableData, wide_i.valid && !wide_o.ready |=> $stable(wide_i.data))
-  `ASSERT(NarrowReqOutStableValid, floo_req_o.generic.valid && !floo_req_i.generic.ready |=> floo_req_o.generic.valid)
-  `ASSERT(NarrowReqInStableValid, floo_req_i.generic.valid && !floo_req_o.generic.ready |=> floo_req_i.generic.valid)
-  `ASSERT(NarrowRspOutStableValid, floo_rsp_o.generic.valid && !floo_rsp_i.generic.ready |=> floo_rsp_o.generic.valid)
-  `ASSERT(NarrowRspInStableValid, floo_rsp_i.generic.valid && !floo_rsp_o.generic.ready |=> floo_rsp_i.generic.valid)
-  `ASSERT(WideOutStableValid, floo_wide_o.generic.valid && !floo_wide_i.generic.ready |=> floo_wide_o.generic.valid)
-  `ASSERT(WideStableValid, floo_wide_i.generic.valid && !floo_wide_o.generic.ready |=> floo_wide_i.generic.valid)
+  `ASSERT(NarrowReqOutStableValid, floo_req_o.generic.valid &&
+                                   !floo_req_i.generic.ready |=> floo_req_o.generic.valid)
+  `ASSERT(NarrowReqInStableValid, floo_req_i.generic.valid &&
+                                  !floo_req_o.generic.ready |=> floo_req_i.generic.valid)
+  `ASSERT(NarrowRspOutStableValid, floo_rsp_o.generic.valid &&
+                                   !floo_rsp_i.generic.ready |=> floo_rsp_o.generic.valid)
+  `ASSERT(NarrowRspInStableValid, floo_rsp_i.generic.valid &&
+                                  !floo_rsp_o.generic.ready |=> floo_rsp_i.generic.valid)
+  `ASSERT(WideOutStableValid, floo_wide_o.generic.valid &&
+                              !floo_wide_i.generic.ready |=> floo_wide_o.generic.valid)
+  `ASSERT(WideStableValid, floo_wide_i.generic.valid &&
+                           !floo_wide_o.generic.ready |=> floo_wide_i.generic.valid)
 endmodule
