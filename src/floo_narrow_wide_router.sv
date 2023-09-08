@@ -29,20 +29,13 @@ module floo_narrow_wide_router
   input  id_t xy_id_i,
   input  addr_rule_t [NumAddrRules-1:0] id_route_map_i,
 
-  input   floo_req_t [NumInputs-1:0] req_i,
-  input   floo_rsp_t [NumOutputs-1:0] rsp_i,
-  output  floo_req_t [NumOutputs-1:0] req_o,
-  output  floo_rsp_t [NumInputs-1:0] rsp_o,
-  input   floo_wide_t   [NumRoutes-1:0] wide_i,
-  output  floo_wide_t   [NumRoutes-1:0] wide_o
+  input   floo_req_t [NumInputs-1:0] floo_req_i,
+  input   floo_rsp_t [NumOutputs-1:0] floo_rsp_i,
+  output  floo_req_t [NumOutputs-1:0] floo_req_o,
+  output  floo_rsp_t [NumInputs-1:0] floo_rsp_o,
+  input   floo_wide_t   [NumRoutes-1:0] floo_wide_i,
+  output  floo_wide_t   [NumRoutes-1:0] floo_wide_o
 );
-
-  floo_req_t [NumInputs-1:0] req_in;
-  floo_rsp_t [NumInputs-1:0] rsp_in;
-  floo_wide_t [NumInputs-1:0] wide_in;
-  floo_req_t [NumOutputs-1:0] req_out;
-  floo_rsp_t [NumOutputs-1:0] rsp_out;
-  floo_wide_t [NumOutputs-1:0] wide_out;
 
   logic [NumInputs-1:0] req_valid_in, req_ready_out;
   logic [NumInputs-1:0] rsp_valid_out, rsp_ready_in;
@@ -52,28 +45,28 @@ module floo_narrow_wide_router
   logic [NumRoutes-1:0] wide_ready_in, wide_ready_out;
 
   for (genvar i = 0; i < NumInputs; i++) begin : gen_chimney_req
-    assign req_valid_in[i] = req_i[i].generic.valid;
-    assign rsp_ready_in[i] = rsp_i[i].generic.ready;
-    assign rsp_o[i].generic.valid = rsp_valid_out[i];
-    assign req_o[i].generic.ready = req_ready_out[i];
+    assign req_valid_in[i] = floo_req_i[i].generic.valid;
+    assign rsp_ready_in[i] = floo_rsp_i[i].generic.ready;
+    assign floo_rsp_o[i].generic.valid = rsp_valid_out[i];
+    assign floo_req_o[i].generic.ready = req_ready_out[i];
   end
 
   for (genvar i = 0; i < NumOutputs; i++) begin : gen_chimney_rsp
-    assign rsp_valid_in[i] = rsp_i[i].generic.valid;
-    assign req_ready_in[i] = req_i[i].generic.ready;
-    assign req_o[i].generic.valid = req_valid_out[i];
-    assign rsp_o[i].generic.ready = rsp_ready_out[i];
-    assign wide_valid_in[i] = wide_i[i].generic.valid;
-    assign wide_ready_in[i] = wide_i[i].generic.ready;
-    assign wide_o[i].generic.valid = wide_valid_out[i];
-    assign wide_o[i].generic.ready = wide_ready_out[i];
+    assign rsp_valid_in[i] = floo_rsp_i[i].generic.valid;
+    assign req_ready_in[i] = floo_req_i[i].generic.ready;
+    assign floo_req_o[i].generic.valid = req_valid_out[i];
+    assign floo_rsp_o[i].generic.ready = rsp_ready_out[i];
+    assign wide_valid_in[i] = floo_wide_i[i].generic.valid;
+    assign wide_ready_in[i] = floo_wide_i[i].generic.ready;
+    assign floo_wide_o[i].generic.valid = wide_valid_out[i];
+    assign floo_wide_o[i].generic.ready = wide_ready_out[i];
   end
 
   for (genvar i = 0; i < NumRoutes; i++) begin : gen_chimney_wide
-    assign wide_valid_in[i] = wide_i[i].generic.valid;
-    assign wide_ready_in[i] = wide_i[i].generic.ready;
-    assign wide_o[i].generic.valid = wide_valid_out[i];
-    assign wide_o[i].generic.ready = wide_ready_out[i];
+    assign wide_valid_in[i] = floo_wide_i[i].generic.valid;
+    assign wide_ready_in[i] = floo_wide_i[i].generic.ready;
+    assign floo_wide_o[i].generic.valid = wide_valid_out[i];
+    assign floo_wide_o[i].generic.ready = wide_ready_out[i];
   end
 
   floo_router #(
@@ -96,10 +89,10 @@ module floo_narrow_wide_router
     .id_route_map_i,
     .valid_i        ( req_valid_in  ),
     .ready_o        ( req_ready_out ),
-    .data_i         ( req_in        ),
+    .data_i         ( floo_req_i    ),
     .valid_o        ( req_valid_out ),
     .ready_i        ( req_ready_in  ),
-    .data_o         ( req_out       )
+    .data_o         ( floo_req_o    )
   );
 
 
@@ -121,12 +114,12 @@ module floo_narrow_wide_router
     .test_enable_i,
     .xy_id_i,
     .id_route_map_i,
-    .valid_i        ( rsp_valid_in   ),
-    .ready_o        ( rsp_ready_out  ),
-    .data_i         ( rsp_in         ),
-    .valid_o        ( rsp_valid_out  ),
-    .ready_i        ( rsp_ready_in   ),
-    .data_o         ( rsp_out        )
+    .valid_i        ( rsp_valid_in  ),
+    .ready_o        ( rsp_ready_out ),
+    .data_i         ( floo_rsp_i    ),
+    .valid_o        ( rsp_valid_out ),
+    .ready_i        ( rsp_ready_in  ),
+    .data_o         ( floo_rsp_o    )
   );
 
 
@@ -149,10 +142,10 @@ module floo_narrow_wide_router
     .id_route_map_i,
     .valid_i        ( wide_valid_in   ),
     .ready_o        ( wide_ready_out  ),
-    .data_i         ( wide_in         ),
+    .data_i         ( floo_wide_i     ),
     .valid_o        ( wide_valid_out  ),
     .ready_i        ( wide_ready_in   ),
-    .data_o         ( wide_out        )
+    .data_o         ( floo_wide_o     )
   );
 
 endmodule

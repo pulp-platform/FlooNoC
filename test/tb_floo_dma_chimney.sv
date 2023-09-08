@@ -100,6 +100,7 @@ module tb_floo_dma_chimney;
     );
 
   floo_axi_chimney #(
+    .AtopSupport        ( 1'b0                ),
     .RouteAlgo          ( floo_pkg::IdTable   ),
     .MaxTxns            ( MaxTxns             ),
     .MaxTxnsPerId       ( MaxTxnsPerId        ),
@@ -122,6 +123,7 @@ module tb_floo_dma_chimney;
   );
 
   floo_axi_chimney #(
+    .AtopSupport        ( 1'b0                ),
     .RouteAlgo          ( floo_pkg::IdTable   ),
     .MaxTxns            ( MaxTxns             ),
     .MaxTxnsPerId       ( MaxTxnsPerId        ),
