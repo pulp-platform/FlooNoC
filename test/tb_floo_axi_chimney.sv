@@ -11,7 +11,7 @@
 module tb_floo_axi_chimney;
 
   import floo_pkg::*;
-  import floo_axi_flit_pkg::*;
+  import floo_axi_pkg::*;
 
   localparam time CyclTime = 10ns;
   localparam time ApplTime = 2ns;
@@ -31,21 +31,21 @@ module tb_floo_axi_chimney;
   logic clk, rst_n;
 
   axi_in_req_t [NumTargets-1:0] node_man_req;
-  axi_in_resp_t [NumTargets-1:0] node_man_rsp;
+  axi_in_rsp_t [NumTargets-1:0] node_man_rsp;
 
   axi_out_req_t [NumTargets-1:0] node_sub_req;
-  axi_out_resp_t [NumTargets-1:0] node_sub_rsp;
+  axi_out_rsp_t [NumTargets-1:0] node_sub_rsp;
 
   axi_in_req_t [NumTargets-1:0] sub_req_id_assign;
-  axi_in_resp_t [NumTargets-1:0] sub_rsp_id_assign;
+  axi_in_rsp_t [NumTargets-1:0] sub_rsp_id_assign;
 
   for (genvar i = 0; i < NumTargets; i++) begin : gen_axi_assign
     `AXI_ASSIGN_REQ_STRUCT(sub_req_id_assign[i], node_sub_req[i])
     `AXI_ASSIGN_RESP_STRUCT(sub_rsp_id_assign[i], node_sub_rsp[i])
   end
 
-  req_flit_t [NumTargets-1:0] chimney_req;
-  rsp_flit_t [NumTargets-1:0] chimney_rsp;
+  floo_req_t [NumTargets-1:0] chimney_req;
+  floo_rsp_t [NumTargets-1:0] chimney_rsp;
 
   logic [NumTargets*2-1:0] end_of_sim;
 
@@ -74,9 +74,9 @@ module tb_floo_axi_chimney;
     .AxiIdInWidth   ( AxiOutIdWidth       ),
     .AxiUserWidth   ( AxiInUserWidth      ),
     .mst_req_t      ( axi_in_req_t        ),
-    .mst_rsp_t      ( axi_in_resp_t       ),
+    .mst_rsp_t      ( axi_in_rsp_t        ),
     .slv_req_t      ( axi_out_req_t       ),
-    .slv_rsp_t      ( axi_out_resp_t      ),
+    .slv_rsp_t      ( axi_out_rsp_t       ),
     .ApplTime       ( ApplTime            ),
     .TestTime       ( TestTime            ),
     .Atops          ( 1'b1                ),
@@ -105,7 +105,7 @@ module tb_floo_axi_chimney;
     .ar_chan_t      ( axi_in_ar_chan_t  ),
     .r_chan_t       ( axi_in_r_chan_t   ),
     .req_t          ( axi_in_req_t      ),
-    .rsp_t          ( axi_in_resp_t     )
+    .rsp_t          ( axi_in_rsp_t      )
   ) i_axi_chan_compare_0 (
     .clk_i          ( clk                   ),
     .mon_mst_req_i  ( node_man_req[0]       ),
@@ -133,10 +133,10 @@ module tb_floo_axi_chimney;
     .axi_out_rsp_i  ( node_sub_rsp[0]   ),
     .xy_id_i        ( '0                ),
     .id_i           ( '0                ),
-    .req_o          ( chimney_req[0]    ),
-    .rsp_o          ( chimney_rsp[0]    ),
-    .req_i          ( chimney_req[1]    ),
-    .rsp_i          ( chimney_rsp[1]    )
+    .floo_req_o     ( chimney_req[0]    ),
+    .floo_rsp_o     ( chimney_rsp[0]    ),
+    .floo_req_i     ( chimney_req[1]    ),
+    .floo_rsp_i     ( chimney_rsp[1]    )
   );
 
   floo_axi_chimney #(
@@ -157,10 +157,10 @@ module tb_floo_axi_chimney;
     .axi_out_rsp_i  ( node_sub_rsp[1]       ),
     .xy_id_i        ( '0                    ),
     .id_i           ( '0                    ),
-    .req_o          ( chimney_req[1]        ),
-    .rsp_o          ( chimney_rsp[1]        ),
-    .req_i          ( chimney_req[0]        ),
-    .rsp_i          ( chimney_rsp[0]        )
+    .floo_req_o     ( chimney_req[1]        ),
+    .floo_rsp_o     ( chimney_rsp[1]        ),
+    .floo_req_i     ( chimney_req[0]        ),
+    .floo_rsp_i     ( chimney_rsp[0]        )
   );
 
   axi_reorder_remap_compare #(
@@ -172,7 +172,7 @@ module tb_floo_axi_chimney;
     .ar_chan_t      ( axi_in_ar_chan_t  ),
     .r_chan_t       ( axi_in_r_chan_t   ),
     .req_t          ( axi_in_req_t      ),
-    .rsp_t          ( axi_in_resp_t     )
+    .rsp_t          ( axi_in_rsp_t      )
   ) i_axi_chan_compare_1 (
     .clk_i          ( clk                   ),
     .mon_mst_req_i  ( node_man_req[1]       ),
@@ -189,9 +189,9 @@ module tb_floo_axi_chimney;
     .AxiIdOutWidth  ( AxiInIdWidth        ),
     .AxiUserWidth   ( AxiInUserWidth      ),
     .mst_req_t      ( axi_in_req_t        ),
-    .mst_rsp_t      ( axi_in_resp_t       ),
+    .mst_rsp_t      ( axi_in_rsp_t       ),
     .slv_req_t      ( axi_out_req_t       ),
-    .slv_rsp_t      ( axi_out_resp_t      ),
+    .slv_rsp_t      ( axi_out_rsp_t      ),
     .ApplTime       ( ApplTime            ),
     .TestTime       ( TestTime            ),
     .Atops          ( 1'b1                ),
@@ -213,7 +213,7 @@ module tb_floo_axi_chimney;
 
   axi_bw_monitor #(
     .req_t      ( axi_in_req_t  ),
-    .rsp_t      ( axi_in_resp_t ),
+    .rsp_t      ( axi_in_rsp_t ),
     .AxiIdWidth ( AxiInIdWidth  )
   ) i_axi_bw_monitor (
     .clk_i        ( clk             ),

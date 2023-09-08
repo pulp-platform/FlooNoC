@@ -67,12 +67,12 @@ endif
 ###################
 
 FLIT_CFG ?= $(shell find util -name "*.hjson")
-FLIT_SRC ?= $(patsubst util/%_cfg.hjson,src/floo_%_flit_pkg.sv,$(FLIT_CFG))
+FLIT_SRC ?= $(patsubst util/%_cfg.hjson,src/floo_%_pkg.sv,$(FLIT_CFG))
 
 .PHONY: sources clean-sources
 
 sources: $(FLIT_SRC)
-src/floo_%_flit_pkg.sv: util/%_cfg.hjson
+src/floo_%_pkg.sv: util/%_cfg.hjson
 	./util/flit_gen.py -c $< > $@
 	$(VERIBLE_FMT) --inplace --try_wrap_long_lines $@
 

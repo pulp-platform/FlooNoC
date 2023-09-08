@@ -6,23 +6,26 @@
 
 {
     name: "narrow_wide",
-    axi_channels: [
-      {name: 'narrow_in', params: {dw: 64, aw: 48, iw: 4, uw: 5 }},
-      {name: 'narrow_out', params: {dw: 64, aw: 48, iw: 2, uw: 5 }},
-      {name: 'wide_in', params: {dw: 512, aw: 48, iw: 3, uw: 1 }},
-      {name: 'wide_out', params: {dw: 512, aw: 48, iw: 1, uw: 1 }},
+    protocols: [
+      {name: 'narrow', direction: 'input', params: {dw: 64, aw: 48, iw: 4, uw: 5 }},
+      {name: 'narrow', direction: 'output', params: {dw: 64, aw: 48, iw: 2, uw: 5 }},
+      {name: 'wide', direction: 'input', params: {dw: 512, aw: 48, iw: 3, uw: 1 }},
+      {name: 'wide', direction: 'output', params: {dw: 512, aw: 48, iw: 1, uw: 1 }},
     ]
-    phys_channels: [
-      "narrow_req",
-      "narrow_rsp",
-      "wide",
-    ],
-    map: {
-      narrow_req: ["narrow_in_aw", "narrow_in_w", "narrow_in_ar", "wide_in_ar", "wide_in_aw"],
-      narrow_rsp: ["narrow_in_b", "narrow_in_r", "wide_in_b"]
-      wide: ["wide_in_w", "wide_in_r"]
+    channel_mapping: {
+      req: {
+            narrow: ['aw', 'w', 'ar'],
+            wide: ['aw', 'ar']
+      },
+      rsp: {
+          narrow: ['b', 'r'],
+          wide: ['b']
+      },
+      wide: {
+          wide: ['w', 'r']
+      }
     },
-    meta: {
+    header: {
       rob_req: 1,
       rob_idx: 8,
       dst_id: 6,
