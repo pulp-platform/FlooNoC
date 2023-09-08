@@ -45,7 +45,7 @@ module floo_route_select import floo_pkg::*;
     // One-hot encoding of the decoded route
     always_comb begin : proc_route_sel
       route_sel = '0;
-      route_sel[channel_i.dst_id] = 1'b1;
+      route_sel[channel_i.hdr.dst_id] = 1'b1;
     end
 
   end else if (RouteAlgo == IdTable) begin : gen_id_table
@@ -64,7 +64,7 @@ module floo_route_select import floo_pkg::*;
       .rule_t    ( addr_rule_t  ),
       .Napot     ( 0            )
     ) i_id_decode (
-      .addr_i           ( channel_i.dst_id  ),
+      .addr_i           ( channel_i.hdr.dst_id  ),
       .addr_map_i       ( id_route_map_i    ),
       .idx_o            ( out_id            ),
       .dec_valid_o      (),
@@ -102,7 +102,7 @@ module floo_route_select import floo_pkg::*;
     // One-hot encoding of the decoded route
 
     id_t id_in;
-    assign id_in = id_t'(channel_i.dst_id);
+    assign id_in = id_t'(channel_i.hdr.dst_id);
 
     always_comb begin : proc_route_sel
       route_sel = '0;
@@ -142,7 +142,7 @@ module floo_route_select import floo_pkg::*;
       locked_route_d = locked_route_q;
 
       if (ready_i && valid_i) begin
-        locked_route_d = ~channel_i.last;
+        locked_route_d = ~channel_i.hdr.last;
 
       end
     end

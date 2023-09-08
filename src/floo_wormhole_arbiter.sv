@@ -62,7 +62,7 @@ module floo_wormhole_arbiter import floo_pkg::*;
     ready_o[valid_selected_idx] = ready_i;
   end
 
-  assign last_out = data_o.last & valid_o;
+  assign last_out = data_o.hdr.last & valid_o;
 
   always_comb begin : proc_valid
     valid_d = valid_q;
