@@ -19,8 +19,8 @@ export_include_dirs:
 
 sources:
   # Level 0
-  - src/floo_axi_flit_pkg.sv
-  - src/floo_narrow_wide_flit_pkg.sv
+  - src/floo_axi_pkg.sv
+  - src/floo_narrow_wide_pkg.sv
   - src/floo_pkg.sv
   - src/floo_param_pkg.sv
   # Level 1
