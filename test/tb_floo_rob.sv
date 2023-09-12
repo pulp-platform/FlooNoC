@@ -47,20 +47,27 @@ module tb_floo_rob;
 
   floo_req_t [NumDirections-1:0] chimney_req_out, chimney_req_in;
   floo_rsp_t [NumDirections-1:0] chimney_rsp_out, chimney_rsp_in;
+  floo_req_chan_t [NumDirections-1:0] chimney_req_out_chan, chimney_req_in_chan;
+  floo_rsp_chan_t [NumDirections-1:0] chimney_rsp_out_chan, chimney_rsp_in_chan;
+
   logic [NumDirections-1:0]      chimney_req_out_valid, chimney_req_out_ready;
   logic [NumDirections-1:0]      chimney_rsp_out_valid, chimney_rsp_out_ready;
   logic [NumDirections-1:0]      chimney_req_in_valid, chimney_req_in_ready;
   logic [NumDirections-1:0]      chimney_rsp_in_valid, chimney_rsp_in_ready;
 
   for (genvar i = 0; i < NumDirections; i++) begin : gen_directions
-    assign chimney_req_out_valid[i] = chimney_req_out[i].generic.valid;
-    assign chimney_req_out_ready[i] = chimney_req_out[i].generic.ready;
-    assign chimney_rsp_out_valid[i] = chimney_rsp_out[i].generic.valid;
-    assign chimney_rsp_out_ready[i] = chimney_rsp_out[i].generic.ready;
-    assign chimney_req_in[i].generic.valid = chimney_req_in_valid[i];
-    assign chimney_req_in[i].generic.ready = chimney_req_in_ready[i];
-    assign chimney_rsp_in[i].generic.valid = chimney_rsp_in_valid[i];
-    assign chimney_rsp_in[i].generic.ready = chimney_rsp_in_ready[i];
+    assign chimney_req_out_chan[i] = chimney_req_out[i].req;
+    assign chimney_rsp_out_chan[i] = chimney_rsp_out[i].rsp;
+    assign chimney_req_in_chan[i] = chimney_req_in[i].req;
+    assign chimney_rsp_in_chan[i] = chimney_rsp_in[i].rsp;
+    assign chimney_req_out_valid[i] = chimney_req_out[i].valid;
+    assign chimney_req_out_ready[i] = chimney_req_out[i].ready;
+    assign chimney_rsp_out_valid[i] = chimney_rsp_out[i].valid;
+    assign chimney_rsp_out_ready[i] = chimney_rsp_out[i].ready;
+    assign chimney_req_in[i].valid = chimney_req_in_valid[i];
+    assign chimney_req_in[i].ready = chimney_req_in_ready[i];
+    assign chimney_rsp_in[i].valid = chimney_rsp_in_valid[i];
+    assign chimney_rsp_in[i].ready = chimney_rsp_in_ready[i];
   end
 
   logic [1:0] end_of_sim;
@@ -165,10 +172,10 @@ module tb_floo_rob;
     .id_route_map_i ( '0                    ),
     .valid_i        ( chimney_req_out_valid ),
     .ready_o        ( chimney_req_in_ready  ),
-    .data_i         ( chimney_req_out       ),
+    .data_i         ( chimney_req_out_chan  ),
     .valid_o        ( chimney_req_in_valid  ),
     .ready_i        ( chimney_req_out_ready ),
-    .data_o         ( chimney_req_in        )
+    .data_o         ( chimney_req_in_chan   )
   );
 
   floo_router #(
@@ -187,10 +194,10 @@ module tb_floo_rob;
     .id_route_map_i ( '0                    ),
     .valid_i        ( chimney_rsp_out_valid ),
     .ready_o        ( chimney_rsp_in_ready  ),
-    .data_i         ( chimney_rsp_out       ),
+    .data_i         ( chimney_rsp_out_chan  ),
     .valid_o        ( chimney_rsp_in_valid  ),
     .ready_i        ( chimney_rsp_out_ready ),
-    .data_o         ( chimney_rsp_in        )
+    .data_o         ( chimney_rsp_in_chan   )
   );
 
   localparam slave_type_e SlaveType[NumDirections-1] = '{FastSlave, FastSlave, SlowSlave, MixedSlave};

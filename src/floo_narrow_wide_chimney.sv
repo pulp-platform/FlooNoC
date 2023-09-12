@@ -110,19 +110,19 @@ module floo_narrow_wide_chimney
   `AXI_ASSIGN_RESP_STRUCT(axi_wide_out_rsp_id_mapped,
                           axi_wide_out_rsp_i)
 
-  floo_req_t [WideAr:NarrowAw] floo_req_arb_in;
-  floo_rsp_t [WideB:NarrowB] floo_rsp_arb_in;
-  floo_wide_t [WideR:WideW] floo_wide_arb_in;
+  floo_req_chan_t [WideAr:NarrowAw] floo_req_arb_in;
+  floo_rsp_chan_t [WideB:NarrowB] floo_rsp_arb_in;
+  floo_wide_chan_t [WideR:WideW] floo_wide_arb_in;
   logic  [WideAr:NarrowAw] floo_req_arb_req_in, floo_req_arb_gnt_out;
   logic  [WideB:NarrowB]   floo_rsp_arb_req_in, floo_rsp_arb_gnt_out;
   logic  [WideR:WideW]     floo_wide_arb_req_in, floo_wide_arb_gnt_out;
 
   // flit queue
-  floo_req_t floo_req_in;
-  floo_rsp_t floo_rsp_in;
-  floo_wide_t floo_wide_in;
-  logic floo_req_ready_out, floo_rsp_ready_out;
-  logic floo_wide_ready_out;
+  floo_req_chan_t floo_req_in;
+  floo_rsp_chan_t floo_rsp_in;
+  floo_wide_chan_t floo_wide_in;
+  logic floo_req_in_valid, floo_rsp_in_valid, floo_wide_in_valid;
+  logic floo_req_out_ready, floo_rsp_out_ready, floo_wide_out_ready;
   logic [NumNarrowWideAxiChannels-1:0] axi_valid_in, axi_ready_out;
 
   // Flit packing
@@ -273,51 +273,54 @@ module floo_narrow_wide_chimney
 
   if (CutRsp) begin : gen_rsp_cuts
     spill_register #(
-      .T ( floo_req_t )
+      .T ( floo_req_chan_t )
     ) i_narrow_data_req_arb (
       .clk_i,
       .rst_ni,
-      .data_i     ( floo_req_i.generic         ),
-      .valid_i    ( floo_req_i.generic.valid   ),
-      .ready_o    ( floo_req_o.generic.ready   ),
-      .data_o     ( floo_req_in.generic        ),
-      .valid_o    ( floo_req_in.generic.valid  ),
-      .ready_i    ( floo_req_ready_out         )
+      .data_i     ( floo_req_i.req      ),
+      .valid_i    ( floo_req_i.valid    ),
+      .ready_o    ( floo_req_o.ready    ),
+      .data_o     ( floo_req_in         ),
+      .valid_o    ( floo_req_in_valid   ),
+      .ready_i    ( floo_req_out_ready  )
     );
 
     spill_register #(
-      .T ( floo_rsp_t )
+      .T ( floo_rsp_chan_t )
     ) i_narrow_data_rsp_arb (
       .clk_i,
       .rst_ni,
-      .data_i     ( floo_rsp_i.generic         ),
-      .valid_i    ( floo_rsp_i.generic.valid   ),
-      .ready_o    ( floo_rsp_o.generic.ready   ),
-      .data_o     ( floo_rsp_in.generic        ),
-      .valid_o    ( floo_rsp_in.generic.valid  ),
-      .ready_i    ( floo_rsp_ready_out         )
+      .data_i     ( floo_rsp_i.rsp      ),
+      .valid_i    ( floo_rsp_i.valid    ),
+      .ready_o    ( floo_rsp_o.ready    ),
+      .data_o     ( floo_rsp_in         ),
+      .valid_o    ( floo_rsp_in_valid   ),
+      .ready_i    ( floo_rsp_out_ready  )
     );
 
     spill_register #(
-      .T ( floo_wide_t )
+      .T ( floo_wide_chan_t )
     ) i_wide_data_req_arb (
       .clk_i,
       .rst_ni,
-      .data_i     ( floo_wide_i.generic         ),
-      .valid_i    ( floo_wide_i.generic.valid   ),
-      .ready_o    ( floo_wide_o.generic.ready   ),
-      .data_o     ( floo_wide_in.generic        ),
-      .valid_o    ( floo_wide_in.generic.valid  ),
-      .ready_i    ( floo_wide_ready_out         )
+      .data_i     ( floo_wide_i.wide    ),
+      .valid_i    ( floo_wide_i.valid   ),
+      .ready_o    ( floo_wide_o.ready   ),
+      .data_o     ( floo_wide_in        ),
+      .valid_o    ( floo_wide_in_valid  ),
+      .ready_i    ( floo_wide_out_ready )
     );
 
   end else begin : gen_no_rsp_cuts
-    assign floo_req_in = floo_req_i;
-    assign floo_rsp_in = floo_rsp_i;
-    assign floo_wide_in = floo_wide_i;
-    assign floo_req_o.generic.ready = floo_req_ready_out;
-    assign floo_rsp_o.generic.ready = floo_rsp_ready_out;
-    assign floo_wide_o.generic.ready = floo_wide_ready_out;
+    assign floo_req_in = floo_req_i.req;
+    assign floo_rsp_in = floo_rsp_i.rsp;
+    assign floo_wide_in = floo_wide_i.wide;
+    assign floo_req_in_valid = floo_req_i.valid;
+    assign floo_rsp_in_valid = floo_rsp_i.valid;
+    assign floo_wide_in_valid = floo_wide_i.valid;
+    assign floo_req_o.ready = floo_req_out_ready;
+    assign floo_rsp_o.ready = floo_rsp_out_ready;
+    assign floo_wide_o.ready = floo_wide_out_ready;
   end
 
   ///////////////////////
@@ -866,45 +869,45 @@ module floo_narrow_wide_chimney
   ///////////////////////
 
   floo_wormhole_arbiter #(
-    .NumRoutes  ( 5                               ),
-    .flit_t     ( floo_req_generic_flit_t  )
+    .NumRoutes  ( 5               ),
+    .flit_t     ( floo_req_chan_t )
   ) i_req_wormhole_arbiter (
-    .clk_i    ( clk_i                           ),
-    .rst_ni   ( rst_ni                          ),
-    .valid_i  ( floo_req_arb_req_in      ),
-    .data_i   ( floo_req_arb_in          ),
-    .ready_o  ( floo_req_arb_gnt_out     ),
-    .data_o   ( floo_req_o.generic       ),
-    .ready_i  ( floo_req_i.generic.ready ),
-    .valid_o  ( floo_req_o.generic.valid )
+    .clk_i,
+    .rst_ni,
+    .valid_i  ( floo_req_arb_req_in   ),
+    .data_i   ( floo_req_arb_in       ),
+    .ready_o  ( floo_req_arb_gnt_out  ),
+    .data_o   ( floo_req_o.req        ),
+    .ready_i  ( floo_req_i.ready      ),
+    .valid_o  ( floo_req_o.valid      )
   );
 
   floo_wormhole_arbiter #(
-    .NumRoutes  ( 3                               ),
-    .flit_t     ( floo_rsp_generic_flit_t  )
+    .NumRoutes  ( 3               ),
+    .flit_t     ( floo_rsp_chan_t )
   ) i_rsp_wormhole_arbiter (
-    .clk_i    ( clk_i                           ),
-    .rst_ni   ( rst_ni                          ),
-    .valid_i  ( floo_rsp_arb_req_in      ),
-    .data_i   ( floo_rsp_arb_in          ),
-    .ready_o  ( floo_rsp_arb_gnt_out     ),
-    .data_o   ( floo_rsp_o.generic       ),
-    .ready_i  ( floo_rsp_i.generic.ready ),
-    .valid_o  ( floo_rsp_o.generic.valid )
+    .clk_i,
+    .rst_ni,
+    .valid_i  ( floo_rsp_arb_req_in   ),
+    .data_i   ( floo_rsp_arb_in       ),
+    .ready_o  ( floo_rsp_arb_gnt_out  ),
+    .data_o   ( floo_rsp_o.rsp        ),
+    .ready_i  ( floo_rsp_i.ready      ),
+    .valid_o  ( floo_rsp_o.valid      )
   );
 
   floo_wormhole_arbiter #(
-    .NumRoutes  ( 2                         ),
-    .flit_t     ( floo_wide_generic_flit_t  )
+    .NumRoutes  ( 2                 ),
+    .flit_t     ( floo_wide_chan_t  )
   ) i_wide_wormhole_arbiter (
-    .clk_i    ( clk_i                     ),
-    .rst_ni   ( rst_ni                    ),
-    .valid_i  ( floo_wide_arb_req_in      ),
-    .data_i   ( floo_wide_arb_in          ),
-    .ready_o  ( floo_wide_arb_gnt_out     ),
-    .data_o   ( floo_wide_o.generic       ),
-    .ready_i  ( floo_wide_i.generic.ready ),
-    .valid_o  ( floo_wide_o.generic.valid )
+    .clk_i,
+    .rst_ni,
+    .valid_i  ( floo_wide_arb_req_in  ),
+    .data_i   ( floo_wide_arb_in      ),
+    .ready_o  ( floo_wide_arb_gnt_out ),
+    .data_o   ( floo_wide_o.wide      ),
+    .ready_i  ( floo_wide_i.ready     ),
+    .valid_o  ( floo_wide_o.valid     )
   );
 
   ////////////////////
@@ -937,25 +940,25 @@ module floo_narrow_wide_chimney
   assign floo_wide_unpack_generic       = floo_wide_in.generic;
 
 
-  assign axi_valid_in[NarrowAw] = floo_narrow_unpack_req_generic.valid &&
+  assign axi_valid_in[NarrowAw] = floo_req_in_valid &&
                                   (floo_narrow_unpack_req_generic.hdr.axi_ch == NarrowAw);
-  assign axi_valid_in[NarrowW]  = floo_narrow_unpack_req_generic.valid &&
+  assign axi_valid_in[NarrowW]  = floo_req_in_valid &&
                                   (floo_narrow_unpack_req_generic.hdr.axi_ch  == NarrowW);
-  assign axi_valid_in[NarrowAr] = floo_narrow_unpack_req_generic.valid &&
+  assign axi_valid_in[NarrowAr] = floo_req_in_valid &&
                                   (floo_narrow_unpack_req_generic.hdr.axi_ch == NarrowAr);
-  assign axi_valid_in[WideAw]   = floo_narrow_unpack_req_generic.valid &&
+  assign axi_valid_in[WideAw]   = floo_req_in_valid &&
                                   (floo_narrow_unpack_req_generic.hdr.axi_ch == WideAw);
-  assign axi_valid_in[WideAr]   = floo_narrow_unpack_req_generic.valid &&
+  assign axi_valid_in[WideAr]   = floo_req_in_valid &&
                                   (floo_narrow_unpack_req_generic.hdr.axi_ch == WideAr);
-  assign axi_valid_in[NarrowB]  = floo_narrow_unpack_rsp_generic.valid &&
+  assign axi_valid_in[NarrowB]  = floo_rsp_in_valid &&
                                   (floo_narrow_unpack_rsp_generic.hdr.axi_ch  == NarrowB);
-  assign axi_valid_in[NarrowR]  = floo_narrow_unpack_rsp_generic.valid &&
+  assign axi_valid_in[NarrowR]  = floo_rsp_in_valid &&
                                   (floo_narrow_unpack_rsp_generic.hdr.axi_ch  == NarrowR);
-  assign axi_valid_in[WideB]    = floo_narrow_unpack_rsp_generic.valid &&
+  assign axi_valid_in[WideB]    = floo_rsp_in_valid &&
                                   (floo_narrow_unpack_rsp_generic.hdr.axi_ch  == WideB);
-  assign axi_valid_in[WideW]    = floo_wide_unpack_generic.valid &&
+  assign axi_valid_in[WideW]    = floo_wide_in_valid &&
                                   (floo_wide_unpack_generic.hdr.axi_ch  == WideW);
-  assign axi_valid_in[WideR]    = floo_wide_unpack_generic.valid &&
+  assign axi_valid_in[WideR]    = floo_wide_in_valid &&
                                   (floo_wide_unpack_generic.hdr.axi_ch  == WideR);
 
   assign axi_ready_out[NarrowAw]  = axi_narrow_out_rsp_i.aw_ready && !narrow_aw_out_full;
@@ -971,9 +974,9 @@ module floo_narrow_wide_chimney
   assign axi_ready_out[WideB]     = wide_b_rob_ready_out;
   assign axi_ready_out[WideR]     = wide_r_rob_ready_out;
 
-  assign floo_req_ready_out  = axi_ready_out[floo_narrow_unpack_req_generic.hdr.axi_ch];
-  assign floo_rsp_ready_out  = axi_ready_out[floo_narrow_unpack_rsp_generic.hdr.axi_ch];
-  assign floo_wide_ready_out        = axi_ready_out[floo_wide_unpack_generic.hdr.axi_ch];
+  assign floo_req_out_ready  = axi_ready_out[floo_narrow_unpack_req_generic.hdr.axi_ch];
+  assign floo_rsp_out_ready  = axi_ready_out[floo_narrow_unpack_rsp_generic.hdr.axi_ch];
+  assign floo_wide_out_ready        = axi_ready_out[floo_wide_unpack_generic.hdr.axi_ch];
 
   /////////////////////////////
   // AXI req/rsp generation  //
@@ -1187,16 +1190,16 @@ module floo_narrow_wide_chimney
   //                                 |=> $stable(rsp_i.data))
   // `ASSERT(WideOutStableData, wide_o.valid && !wide_i.ready |=> $stable(wide_o.data))
   // `ASSERT(WideStableData, wide_i.valid && !wide_o.ready |=> $stable(wide_i.data))
-  `ASSERT(NarrowReqOutStableValid, floo_req_o.generic.valid &&
-                                   !floo_req_i.generic.ready |=> floo_req_o.generic.valid)
-  `ASSERT(NarrowReqInStableValid, floo_req_i.generic.valid &&
-                                  !floo_req_o.generic.ready |=> floo_req_i.generic.valid)
-  `ASSERT(NarrowRspOutStableValid, floo_rsp_o.generic.valid &&
-                                   !floo_rsp_i.generic.ready |=> floo_rsp_o.generic.valid)
-  `ASSERT(NarrowRspInStableValid, floo_rsp_i.generic.valid &&
-                                  !floo_rsp_o.generic.ready |=> floo_rsp_i.generic.valid)
-  `ASSERT(WideOutStableValid, floo_wide_o.generic.valid &&
-                              !floo_wide_i.generic.ready |=> floo_wide_o.generic.valid)
-  `ASSERT(WideStableValid, floo_wide_i.generic.valid &&
-                           !floo_wide_o.generic.ready |=> floo_wide_i.generic.valid)
+  `ASSERT(NarrowReqOutStableValid, floo_req_o.valid &&
+                                   !floo_req_i.ready |=> floo_req_o.valid)
+  `ASSERT(NarrowReqInStableValid, floo_req_i.valid &&
+                                  !floo_req_o.ready |=> floo_req_i.valid)
+  `ASSERT(NarrowRspOutStableValid, floo_rsp_o.valid &&
+                                   !floo_rsp_i.ready |=> floo_rsp_o.valid)
+  `ASSERT(NarrowRspInStableValid, floo_rsp_i.valid &&
+                                  !floo_rsp_o.ready |=> floo_rsp_i.valid)
+  `ASSERT(WideOutStableValid, floo_wide_o.valid &&
+                              !floo_wide_i.ready |=> floo_wide_o.valid)
+  `ASSERT(WideStableValid, floo_wide_i.valid &&
+                           !floo_wide_o.ready |=> floo_wide_i.valid)
 endmodule

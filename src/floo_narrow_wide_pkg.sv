@@ -94,77 +94,57 @@ package floo_narrow_wide_pkg;
   ////////////////////////////
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     axi_narrow_in_aw_chan_t aw;
   } floo_narrow_aw_flit_t;
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     axi_narrow_in_w_chan_t w;
     logic [13:0] rsvd;
   } floo_narrow_w_flit_t;
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     axi_narrow_in_b_chan_t b;
     logic [64:0] rsvd;
   } floo_narrow_b_flit_t;
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     axi_narrow_in_ar_chan_t ar;
     logic [5:0] rsvd;
   } floo_narrow_ar_flit_t;
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     axi_narrow_in_r_chan_t r;
   } floo_narrow_r_flit_t;
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     axi_wide_in_aw_chan_t aw;
     logic [4:0] rsvd;
   } floo_wide_aw_flit_t;
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     axi_wide_in_w_chan_t w;
   } floo_wide_w_flit_t;
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     axi_wide_in_b_chan_t b;
     logic [69:0] rsvd;
   } floo_wide_b_flit_t;
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     axi_wide_in_ar_chan_t ar;
     logic [10:0] rsvd;
   } floo_wide_ar_flit_t;
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     axi_wide_in_r_chan_t r;
     logic [58:0] rsvd;
@@ -176,30 +156,24 @@ package floo_narrow_wide_pkg;
   ////////////////////////////////
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     logic [91:0] rsvd;
   } floo_req_generic_flit_t;
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     logic [75:0] rsvd;
   } floo_rsp_generic_flit_t;
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     logic [577:0] rsvd;
   } floo_wide_generic_flit_t;
 
 
-  ///////////////////////
-  //   Link Typedefs   //
-  ///////////////////////
+  //////////////////////////
+  //   Channel Typedefs   //
+  //////////////////////////
 
   typedef union packed {
     floo_narrow_aw_flit_t narrow_aw;
@@ -208,19 +182,41 @@ package floo_narrow_wide_pkg;
     floo_wide_aw_flit_t wide_aw;
     floo_wide_ar_flit_t wide_ar;
     floo_req_generic_flit_t generic;
-  } floo_req_t;
+  } floo_req_chan_t;
 
   typedef union packed {
     floo_narrow_b_flit_t narrow_b;
     floo_narrow_r_flit_t narrow_r;
     floo_wide_b_flit_t wide_b;
     floo_rsp_generic_flit_t generic;
-  } floo_rsp_t;
+  } floo_rsp_chan_t;
 
   typedef union packed {
     floo_wide_w_flit_t wide_w;
     floo_wide_r_flit_t wide_r;
     floo_wide_generic_flit_t generic;
+  } floo_wide_chan_t;
+
+  ///////////////////////
+  //   Link Typedefs   //
+  ///////////////////////
+
+  typedef struct packed {
+    logic valid;
+    logic ready;
+    floo_req_chan_t req;
+  } floo_req_t;
+
+  typedef struct packed {
+    logic valid;
+    logic ready;
+    floo_rsp_chan_t rsp;
+  } floo_rsp_t;
+
+  typedef struct packed {
+    logic valid;
+    logic ready;
+    floo_wide_chan_t wide;
   } floo_wide_t;
 
 endpackage

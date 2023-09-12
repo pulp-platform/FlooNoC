@@ -79,15 +79,16 @@ module floo_axi_chimney
   `AXI_ASSIGN_REQ_STRUCT(axi_out_req_o, axi_out_req_id_mapped)
   `AXI_ASSIGN_RESP_STRUCT(axi_out_rsp_id_mapped, axi_out_rsp_i)
 
-  floo_req_t [AxiAw:AxiAr] floo_req_arb_in;
-  floo_rsp_t [AxiB:AxiR] floo_rsp_arb_in;
+  floo_req_chan_t [AxiAw:AxiAr] floo_req_arb_in;
+  floo_rsp_chan_t [AxiB:AxiR] floo_rsp_arb_in;
   logic  [AxiAw:AxiAr] floo_req_arb_req_in, floo_req_arb_gnt_out;
   logic  [AxiB:AxiR] floo_rsp_arb_req_in, floo_rsp_arb_gnt_out;
 
   // flit queue
-  floo_req_t floo_req_in;
-  floo_rsp_t floo_rsp_in;
-  logic floo_req_ready_out, floo_rsp_ready_out;
+  floo_req_chan_t floo_req_in;
+  floo_rsp_chan_t floo_rsp_in;
+  logic floo_req_in_valid, floo_rsp_in_valid;
+  logic floo_req_out_ready, floo_rsp_out_ready;
   logic [NumAxiChannels-1:0] axi_valid_in, axi_ready_out;
 
   // Flit packing
@@ -100,11 +101,11 @@ module floo_axi_chimney
   axi_in_ar_chan_t axi_ar_id_mod;
 
   // Flit unpacking
-  axi_in_aw_chan_t axi_unpack_aw_data;
-  axi_in_ar_chan_t axi_unpack_ar_data;
-  axi_in_w_chan_t  axi_unpack_w_data;
-  axi_in_b_chan_t  axi_unpack_b_data;
-  axi_in_r_chan_t  axi_unpack_r_data;
+  axi_in_aw_chan_t axi_unpack_aw;
+  axi_in_ar_chan_t axi_unpack_ar;
+  axi_in_w_chan_t  axi_unpack_w;
+  axi_in_b_chan_t  axi_unpack_b;
+  axi_in_r_chan_t  axi_unpack_r;
   floo_req_generic_flit_t unpack_req_generic;
   floo_rsp_generic_flit_t unpack_rsp_generic;
 
@@ -172,41 +173,43 @@ module floo_axi_chimney
     assign axi_in_rsp_o.aw_ready = axi_aw_queue_ready_in;
 
     assign axi_ar_queue = axi_in_req_i.ar;
-    assign ar_queue_valid_out = axi_in_req_i.ar_valid;
+    assign axi_ar_queue_valid_out = axi_in_req_i.ar_valid;
     assign axi_in_rsp_o.ar_ready = axi_ar_queue_ready_in;
   end
 
   if (CutRsp) begin : gen_rsp_cuts
     spill_register #(
-      .T ( floo_req_t )
+      .T ( floo_req_chan_t )
     ) i_data_req_arb (
-      .clk_i      ( clk_i                     ),
-      .rst_ni     ( rst_ni                    ),
-      .data_i     ( floo_req_i.generic        ),
-      .valid_i    ( floo_req_i.generic.valid  ),
-      .ready_o    ( floo_req_o.generic.ready  ),
-      .data_o     ( floo_req_in.generic       ),
-      .valid_o    ( floo_req_in.generic.valid ),
-      .ready_i    ( floo_req_ready_out        )
+      .clk_i      ( clk_i               ),
+      .rst_ni     ( rst_ni              ),
+      .data_i     ( floo_req_i.req      ),
+      .valid_i    ( floo_req_i.valid    ),
+      .ready_o    ( floo_req_o.ready    ),
+      .data_o     ( floo_req_in         ),
+      .valid_o    ( floo_req_in_valid   ),
+      .ready_i    ( floo_req_out_ready  )
     );
 
     spill_register #(
-      .T ( floo_rsp_t )
+      .T ( floo_rsp_chan_t )
     ) i_data_rsp_arb (
-      .clk_i      ( clk_i                     ),
-      .rst_ni     ( rst_ni                    ),
-      .data_i     ( floo_rsp_i.generic        ),
-      .valid_i    ( floo_rsp_i.generic.valid  ),
-      .ready_o    ( floo_rsp_o.generic.ready  ),
-      .data_o     ( floo_rsp_in.generic       ),
-      .valid_o    ( floo_rsp_in.generic.valid ),
-      .ready_i    ( floo_rsp_ready_out        )
+      .clk_i      ( clk_i               ),
+      .rst_ni     ( rst_ni              ),
+      .data_i     ( floo_rsp_i.rsp      ),
+      .valid_i    ( floo_rsp_i.valid    ),
+      .ready_o    ( floo_rsp_o.ready    ),
+      .data_o     ( floo_rsp_in         ),
+      .valid_o    ( floo_rsp_in_valid   ),
+      .ready_i    ( floo_rsp_out_ready  )
     );
   end else begin : gen_no_rsp_cuts
-    assign floo_req_in = floo_req_i;
-    assign floo_req_o.generic.ready = floo_req_ready_out;
-    assign floo_rsp_in = floo_rsp_i;
-    assign floo_rsp_o.generic.ready = floo_rsp_ready_out;
+    assign floo_req_in = floo_req_i.req;
+    assign floo_req_in_valid = floo_req_i.valid;
+    assign floo_req_o.ready = floo_req_out_ready;
+    assign floo_rsp_in = floo_rsp_i.rsp;
+    assign floo_rsp_in_valid = floo_rsp_i.valid;
+    assign floo_rsp_o.ready = floo_rsp_out_ready;
   end
 
   ///////////////////////
@@ -487,28 +490,28 @@ module floo_axi_chimney
     .NumRoutes  ( 3                       ),
     .flit_t     ( floo_req_generic_flit_t )
   ) i_req_wormhole_arbiter (
-    .clk_i    ( clk_i                     ),
-    .rst_ni   ( rst_ni                    ),
-    .valid_i  ( floo_req_arb_req_in       ),
-    .data_i   ( floo_req_arb_in           ),
-    .ready_o  ( floo_req_arb_gnt_out      ),
-    .data_o   ( floo_req_o.generic        ),
-    .ready_i  ( floo_req_i.generic.ready  ),
-    .valid_o  ( floo_req_o.generic.valid  )
+    .clk_i    ( clk_i                 ),
+    .rst_ni   ( rst_ni                ),
+    .valid_i  ( floo_req_arb_req_in   ),
+    .data_i   ( floo_req_arb_in       ),
+    .ready_o  ( floo_req_arb_gnt_out  ),
+    .data_o   ( floo_req_o.req        ),
+    .ready_i  ( floo_req_i.ready      ),
+    .valid_o  ( floo_req_o.valid      )
   );
 
   floo_wormhole_arbiter #(
     .NumRoutes  ( 2                       ),
     .flit_t     ( floo_rsp_generic_flit_t )
   ) i_rsp_wormhole_arbiter (
-    .clk_i    ( clk_i                     ),
-    .rst_ni   ( rst_ni                    ),
-    .valid_i  ( floo_rsp_arb_req_in       ),
-    .data_i   ( floo_rsp_arb_in           ),
-    .ready_o  ( floo_rsp_arb_gnt_out      ),
-    .data_o   ( floo_rsp_o.generic        ),
-    .ready_i  ( floo_rsp_i.generic.ready  ),
-    .valid_o  ( floo_rsp_o.generic.valid  )
+    .clk_i    ( clk_i                 ),
+    .rst_ni   ( rst_ni                ),
+    .valid_i  ( floo_rsp_arb_req_in   ),
+    .data_i   ( floo_rsp_arb_in       ),
+    .ready_o  ( floo_rsp_arb_gnt_out  ),
+    .data_o   ( floo_rsp_o.rsp        ),
+    .ready_i  ( floo_rsp_i.ready      ),
+    .valid_o  ( floo_rsp_o.valid      )
   );
 
   ////////////////////
@@ -524,19 +527,19 @@ module floo_axi_chimney
   assign b_sel_atop = is_atop_b_rsp && !b_rob_pending_q;
   assign r_sel_atop = is_atop_r_rsp && !r_rob_pending_q;
 
-  assign axi_unpack_aw_data = floo_req_in.axi_aw.aw;
-  assign axi_unpack_w_data  = floo_req_in.axi_w.w;
-  assign axi_unpack_ar_data = floo_req_in.axi_ar.ar;
-  assign axi_unpack_r_data  = floo_rsp_in.axi_r.r;
-  assign axi_unpack_b_data  = floo_rsp_in.axi_b.b;
+  assign axi_unpack_aw = floo_req_in.axi_aw.aw;
+  assign axi_unpack_w  = floo_req_in.axi_w.w;
+  assign axi_unpack_ar = floo_req_in.axi_ar.ar;
+  assign axi_unpack_r  = floo_rsp_in.axi_r.r;
+  assign axi_unpack_b  = floo_rsp_in.axi_b.b;
   assign unpack_req_generic = floo_req_in.generic;
   assign unpack_rsp_generic = floo_rsp_in.generic;
 
-  assign axi_valid_in[AxiAw] = unpack_req_generic.valid && (unpack_req_generic.hdr.axi_ch == AxiAw);
-  assign axi_valid_in[AxiW]  = unpack_req_generic.valid && (unpack_req_generic.hdr.axi_ch == AxiW);
-  assign axi_valid_in[AxiAr] = unpack_req_generic.valid && (unpack_req_generic.hdr.axi_ch == AxiAr);
-  assign axi_valid_in[AxiB]  = unpack_rsp_generic.valid && (unpack_rsp_generic.hdr.axi_ch == AxiB);
-  assign axi_valid_in[AxiR]  = unpack_rsp_generic.valid && (unpack_rsp_generic.hdr.axi_ch == AxiR);
+  assign axi_valid_in[AxiAw] = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiAw);
+  assign axi_valid_in[AxiW]  = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiW);
+  assign axi_valid_in[AxiAr] = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiAr);
+  assign axi_valid_in[AxiB]  = floo_rsp_in_valid && (unpack_rsp_generic.hdr.axi_ch == AxiB);
+  assign axi_valid_in[AxiR]  = floo_rsp_in_valid && (unpack_rsp_generic.hdr.axi_ch == AxiR);
 
   assign axi_ready_out[AxiAw] = axi_out_rsp_i.aw_ready && !aw_out_full;
   assign axi_ready_out[AxiW]  = axi_out_rsp_i.w_ready;
@@ -544,8 +547,8 @@ module floo_axi_chimney
   assign axi_ready_out[AxiB]  = b_rob_ready_out || b_sel_atop && axi_in_req_i.b_ready;
   assign axi_ready_out[AxiR]  = r_rob_ready_out || r_sel_atop && axi_in_req_i.r_ready;
 
-  assign floo_req_ready_out = axi_ready_out[unpack_req_generic.hdr.axi_ch];
-  assign floo_rsp_ready_out = axi_ready_out[unpack_rsp_generic.hdr.axi_ch];
+  assign floo_req_out_ready = axi_ready_out[unpack_req_generic.hdr.axi_ch];
+  assign floo_rsp_out_ready = axi_ready_out[unpack_rsp_generic.hdr.axi_ch];
 
   /////////////////////////////
   // AXI req/rsp generation  //
@@ -562,18 +565,18 @@ module floo_axi_chimney
   assign r_rob_ready_in         = axi_in_req_i.r_ready && !r_sel_atop;
 
   assign axi_out_req_id_mapped.aw = axi_aw_id_mod;
-  assign axi_out_req_id_mapped.w  = axi_unpack_w_data;
+  assign axi_out_req_id_mapped.w  = axi_unpack_w;
   assign axi_out_req_id_mapped.ar = axi_ar_id_mod;
-  assign axi_b_rob_in         = axi_unpack_b_data;
-  assign axi_r_rob_in         = axi_unpack_r_data;
-  assign axi_in_rsp_o.b   = (b_sel_atop)? axi_unpack_b_data : axi_b_rob_out;
-  assign axi_in_rsp_o.r   = (r_sel_atop)? axi_unpack_r_data : axi_r_rob_out;
+  assign axi_b_rob_in         = axi_unpack_b;
+  assign axi_r_rob_in         = axi_unpack_r;
+  assign axi_in_rsp_o.b   = (b_sel_atop)? axi_unpack_b : axi_b_rob_out;
+  assign axi_in_rsp_o.r   = (r_sel_atop)? axi_unpack_r : axi_r_rob_out;
 
   logic is_atop, atop_has_r_rsp;
   assign is_atop = AtopSupport && axi_valid_in[AxiAw] &&
-                    (axi_unpack_aw_data.atop != axi_pkg::ATOP_NONE);
+                    (axi_unpack_aw.atop != axi_pkg::ATOP_NONE);
   assign atop_has_r_rsp = AtopSupport && axi_valid_in[AxiAw] &&
-                          axi_unpack_aw_data.atop[axi_pkg::ATOP_R_RESP];
+                          axi_unpack_aw.atop[axi_pkg::ATOP_R_RESP];
 
   assign aw_out_push = axi_out_req_o.aw_valid && axi_out_rsp_i.aw_ready;
   assign ar_out_push = axi_out_req_o.ar_valid && axi_out_rsp_i.ar_ready ||
@@ -583,14 +586,14 @@ module floo_axi_chimney
   assign ar_out_pop = axi_out_rsp_i.r_valid && axi_out_req_o.r_ready && axi_out_rsp_i.r.last;
 
   assign aw_out_data_in = '{
-    id: axi_unpack_aw_data.id,
+    id: axi_unpack_aw.id,
     rob_req: unpack_req_generic.hdr.rob_req,
     rob_idx: unpack_req_generic.hdr.rob_idx,
     src_id: unpack_req_generic.hdr.src_id,
     atop: unpack_req_generic.hdr.atop
   };
   assign ar_out_data_in = '{
-    id: (is_atop && atop_has_r_rsp)? axi_unpack_aw_data.id : axi_unpack_ar_data.id,
+    id: (is_atop && atop_has_r_rsp)? axi_unpack_aw.id : axi_unpack_ar.id,
     rob_req: unpack_req_generic.hdr.rob_req,
     rob_idx: unpack_req_generic.hdr.rob_idx,
     src_id: unpack_req_generic.hdr.src_id,
@@ -644,8 +647,8 @@ module floo_axi_chimney
 
   always_comb begin
     // Assign the outgoing AX an unique ID
-    axi_aw_id_mod    = axi_unpack_aw_data;
-    axi_ar_id_mod    = axi_unpack_ar_data;
+    axi_aw_id_mod    = axi_unpack_aw;
+    axi_ar_id_mod    = axi_unpack_ar;
     axi_aw_id_mod.id = aw_out_id;
     axi_ar_id_mod.id = ar_out_id;
   end

@@ -65,39 +65,29 @@ package floo_axi_pkg;
   ////////////////////////////
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     axi_in_aw_chan_t aw;
     logic [2:0] rsvd;
   } floo_axi_aw_flit_t;
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     axi_in_w_chan_t w;
   } floo_axi_w_flit_t;
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     axi_in_b_chan_t b;
     logic [64:0] rsvd;
   } floo_axi_b_flit_t;
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     axi_in_ar_chan_t ar;
     logic [8:0] rsvd;
   } floo_axi_ar_flit_t;
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     axi_in_r_chan_t r;
   } floo_axi_r_flit_t;
@@ -108,35 +98,47 @@ package floo_axi_pkg;
   ////////////////////////////////
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     logic [73:0] rsvd;
   } floo_req_generic_flit_t;
 
   typedef struct packed {
-    logic valid;
-    logic ready;
     hdr_t hdr;
     logic [70:0] rsvd;
   } floo_rsp_generic_flit_t;
 
 
-  ///////////////////////
-  //   Link Typedefs   //
-  ///////////////////////
+  //////////////////////////
+  //   Channel Typedefs   //
+  //////////////////////////
 
   typedef union packed {
     floo_axi_aw_flit_t axi_aw;
     floo_axi_w_flit_t axi_w;
     floo_axi_ar_flit_t axi_ar;
     floo_req_generic_flit_t generic;
-  } floo_req_t;
+  } floo_req_chan_t;
 
   typedef union packed {
     floo_axi_b_flit_t axi_b;
     floo_axi_r_flit_t axi_r;
     floo_rsp_generic_flit_t generic;
+  } floo_rsp_chan_t;
+
+  ///////////////////////
+  //   Link Typedefs   //
+  ///////////////////////
+
+  typedef struct packed {
+    logic valid;
+    logic ready;
+    floo_req_chan_t req;
+  } floo_req_t;
+
+  typedef struct packed {
+    logic valid;
+    logic ready;
+    floo_rsp_chan_t rsp;
   } floo_rsp_t;
 
 endpackage

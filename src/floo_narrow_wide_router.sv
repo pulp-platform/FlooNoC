@@ -29,45 +29,25 @@ module floo_narrow_wide_router
   input  id_t xy_id_i,
   input  addr_rule_t [NumAddrRules-1:0] id_route_map_i,
 
+  input   logic [NumInputs-1:0] floo_req_valid_i,
+  output  logic [NumInputs-1:0] floo_req_ready_o,
   input   floo_req_t [NumInputs-1:0] floo_req_i,
+  input   logic [NumOutputs-1:0] floo_rsp_valid_i,
+  output  logic [NumOutputs-1:0] floo_rsp_ready_o,
   input   floo_rsp_t [NumOutputs-1:0] floo_rsp_i,
+  output  logic [NumOutputs-1:0] floo_req_valid_o,
+  input   logic [NumOutputs-1:0] floo_req_ready_i,
   output  floo_req_t [NumOutputs-1:0] floo_req_o,
+  output  logic [NumInputs-1:0] floo_rsp_valid_o,
+  input   logic [NumInputs-1:0] floo_rsp_ready_i,
   output  floo_rsp_t [NumInputs-1:0] floo_rsp_o,
+  input   logic [NumRoutes-1:0] floo_wide_valid_i,
+  output  logic [NumRoutes-1:0] floo_wide_ready_o,
   input   floo_wide_t   [NumRoutes-1:0] floo_wide_i,
+  output  logic [NumRoutes-1:0] floo_wide_valid_o,
+  input   logic [NumRoutes-1:0] floo_wide_ready_i,
   output  floo_wide_t   [NumRoutes-1:0] floo_wide_o
 );
-
-  logic [NumInputs-1:0] req_valid_in, req_ready_out;
-  logic [NumInputs-1:0] rsp_valid_out, rsp_ready_in;
-  logic [NumOutputs-1:0] req_valid_out, req_ready_in;
-  logic [NumOutputs-1:0] rsp_valid_in, rsp_ready_out;
-  logic [NumRoutes-1:0] wide_valid_in, wide_valid_out;
-  logic [NumRoutes-1:0] wide_ready_in, wide_ready_out;
-
-  for (genvar i = 0; i < NumInputs; i++) begin : gen_chimney_req
-    assign req_valid_in[i] = floo_req_i[i].generic.valid;
-    assign rsp_ready_in[i] = floo_rsp_i[i].generic.ready;
-    assign floo_rsp_o[i].generic.valid = rsp_valid_out[i];
-    assign floo_req_o[i].generic.ready = req_ready_out[i];
-  end
-
-  for (genvar i = 0; i < NumOutputs; i++) begin : gen_chimney_rsp
-    assign rsp_valid_in[i] = floo_rsp_i[i].generic.valid;
-    assign req_ready_in[i] = floo_req_i[i].generic.ready;
-    assign floo_req_o[i].generic.valid = req_valid_out[i];
-    assign floo_rsp_o[i].generic.ready = rsp_ready_out[i];
-    assign wide_valid_in[i] = floo_wide_i[i].generic.valid;
-    assign wide_ready_in[i] = floo_wide_i[i].generic.ready;
-    assign floo_wide_o[i].generic.valid = wide_valid_out[i];
-    assign floo_wide_o[i].generic.ready = wide_ready_out[i];
-  end
-
-  for (genvar i = 0; i < NumRoutes; i++) begin : gen_chimney_wide
-    assign wide_valid_in[i] = floo_wide_i[i].generic.valid;
-    assign wide_ready_in[i] = floo_wide_i[i].generic.ready;
-    assign floo_wide_o[i].generic.valid = wide_valid_out[i];
-    assign floo_wide_o[i].generic.ready = wide_ready_out[i];
-  end
 
   floo_router #(
     .NumPhysChannels  ( 1                       ),
@@ -87,12 +67,12 @@ module floo_narrow_wide_router
     .test_enable_i,
     .xy_id_i,
     .id_route_map_i,
-    .valid_i        ( req_valid_in  ),
-    .ready_o        ( req_ready_out ),
-    .data_i         ( floo_req_i    ),
-    .valid_o        ( req_valid_out ),
-    .ready_i        ( req_ready_in  ),
-    .data_o         ( floo_req_o    )
+    .valid_i        ( floo_req_valid_i  ),
+    .ready_o        ( floo_req_ready_o  ),
+    .data_i         ( floo_req_i        ),
+    .valid_o        ( floo_req_valid_o  ),
+    .ready_i        ( floo_req_ready_i  ),
+    .data_o         ( floo_req_o        )
   );
 
 
@@ -114,12 +94,12 @@ module floo_narrow_wide_router
     .test_enable_i,
     .xy_id_i,
     .id_route_map_i,
-    .valid_i        ( rsp_valid_in  ),
-    .ready_o        ( rsp_ready_out ),
-    .data_i         ( floo_rsp_i    ),
-    .valid_o        ( rsp_valid_out ),
-    .ready_i        ( rsp_ready_in  ),
-    .data_o         ( floo_rsp_o    )
+    .valid_i        ( floo_rsp_valid_i  ),
+    .ready_o        ( floo_rsp_ready_o  ),
+    .data_i         ( floo_rsp_i        ),
+    .valid_o        ( floo_rsp_valid_o  ),
+    .ready_i        ( floo_rsp_ready_i  ),
+    .data_o         ( floo_rsp_o        )
   );
 
 
@@ -140,12 +120,12 @@ module floo_narrow_wide_router
     .test_enable_i,
     .xy_id_i,
     .id_route_map_i,
-    .valid_i        ( wide_valid_in   ),
-    .ready_o        ( wide_ready_out  ),
-    .data_i         ( floo_wide_i     ),
-    .valid_o        ( wide_valid_out  ),
-    .ready_i        ( wide_ready_in   ),
-    .data_o         ( floo_wide_o     )
+    .valid_i        ( floo_wide_valid_i ),
+    .ready_o        ( floo_wide_ready_o ),
+    .data_i         ( floo_wide_i       ),
+    .valid_o        ( floo_wide_valid_o ),
+    .ready_i        ( floo_wide_ready_i ),
+    .data_o         ( floo_wide_o       )
   );
 
 endmodule

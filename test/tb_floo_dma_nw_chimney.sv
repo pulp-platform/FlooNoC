@@ -189,14 +189,14 @@ module tb_floo_dma_nw_chimney;
     .NumCuts      ( 32'd7       ), // should simulate a hop with 2 routers
     .flit_t       ( floo_req_t  )
   ) i_floo_req_cut (
-    .clk_i    ( clk                                                                   ),
-    .rst_ni   ( rst_n                                                                 ),
-    .valid_i  ( {chimney_req[1].generic.valid, chimney_req[0].generic.valid}          ),
-    .ready_o  ( {chimney_req_cut[1].generic.ready, chimney_req_cut[0].generic.ready}  ),
-    .data_i   ( {chimney_req[1].generic, chimney_req[0]}                              ),
-    .valid_o  ( {chimney_req_cut[1].generic.valid, chimney_req_cut[0].generic.valid}  ),
-    .ready_i  ( {chimney_req[1].generic.ready, chimney_req[0].generic.ready}          ),
-    .data_o   ( {chimney_req_cut[1].generic, chimney_req_cut[0]}                      )
+    .clk_i    ( clk                                                   ),
+    .rst_ni   ( rst_n                                                 ),
+    .valid_i  ( {chimney_req[1].valid, chimney_req[0].valid}          ),
+    .ready_o  ( {chimney_req_cut[1].ready, chimney_req_cut[0].ready}  ),
+    .data_i   ( {chimney_req[1], chimney_req[0]}                      ),
+    .valid_o  ( {chimney_req_cut[1].valid, chimney_req_cut[0].valid}  ),
+    .ready_i  ( {chimney_req[1].ready, chimney_req[0].ready}          ),
+    .data_o   ( {chimney_req_cut[1], chimney_req_cut[0]}              )
   );
 
   floo_cut #(
@@ -204,14 +204,14 @@ module tb_floo_dma_nw_chimney;
     .NumCuts      ( 32'd7       ), // should simulate a hop with 2 routers
     .flit_t       ( floo_rsp_t  )
   ) i_floo_rsp_cut (
-    .clk_i    ( clk                                                                   ),
-    .rst_ni   ( rst_n                                                                 ),
-    .valid_i  ( {chimney_rsp[1].generic.valid, chimney_rsp[0].generic.valid}          ),
-    .ready_o  ( {chimney_rsp_cut[1].generic.ready, chimney_rsp_cut[0].generic.ready}  ),
-    .data_i   ( {chimney_rsp[1], chimney_rsp[0]}                                      ),
-    .valid_o  ( {chimney_rsp_cut[1].generic.valid, chimney_rsp_cut[0].generic.valid}  ),
-    .ready_i  ( {chimney_rsp[1].generic.ready, chimney_rsp[0].generic.ready}          ),
-    .data_o   ( {chimney_rsp_cut[1], chimney_rsp_cut[0]}                              )
+    .clk_i    ( clk                                                   ),
+    .rst_ni   ( rst_n                                                 ),
+    .valid_i  ( {chimney_rsp[1].valid, chimney_rsp[0].valid}          ),
+    .ready_o  ( {chimney_rsp_cut[1].ready, chimney_rsp_cut[0].ready}  ),
+    .data_i   ( {chimney_rsp[1], chimney_rsp[0]}                      ),
+    .valid_o  ( {chimney_rsp_cut[1].valid, chimney_rsp_cut[0].valid}  ),
+    .ready_i  ( {chimney_rsp[1].ready, chimney_rsp[0].ready}          ),
+    .data_o   ( {chimney_rsp_cut[1], chimney_rsp_cut[0]}              )
   );
 
   floo_cut #(
@@ -219,14 +219,14 @@ module tb_floo_dma_nw_chimney;
     .NumCuts      ( 32'd4       ), // should simulate a hop with 2 routers
     .flit_t       ( floo_wide_t )
   ) i_floo_wide_cut (
-    .clk_i    ( clk                                                                     ),
-    .rst_ni   ( rst_n                                                                   ),
-    .valid_i  ( {chimney_wide[1].generic.valid, chimney_wide[0].generic.valid}          ),
-    .ready_o  ( {chimney_wide_cut[1].generic.ready, chimney_wide_cut[0].generic.ready}  ),
-    .data_i   ( {chimney_wide[1], chimney_wide[0]}                                      ),
-    .valid_o  ( {chimney_wide_cut[1].generic.valid, chimney_wide_cut[0].generic.valid}  ),
-    .ready_i  ( {chimney_wide[1].generic.ready, chimney_wide[0].generic.ready}          ),
-    .data_o   ( {chimney_wide_cut[1], chimney_wide_cut[0]}                              )
+    .clk_i    ( clk                                                     ),
+    .rst_ni   ( rst_n                                                   ),
+    .valid_i  ( {chimney_wide[1].valid, chimney_wide[0].valid}          ),
+    .ready_o  ( {chimney_wide_cut[1].ready, chimney_wide_cut[0].ready}  ),
+    .data_i   ( {chimney_wide[1], chimney_wide[0]}                      ),
+    .valid_o  ( {chimney_wide_cut[1].valid, chimney_wide_cut[0].valid}  ),
+    .ready_i  ( {chimney_wide[1].ready, chimney_wide[0].ready}          ),
+    .data_o   ( {chimney_wide_cut[1], chimney_wide_cut[0]}              )
   );
 
   floo_narrow_wide_chimney #(

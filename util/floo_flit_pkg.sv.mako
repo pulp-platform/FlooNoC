@@ -84,8 +84,6 @@ package floo_${name}_pkg;
 <% phys_ch_size = link_sizes[phys_ch] %>\
 <% rsvd_space = phys_ch_size - size %>\
     typedef struct packed {
-        logic valid;
-        logic ready;
         hdr_t hdr;
         ${prot_full_name(**prot)}_${axi_ch}_chan_t ${axi_ch};
         % if rsvd_space > 0:
@@ -103,17 +101,15 @@ package floo_${name}_pkg;
 
     % for phys_ch in channel_mapping:
     typedef struct packed {
-        logic valid;
-        logic ready;
         hdr_t hdr;
         logic [${link_sizes[phys_ch]-1}:0] rsvd;
     } floo_${phys_ch}_generic_flit_t;
 
     % endfor
 
-    ///////////////////////
-    //   Link Typedefs   //
-    ///////////////////////
+    //////////////////////////
+    //   Channel Typedefs   //
+    //////////////////////////
 
     % for phys_ch, mapping in channel_mapping.items():
     typedef union packed {
@@ -123,6 +119,18 @@ package floo_${name}_pkg;
         % endfor
         % endfor
         floo_${phys_ch}_generic_flit_t generic;
+    } floo_${phys_ch}_chan_t;
+
+    % endfor
+    ///////////////////////
+    //   Link Typedefs   //
+    ///////////////////////
+
+    % for phys_ch in channel_mapping:
+    typedef struct packed {
+        logic valid;
+        logic ready;
+        floo_${phys_ch}_chan_t ${phys_ch};
     } floo_${phys_ch}_t;
 
     % endfor
