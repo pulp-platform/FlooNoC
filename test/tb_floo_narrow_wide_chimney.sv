@@ -8,7 +8,7 @@
 `include "axi/assign.svh"
 `include "floo_noc/typedef.svh"
 
-module tb_floo_narrow_chimney_wide;
+module tb_floo_narrow_wide_chimney;
 
   import floo_pkg::*;
   import floo_narrow_wide_pkg::*;
@@ -179,7 +179,7 @@ module tb_floo_narrow_chimney_wide;
     .WideMaxTxns              ( MaxTxns             ),
     .WideMaxTxnsPerId         ( MaxTxnsPerId        ),
     .WideReorderBufferSize    ( ReorderBufferSize   )
-  ) i_floo_narrow_chimney_wide_0 (
+  ) i_floo_narrow_wide_chimney_0 (
     .clk_i                ( clk                   ),
     .rst_ni               ( rst_n                 ),
     .sram_cfg_i           ( '0                    ),
@@ -212,7 +212,7 @@ module tb_floo_narrow_chimney_wide;
     .WideMaxTxns              ( MaxTxns             ),
     .WideMaxTxnsPerId         ( MaxTxnsPerId        ),
     .WideReorderBufferSize    ( ReorderBufferSize   )
-  ) i_floo_narrow_chimney_wide_1 (
+  ) i_floo_narrow_wide_chimney_1 (
     .clk_i                ( clk                   ),
     .rst_ni               ( rst_n                 ),
     .sram_cfg_i           ( '0                    ),
@@ -311,6 +311,7 @@ module tb_floo_narrow_chimney_wide;
     .slv_rsp_t      ( axi_wide_out_rsp_t  ),
     .ApplTime       ( ApplTime            ),
     .TestTime       ( TestTime            ),
+    .Atops          ( 1'b0                ),
     .AxiMaxBurstLen ( ReorderBufferSize   ),
     .NumAddrRegions ( NumAddrRegions      ),
     .rule_t         ( node_addr_region_t  ),

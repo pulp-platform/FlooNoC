@@ -147,16 +147,16 @@ module floo_narrow_wide_chimney
   aw_w_sel_e wide_aw_w_sel_q, wide_aw_w_sel_d;
 
   // Flit unpacking
-  axi_narrow_in_aw_chan_t axi_narrow_unpack_aw_data;
-  axi_narrow_in_w_chan_t  axi_narrow_unpack_w_data;
-  axi_narrow_in_b_chan_t  axi_narrow_unpack_b_data;
-  axi_narrow_in_ar_chan_t axi_narrow_unpack_ar_data;
-  axi_narrow_in_r_chan_t  axi_narrow_unpack_r_data;
-  axi_wide_in_aw_chan_t   axi_wide_unpack_aw_data;
-  axi_wide_in_w_chan_t    axi_wide_unpack_w_data;
-  axi_wide_in_b_chan_t    axi_wide_unpack_b_data;
-  axi_wide_in_ar_chan_t   axi_wide_unpack_ar_data;
-  axi_wide_in_r_chan_t    axi_wide_unpack_r_data;
+  axi_narrow_in_aw_chan_t axi_narrow_unpack_aw;
+  axi_narrow_in_w_chan_t  axi_narrow_unpack_w;
+  axi_narrow_in_b_chan_t  axi_narrow_unpack_b;
+  axi_narrow_in_ar_chan_t axi_narrow_unpack_ar;
+  axi_narrow_in_r_chan_t  axi_narrow_unpack_r;
+  axi_wide_in_aw_chan_t   axi_wide_unpack_aw;
+  axi_wide_in_w_chan_t    axi_wide_unpack_w;
+  axi_wide_in_b_chan_t    axi_wide_unpack_b;
+  axi_wide_in_ar_chan_t   axi_wide_unpack_ar;
+  axi_wide_in_r_chan_t    axi_wide_unpack_r;
   floo_req_generic_flit_t   floo_narrow_unpack_req_generic;
   floo_rsp_generic_flit_t   floo_narrow_unpack_rsp_generic;
   floo_wide_generic_flit_t  floo_wide_unpack_generic;
@@ -180,7 +180,7 @@ module floo_narrow_wide_chimney
   } wide_id_out_buf_t;
 
   // Routing
-  id_t [NumAxiChannels-1:0] dst_id;
+  id_t [NumNarrowWideAxiChannels-1:0] dst_id;
   id_t src_id;
 
   logic narrow_aw_out_push, narrow_aw_out_pop;
@@ -869,8 +869,8 @@ module floo_narrow_wide_chimney
   ///////////////////////
 
   floo_wormhole_arbiter #(
-    .NumRoutes  ( 5               ),
-    .flit_t     ( floo_req_chan_t )
+    .NumRoutes  ( 5                       ),
+    .flit_t     ( floo_req_generic_flit_t )
   ) i_req_wormhole_arbiter (
     .clk_i,
     .rst_ni,
@@ -883,8 +883,8 @@ module floo_narrow_wide_chimney
   );
 
   floo_wormhole_arbiter #(
-    .NumRoutes  ( 3               ),
-    .flit_t     ( floo_rsp_chan_t )
+    .NumRoutes  ( 3                       ),
+    .flit_t     ( floo_rsp_generic_flit_t )
   ) i_rsp_wormhole_arbiter (
     .clk_i,
     .rst_ni,
@@ -897,8 +897,8 @@ module floo_narrow_wide_chimney
   );
 
   floo_wormhole_arbiter #(
-    .NumRoutes  ( 2                 ),
-    .flit_t     ( floo_wide_chan_t  )
+    .NumRoutes  ( 2                         ),
+    .flit_t     ( floo_wide_generic_flit_t  )
   ) i_wide_wormhole_arbiter (
     .clk_i,
     .rst_ni,
@@ -925,16 +925,16 @@ module floo_narrow_wide_chimney
   assign b_sel_atop = is_atop_b_rsp && !b_rob_pending_q;
   assign r_sel_atop = is_atop_r_rsp && !r_rob_pending_q;
 
-  assign axi_narrow_unpack_aw_data = floo_req_in.narrow_aw.aw;
-  assign axi_narrow_unpack_w_data  = floo_req_in.narrow_w.w;
-  assign axi_narrow_unpack_ar_data = floo_req_in.narrow_ar.ar;
-  assign axi_narrow_unpack_r_data  = floo_rsp_in.narrow_r.r;
-  assign axi_narrow_unpack_b_data  = floo_rsp_in.narrow_b.b;
-  assign axi_wide_unpack_aw_data   = floo_req_in.wide_aw.aw;
-  assign axi_wide_unpack_w_data    = floo_wide_in.wide_w.w;
-  assign axi_wide_unpack_ar_data   = floo_req_in.wide_ar.ar;
-  assign axi_wide_unpack_r_data    = floo_wide_in.wide_r.r;
-  assign axi_wide_unpack_b_data    = floo_rsp_in.wide_b.b;
+  assign axi_narrow_unpack_aw = floo_req_in.narrow_aw.aw;
+  assign axi_narrow_unpack_w  = floo_req_in.narrow_w.w;
+  assign axi_narrow_unpack_ar = floo_req_in.narrow_ar.ar;
+  assign axi_narrow_unpack_r  = floo_rsp_in.narrow_r.r;
+  assign axi_narrow_unpack_b  = floo_rsp_in.narrow_b.b;
+  assign axi_wide_unpack_aw   = floo_req_in.wide_aw.aw;
+  assign axi_wide_unpack_w    = floo_wide_in.wide_w.w;
+  assign axi_wide_unpack_ar   = floo_req_in.wide_ar.ar;
+  assign axi_wide_unpack_r    = floo_wide_in.wide_r.r;
+  assign axi_wide_unpack_b    = floo_rsp_in.wide_b.b;
   assign floo_narrow_unpack_req_generic = floo_req_in.generic;
   assign floo_narrow_unpack_rsp_generic = floo_rsp_in.generic;
   assign floo_wide_unpack_generic       = floo_wide_in.generic;
@@ -1002,27 +1002,27 @@ module floo_narrow_wide_chimney
   assign wide_r_rob_ready_in                    = axi_wide_in_req_i.r_ready;
 
   assign axi_narrow_out_req_id_mapped.aw  = axi_narrow_aw_id_mod;
-  assign axi_narrow_out_req_id_mapped.w   = axi_narrow_unpack_w_data;
+  assign axi_narrow_out_req_id_mapped.w   = axi_narrow_unpack_w;
   assign axi_narrow_out_req_id_mapped.ar  = axi_narrow_ar_id_mod;
-  assign axi_narrow_b_rob_in              = axi_narrow_unpack_b_data;
-  assign axi_narrow_r_rob_in              = axi_narrow_unpack_r_data;
-  assign axi_narrow_in_rsp_o.b            = (b_sel_atop)? axi_narrow_unpack_b_data
+  assign axi_narrow_b_rob_in              = axi_narrow_unpack_b;
+  assign axi_narrow_r_rob_in              = axi_narrow_unpack_r;
+  assign axi_narrow_in_rsp_o.b            = (b_sel_atop)? axi_narrow_unpack_b
                                             : axi_narrow_b_rob_out;
-  assign axi_narrow_in_rsp_o.r            = (r_sel_atop)? axi_narrow_unpack_r_data
+  assign axi_narrow_in_rsp_o.r            = (r_sel_atop)? axi_narrow_unpack_r
                                             : axi_narrow_r_rob_out;
   assign axi_wide_out_req_id_mapped.aw    = axi_wide_aw_id_mod;
-  assign axi_wide_out_req_id_mapped.w     = axi_wide_unpack_w_data;
+  assign axi_wide_out_req_id_mapped.w     = axi_wide_unpack_w;
   assign axi_wide_out_req_id_mapped.ar    = axi_wide_ar_id_mod;
-  assign axi_wide_b_rob_in                = axi_wide_unpack_b_data;
-  assign axi_wide_r_rob_in                = axi_wide_unpack_r_data;
+  assign axi_wide_b_rob_in                = axi_wide_unpack_b;
+  assign axi_wide_r_rob_in                = axi_wide_unpack_r;
   assign axi_wide_in_rsp_o.b              = axi_wide_b_rob_out;
   assign axi_wide_in_rsp_o.r              = axi_wide_r_rob_out;
 
   logic is_atop, atop_has_r_rsp;
   assign is_atop = AtopSupport && axi_valid_in[NarrowAw] &&
-                   (axi_narrow_unpack_aw_data.atop != axi_pkg::ATOP_NONE);
+                   (axi_narrow_unpack_aw.atop != axi_pkg::ATOP_NONE);
   assign atop_has_r_rsp = AtopSupport && axi_valid_in[NarrowAw] &&
-                          axi_narrow_unpack_aw_data.atop[axi_pkg::ATOP_R_RESP];
+                          axi_narrow_unpack_aw.atop[axi_pkg::ATOP_R_RESP];
 
   assign narrow_aw_out_push = axi_narrow_out_req_o.aw_valid && axi_narrow_out_rsp_i.aw_ready;
   assign narrow_ar_out_push = axi_narrow_out_req_o.ar_valid && axi_narrow_out_rsp_i.ar_ready ||
@@ -1040,27 +1040,27 @@ module floo_narrow_wide_chimney
 
 
   assign narrow_aw_out_data_in = '{
-    id: axi_narrow_unpack_aw_data.id,
+    id: axi_narrow_unpack_aw.id,
     rob_req: floo_narrow_unpack_req_generic.hdr.rob_req,
     rob_idx: floo_narrow_unpack_req_generic.hdr.rob_idx,
     src_id: floo_narrow_unpack_req_generic.hdr.src_id,
     atop: floo_narrow_unpack_req_generic.hdr.atop
   };
   assign narrow_ar_out_data_in = '{
-    id: axi_narrow_unpack_ar_data.id,
+    id: axi_narrow_unpack_ar.id,
     rob_req: floo_narrow_unpack_req_generic.hdr.rob_req,
     rob_idx: floo_narrow_unpack_req_generic.hdr.rob_idx,
     src_id: floo_narrow_unpack_req_generic.hdr.src_id,
     atop: floo_narrow_unpack_req_generic.hdr.atop
   };
   assign wide_aw_out_data_in = '{
-    id: axi_wide_unpack_aw_data.id,
+    id: axi_wide_unpack_aw.id,
     rob_req: floo_narrow_unpack_req_generic.hdr.rob_req,
     rob_idx: floo_narrow_unpack_req_generic.hdr.rob_idx,
     src_id: floo_narrow_unpack_req_generic.hdr.src_id
   };
   assign wide_ar_out_data_in = '{
-    id: axi_wide_unpack_ar_data.id,
+    id: axi_wide_unpack_ar.id,
     rob_req: floo_narrow_unpack_req_generic.hdr.rob_req,
     rob_idx: floo_narrow_unpack_req_generic.hdr.rob_idx,
     src_id: floo_narrow_unpack_req_generic.hdr.src_id
@@ -1156,10 +1156,10 @@ module floo_narrow_wide_chimney
 
   always_comb begin
     // Assign the outgoing AX an unique ID
-    axi_narrow_aw_id_mod    = axi_narrow_unpack_aw_data;
-    axi_narrow_ar_id_mod    = axi_narrow_unpack_ar_data;
-    axi_wide_aw_id_mod      = axi_wide_unpack_aw_data;
-    axi_wide_ar_id_mod      = axi_wide_unpack_ar_data;
+    axi_narrow_aw_id_mod    = axi_narrow_unpack_aw;
+    axi_narrow_ar_id_mod    = axi_narrow_unpack_ar;
+    axi_wide_aw_id_mod      = axi_wide_unpack_aw;
+    axi_wide_ar_id_mod      = axi_wide_unpack_ar;
     axi_narrow_aw_id_mod.id = narrow_aw_out_id;
     axi_narrow_ar_id_mod.id = narrow_ar_out_id;
     axi_wide_aw_id_mod.id   = wide_aw_out_id;

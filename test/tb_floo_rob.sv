@@ -58,8 +58,8 @@ module tb_floo_rob;
   for (genvar i = 0; i < NumDirections; i++) begin : gen_directions
     assign chimney_req_out_chan[i] = chimney_req_out[i].req;
     assign chimney_rsp_out_chan[i] = chimney_rsp_out[i].rsp;
-    assign chimney_req_in_chan[i] = chimney_req_in[i].req;
-    assign chimney_rsp_in_chan[i] = chimney_rsp_in[i].rsp;
+    assign chimney_req_in[i].req = chimney_req_in_chan[i];
+    assign chimney_rsp_in[i].rsp = chimney_rsp_in_chan[i];
     assign chimney_req_out_valid[i] = chimney_req_out[i].valid;
     assign chimney_req_out_ready[i] = chimney_req_out[i].ready;
     assign chimney_rsp_out_valid[i] = chimney_rsp_out[i].valid;
