@@ -22,7 +22,6 @@ sources:
   - src/floo_axi_pkg.sv
   - src/floo_narrow_wide_pkg.sv
   - src/floo_pkg.sv
-  - src/floo_param_pkg.sv
   # Level 1
   - src/floo_cut.sv
   - src/floo_fifo.sv
