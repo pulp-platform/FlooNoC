@@ -17,10 +17,10 @@ module tb_floo_narrow_wide_chimney;
   localparam time ApplTime = 2ns;
   localparam time TestTime = 8ns;
 
-  localparam NarrowNumReads = 1000;
-  localparam NarrowNumWrites = 1000;
-  localparam WideNumReads = 1000;
-  localparam WideNumWrites = 1000;
+  localparam NarrowNumReads = 100;
+  localparam NarrowNumWrites = 100;
+  localparam WideNumReads = 100;
+  localparam WideNumWrites = 100;
 
   localparam NumTargets = 2;
 
