@@ -22,12 +22,10 @@ module floo_rob #(
   parameter type         rsp_chan_t = logic,
   parameter type         rsp_data_t = logic,
   parameter type         rsp_meta_t = logic,
-  parameter type         rob_idx_t  = logic[$clog2(ReorderBufferSize)-1:0],
+  parameter type         rob_idx_t  = logic,
   parameter type         dest_t     = logic,
   // Type for implementation inputs and outputs
-  parameter type         sram_cfg_t = logic,
-  // Dependent parameters, DO NOT OVERRIDE!
-  localparam type rob_flag_t        = logic[ReorderBufferSize-1:0]
+  parameter type         sram_cfg_t = logic
 ) (
   input  logic      clk_i,
   input  logic      rst_ni,
@@ -56,6 +54,7 @@ module floo_rob #(
   localparam int unsigned NumIds = 2**AxiIdWidth;
   typedef logic[AxiIdWidth-1:0] axi_id_t;
   typedef logic[$clog2(NumIds)-1:0] num_id_t;
+  typedef logic[ReorderBufferSize-1:0] rob_flag_t;
 
   /////////////////////////
   //  Transaction Table  //
