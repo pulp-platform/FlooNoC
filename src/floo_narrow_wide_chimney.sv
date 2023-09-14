@@ -27,8 +27,6 @@ module floo_narrow_wide_chimney
   parameter int unsigned XYAddrOffsetX           = 0,
   /// Y Coordinate address offset for XY routing
   parameter int unsigned XYAddrOffsetY           = 0,
-  /// ID address offset for ID routing
-  parameter int unsigned IdTableAddrOffset       = 8,
   /// Number of maximum oustanding requests on the narrow network
   parameter int unsigned NarrowMaxTxns           = 32,
   /// Number of maximum oustanding requests on the wide network
@@ -53,46 +51,51 @@ module floo_narrow_wide_chimney
   parameter bit CutRsp                           = 1'b1,
   /// Only used for XYRouting
   parameter type xy_id_t                         = logic,
+  parameter type id_t                            = logic,
   /// Only used for IDRouting
-  parameter type table_id_t                      = logic,
+  parameter type id_rule_t                       = logic,
+  parameter int unsigned NumIDs                  = 1,
+  parameter int unsigned NumRules                = NumIDs,
   /// Type for implementation inputs and outputs
-  parameter type sram_cfg_t                      = logic,
-  /// Derived parameters, do not change
-  localparam type        narrow_rob_idx_t = logic [$clog2(NarrowReorderBufferSize)-1:0],
-  localparam type        wide_rob_idx_t = logic [$clog2(WideReorderBufferSize)-1:0]
-) (
-  input  logic clk_i,
-  input  logic rst_ni,
-  input  logic test_enable_i,
-  input  sram_cfg_t  sram_cfg_i,
-  /// AXI4 side interfaces
-  input  axi_narrow_in_req_t axi_narrow_in_req_i,
-  output axi_narrow_in_rsp_t axi_narrow_in_rsp_o,
-  output axi_narrow_out_req_t axi_narrow_out_req_o,
-  input  axi_narrow_out_rsp_t axi_narrow_out_rsp_i,
-  input  axi_wide_in_req_t axi_wide_in_req_i,
-  output axi_wide_in_rsp_t axi_wide_in_rsp_o,
-  output axi_wide_out_req_t axi_wide_out_req_o,
-  input  axi_wide_out_rsp_t axi_wide_out_rsp_i,
-  /// Coordinates/ID of the current tile
-  input  xy_id_t    xy_id_i,
-  input  table_id_t id_i,
-  /// Output to NoC
-  output floo_req_t   floo_req_o,
-  output floo_rsp_t   floo_rsp_o,
-  output floo_wide_t  floo_wide_o,
-  /// Input from NoC
-  input  floo_req_t   floo_req_i,
-  input  floo_rsp_t   floo_rsp_i,
-  input  floo_wide_t  floo_wide_i
-);
+  parameter type sram_cfg_t                      = logic
+  ) (
+    input  logic clk_i,
+    input  logic rst_ni,
+    input  logic test_enable_i,
+    input  sram_cfg_t  sram_cfg_i,
+    /// AXI4 side interfaces
+    input  axi_narrow_in_req_t axi_narrow_in_req_i,
+    output axi_narrow_in_rsp_t axi_narrow_in_rsp_o,
+    output axi_narrow_out_req_t axi_narrow_out_req_o,
+    input  axi_narrow_out_rsp_t axi_narrow_out_rsp_i,
+    input  axi_wide_in_req_t axi_wide_in_req_i,
+    output axi_wide_in_rsp_t axi_wide_in_rsp_o,
+    output axi_wide_out_req_t axi_wide_out_req_o,
+    input  axi_wide_out_rsp_t axi_wide_out_rsp_i,
+    /// Coordinates/ID of the current tile
+    input  xy_id_t    xy_id_i,
+    input  id_t       id_i,
+    /// Routing table
+    input  id_rule_t[NumRules-1:0]  id_map_i,
+    /// Output to NoC
+    output floo_req_t   floo_req_o,
+    output floo_rsp_t   floo_rsp_o,
+    output floo_wide_t  floo_wide_o,
+    /// Input from NoC
+    input  floo_req_t   floo_req_i,
+    input  floo_rsp_t   floo_rsp_i,
+    input  floo_wide_t  floo_wide_i
+    );
 
-  // AX queue
-  axi_narrow_in_aw_chan_t axi_narrow_aw_queue;
-  axi_narrow_in_ar_chan_t axi_narrow_ar_queue;
-  axi_wide_in_aw_chan_t axi_wide_aw_queue;
-  axi_wide_in_ar_chan_t axi_wide_ar_queue;
-  logic axi_narrow_aw_queue_valid_out, axi_narrow_aw_queue_ready_in;
+    typedef logic [$clog2(NarrowReorderBufferSize)-1:0] narrow_rob_idx_t;
+    typedef logic [$clog2(WideReorderBufferSize)-1:0]   wide_rob_idx_t;
+
+    // AX queue
+    axi_narrow_in_aw_chan_t axi_narrow_aw_queue;
+    axi_narrow_in_ar_chan_t axi_narrow_ar_queue;
+    axi_wide_in_aw_chan_t axi_wide_aw_queue;
+    axi_wide_in_ar_chan_t axi_wide_ar_queue;
+    logic axi_narrow_aw_queue_valid_out, axi_narrow_aw_queue_ready_in;
   logic axi_narrow_ar_queue_valid_out, axi_narrow_ar_queue_ready_in;
   logic axi_wide_aw_queue_valid_out, axi_wide_aw_queue_ready_in;
   logic axi_wide_ar_queue_valid_out, axi_wide_ar_queue_ready_in;
@@ -160,8 +163,6 @@ module floo_narrow_wide_chimney
   floo_req_generic_flit_t   floo_narrow_unpack_req_generic;
   floo_rsp_generic_flit_t   floo_narrow_unpack_rsp_generic;
   floo_wide_generic_flit_t  floo_wide_unpack_generic;
-
-  typedef dst_id_t id_t;
 
   // ID tracking
   typedef struct packed {
@@ -653,26 +654,46 @@ module floo_narrow_wide_chimney
     `FFL(wide_aw_xy_id_q, wide_aw_xy_id, axi_wide_aw_queue_valid_out &&
                                             axi_wide_aw_queue_ready_in, '0)
   end else if (RouteAlgo == IdTable) begin : gen_id_table_routing
-    id_t narrow_aw_id_q, narrow_aw_id, narrow_ar_id;
-    id_t wide_aw_id_q, wide_aw_id, wide_ar_id;
+    typedef enum logic [1:0] {NarrowAwReq, NarrowArReq, WideAwReq, WideArReq} axi_req_ch_e;
+    id_t narrow_aw_id_q, wide_aw_id_q;
+    axi_narrow_in_addr_t [WideArReq:NarrowAwReq] decode_addr_in;
+    id_t [WideArReq:NarrowAwReq] dst_addr_out;
+
+    assign decode_addr_in[NarrowAwReq] = axi_narrow_aw_queue.addr;
+    assign decode_addr_in[NarrowArReq] = axi_narrow_ar_queue.addr;
+    assign decode_addr_in[WideAwReq] = axi_wide_aw_queue.addr;
+    assign decode_addr_in[WideArReq] = axi_wide_ar_queue.addr;
+
+    addr_decode #(
+      .NoIndices  ( NumIDs                ),
+      .NoRules    ( NumRules              ),
+      .addr_t     ( axi_narrow_in_addr_t  ),
+      .rule_t     ( id_rule_t             ),
+      .idx_t      ( id_t                  )
+    ) i_addr_dst_decode [3:0] (
+      .addr_i           ( decode_addr_in  ),
+      .addr_map_i       ( id_map_i        ),
+      .idx_o            ( dst_addr_out    ),
+      .dec_valid_o      (                 ),
+      .dec_error_o      (                 ),
+      .en_default_idx_i ( 1'b0            ),
+      .default_idx_i    ( '0              )
+    );
+
     assign src_id = id_i;
-    assign narrow_aw_id = axi_narrow_aw_queue.addr[IdTableAddrOffset+:$bits(id_i)];
-    assign narrow_ar_id = axi_narrow_ar_queue.addr[IdTableAddrOffset+:$bits(id_i)];
-    assign wide_aw_id = axi_wide_aw_queue.addr[IdTableAddrOffset+:$bits(id_i)];
-    assign wide_ar_id = axi_wide_ar_queue.addr[IdTableAddrOffset+:$bits(id_i)];
-    assign dst_id[NarrowAw] = narrow_aw_id;
-    assign dst_id[NarrowAr] = narrow_ar_id;
+    assign dst_id[NarrowAw] = dst_addr_out[NarrowAwReq];
     assign dst_id[NarrowW]  = narrow_aw_id_q;
+    assign dst_id[NarrowAr] = dst_addr_out[NarrowArReq];
     assign dst_id[NarrowB]  = narrow_aw_out_data_out.src_id;
     assign dst_id[NarrowR]  = narrow_ar_out_data_out.src_id;
-    assign dst_id[WideAw] = wide_aw_id;
-    assign dst_id[WideAr] = wide_ar_id;
+    assign dst_id[WideAw] = dst_addr_out[WideAwReq];
     assign dst_id[WideW]  = wide_aw_id_q;
+    assign dst_id[WideAr] = dst_addr_out[WideArReq];
     assign dst_id[WideB]  = wide_aw_out_data_out.src_id;
     assign dst_id[WideR]  = wide_ar_out_data_out.src_id;
-    `FFL(narrow_aw_id_q, narrow_aw_id, axi_narrow_aw_queue_valid_out &&
+    `FFL(narrow_aw_id_q, dst_id[NarrowAw], axi_narrow_aw_queue_valid_out &&
                                        axi_narrow_aw_queue_ready_in, '0)
-    `FFL(wide_aw_id_q, wide_aw_id, axi_wide_aw_queue_valid_out &&
+    `FFL(wide_aw_id_q, dst_id[WideAw], axi_wide_aw_queue_valid_out &&
                                        axi_wide_aw_queue_ready_in, '0)
   end else begin : gen_no_routing
     // TODO: Implement other routing algorithms

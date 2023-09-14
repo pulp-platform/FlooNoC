@@ -76,6 +76,18 @@ module tb_floo_narrow_wide_chimney;
     '{start_addr: 48'h000_0000_0000, end_addr: 48'h000_0000_8000}
   };
 
+  typedef struct packed {
+    int unsigned idx;
+    logic [NarrowInAddrWidth-1:0] start_addr;
+    logic [NarrowInAddrWidth-1:0] end_addr;
+  } node_addr_region_id_t;
+
+  node_addr_region_id_t [NumTargets-1:0] node_addr_regions;
+  assign node_addr_regions = '{
+    '{idx: 0, start_addr: 48'h000_0000_0000, end_addr: 48'h000_0000_4000},
+    '{idx: 1, start_addr: 48'h000_0000_4000, end_addr: 48'h000_0000_8000}
+  };
+
   floo_axi_test_node #(
     .AxiAddrWidth   ( NarrowInAddrWidth     ),
     .AxiDataWidth   ( NarrowInDataWidth     ),
@@ -170,15 +182,18 @@ module tb_floo_narrow_wide_chimney;
   );
 
   floo_narrow_wide_chimney #(
-    .AtopSupport              ( 1'b1                ),
-    .MaxAtomicTxns            ( 1                   ),
-    .RouteAlgo                ( floo_pkg::IdTable   ),
-    .NarrowMaxTxns            ( MaxTxns             ),
-    .NarrowMaxTxnsPerId       ( MaxTxnsPerId        ),
-    .NarrowReorderBufferSize  ( ReorderBufferSize   ),
-    .WideMaxTxns              ( MaxTxns             ),
-    .WideMaxTxnsPerId         ( MaxTxnsPerId        ),
-    .WideReorderBufferSize    ( ReorderBufferSize   )
+    .AtopSupport              ( 1'b1                  ),
+    .MaxAtomicTxns            ( 1                     ),
+    .RouteAlgo                ( floo_pkg::IdTable     ),
+    .NumIDs                   ( NumTargets            ),
+    .NumRules                 ( NumTargets            ),
+    .id_rule_t                ( node_addr_region_id_t ),
+    .NarrowMaxTxns            ( MaxTxns               ),
+    .NarrowMaxTxnsPerId       ( MaxTxnsPerId          ),
+    .NarrowReorderBufferSize  ( ReorderBufferSize     ),
+    .WideMaxTxns              ( MaxTxns               ),
+    .WideMaxTxnsPerId         ( MaxTxnsPerId          ),
+    .WideReorderBufferSize    ( ReorderBufferSize     )
   ) i_floo_narrow_wide_chimney_0 (
     .clk_i                ( clk                   ),
     .rst_ni               ( rst_n                 ),
@@ -194,6 +209,7 @@ module tb_floo_narrow_wide_chimney;
     .axi_wide_out_rsp_i   ( wide_sub_rsp[0]       ),
     .xy_id_i              ( '0                    ),
     .id_i                 ( '0                    ),
+    .id_map_i             ( node_addr_regions     ),
     .floo_req_o           ( chimney_req[0]        ),
     .floo_rsp_o           ( chimney_rsp[0]        ),
     .floo_wide_o          ( chimney_wide[0]       ),
@@ -203,15 +219,18 @@ module tb_floo_narrow_wide_chimney;
     );
 
   floo_narrow_wide_chimney #(
-    .AtopSupport              ( 1'b1                ),
-    .MaxAtomicTxns            ( 1                   ),
-    .RouteAlgo                ( floo_pkg::IdTable   ),
-    .NarrowMaxTxns            ( MaxTxns             ),
-    .NarrowMaxTxnsPerId       ( MaxTxnsPerId        ),
-    .NarrowReorderBufferSize  ( ReorderBufferSize   ),
-    .WideMaxTxns              ( MaxTxns             ),
-    .WideMaxTxnsPerId         ( MaxTxnsPerId        ),
-    .WideReorderBufferSize    ( ReorderBufferSize   )
+    .AtopSupport              ( 1'b1                  ),
+    .MaxAtomicTxns            ( 1                     ),
+    .RouteAlgo                ( floo_pkg::IdTable     ),
+    .NumIDs                   ( NumTargets            ),
+    .NumRules                 ( NumTargets            ),
+    .id_rule_t                ( node_addr_region_id_t ),
+    .NarrowMaxTxns            ( MaxTxns               ),
+    .NarrowMaxTxnsPerId       ( MaxTxnsPerId          ),
+    .NarrowReorderBufferSize  ( ReorderBufferSize     ),
+    .WideMaxTxns              ( MaxTxns               ),
+    .WideMaxTxnsPerId         ( MaxTxnsPerId          ),
+    .WideReorderBufferSize    ( ReorderBufferSize     )
   ) i_floo_narrow_wide_chimney_1 (
     .clk_i                ( clk                   ),
     .rst_ni               ( rst_n                 ),
@@ -227,6 +246,7 @@ module tb_floo_narrow_wide_chimney;
     .axi_wide_out_rsp_i   ( wide_sub_rsp[1]       ),
     .xy_id_i              ( '0                    ),
     .id_i                 ( '0                    ),
+    .id_map_i             ( node_addr_regions     ),
     .floo_req_o           ( chimney_req[1]        ),
     .floo_rsp_o           ( chimney_rsp[1]        ),
     .floo_wide_o          ( chimney_wide[1]       ),
