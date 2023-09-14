@@ -87,7 +87,8 @@ module floo_narrow_wide_router
     .RouteAlgo        ( RouteAlgo               ),
     .IdWidth          ( IdWidth                 ),
     .id_t             ( id_t                    ),
-    .NumAddrRules     ( NumAddrRules            )
+    .NumAddrRules     ( NumAddrRules            ),
+    .addr_rule_t      ( addr_rule_t             )
   ) i_req_floo_router (
     .clk_i,
     .rst_ni,
@@ -114,7 +115,8 @@ module floo_narrow_wide_router
     .IdWidth          ( IdWidth                 ),
     .flit_t           ( floo_rsp_generic_flit_t ),
     .id_t             ( id_t                    ),
-    .NumAddrRules     ( NumAddrRules            )
+    .NumAddrRules     ( NumAddrRules            ),
+    .addr_rule_t      ( addr_rule_t             )
   ) i_rsp_floo_router (
     .clk_i,
     .rst_ni,
@@ -140,7 +142,8 @@ module floo_narrow_wide_router
     .RouteAlgo        ( RouteAlgo                 ),
     .IdWidth          ( IdWidth                   ),
     .id_t             ( id_t                      ),
-    .NumAddrRules     ( NumAddrRules              )
+    .NumAddrRules     ( NumAddrRules              ),
+    .addr_rule_t      ( addr_rule_t               )
   ) i_wide_req_floo_router (
     .clk_i,
     .rst_ni,
