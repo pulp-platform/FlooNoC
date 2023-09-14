@@ -37,8 +37,10 @@ module floo_narrow_wide_router
   output  floo_wide_t   [NumRoutes-1:0] floo_wide_o
 );
 
-  floo_req_chan_t [NumInputs-1:0] req_in, req_out;
-  floo_rsp_chan_t [NumOutputs-1:0] rsp_in, rsp_out;
+  floo_req_chan_t [NumInputs-1:0] req_in;
+  floo_rsp_chan_t [NumInputs-1:0] rsp_out;
+  floo_req_chan_t [NumOutputs-1:0] req_out;
+  floo_rsp_chan_t [NumOutputs-1:0] rsp_in;
   floo_wide_chan_t [NumRoutes-1:0] wide_in, wide_out;
   logic [NumInputs-1:0] req_valid_in, req_ready_out;
   logic [NumInputs-1:0] rsp_valid_out, rsp_ready_in;
@@ -48,34 +50,30 @@ module floo_narrow_wide_router
   logic [NumRoutes-1:0] wide_ready_in, wide_ready_out;
 
   for (genvar i = 0; i < NumInputs; i++) begin : gen_chimney_req
-    assign req_in[i] = floo_req_i[i].req;
-    assign floo_req_o[i].req = req_out[i];
     assign req_valid_in[i] = floo_req_i[i].valid;
-    assign rsp_ready_in[i] = floo_rsp_i[i].ready;
-    assign floo_rsp_o[i].valid = rsp_valid_out[i];
     assign floo_req_o[i].ready = req_ready_out[i];
+    assign req_in[i] = floo_req_i[i].req;
+    assign floo_rsp_o[i].valid = rsp_valid_out[i];
+    assign rsp_ready_in[i] = floo_rsp_i[i].ready;
+    assign floo_rsp_o[i].rsp = rsp_out[i];
   end
 
   for (genvar i = 0; i < NumOutputs; i++) begin : gen_chimney_rsp
-    assign rsp_in[i] = floo_rsp_i[i].rsp;
-    assign floo_rsp_o[i].rsp = rsp_out[i];
-    assign rsp_valid_in[i] = floo_rsp_i[i].valid;
-    assign req_ready_in[i] = floo_req_i[i].ready;
     assign floo_req_o[i].valid = req_valid_out[i];
+    assign req_ready_in[i] = floo_req_i[i].ready;
+    assign floo_req_o[i].req = req_out[i];
+    assign rsp_valid_in[i] = floo_rsp_i[i].valid;
     assign floo_rsp_o[i].ready = rsp_ready_out[i];
-    assign wide_valid_in[i] = floo_wide_i[i].valid;
-    assign wide_ready_in[i] = floo_wide_i[i].ready;
-    assign floo_wide_o[i].valid = wide_valid_out[i];
-    assign floo_wide_o[i].ready = wide_ready_out[i];
+    assign rsp_in[i] = floo_rsp_i[i].rsp;
   end
 
   for (genvar i = 0; i < NumRoutes; i++) begin : gen_chimney_wide
-    assign wide_in[i] = floo_wide_i[i].wide;
-    assign floo_wide_o[i].wide = wide_out[i];
     assign wide_valid_in[i] = floo_wide_i[i].valid;
-    assign wide_ready_in[i] = floo_wide_i[i].ready;
-    assign floo_wide_o[i].valid = wide_valid_out[i];
     assign floo_wide_o[i].ready = wide_ready_out[i];
+    assign wide_in[i] = floo_wide_i[i].wide;
+    assign floo_wide_o[i].valid = wide_valid_out[i];
+    assign wide_ready_in[i] = floo_wide_i[i].ready;
+    assign floo_wide_o[i].wide = wide_out[i];
   end
 
   floo_router #(
