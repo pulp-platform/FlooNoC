@@ -25,8 +25,8 @@ module floo_axi_rand_slave
   parameter logic[AxiAddrWidth-1:0] DstStartAddr = '0,
   parameter logic[AxiAddrWidth-1:0] DstEndAddr = '0,
   parameter slave_type_e SlaveType = MixedSlave,
-  localparam int unsigned NumSlaves = 4,
-  localparam int unsigned SlvAddrSpace = (DstEndAddr - DstStartAddr) / NumSlaves
+  parameter int unsigned NumSlaves = 4,
+  localparam logic[AxiAddrWidth-1:0] SlvAddrSpace = (DstEndAddr - DstStartAddr) / NumSlaves
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -59,13 +59,14 @@ module floo_axi_rand_slave
     logic [AxiAddrWidth-1:0] end_addr;
   } xbar_rule_t;
 
-  xbar_rule_t [3:0] XbarAddrMap;
-  assign XbarAddrMap = '{
-    '{ idx: 0, start_addr: DstStartAddr + 0 * SlvAddrSpace, end_addr: DstStartAddr + 1 * SlvAddrSpace },
-    '{ idx: 1, start_addr: DstStartAddr + 1 * SlvAddrSpace, end_addr: DstStartAddr + 2 * SlvAddrSpace },
-    '{ idx: 2, start_addr: DstStartAddr + 2 * SlvAddrSpace, end_addr: DstStartAddr + 3 * SlvAddrSpace },
-    '{ idx: 3, start_addr: DstStartAddr + 3 * SlvAddrSpace, end_addr: DstStartAddr + 4 * SlvAddrSpace }
-  };
+  xbar_rule_t [NumSlaves-1:0] XbarAddrMap;
+  for (genvar i = 0; i < NumSlaves; i++) begin : gen_addr_rules
+    assign XbarAddrMap[i] = '{
+      idx: i,
+      start_addr: DstStartAddr + i * SlvAddrSpace,
+      end_addr: DstStartAddr + (i+1) * SlvAddrSpace
+    };
+  end
 
   localparam axi_pkg::xbar_cfg_t XbarCfg = '{
     NoSlvPorts:         1,
