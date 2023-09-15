@@ -22,8 +22,8 @@ module floo_axi_rand_slave
   // TB Parameters
   parameter time ApplTime = 2ns,
   parameter time TestTime = 8ns,
-  parameter int unsigned DstStartAddr = 0,
-  parameter int unsigned DstEndAddr = 0,
+  parameter logic[AxiAddrWidth-1:0] DstStartAddr = '0,
+  parameter logic[AxiAddrWidth-1:0] DstEndAddr = '0,
   parameter slave_type_e SlaveType = MixedSlave,
   localparam int unsigned NumSlaves = 4,
   localparam int unsigned SlvAddrSpace = (DstEndAddr - DstStartAddr) / NumSlaves
