@@ -142,7 +142,8 @@ module floo_dma_test_node  #(
     UniqueIds:          0,
     AxiAddrWidth:       AddrWidth,
     AxiDataWidth:       DataWidth,
-    NoAddrRules:        1
+    NoAddrRules:        1,
+    PipelineStages:     0
   };
 
   //--------------------------------------
