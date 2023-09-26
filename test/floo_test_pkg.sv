@@ -4,6 +4,8 @@
 //
 // Tim Fischer <fischeti@iis.ee.ethz.ch>
 
+`include "floo_noc/typedef.svh"
+
 package floo_test_pkg;
 
   typedef enum {
@@ -11,5 +13,31 @@ package floo_test_pkg;
     SlowSlave,
     MixedSlave
   } slave_type_e;
+
+  // System parameters
+  localparam int unsigned NumX = 4;
+  localparam int unsigned NumY = 4;
+
+  // Router parameters
+  localparam int unsigned NumRoutes = 5;
+  localparam int unsigned ChannelFifoDepth  = 2;
+  localparam int unsigned OutputFifoDepth   = 2;
+
+  // Chimney parameters
+  localparam bit CutAx = 1'b1;
+  localparam bit CutRsp = 1'b0;
+  localparam int unsigned MaxTxnsPerId = 16;
+  localparam bit RoBSimple = 1'b0;
+  localparam int unsigned ReorderBufferSize = 32'd64;
+
+  // Narrow Wide Chimney parameters
+  localparam bit NarrowRoBSimple = 1'b1;
+  localparam int unsigned NarrowMaxTxnsPerId = 4;
+  localparam int unsigned NarrowReorderBufferSize = 32'd256;
+  localparam bit WideRoBSimple = 1'b0;
+  localparam int unsigned WideMaxTxnsPerId = 32;
+  localparam int unsigned WideReorderBufferSize = 32'd128;
+
+  `FLOO_NOC_TYPEDEF_XY_ID_T(xy_id_t, NumX, NumY)
 
 endpackage

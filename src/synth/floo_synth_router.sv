@@ -6,8 +6,8 @@
 
 module floo_synth_router
   import floo_pkg::*;
-  import floo_axi_flit_pkg::*;
-  import floo_param_pkg::*;
+  import floo_axi_pkg::*;
+  import floo_test_pkg::*;
 (
   input  logic   clk_i,
   input  logic   rst_ni,
@@ -15,24 +15,24 @@ module floo_synth_router
 
   input  xy_id_t xy_id_i,
 
-  input  req_flit_t [NumRoutes-1:0] req_i,
-  input  rsp_flit_t [NumRoutes-1:0] rsp_i,
-  output  req_flit_t [NumRoutes-1:0] req_o,
-  output  rsp_flit_t [NumRoutes-1:0] rsp_o
+  input  floo_req_t [NumRoutes-1:0] req_i,
+  input  floo_rsp_t [NumRoutes-1:0] rsp_i,
+  output  floo_req_t [NumRoutes-1:0] req_o,
+  output  floo_rsp_t [NumRoutes-1:0] rsp_o
 );
 
-  req_data_t [NumRoutes-1:0]    req_in, req_out;
-  rsp_data_t [NumRoutes-1:0]    rsp_in, rsp_out;
+  floo_req_chan_t [NumRoutes-1:0]    req_in, req_out;
+  floo_rsp_chan_t [NumRoutes-1:0]    rsp_in, rsp_out;
   logic [NumRoutes-1:0]         req_valid_in, req_valid_out;
   logic [NumRoutes-1:0]         rsp_valid_in, rsp_valid_out;
   logic [NumRoutes-1:0]         req_ready_in, rsp_ready_in;
   logic [NumRoutes-1:0]         req_ready_out, rsp_ready_out;
 
   for (genvar i = 0; i < NumRoutes; i++) begin : gen_chimney_req
-    assign req_o[i].data = req_out[i];
-    assign rsp_o[i].data = rsp_out[i];
-    assign req_in[i] = req_i[i].data;
-    assign rsp_in[i] = rsp_i[i].data;
+    assign req_o[i].req = req_out[i];
+    assign rsp_o[i].rsp = rsp_out[i];
+    assign req_in[i] = req_i[i].req;
+    assign rsp_in[i] = rsp_i[i].rsp;
     assign req_valid_in[i] = req_i[i].valid;
     assign rsp_valid_in[i] = rsp_i[i].valid;
     assign req_ready_in[i] = req_i[i].ready;
@@ -44,15 +44,15 @@ module floo_synth_router
   end
 
   floo_router #(
-    .NumPhysChannels  ( 1                   ),
-    .NumVirtChannels  ( 1                   ),
-    .NumRoutes        ( NumRoutes           ),
-    .flit_t           ( req_generic_t       ),
-    .ChannelFifoDepth ( ChannelFifoDepth    ),
-    .RouteAlgo        ( XYRouting           ),
-    .IdWidth          ( 4                   ),
-    .id_t             ( xy_id_t             ),
-    .NumAddrRules     ( 1                   )
+    .NumPhysChannels  ( 1                       ),
+    .NumVirtChannels  ( 1                       ),
+    .NumRoutes        ( NumRoutes               ),
+    .flit_t           ( floo_req_generic_flit_t ),
+    .ChannelFifoDepth ( 2                       ),
+    .RouteAlgo        ( XYRouting               ),
+    .IdWidth          ( 4                       ),
+    .id_t             ( xy_id_t                 ),
+    .NumAddrRules     ( 1                       )
   ) i_req_floo_router (
     .clk_i,
     .rst_ni,
@@ -69,15 +69,15 @@ module floo_synth_router
 
 
   floo_router #(
-    .NumPhysChannels  ( 1                 ),
-    .NumVirtChannels  ( 1                 ),
-    .NumRoutes        ( NumRoutes         ),
-    .flit_t           ( rsp_generic_t     ),
-    .ChannelFifoDepth ( ChannelFifoDepth  ),
-    .RouteAlgo        ( XYRouting         ),
-    .IdWidth          ( 4                 ),
-    .id_t             ( xy_id_t           ),
-    .NumAddrRules     ( 1                 )
+    .NumPhysChannels  ( 1                       ),
+    .NumVirtChannels  ( 1                       ),
+    .NumRoutes        ( NumRoutes               ),
+    .flit_t           ( floo_rsp_generic_flit_t ),
+    .ChannelFifoDepth ( ChannelFifoDepth        ),
+    .RouteAlgo        ( XYRouting               ),
+    .IdWidth          ( 4                       ),
+    .id_t             ( xy_id_t                 ),
+    .NumAddrRules     ( 1                       )
   ) i_rsp_floo_router (
     .clk_i,
     .rst_ni,

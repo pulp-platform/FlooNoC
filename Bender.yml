@@ -63,9 +63,10 @@ sources:
   - target: any(synthesis,spyglass)
     files:
       # Level 0
+      - test/floo_test_pkg.sv
+      # Level 1
       - src/synth/floo_synth_axi_chimney.sv
       - src/synth/floo_synth_narrow_wide_chimney.sv
       - src/synth/floo_synth_router.sv
-      - src/synth/floo_synth_router_simple.sv
       - src/synth/floo_synth_narrow_wide_router.sv
       - src/synth/floo_synth_endpoint.sv
