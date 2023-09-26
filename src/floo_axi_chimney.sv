@@ -244,11 +244,13 @@ module floo_axi_chimney
     `ASSERT(NoAtopSupport, !(axi_aw_queue_valid_out && (axi_aw_queue.atop != axi_pkg::ATOP_NONE)))
   end
 
-  floo_simple_rob #(
+  floo_rob_wrapper #(
+    .RoBType            ( NoRoB             ),
     .ReorderBufferSize  ( ReorderBufferSize ),
     .MaxRoTxnsPerId     ( MaxTxnsPerId      ),
     .OnlyMetaData       ( 1'b1              ),
     .ax_len_t           ( axi_pkg::len_t    ),
+    .ax_id_t            ( axi_in_id_t       ),
     .rsp_chan_t         ( axi_in_b_chan_t   ),
     .rsp_meta_t         ( axi_in_b_chan_t   ),
     .rob_idx_t          ( rob_idx_t         ),
@@ -261,6 +263,7 @@ module floo_axi_chimney
     .ax_valid_i     ( aw_rob_valid_in               ),
     .ax_ready_o     ( aw_rob_ready_out              ),
     .ax_len_i       ( axi_aw_queue.len              ),
+    .ax_id_i        ( axi_aw_queue.id               ),
     .ax_dest_i      ( dst_id[AxiAw]                 ),
     .ax_valid_o     ( aw_rob_valid_out              ),
     .ax_ready_i     ( aw_rob_ready_in               ),
@@ -285,76 +288,43 @@ module floo_axi_chimney
     logic           last;
   } r_rob_meta_t;
 
-  if (RoBSimple) begin : gen_simple_rob
-    floo_simple_rob #(
-      .ReorderBufferSize  ( ReorderBufferSize ),
-      .MaxRoTxnsPerId     ( MaxTxnsPerId      ),
-      .OnlyMetaData       ( 1'b0              ),
-      .ax_len_t           ( axi_pkg::len_t    ),
-      .rsp_chan_t         ( axi_in_r_chan_t   ),
-      .rsp_data_t         ( r_rob_data_t      ),
-      .rsp_meta_t         ( r_rob_meta_t      ),
-      .rob_idx_t          ( rob_idx_t         ),
-      .dest_t             ( id_t              ),
-      .sram_cfg_t         ( sram_cfg_t        )
-    ) i_r_rob (
-      .clk_i,
-      .rst_ni,
-      .sram_cfg_i,
-      .ax_valid_i     ( axi_ar_queue_valid_out        ),
-      .ax_ready_o     ( axi_ar_queue_ready_in         ),
-      .ax_len_i       ( axi_ar_queue.len              ),
-      .ax_dest_i      ( dst_id[AxiAr]                 ),
-      .ax_valid_o     ( ar_rob_valid_out              ),
-      .ax_ready_i     ( ar_rob_ready_in               ),
-      .ax_rob_req_o   ( ar_rob_req_out                ),
-      .ax_rob_idx_o   ( ar_rob_idx_out                ),
-      .rsp_valid_i    ( r_rob_valid_in                ),
-      .rsp_ready_o    ( r_rob_ready_out               ),
-      .rsp_i          ( axi_r_rob_in                  ),
-      .rsp_rob_req_i  ( floo_rsp_in.axi_r.hdr.rob_req ),
-      .rsp_rob_idx_i  ( floo_rsp_in.axi_r.hdr.rob_idx ),
-      .rsp_last_i     ( floo_rsp_in.axi_r.hdr.last    ),
-      .rsp_valid_o    ( r_rob_valid_out               ),
-      .rsp_ready_i    ( r_rob_ready_in                ),
-      .rsp_o          ( axi_r_rob_out                 )
-    );
-  end else begin : gen_rob
-    floo_rob #(
-      .ReorderBufferSize  ( ReorderBufferSize ),
-      .MaxRoTxnsPerId     ( MaxTxnsPerId      ),
-      .OnlyMetaData       ( 1'b0              ),
-      .ax_len_t           ( axi_pkg::len_t    ),
-      .ax_id_t            ( axi_in_id_t       ),
-      .rsp_chan_t         ( axi_in_r_chan_t   ),
-      .rsp_data_t         ( r_rob_data_t      ),
-      .rsp_meta_t         ( r_rob_meta_t      ),
-      .dest_t             ( id_t              ),
-      .sram_cfg_t         ( sram_cfg_t        )
-    ) i_r_rob (
-      .clk_i,
-      .rst_ni,
-      .sram_cfg_i,
-      .ax_valid_i     ( axi_ar_queue_valid_out        ),
-      .ax_ready_o     ( axi_ar_queue_ready_in         ),
-      .ax_len_i       ( axi_ar_queue.len              ),
-      .ax_id_i        ( axi_ar_queue.id               ),
-      .ax_dest_i      ( dst_id[AxiAr]                 ),
-      .ax_valid_o     ( ar_rob_valid_out              ),
-      .ax_ready_i     ( ar_rob_ready_in               ),
-      .ax_rob_req_o   ( ar_rob_req_out                ),
-      .ax_rob_idx_o   ( ar_rob_idx_out                ),
-      .rsp_valid_i    ( r_rob_valid_in                ),
-      .rsp_ready_o    ( r_rob_ready_out               ),
-      .rsp_i          ( axi_r_rob_in                  ),
-      .rsp_rob_req_i  ( floo_rsp_in.axi_r.hdr.rob_req ),
-      .rsp_rob_idx_i  ( floo_rsp_in.axi_r.hdr.rob_idx ),
-      .rsp_last_i     ( floo_rsp_in.axi_r.hdr.last    ),
-      .rsp_valid_o    ( r_rob_valid_out               ),
-      .rsp_ready_i    ( r_rob_ready_in                ),
-      .rsp_o          ( axi_r_rob_out                 )
-    );
-  end
+
+  floo_rob_wrapper #(
+    .RoBType            ( NoRoB             ),
+    .ReorderBufferSize  ( ReorderBufferSize ),
+    .MaxRoTxnsPerId     ( MaxTxnsPerId      ),
+    .OnlyMetaData       ( 1'b0              ),
+    .ax_len_t           ( axi_pkg::len_t    ),
+    .ax_id_t            ( axi_in_id_t       ),
+    .rsp_chan_t         ( axi_in_r_chan_t   ),
+    .rsp_data_t         ( r_rob_data_t      ),
+    .rsp_meta_t         ( r_rob_meta_t      ),
+    .rob_idx_t          ( rob_idx_t         ),
+    .dest_t             ( id_t              ),
+    .sram_cfg_t         ( sram_cfg_t        )
+  ) i_r_rob (
+    .clk_i,
+    .rst_ni,
+    .sram_cfg_i,
+    .ax_valid_i     ( axi_ar_queue_valid_out        ),
+    .ax_ready_o     ( axi_ar_queue_ready_in         ),
+    .ax_len_i       ( axi_ar_queue.len              ),
+    .ax_id_i        ( axi_ar_queue.id               ),
+    .ax_dest_i      ( dst_id[AxiAr]                 ),
+    .ax_valid_o     ( ar_rob_valid_out              ),
+    .ax_ready_i     ( ar_rob_ready_in               ),
+    .ax_rob_req_o   ( ar_rob_req_out                ),
+    .ax_rob_idx_o   ( ar_rob_idx_out                ),
+    .rsp_valid_i    ( r_rob_valid_in                ),
+    .rsp_ready_o    ( r_rob_ready_out               ),
+    .rsp_i          ( axi_r_rob_in                  ),
+    .rsp_rob_req_i  ( floo_rsp_in.axi_r.hdr.rob_req ),
+    .rsp_rob_idx_i  ( floo_rsp_in.axi_r.hdr.rob_idx ),
+    .rsp_last_i     ( floo_rsp_in.axi_r.hdr.last    ),
+    .rsp_valid_o    ( r_rob_valid_out               ),
+    .rsp_ready_i    ( r_rob_ready_in                ),
+    .rsp_o          ( axi_r_rob_out                 )
+  );
 
   /////////////////
   //   ROUTING   //

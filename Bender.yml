@@ -31,6 +31,7 @@ sources:
   - src/floo_wormhole_arbiter.sv
   - src/floo_simple_rob.sv
   - src/floo_rob.sv
+  - src/floo_rob_wrapper.sv
   - src/floo_meta_buffer.sv
   # Level 2
   - src/floo_axi_chimney.sv
