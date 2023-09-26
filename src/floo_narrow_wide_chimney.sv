@@ -568,7 +568,7 @@ module floo_narrow_wide_chimney
       .sram_cfg_i,
       .ax_valid_i     ( axi_wide_ar_queue_valid_out ),
       .ax_ready_o     ( axi_wide_ar_queue_ready_in  ),
-      .ax_len_i       ( wide_ar_queue.len           ),
+      .ax_len_i       ( axi_wide_ar_queue.len       ),
       .ax_dest_i      ( dst_id[WideAr]              ),
       .ax_valid_o     ( wide_ar_rob_valid_out       ),
       .ax_ready_i     ( wide_ar_rob_ready_in        ),
