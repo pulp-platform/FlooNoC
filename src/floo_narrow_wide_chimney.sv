@@ -178,6 +178,9 @@ module floo_narrow_wide_chimney
     id_t              src_id;
   } wide_id_out_buf_t;
 
+  typedef logic [MaxAtomicTxns-1:0] atop_id_mask_t;
+  atop_id_mask_t atop_id_mask_ar, atop_id_mask_aw;
+
   // Routing
   id_t [NumNarrowWideAxiChannels-1:0] dst_id;
   id_t src_id;
@@ -1036,12 +1039,14 @@ module floo_narrow_wide_chimney
     .req_buf_i      ( narrow_aw_out_data_in         ),
     .req_is_atop_i  ( is_atop                       ),
     .req_atop_id_i  ( '0                            ),
+    .avl_atop_ids_i ( atop_id_mask_ar               ),
+    .avl_atop_ids_o ( atop_id_mask_aw               ),
     .req_full_o     ( narrow_aw_out_full            ),
     .req_id_o       ( narrow_aw_out_id              ),
     .rsp_pop_i      ( narrow_aw_out_pop             ),
     .rsp_id_i       ( axi_narrow_out_rsp_i.b.id     ),
     .rsp_buf_o      ( narrow_aw_out_data_out        )
-  );
+    );
 
 
   floo_meta_buffer #(
@@ -1060,6 +1065,8 @@ module floo_narrow_wide_chimney
     .req_buf_i      ( narrow_ar_out_data_in         ),
     .req_is_atop_i  ( is_atop                       ),
     .req_atop_id_i  ( narrow_aw_out_id              ), // Use ID from AW channel
+    .avl_atop_ids_i ( atop_id_mask_aw               ),
+    .avl_atop_ids_o ( atop_id_mask_ar               ),
     .req_full_o     ( narrow_ar_out_full            ),
     .req_id_o       ( narrow_ar_out_id              ),
     .rsp_pop_i      ( narrow_ar_out_pop             ),
@@ -1081,6 +1088,8 @@ module floo_narrow_wide_chimney
     .req_buf_i      ( wide_aw_out_data_in         ),
     .req_is_atop_i  ( 1'b0                        ),
     .req_atop_id_i  ( '0                          ),
+    .avl_atop_ids_i ( '0                          ),
+    .avl_atop_ids_o (                             ),
     .req_full_o     ( wide_aw_out_full            ),
     .req_id_o       ( wide_aw_out_id              ),
     .rsp_pop_i      ( wide_aw_out_pop             ),
@@ -1102,6 +1111,8 @@ module floo_narrow_wide_chimney
     .req_buf_i      ( wide_ar_out_data_in         ),
     .req_is_atop_i  ( 1'b0                        ),
     .req_atop_id_i  ( '0                          ),
+    .avl_atop_ids_i ( '0                          ),
+    .avl_atop_ids_o (                             ),
     .req_full_o     ( wide_ar_out_full            ),
     .req_id_o       ( wide_ar_out_id              ),
     .rsp_pop_i      ( wide_ar_out_pop             ),

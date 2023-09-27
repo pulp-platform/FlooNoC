@@ -21,10 +21,14 @@ module floo_meta_buffer #(
   parameter bit ExtAtomicId   = 1'b0,
   /// Information to be buffered for responses
   parameter type buf_t        = logic,
+  /// ID width
+  parameter int IdWidth       = 32'd1,
   /// ID type for outgoing requests
-  parameter type id_t         = logic,
+  parameter type id_t         = logic [IdWidth-1:0],
   /// Constant ID for non-atomic requests
-  localparam id_t  NonAtomicId = '1
+  localparam id_t  NonAtomicId = '1,
+  /// mask of available Atomic IDs
+  localparam type id_mask_t    = logic [MaxAtomicTxns-1:0]
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -34,6 +38,8 @@ module floo_meta_buffer #(
   input  buf_t req_buf_i,
   input  logic req_is_atop_i,
   input  id_t  req_atop_id_i,
+  input  id_mask_t avl_atop_ids_i,
+  output id_mask_t avl_atop_ids_o,
   output logic req_full_o,
   output id_t  req_id_o,
   input  logic rsp_pop_i,
@@ -91,6 +97,10 @@ module floo_meta_buffer #(
       .data_o     ( atop_data_out       )
     );
 
+    assign avl_atop_ids_o = ~atop_req_out_full;
+
+    `ASSERT(PushingToPendingAtomicTxns, (atop_req_out_push & atop_req_out_full) == '0)
+
     if (ExtAtomicId) begin : gen_ext_atop_id
       // Atomics need to register an r response with the same ID
       // as the B response. The ID is given by the AW buffer from externally.
@@ -103,9 +113,9 @@ module floo_meta_buffer #(
       lzc #(
         .WIDTH  (MaxAtomicTxns)
       ) i_lzc (
-        .in_i     ( next_free_slots ),
-        .cnt_o    ( lzc_cnt         ),
-        .empty_o  (                 )
+        .in_i     ( next_free_slots & avl_atop_ids_i  ),
+        .cnt_o    ( lzc_cnt                                 ),
+        .empty_o  (                                         )
       );
       // Next free slot needs to be registered to have a stable ID at the AXI interface
       assign req_atop_id = lzc_cnt_q;
@@ -128,6 +138,7 @@ module floo_meta_buffer #(
     assign req_id_o = NonAtomicId;
     assign rsp_buf_o = no_atop_buf_out;
     assign req_full_o = no_atop_buf_full;
+    assign avl_atop_ids_o = '0;
   end
 
   `ASSERT(NoAtopSupport, !(!AtopSupport && (req_push_i && req_is_atop_i)))

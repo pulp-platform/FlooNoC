@@ -34,9 +34,6 @@ module floo_axi_chimney
   parameter int unsigned MaxTxnsPerId       = MaxTxns,
   /// Capacity of the reorder buffer
   parameter int unsigned ReorderBufferSize  = 32,
-  /// Choice between simple or advanced reorder buffer,
-  /// trade-off between area and performance
-  parameter bit RoBSimple                   = 1'b0,
   /// Only used for XYRouting
   parameter type xy_id_t                    = logic,
   /// Cut timing paths of outgoing requests
@@ -123,6 +120,9 @@ module floo_axi_chimney
     id_t        src_id;
     logic       atop;
   } id_out_buf_t;
+
+  typedef logic [MaxAtomicTxns-1:0] atop_id_mask_t;
+  atop_id_mask_t atop_id_mask_ar, atop_id_mask_aw;
 
   // Routing
   id_t [NumAxiChannels-1:0] dst_id;
@@ -585,6 +585,8 @@ module floo_axi_chimney
     .req_buf_i      ( aw_out_data_in          ),
     .req_is_atop_i  ( is_atop                 ),
     .req_atop_id_i  ( '0                      ),
+    .avl_atop_ids_i ( atop_id_mask_ar         ),
+    .avl_atop_ids_o ( atop_id_mask_aw         ),
     .req_full_o     ( aw_out_full             ),
     .req_id_o       ( aw_out_id               ),
     .rsp_pop_i      ( aw_out_pop              ),
@@ -608,6 +610,8 @@ module floo_axi_chimney
     .req_buf_i      ( ar_out_data_in          ),
     .req_is_atop_i  ( is_atop                 ),
     .req_atop_id_i  ( aw_out_id               ), // Use ID from AW channel
+    .avl_atop_ids_i ( atop_id_mask_aw         ),
+    .avl_atop_ids_o ( atop_id_mask_ar         ),
     .req_full_o     ( ar_out_full             ),
     .req_id_o       ( ar_out_id               ),
     .rsp_pop_i      ( ar_out_pop              ),
