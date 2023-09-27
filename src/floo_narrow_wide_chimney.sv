@@ -35,16 +35,14 @@ module floo_narrow_wide_chimney
   parameter int unsigned NarrowMaxTxnsPerId      = NarrowMaxTxns,
   /// Maximum number of outstanding requests per ID on the wide network
   parameter int unsigned WideMaxTxnsPerId        = WideMaxTxns,
+  /// Type of the narrow reorder buffer
+  parameter rob_type_e NarrowRoBType             = NoRoB,
+  /// Type of the wide reorder buffer
+  parameter rob_type_e WideRoBType               = NoRoB,
   /// Capacity of the narrow reorder buffers
-  parameter int unsigned NarrowReorderBufferSize = 32,
+  parameter int unsigned NarrowReorderBufferSize = 256,
   /// Capacity of the wide reorder buffers
-  parameter int unsigned WideReorderBufferSize   = 32,
-  /// Choice between simple or advanced narrow reorder buffers,
-  /// trade-off between area and performance
-  parameter bit NarrowRoBSimple                  = 1'b0,
-  /// Choice between simple or advanced wide reorder buffers,
-  /// trade-off between area and performance
-  parameter bit WideRoBSimple                    = 1'b0,
+  parameter int unsigned WideReorderBufferSize   = 256,
   /// Cut timing paths of outgoing requests to the NoC
   parameter bit CutAx                            = 1'b1,
   /// Cut timing paths of incoming responses from the NoC
@@ -377,14 +375,16 @@ module floo_narrow_wide_chimney
                              (axi_narrow_aw_queue.atop != axi_pkg::ATOP_NONE)))
   end
 
-  floo_simple_rob #(
+  floo_rob_wrapper #(
+    .RoBType            ( NarrowRoBType           ),
     .ReorderBufferSize  ( NarrowReorderBufferSize ),
     .MaxRoTxnsPerId     ( NarrowMaxTxnsPerId      ),
     .OnlyMetaData       ( 1'b1                    ),
     .ax_len_t           ( axi_pkg::len_t          ),
+    .ax_id_t            ( axi_narrow_in_id_t      ),
     .rsp_chan_t         ( axi_narrow_in_b_chan_t  ),
     .rsp_meta_t         ( axi_narrow_in_b_chan_t  ),
-    .rob_idx_t          ( narrow_rob_idx_t        ),
+    .rob_idx_t          ( rob_idx_t               ),
     .dest_t             ( id_t                    ),
     .sram_cfg_t         ( sram_cfg_t              )
   ) i_narrow_b_rob (
@@ -394,6 +394,7 @@ module floo_narrow_wide_chimney
     .ax_valid_i     ( narrow_aw_rob_valid_in  ),
     .ax_ready_o     ( narrow_aw_rob_ready_out ),
     .ax_len_i       ( axi_narrow_aw_queue.len ),
+    .ax_id_i        ( axi_narrow_aw_queue.id  ),
     .ax_dest_i      ( dst_id[NarrowAw]        ),
     .ax_valid_o     ( narrow_aw_rob_valid_out ),
     .ax_ready_i     ( narrow_aw_rob_ready_in  ),
@@ -417,11 +418,13 @@ module floo_narrow_wide_chimney
   assign wide_b_rob_rob_idx = floo_rsp_in.wide_b.hdr.rob_idx;
   assign wide_b_rob_last = floo_rsp_in.wide_b.hdr.last;
 
-  floo_simple_rob #(
+  floo_rob_wrapper #(
+    .RoBType            ( WideRoBType           ),
     .ReorderBufferSize  ( WideReorderBufferSize ),
     .MaxRoTxnsPerId     ( WideMaxTxnsPerId      ),
     .OnlyMetaData       ( 1'b1                  ),
     .ax_len_t           ( axi_pkg::len_t        ),
+    .ax_id_t            ( axi_wide_in_id_t      ),
     .rsp_chan_t         ( axi_wide_in_b_chan_t  ),
     .rsp_meta_t         ( axi_wide_in_b_chan_t  ),
     .rob_idx_t          ( narrow_rob_idx_t      ),
@@ -434,6 +437,7 @@ module floo_narrow_wide_chimney
     .ax_valid_i     ( axi_wide_aw_queue_valid_out ),
     .ax_ready_o     ( axi_wide_aw_queue_ready_in  ),
     .ax_len_i       ( axi_wide_aw_queue.len       ),
+    .ax_id_i        ( axi_wide_aw_queue.id        ),
     .ax_dest_i      ( dst_id[WideAw]              ),
     .ax_valid_o     ( wide_aw_rob_valid_out       ),
     .ax_ready_i     ( wide_aw_rob_ready_in        ),
@@ -471,77 +475,42 @@ module floo_narrow_wide_chimney
   assign narrow_r_rob_rob_idx = floo_rsp_in.narrow_r.hdr.rob_idx;
   assign narrow_r_rob_last = floo_rsp_in.narrow_r.hdr.last;
 
-  if (NarrowRoBSimple) begin : gen_narrow_simple_rob
-    floo_simple_rob #(
-      .ReorderBufferSize  ( NarrowReorderBufferSize ),
-      .MaxRoTxnsPerId     ( NarrowMaxTxnsPerId      ),
-      .OnlyMetaData       ( 1'b0                    ),
-      .ax_len_t           ( axi_pkg::len_t          ),
-      .rsp_chan_t         ( axi_narrow_in_r_chan_t  ),
-      .rsp_data_t         ( axi_narrow_in_data_t    ),
-      .rsp_meta_t         ( narrow_meta_t           ),
-      .rob_idx_t          ( narrow_rob_idx_t        ),
-      .dest_t             ( id_t                    ),
-      .sram_cfg_t         ( sram_cfg_t              )
-    ) i_narrow_r_rob (
-      .clk_i,
-      .rst_ni,
-      .sram_cfg_i,
-      .ax_valid_i     ( axi_narrow_ar_queue_valid_out ),
-      .ax_ready_o     ( axi_narrow_ar_queue_ready_in  ),
-      .ax_len_i       ( axi_narrow_ar_queue.len       ),
-      .ax_dest_i      ( dst_id[NarrowAr]              ),
-      .ax_valid_o     ( narrow_ar_rob_valid_out       ),
-      .ax_ready_i     ( narrow_ar_rob_ready_in        ),
-      .ax_rob_req_o   ( narrow_ar_rob_req_out         ),
-      .ax_rob_idx_o   ( narrow_ar_rob_idx_out         ),
-      .rsp_valid_i    ( narrow_r_rob_valid_in         ),
-      .rsp_ready_o    ( narrow_r_rob_ready_out        ),
-      .rsp_i          ( axi_narrow_r_rob_in           ),
-      .rsp_rob_req_i  ( narrow_r_rob_rob_req          ),
-      .rsp_rob_idx_i  ( narrow_r_rob_rob_idx          ),
-      .rsp_last_i     ( narrow_r_rob_last             ),
-      .rsp_valid_o    ( narrow_r_rob_valid_out        ),
-      .rsp_ready_i    ( narrow_r_rob_ready_in         ),
-      .rsp_o          ( axi_narrow_r_rob_out          )
-    );
-  end else begin : gen_narrow_rob
-    floo_rob #(
-      .ReorderBufferSize  ( NarrowReorderBufferSize ),
-      .MaxRoTxnsPerId     ( NarrowMaxTxnsPerId      ),
-      .OnlyMetaData       ( 1'b0                    ),
-      .ax_len_t           ( axi_pkg::len_t          ),
-      .ax_id_t            ( axi_narrow_in_id_t      ),
-      .rsp_chan_t         ( axi_narrow_in_r_chan_t  ),
-      .rsp_data_t         ( axi_narrow_in_data_t    ),
-      .rsp_meta_t         ( narrow_meta_t           ),
-      .rob_idx_t          ( narrow_rob_idx_t        ),
-      .dest_t             ( id_t                    ),
-      .sram_cfg_t         ( sram_cfg_t              )
-    ) i_narrow_r_rob (
-      .clk_i,
-      .rst_ni,
-      .sram_cfg_i,
-      .ax_valid_i     ( axi_narrow_ar_queue_valid_out ),
-      .ax_ready_o     ( axi_narrow_ar_queue_ready_in  ),
-      .ax_len_i       ( axi_narrow_ar_queue.len       ),
-      .ax_id_i        ( axi_narrow_ar_queue.id        ),
-      .ax_dest_i      ( dst_id[NarrowAr]              ),
-      .ax_valid_o     ( narrow_ar_rob_valid_out       ),
-      .ax_ready_i     ( narrow_ar_rob_ready_in        ),
-      .ax_rob_req_o   ( narrow_ar_rob_req_out         ),
-      .ax_rob_idx_o   ( narrow_ar_rob_idx_out         ),
-      .rsp_valid_i    ( narrow_r_rob_valid_in         ),
-      .rsp_ready_o    ( narrow_r_rob_ready_out        ),
-      .rsp_i          ( axi_narrow_r_rob_in           ),
-      .rsp_rob_req_i  ( narrow_r_rob_rob_req          ),
-      .rsp_rob_idx_i  ( narrow_r_rob_rob_idx          ),
-      .rsp_last_i     ( narrow_r_rob_last             ),
-      .rsp_valid_o    ( narrow_r_rob_valid_out        ),
-      .rsp_ready_i    ( narrow_r_rob_ready_in         ),
-      .rsp_o          ( axi_narrow_r_rob_out          )
-    );
-  end
+  floo_rob_wrapper #(
+    .RoBType            ( NarrowRoBType           ),
+    .ReorderBufferSize  ( NarrowReorderBufferSize ),
+    .MaxRoTxnsPerId     ( NarrowMaxTxnsPerId      ),
+    .OnlyMetaData       ( 1'b0                    ),
+    .ax_len_t           ( axi_pkg::len_t          ),
+    .ax_id_t            ( axi_narrow_in_id_t      ),
+    .rsp_chan_t         ( axi_narrow_in_r_chan_t  ),
+    .rsp_data_t         ( axi_narrow_in_data_t    ),
+    .rsp_meta_t         ( narrow_meta_t           ),
+    .rob_idx_t          ( narrow_rob_idx_t        ),
+    .dest_t             ( id_t                    ),
+    .sram_cfg_t         ( sram_cfg_t              )
+  ) i_narrow_r_rob (
+    .clk_i,
+    .rst_ni,
+    .sram_cfg_i,
+    .ax_valid_i     ( axi_narrow_ar_queue_valid_out ),
+    .ax_ready_o     ( axi_narrow_ar_queue_ready_in  ),
+    .ax_len_i       ( axi_narrow_ar_queue.len       ),
+    .ax_id_i        ( axi_narrow_ar_queue.id        ),
+    .ax_dest_i      ( dst_id[NarrowAr]              ),
+    .ax_valid_o     ( narrow_ar_rob_valid_out       ),
+    .ax_ready_i     ( narrow_ar_rob_ready_in        ),
+    .ax_rob_req_o   ( narrow_ar_rob_req_out         ),
+    .ax_rob_idx_o   ( narrow_ar_rob_idx_out         ),
+    .rsp_valid_i    ( narrow_r_rob_valid_in         ),
+    .rsp_ready_o    ( narrow_r_rob_ready_out        ),
+    .rsp_i          ( axi_narrow_r_rob_in           ),
+    .rsp_rob_req_i  ( narrow_r_rob_rob_req          ),
+    .rsp_rob_idx_i  ( narrow_r_rob_rob_idx          ),
+    .rsp_last_i     ( narrow_r_rob_last             ),
+    .rsp_valid_o    ( narrow_r_rob_valid_out        ),
+    .rsp_ready_i    ( narrow_r_rob_ready_in         ),
+    .rsp_o          ( axi_narrow_r_rob_out          )
+  );
 
   logic wide_r_rob_rob_req;
   logic wide_r_rob_last;
@@ -550,77 +519,42 @@ module floo_narrow_wide_chimney
   assign wide_r_rob_rob_idx = floo_wide_in.wide_r.hdr.rob_idx;
   assign wide_r_rob_last = floo_wide_in.wide_r.hdr.last;
 
-  if (WideRoBSimple) begin : gen_wide_simple_rob
-    floo_simple_rob #(
-      .ReorderBufferSize  ( WideReorderBufferSize ),
-      .MaxRoTxnsPerId     ( WideMaxTxnsPerId      ),
-      .OnlyMetaData       ( 1'b0                  ),
-      .ax_len_t           ( axi_pkg::len_t        ),
-      .rsp_chan_t         ( axi_wide_in_r_chan_t  ),
-      .rsp_data_t         ( axi_wide_in_data_t    ),
-      .rsp_meta_t         ( wide_meta_t           ),
-      .rob_idx_t          ( wide_rob_idx_t        ),
-      .dest_t             ( id_t                  ),
-      .sram_cfg_t         ( sram_cfg_t            )
-    ) i_wide_r_rob (
-      .clk_i,
-      .rst_ni,
-      .sram_cfg_i,
-      .ax_valid_i     ( axi_wide_ar_queue_valid_out ),
-      .ax_ready_o     ( axi_wide_ar_queue_ready_in  ),
-      .ax_len_i       ( axi_wide_ar_queue.len       ),
-      .ax_dest_i      ( dst_id[WideAr]              ),
-      .ax_valid_o     ( wide_ar_rob_valid_out       ),
-      .ax_ready_i     ( wide_ar_rob_ready_in        ),
-      .ax_rob_req_o   ( wide_ar_rob_req_out         ),
-      .ax_rob_idx_o   ( wide_ar_rob_idx_out         ),
-      .rsp_valid_i    ( wide_r_rob_valid_in         ),
-      .rsp_ready_o    ( wide_r_rob_ready_out        ),
-      .rsp_i          ( wide_r_rob_in               ),
-      .rsp_rob_req_i  ( wide_r_rob_rob_req          ),
-      .rsp_rob_idx_i  ( wide_r_rob_rob_idx          ),
-      .rsp_last_i     ( wide_r_rob_last             ),
-      .rsp_valid_o    ( wide_r_rob_valid_out        ),
-      .rsp_ready_i    ( wide_r_rob_ready_in         ),
-      .rsp_o          ( wide_r_rob_out              )
-    );
-  end else begin : gen_wide_rob
-    floo_rob #(
-      .ReorderBufferSize  ( WideReorderBufferSize ),
-      .MaxRoTxnsPerId     ( WideMaxTxnsPerId      ),
-      .OnlyMetaData       ( 1'b0                  ),
-      .ax_len_t           ( axi_pkg::len_t        ),
-      .ax_id_t            ( axi_wide_in_id_t      ),
-      .rsp_chan_t         ( axi_wide_in_r_chan_t  ),
-      .rsp_data_t         ( axi_wide_in_data_t    ),
-      .rsp_meta_t         ( wide_meta_t           ),
-      .rob_idx_t          ( wide_rob_idx_t        ),
-      .dest_t             ( id_t                  ),
-      .sram_cfg_t         ( sram_cfg_t            )
-    ) i_wide_r_rob (
-      .clk_i,
-      .rst_ni,
-      .sram_cfg_i,
-      .ax_valid_i     ( axi_wide_ar_queue_valid_out ),
-      .ax_ready_o     ( axi_wide_ar_queue_ready_in  ),
-      .ax_len_i       ( axi_wide_ar_queue.len       ),
-      .ax_id_i        ( axi_wide_ar_queue.id        ),
-      .ax_dest_i      ( dst_id[WideAr]              ),
-      .ax_valid_o     ( wide_ar_rob_valid_out       ),
-      .ax_ready_i     ( wide_ar_rob_ready_in        ),
-      .ax_rob_req_o   ( wide_ar_rob_req_out         ),
-      .ax_rob_idx_o   ( wide_ar_rob_idx_out         ),
-      .rsp_valid_i    ( wide_r_rob_valid_in         ),
-      .rsp_ready_o    ( wide_r_rob_ready_out        ),
-      .rsp_i          ( axi_wide_r_rob_in           ),
-      .rsp_rob_req_i  ( wide_r_rob_rob_req          ),
-      .rsp_rob_idx_i  ( wide_r_rob_rob_idx          ),
-      .rsp_last_i     ( wide_r_rob_last             ),
-      .rsp_valid_o    ( wide_r_rob_valid_out        ),
-      .rsp_ready_i    ( wide_r_rob_ready_in         ),
-      .rsp_o          ( axi_wide_r_rob_out          )
-    );
-  end
+  floo_rob_wrapper #(
+    .RoBType            ( WideRoBType           ),
+    .ReorderBufferSize  ( WideReorderBufferSize ),
+    .MaxRoTxnsPerId     ( WideMaxTxnsPerId      ),
+    .OnlyMetaData       ( 1'b0                  ),
+    .ax_len_t           ( axi_pkg::len_t        ),
+    .ax_id_t            ( axi_wide_in_id_t      ),
+    .rsp_chan_t         ( axi_wide_in_r_chan_t  ),
+    .rsp_data_t         ( axi_wide_in_data_t    ),
+    .rsp_meta_t         ( wide_meta_t           ),
+    .rob_idx_t          ( wide_rob_idx_t        ),
+    .dest_t             ( id_t                  ),
+    .sram_cfg_t         ( sram_cfg_t            )
+  ) i_wide_r_rob (
+    .clk_i,
+    .rst_ni,
+    .sram_cfg_i,
+    .ax_valid_i     ( axi_wide_ar_queue_valid_out ),
+    .ax_ready_o     ( axi_wide_ar_queue_ready_in  ),
+    .ax_len_i       ( axi_wide_ar_queue.len       ),
+    .ax_id_i        ( axi_wide_ar_queue.id        ),
+    .ax_dest_i      ( dst_id[WideAr]              ),
+    .ax_valid_o     ( wide_ar_rob_valid_out       ),
+    .ax_ready_i     ( wide_ar_rob_ready_in        ),
+    .ax_rob_req_o   ( wide_ar_rob_req_out         ),
+    .ax_rob_idx_o   ( wide_ar_rob_idx_out         ),
+    .rsp_valid_i    ( wide_r_rob_valid_in         ),
+    .rsp_ready_o    ( wide_r_rob_ready_out        ),
+    .rsp_i          ( axi_wide_r_rob_in           ),
+    .rsp_rob_req_i  ( wide_r_rob_rob_req          ),
+    .rsp_rob_idx_i  ( wide_r_rob_rob_idx          ),
+    .rsp_last_i     ( wide_r_rob_last             ),
+    .rsp_valid_o    ( wide_r_rob_valid_out        ),
+    .rsp_ready_i    ( wide_r_rob_ready_in         ),
+    .rsp_o          ( axi_wide_r_rob_out          )
+  );
 
   /////////////////
   //   ROUTING   //
