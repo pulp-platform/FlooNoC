@@ -171,7 +171,7 @@ module floo_rob_wrapper
       .pop_i                        ( pop && rsp_ready_i  )  // Only pop on handshake
     );
 
-  end else begin
+  end else begin : gen_error
     $error("Unknown RoB type %0d", RoBType);
   end
 
