@@ -28,6 +28,15 @@ module floo_synth_narrow_wide_chimney
   input  floo_wide_t floo_wide_i
 );
 
+`ifdef TARGET_GF12
+  typedef struct packed {
+    logic [2:0] ema;
+    logic [1:0] emaw;
+    logic [0:0] emas;
+  } sram_cfg_t;
+`else
+  typedef logic sram_cfg_t;
+`endif
 
 floo_narrow_wide_chimney #(
   .RouteAlgo                ( floo_pkg::XYRouting     ),
@@ -43,7 +52,8 @@ floo_narrow_wide_chimney #(
   .WideRoBSimple            ( WideRoBSimple           ),
   .CutAx                    ( CutAx                   ),
   .CutRsp                   ( CutRsp                  ),
-  .xy_id_t                  ( xy_id_t                 )
+  .xy_id_t                  ( xy_id_t                 ),
+  .sram_cfg_t               ( sram_cfg_t              )
 ) i_floo_narrow_wide_chimney (
   .clk_i,
   .rst_ni,
