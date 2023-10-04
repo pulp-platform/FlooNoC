@@ -9,10 +9,10 @@ package:
     - "Tim Fischer <fischeti@iis.ee.ethz.ch>"
 
 dependencies:
-  common_cells: { git: "https://github.com/pulp-platform/common_cells.git", version: 1.29.0 }
+  common_cells: { git: "https://github.com/pulp-platform/common_cells.git", version: 1.32.0 }
   common_verification: { git: "https://github.com/pulp-platform/common_verification.git", version: 0.2 }
-  axi: { git: "https://github.com/pulp-platform/axi.git", version: 0.39.0 }
-  idma: { git: "https://github.com/pulp-platform/iDMA.git", version: 0.4.2 }
+  axi: { git: "https://github.com/pulp-platform/axi.git", version: 0.39.1 }
+  idma: { git: "https://github.com/pulp-platform/iDMA.git", version: 0.5.1 }
 
 export_include_dirs:
   - include
