@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ## Unreleased
 
+## [0.2.0] - 2023-10-04
+
 ### Changed
 
 - Renamed `*_flit_pkg` to `*_pkg`
@@ -24,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 ### Fixed
 
 - Test modules `floo_axi_rand_slave` & `floo_dma_test_node` now support `addr_width > 32`
+- Fixed synchronization issues for ATOP B and R responses
 
 ## [0.1.0] - 2023-06-19
 
