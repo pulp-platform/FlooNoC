@@ -195,7 +195,9 @@ module tb_floo_narrow_wide_chimney;
     .NarrowReorderBufferSize  ( ReorderBufferSize     ),
     .WideMaxTxns              ( MaxTxns               ),
     .WideMaxTxnsPerId         ( MaxTxnsPerId          ),
-    .WideReorderBufferSize    ( ReorderBufferSize     )
+    .WideReorderBufferSize    ( ReorderBufferSize     ),
+    .CutAx                    ( 1'b0                  ),
+    .CutRsp                   ( 1'b0                  )
   ) i_floo_narrow_wide_chimney_0 (
     .clk_i                ( clk                   ),
     .rst_ni               ( rst_n                 ),
@@ -232,7 +234,9 @@ module tb_floo_narrow_wide_chimney;
     .NarrowReorderBufferSize  ( ReorderBufferSize     ),
     .WideMaxTxns              ( MaxTxns               ),
     .WideMaxTxnsPerId         ( MaxTxnsPerId          ),
-    .WideReorderBufferSize    ( ReorderBufferSize     )
+    .WideReorderBufferSize    ( ReorderBufferSize     ),
+    .CutAx                    ( 1'b0                  ),
+    .CutRsp                   ( 1'b0                  )
   ) i_floo_narrow_wide_chimney_1 (
     .clk_i                ( clk                   ),
     .rst_ni               ( rst_n                 ),
