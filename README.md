@@ -146,37 +146,34 @@ The data structs for the flits and the links are auto-generated and can be confi
 
 The AXI channels(s) needs to be configured in `util/*cfg.hjson`. The following example shows the configuration for a single AXI channel with 64-bit data width, 32-bit address width, 3-bit ID width, and 1-bit user width (beware that ID width can be different for input and output channels).
 
-  ```
+```
   axi_channels: [
-    {name: 'axi', params: {dw: 64, aw: 32, iw: 3, uw: 1 }},
+    {name: 'axi', direction: 'input', params: {dw: 64, aw: 32, iw: 3, uw: 1 }},
   ]
 ```
 Multiple physical links can be declared and the mapping of the AXI channels to the physical link can be configured in `util/*cfg.json`. The following example shows the configuration for two physical channels, one for requests and one for responses. The mapping of the AXI channels to the physical link is done by specifying the AXI channels in the `map` field.
 
 ```
-  phys_channels: [
-    'req',
-    'rsp'
-  ],
-  map: {
-    req: ["axi_aw", "axi_w", "axi_ar"],
-    rsp: ["axi_b", "axi_r"]
+  channel_mapping: {
+    req: {axi: ['aw', 'w', 'ar']},
+    rsp: {axi: ['b', 'r']}
   },
 ```
 
-FlooNoC does not send any header and tail flits to avoid serilization overhead. Instead additional needed information is sent in parallel and can be specified with the `meta` argument and the number of bits required. For instance, the `rob_req` field specifies if a responses needs to be reorderd. The `rob_idx` field specifies the index of the ROB that is used to track the outstanding requests. The `dst_id` & `src_id` fields specifies source and destination to route the packet. The `last` field specifies the last signal of the of a burst transfer used in wormhole routing.
+FlooNoC does not send any header and tail flits to avoid serilization overhead. Instead additional needed information is sent in parallel and can be specified with the `header` argument and the number of bits required. For instance, the `rob_req` field specifies if a responses needs to be reorderd. The `rob_idx` field specifies the index of the ROB that is used to track the outstanding requests. The `dst_id` & `src_id` fields specifies source and destination to route the packet. The `last` field specifies the last signal of the of a burst transfer used in wormhole routing.
 
 ```
-  meta: {
+  header: {
     rob_req: 1,
-    rob_idx: 7,
+    rob_idx: 6,
     dst_id: 6,
     src_id: 6,
-    last: 1
+    last: 1,
+    atop: 1,
   }
 ```
-Finally, the package source files can be generated with the following command:
+Finally, the package source files can be generated with:
 
 ```sh
-python util/flit_gen.py -c /path/to/cfg.hjson -o /path/to/outdir
+make sources
 ```
