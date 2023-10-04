@@ -103,7 +103,8 @@ module floo_meta_buffer #(
 
   assign is_atop_r_rsp = axi_rsp_i.r_valid && axi_rsp_i.r.id != NonAtomicId;
   assign is_atop_b_rsp = axi_rsp_i.b_valid && axi_rsp_i.b.id != NonAtomicId;
-  `ASSERT(NoAtopSupport, !(!AtopSupport && is_atop_aw), "Atomics not supported, but atomic request received!")
+  `ASSERT(NoAtopSupport, !(!AtopSupport && is_atop_aw),
+          "Atomics not supported, but atomic request received!")
 
   assign r_buf_o = (is_atop_r_rsp && AtopSupport)? atop_r_buf[axi_rsp_i.r.id] : no_atop_r_buf;
   assign b_buf_o = (is_atop_b_rsp && AtopSupport)? atop_b_buf[axi_rsp_i.b.id] : no_atop_b_buf;
@@ -175,9 +176,11 @@ module floo_meta_buffer #(
       aw_atop_reg_push = '0;
       ar_atop_reg_pop = '0;
       aw_atop_reg_pop = '0;
-      ar_atop_reg_push[atop_req_id] = is_atop_aw && atop_has_r_rsp && axi_req_o.aw_valid && axi_rsp_i.aw_ready;
+      ar_atop_reg_push[atop_req_id] = is_atop_aw && atop_has_r_rsp &&
+                                      axi_req_o.aw_valid && axi_rsp_i.aw_ready;
       aw_atop_reg_push[atop_req_id] = is_atop_aw && axi_req_o.aw_valid && axi_rsp_i.aw_ready;
-      ar_atop_reg_pop[axi_rsp_i.r.id] = is_atop_r_rsp && axi_rsp_o.r_valid && axi_req_i.r_ready && axi_rsp_o.r.last;
+      ar_atop_reg_pop[axi_rsp_i.r.id] = is_atop_r_rsp &&
+                                        axi_rsp_o.r_valid && axi_req_i.r_ready && axi_rsp_o.r.last;
       aw_atop_reg_pop[axi_rsp_i.b.id] = is_atop_b_rsp && axi_rsp_o.b_valid && axi_req_i.b_ready;
     end
 
@@ -188,8 +191,10 @@ module floo_meta_buffer #(
       axi_req_o.ar.id = NonAtomicId;
       axi_req_o.aw.id = (is_atop_aw && AtopSupport)? atop_req_id : NonAtomicId;
       // Use original, buffered ID again for responses
-      axi_rsp_o.r.id = (is_atop_r_rsp && AtopSupport)? atop_r_buf[axi_rsp_i.r.id] : no_atop_r_buf.id;
-      axi_rsp_o.b.id = (is_atop_b_rsp && AtopSupport)? atop_b_buf[axi_rsp_i.b.id] : no_atop_b_buf.id;
+      axi_rsp_o.r.id = (is_atop_r_rsp && AtopSupport)?
+                        atop_r_buf[axi_rsp_i.r.id] : no_atop_r_buf.id;
+      axi_rsp_o.b.id = (is_atop_b_rsp && AtopSupport)?
+                        atop_b_buf[axi_rsp_i.b.id] : no_atop_b_buf.id;
       axi_req_o.ar_valid = axi_req_i.ar_valid && !ar_no_atop_buf_full;
       axi_rsp_o.ar_ready = axi_rsp_i.ar_ready && !ar_no_atop_buf_full;
       axi_req_o.aw_valid = axi_req_i.aw_valid && ((is_atop_aw && AtopSupport)?
