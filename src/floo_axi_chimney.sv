@@ -34,9 +34,6 @@ module floo_axi_chimney
   parameter int unsigned MaxTxnsPerId       = MaxTxns,
   /// Capacity of the reorder buffer
   parameter int unsigned ReorderBufferSize  = 32,
-  /// Choice between simple or advanced reorder buffer,
-  /// trade-off between area and performance
-  parameter bit RoBSimple                   = 1'b0,
   /// Only used for XYRouting
   parameter type xy_id_t                    = logic,
   /// Cut timing paths of outgoing requests
@@ -74,11 +71,6 @@ module floo_axi_chimney
   logic axi_aw_queue_valid_out, axi_aw_queue_ready_in;
   logic axi_ar_queue_valid_out, axi_ar_queue_ready_in;
 
-  axi_in_req_t axi_out_req_id_mapped;
-  axi_in_rsp_t axi_out_rsp_id_mapped;
-  `AXI_ASSIGN_REQ_STRUCT(axi_out_req_o, axi_out_req_id_mapped)
-  `AXI_ASSIGN_RESP_STRUCT(axi_out_rsp_id_mapped, axi_out_rsp_i)
-
   floo_req_chan_t [AxiAw:AxiAr] floo_req_arb_in;
   floo_rsp_chan_t [AxiB:AxiR] floo_rsp_arb_in;
   logic  [AxiAw:AxiAr] floo_req_arb_req_in, floo_req_arb_gnt_out;
@@ -92,13 +84,11 @@ module floo_axi_chimney
   logic [NumAxiChannels-1:0] axi_valid_in, axi_ready_out;
 
   // Flit packing
-  floo_axi_aw_flit_t floo_axi_aw;
-  floo_axi_w_flit_t floo_axi_w;
+  floo_axi_aw_flit_t  floo_axi_aw;
+  floo_axi_w_flit_t   floo_axi_w;
   floo_axi_ar_flit_t  floo_axi_ar;
-  floo_axi_b_flit_t  floo_axi_b;
-  floo_axi_r_flit_t  floo_axi_r;
-  axi_in_aw_chan_t axi_aw_id_mod;
-  axi_in_ar_chan_t axi_ar_id_mod;
+  floo_axi_b_flit_t   floo_axi_b;
+  floo_axi_r_flit_t   floo_axi_r;
 
   // Flit unpacking
   axi_in_aw_chan_t axi_unpack_aw;
@@ -108,6 +98,12 @@ module floo_axi_chimney
   axi_in_r_chan_t  axi_unpack_r;
   floo_req_generic_flit_t unpack_req_generic;
   floo_rsp_generic_flit_t unpack_rsp_generic;
+
+  // Meta Buffer
+  axi_in_req_t axi_meta_buf_req_in, axi_meta_buf_req_out;
+  axi_in_rsp_t axi_meta_buf_rsp_in, axi_meta_buf_rsp_out;
+  `AXI_ASSIGN_REQ_STRUCT(axi_out_req_o, axi_meta_buf_req_out)
+  `AXI_ASSIGN_RESP_STRUCT(axi_meta_buf_rsp_in, axi_out_rsp_i)
 
   // Flit arbitration
   typedef enum logic {SelAw, SelW} aw_w_sel_e;
@@ -128,12 +124,6 @@ module floo_axi_chimney
   id_t [NumAxiChannels-1:0] dst_id;
   id_t src_id;
 
-  logic aw_out_push, aw_out_pop;
-  logic ar_out_push, ar_out_pop;
-  logic aw_out_full;
-  logic ar_out_full;
-  axi_out_id_t aw_out_id;
-  axi_out_id_t ar_out_id;
   id_out_buf_t aw_out_data_in, aw_out_data_out;
   id_out_buf_t ar_out_data_in, ar_out_data_out;
 
@@ -244,11 +234,13 @@ module floo_axi_chimney
     `ASSERT(NoAtopSupport, !(axi_aw_queue_valid_out && (axi_aw_queue.atop != axi_pkg::ATOP_NONE)))
   end
 
-  floo_simple_rob #(
+  floo_rob_wrapper #(
+    .RoBType            ( NoRoB             ),
     .ReorderBufferSize  ( ReorderBufferSize ),
     .MaxRoTxnsPerId     ( MaxTxnsPerId      ),
     .OnlyMetaData       ( 1'b1              ),
     .ax_len_t           ( axi_pkg::len_t    ),
+    .ax_id_t            ( axi_in_id_t       ),
     .rsp_chan_t         ( axi_in_b_chan_t   ),
     .rsp_meta_t         ( axi_in_b_chan_t   ),
     .rob_idx_t          ( rob_idx_t         ),
@@ -261,6 +253,7 @@ module floo_axi_chimney
     .ax_valid_i     ( aw_rob_valid_in               ),
     .ax_ready_o     ( aw_rob_ready_out              ),
     .ax_len_i       ( axi_aw_queue.len              ),
+    .ax_id_i        ( axi_aw_queue.id               ),
     .ax_dest_i      ( dst_id[AxiAw]                 ),
     .ax_valid_o     ( aw_rob_valid_out              ),
     .ax_ready_i     ( aw_rob_ready_in               ),
@@ -285,76 +278,43 @@ module floo_axi_chimney
     logic           last;
   } r_rob_meta_t;
 
-  if (RoBSimple) begin : gen_simple_rob
-    floo_simple_rob #(
-      .ReorderBufferSize  ( ReorderBufferSize ),
-      .MaxRoTxnsPerId     ( MaxTxnsPerId      ),
-      .OnlyMetaData       ( 1'b0              ),
-      .ax_len_t           ( axi_pkg::len_t    ),
-      .rsp_chan_t         ( axi_in_r_chan_t   ),
-      .rsp_data_t         ( r_rob_data_t      ),
-      .rsp_meta_t         ( r_rob_meta_t      ),
-      .rob_idx_t          ( rob_idx_t         ),
-      .dest_t             ( id_t              ),
-      .sram_cfg_t         ( sram_cfg_t        )
-    ) i_r_rob (
-      .clk_i,
-      .rst_ni,
-      .sram_cfg_i,
-      .ax_valid_i     ( axi_ar_queue_valid_out        ),
-      .ax_ready_o     ( axi_ar_queue_ready_in         ),
-      .ax_len_i       ( axi_ar_queue.len              ),
-      .ax_dest_i      ( dst_id[AxiAr]                 ),
-      .ax_valid_o     ( ar_rob_valid_out              ),
-      .ax_ready_i     ( ar_rob_ready_in               ),
-      .ax_rob_req_o   ( ar_rob_req_out                ),
-      .ax_rob_idx_o   ( ar_rob_idx_out                ),
-      .rsp_valid_i    ( r_rob_valid_in                ),
-      .rsp_ready_o    ( r_rob_ready_out               ),
-      .rsp_i          ( axi_r_rob_in                  ),
-      .rsp_rob_req_i  ( floo_rsp_in.axi_r.hdr.rob_req ),
-      .rsp_rob_idx_i  ( floo_rsp_in.axi_r.hdr.rob_idx ),
-      .rsp_last_i     ( floo_rsp_in.axi_r.hdr.last    ),
-      .rsp_valid_o    ( r_rob_valid_out               ),
-      .rsp_ready_i    ( r_rob_ready_in                ),
-      .rsp_o          ( axi_r_rob_out                 )
-    );
-  end else begin : gen_rob
-    floo_rob #(
-      .ReorderBufferSize  ( ReorderBufferSize ),
-      .MaxRoTxnsPerId     ( MaxTxnsPerId      ),
-      .OnlyMetaData       ( 1'b0              ),
-      .ax_len_t           ( axi_pkg::len_t    ),
-      .ax_id_t            ( axi_in_id_t       ),
-      .rsp_chan_t         ( axi_in_r_chan_t   ),
-      .rsp_data_t         ( r_rob_data_t      ),
-      .rsp_meta_t         ( r_rob_meta_t      ),
-      .dest_t             ( id_t              ),
-      .sram_cfg_t         ( sram_cfg_t        )
-    ) i_r_rob (
-      .clk_i,
-      .rst_ni,
-      .sram_cfg_i,
-      .ax_valid_i     ( axi_ar_queue_valid_out        ),
-      .ax_ready_o     ( axi_ar_queue_ready_in         ),
-      .ax_len_i       ( axi_ar_queue.len              ),
-      .ax_id_i        ( axi_ar_queue.id               ),
-      .ax_dest_i      ( dst_id[AxiAr]                 ),
-      .ax_valid_o     ( ar_rob_valid_out              ),
-      .ax_ready_i     ( ar_rob_ready_in               ),
-      .ax_rob_req_o   ( ar_rob_req_out                ),
-      .ax_rob_idx_o   ( ar_rob_idx_out                ),
-      .rsp_valid_i    ( r_rob_valid_in                ),
-      .rsp_ready_o    ( r_rob_ready_out               ),
-      .rsp_i          ( axi_r_rob_in                  ),
-      .rsp_rob_req_i  ( floo_rsp_in.axi_r.hdr.rob_req ),
-      .rsp_rob_idx_i  ( floo_rsp_in.axi_r.hdr.rob_idx ),
-      .rsp_last_i     ( floo_rsp_in.axi_r.hdr.last    ),
-      .rsp_valid_o    ( r_rob_valid_out               ),
-      .rsp_ready_i    ( r_rob_ready_in                ),
-      .rsp_o          ( axi_r_rob_out                 )
-    );
-  end
+
+  floo_rob_wrapper #(
+    .RoBType            ( NoRoB             ),
+    .ReorderBufferSize  ( ReorderBufferSize ),
+    .MaxRoTxnsPerId     ( MaxTxnsPerId      ),
+    .OnlyMetaData       ( 1'b0              ),
+    .ax_len_t           ( axi_pkg::len_t    ),
+    .ax_id_t            ( axi_in_id_t       ),
+    .rsp_chan_t         ( axi_in_r_chan_t   ),
+    .rsp_data_t         ( r_rob_data_t      ),
+    .rsp_meta_t         ( r_rob_meta_t      ),
+    .rob_idx_t          ( rob_idx_t         ),
+    .dest_t             ( id_t              ),
+    .sram_cfg_t         ( sram_cfg_t        )
+  ) i_r_rob (
+    .clk_i,
+    .rst_ni,
+    .sram_cfg_i,
+    .ax_valid_i     ( axi_ar_queue_valid_out        ),
+    .ax_ready_o     ( axi_ar_queue_ready_in         ),
+    .ax_len_i       ( axi_ar_queue.len              ),
+    .ax_id_i        ( axi_ar_queue.id               ),
+    .ax_dest_i      ( dst_id[AxiAr]                 ),
+    .ax_valid_o     ( ar_rob_valid_out              ),
+    .ax_ready_i     ( ar_rob_ready_in               ),
+    .ax_rob_req_o   ( ar_rob_req_out                ),
+    .ax_rob_idx_o   ( ar_rob_idx_out                ),
+    .rsp_valid_i    ( r_rob_valid_in                ),
+    .rsp_ready_o    ( r_rob_ready_out               ),
+    .rsp_i          ( axi_r_rob_in                  ),
+    .rsp_rob_req_i  ( floo_rsp_in.axi_r.hdr.rob_req ),
+    .rsp_rob_idx_i  ( floo_rsp_in.axi_r.hdr.rob_idx ),
+    .rsp_last_i     ( floo_rsp_in.axi_r.hdr.last    ),
+    .rsp_valid_o    ( r_rob_valid_out               ),
+    .rsp_ready_i    ( r_rob_ready_in                ),
+    .rsp_o          ( axi_r_rob_out                 )
+  );
 
   /////////////////
   //   ROUTING   //
@@ -437,7 +397,7 @@ module floo_axi_chimney
     floo_axi_b.hdr.last     = 1'b1;
     floo_axi_b.hdr.axi_ch   = AxiB;
     floo_axi_b.hdr.atop     = aw_out_data_out.atop;
-    floo_axi_b.b            = axi_out_rsp_id_mapped.b;
+    floo_axi_b.b            = axi_meta_buf_rsp_out.b;
     floo_axi_b.b.id         = aw_out_data_out.id;
   end
 
@@ -450,7 +410,7 @@ module floo_axi_chimney
     floo_axi_r.hdr.last     = axi_out_rsp_i.r.last;
     floo_axi_r.hdr.axi_ch   = AxiR;
     floo_axi_r.hdr.atop     = ar_out_data_out.atop;
-    floo_axi_r.r            = axi_out_rsp_id_mapped.r;
+    floo_axi_r.r            = axi_meta_buf_rsp_out.r;
     floo_axi_r.r.id         = ar_out_data_out.id;
   end
 
@@ -467,14 +427,12 @@ module floo_axi_chimney
                                           axi_aw_queue_valid_out));
   assign floo_req_arb_req_in[AxiW]  = (aw_w_sel_q == SelW) && axi_in_req_i.w_valid;
   assign floo_req_arb_req_in[AxiAr] = ar_rob_valid_out;
-  assign floo_rsp_arb_req_in[AxiB]  = axi_out_rsp_i.b_valid;
-  assign floo_rsp_arb_req_in[AxiR]  = axi_out_rsp_i.r_valid;
+  assign floo_rsp_arb_req_in[AxiB]  = axi_meta_buf_rsp_out.b_valid;
+  assign floo_rsp_arb_req_in[AxiR]  = axi_meta_buf_rsp_out.r_valid;
 
   assign aw_rob_ready_in       = floo_req_arb_gnt_out[AxiAw] && (aw_w_sel_q == SelAw);
   assign axi_in_rsp_o.w_ready  = floo_req_arb_gnt_out[AxiW] && (aw_w_sel_q == SelW);
   assign ar_rob_ready_in       = floo_req_arb_gnt_out[AxiAr];
-  assign axi_out_req_id_mapped.b_ready = floo_rsp_arb_gnt_out[AxiB];
-  assign axi_out_req_id_mapped.r_ready = floo_rsp_arb_gnt_out[AxiR];
 
   assign floo_req_arb_in[AxiAw]  = floo_axi_aw;
   assign floo_req_arb_in[AxiW]   = floo_axi_w;
@@ -541,9 +499,9 @@ module floo_axi_chimney
   assign axi_valid_in[AxiB]  = floo_rsp_in_valid && (unpack_rsp_generic.hdr.axi_ch == AxiB);
   assign axi_valid_in[AxiR]  = floo_rsp_in_valid && (unpack_rsp_generic.hdr.axi_ch == AxiR);
 
-  assign axi_ready_out[AxiAw] = axi_out_rsp_i.aw_ready && !aw_out_full;
-  assign axi_ready_out[AxiW]  = axi_out_rsp_i.w_ready;
-  assign axi_ready_out[AxiAr] = axi_out_rsp_i.ar_ready && !ar_out_full;
+  assign axi_ready_out[AxiAw] = axi_meta_buf_rsp_out.aw_ready;
+  assign axi_ready_out[AxiW]  = axi_meta_buf_rsp_out.w_ready;
+  assign axi_ready_out[AxiAr] = axi_meta_buf_rsp_out.ar_ready;
   assign axi_ready_out[AxiB]  = b_rob_ready_out || b_sel_atop && axi_in_req_i.b_ready;
   assign axi_ready_out[AxiR]  = r_rob_ready_out || r_sel_atop && axi_in_req_i.r_ready;
 
@@ -554,9 +512,17 @@ module floo_axi_chimney
   // AXI req/rsp generation  //
   ////////////////////////////
 
-  assign axi_out_req_id_mapped.aw_valid = axi_valid_in[AxiAw] && !aw_out_full;
-  assign axi_out_req_id_mapped.w_valid  = axi_valid_in[AxiW];
-  assign axi_out_req_id_mapped.ar_valid = axi_valid_in[AxiAr] && !ar_out_full;
+  assign axi_meta_buf_req_in ='{
+    aw        : axi_unpack_aw,
+    aw_valid  : axi_valid_in[AxiAw],
+    w         : axi_unpack_w,
+    w_valid   : axi_valid_in[AxiW],
+    b_ready   : floo_rsp_arb_gnt_out[AxiB],
+    ar        : axi_unpack_ar,
+    ar_valid  : axi_valid_in[AxiAr],
+    r_ready   : floo_rsp_arb_gnt_out[AxiR]
+  };
+
   assign b_rob_valid_in         = axi_valid_in[AxiB] && !is_atop_b_rsp;
   assign r_rob_valid_in         = axi_valid_in[AxiR] && !is_atop_r_rsp;
   assign axi_in_rsp_o.b_valid   = b_rob_valid_out || is_atop_b_rsp;
@@ -564,9 +530,6 @@ module floo_axi_chimney
   assign b_rob_ready_in         = axi_in_req_i.b_ready && !b_sel_atop;
   assign r_rob_ready_in         = axi_in_req_i.r_ready && !r_sel_atop;
 
-  assign axi_out_req_id_mapped.aw = axi_aw_id_mod;
-  assign axi_out_req_id_mapped.w  = axi_unpack_w;
-  assign axi_out_req_id_mapped.ar = axi_ar_id_mod;
   assign axi_b_rob_in         = axi_unpack_b;
   assign axi_r_rob_in         = axi_unpack_r;
   assign axi_in_rsp_o.b   = (b_sel_atop)? axi_unpack_b : axi_b_rob_out;
@@ -577,13 +540,6 @@ module floo_axi_chimney
                     (axi_unpack_aw.atop != axi_pkg::ATOP_NONE);
   assign atop_has_r_rsp = AtopSupport && axi_valid_in[AxiAw] &&
                           axi_unpack_aw.atop[axi_pkg::ATOP_R_RESP];
-
-  assign aw_out_push = axi_out_req_o.aw_valid && axi_out_rsp_i.aw_ready;
-  assign ar_out_push = axi_out_req_o.ar_valid && axi_out_rsp_i.ar_ready ||
-                       axi_out_req_o.aw_valid && axi_out_rsp_i.aw_ready &&
-                      is_atop && atop_has_r_rsp;
-  assign aw_out_pop = axi_out_rsp_i.b_valid && axi_out_req_o.b_ready;
-  assign ar_out_pop = axi_out_rsp_i.r_valid && axi_out_req_o.r_ready && axi_out_rsp_i.r.last;
 
   assign aw_out_data_in = '{
     id: axi_unpack_aw.id,
@@ -605,53 +561,23 @@ module floo_axi_chimney
     .AtopSupport    ( AtopSupport   ),
     .MaxAtomicTxns  ( MaxAtomicTxns ),
     .buf_t          ( id_out_buf_t  ),
-    .id_t           ( axi_out_id_t  )
-  ) i_aw_meta_buffer (
-    .clk_i          ( clk_i                   ),
-    .rst_ni         ( rst_ni                  ),
-    .test_enable_i  ( test_enable_i           ),
-    .req_push_i     ( aw_out_push             ),
-    .req_valid_i    ( axi_out_req_o.aw_valid  ),
-    .req_buf_i      ( aw_out_data_in          ),
-    .req_is_atop_i  ( is_atop                 ),
-    .req_atop_id_i  ( '0                      ),
-    .req_full_o     ( aw_out_full             ),
-    .req_id_o       ( aw_out_id               ),
-    .rsp_pop_i      ( aw_out_pop              ),
-    .rsp_id_i       ( axi_out_rsp_i.b.id      ),
-    .rsp_buf_o      ( aw_out_data_out         )
+    .IdInWidth      ( AxiInIdWidth  ),
+    .IdOutWidth     ( AxiOutIdWidth ),
+    .axi_req_t      ( axi_in_req_t  ),
+    .axi_rsp_t      ( axi_in_rsp_t  )
+  ) i_floo_meta_buffer (
+    .clk_i,
+    .rst_ni,
+    .test_enable_i,
+    .axi_req_i  ( axi_meta_buf_req_in   ),
+    .axi_rsp_o  ( axi_meta_buf_rsp_out  ),
+    .axi_req_o  ( axi_meta_buf_req_out  ),
+    .axi_rsp_i  ( axi_meta_buf_rsp_in   ),
+    .aw_buf_i   ( aw_out_data_in        ),
+    .ar_buf_i   ( ar_out_data_in        ),
+    .r_buf_o    ( ar_out_data_out       ),
+    .b_buf_o    ( aw_out_data_out       )
   );
-
-  floo_meta_buffer #(
-    .MaxTxns        ( MaxTxns       ),
-    .AtopSupport    ( AtopSupport   ),
-    .MaxAtomicTxns  ( MaxAtomicTxns ),
-    .ExtAtomicId    ( 1'b1          ), // Use ID from AW channel
-    .buf_t          ( id_out_buf_t  ),
-    .id_t           ( axi_out_id_t  )
-  ) i_ar_meta_buffer (
-    .clk_i          ( clk_i                   ),
-    .rst_ni         ( rst_ni                  ),
-    .test_enable_i  ( test_enable_i           ),
-    .req_push_i     ( ar_out_push             ),
-    .req_valid_i    ( axi_out_req_o.ar_valid  ),
-    .req_buf_i      ( ar_out_data_in          ),
-    .req_is_atop_i  ( is_atop                 ),
-    .req_atop_id_i  ( aw_out_id               ), // Use ID from AW channel
-    .req_full_o     ( ar_out_full             ),
-    .req_id_o       ( ar_out_id               ),
-    .rsp_pop_i      ( ar_out_pop              ),
-    .rsp_id_i       ( axi_out_rsp_i.r.id      ),
-    .rsp_buf_o      ( ar_out_data_out         )
-  );
-
-  always_comb begin
-    // Assign the outgoing AX an unique ID
-    axi_aw_id_mod    = axi_unpack_aw;
-    axi_ar_id_mod    = axi_unpack_ar;
-    axi_aw_id_mod.id = aw_out_id;
-    axi_ar_id_mod.id = ar_out_id;
-  end
 
   // Registers
   `FF(b_rob_pending_q, b_rob_valid_out && !b_rob_ready_in && !is_atop_b_rsp, '0)

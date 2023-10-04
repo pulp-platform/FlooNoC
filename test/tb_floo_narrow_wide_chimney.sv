@@ -17,10 +17,12 @@ module tb_floo_narrow_wide_chimney;
   localparam time ApplTime = 2ns;
   localparam time TestTime = 8ns;
 
-  localparam NarrowNumReads = 100;
-  localparam NarrowNumWrites = 100;
-  localparam WideNumReads = 100;
-  localparam WideNumWrites = 100;
+  localparam NarrowNumReads = 1000;
+  localparam NarrowNumWrites = 1000;
+  localparam WideNumReads = 1000;
+  localparam WideNumWrites = 1000;
+
+  localparam bit AtopSupport = 1'b1;
 
   localparam NumTargets = 2;
 
@@ -100,7 +102,7 @@ module tb_floo_narrow_wide_chimney;
     .slv_rsp_t      ( axi_narrow_out_rsp_t  ),
     .ApplTime       ( ApplTime              ),
     .TestTime       ( TestTime              ),
-    .Atops          ( 1'b1                  ),
+    .Atops          ( AtopSupport           ),
     .AxiMaxBurstLen ( ReorderBufferSize     ),
     .NumAddrRegions ( NumAddrRegions        ),
     .rule_t         ( node_addr_region_t    ),
@@ -182,7 +184,7 @@ module tb_floo_narrow_wide_chimney;
   );
 
   floo_narrow_wide_chimney #(
-    .AtopSupport              ( 1'b1                  ),
+    .AtopSupport              ( AtopSupport           ),
     .MaxAtomicTxns            ( 1                     ),
     .RouteAlgo                ( floo_pkg::IdTable     ),
     .NumIDs                   ( NumTargets            ),
@@ -193,7 +195,9 @@ module tb_floo_narrow_wide_chimney;
     .NarrowReorderBufferSize  ( ReorderBufferSize     ),
     .WideMaxTxns              ( MaxTxns               ),
     .WideMaxTxnsPerId         ( MaxTxnsPerId          ),
-    .WideReorderBufferSize    ( ReorderBufferSize     )
+    .WideReorderBufferSize    ( ReorderBufferSize     ),
+    .CutAx                    ( 1'b0                  ),
+    .CutRsp                   ( 1'b0                  )
   ) i_floo_narrow_wide_chimney_0 (
     .clk_i                ( clk                   ),
     .rst_ni               ( rst_n                 ),
@@ -219,7 +223,7 @@ module tb_floo_narrow_wide_chimney;
     );
 
   floo_narrow_wide_chimney #(
-    .AtopSupport              ( 1'b1                  ),
+    .AtopSupport              ( AtopSupport           ),
     .MaxAtomicTxns            ( 1                     ),
     .RouteAlgo                ( floo_pkg::IdTable     ),
     .NumIDs                   ( NumTargets            ),
@@ -230,7 +234,9 @@ module tb_floo_narrow_wide_chimney;
     .NarrowReorderBufferSize  ( ReorderBufferSize     ),
     .WideMaxTxns              ( MaxTxns               ),
     .WideMaxTxnsPerId         ( MaxTxnsPerId          ),
-    .WideReorderBufferSize    ( ReorderBufferSize     )
+    .WideReorderBufferSize    ( ReorderBufferSize     ),
+    .CutAx                    ( 1'b0                  ),
+    .CutRsp                   ( 1'b0                  )
   ) i_floo_narrow_wide_chimney_1 (
     .clk_i                ( clk                   ),
     .rst_ni               ( rst_n                 ),
@@ -302,7 +308,7 @@ module tb_floo_narrow_wide_chimney;
     .slv_rsp_t      ( axi_narrow_out_rsp_t  ),
     .ApplTime       ( ApplTime              ),
     .TestTime       ( TestTime              ),
-    .Atops          ( 1'b1                  ),
+    .Atops          ( AtopSupport           ),
     .AxiMaxBurstLen ( ReorderBufferSize     ),
     .NumAddrRegions ( NumAddrRegions        ),
     .rule_t         ( node_addr_region_t    ),

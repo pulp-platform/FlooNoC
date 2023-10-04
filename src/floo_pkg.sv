@@ -55,4 +55,10 @@ package floo_pkg;
     RucheWest  = 'd8
   } ruche_direction_e;
 
+  typedef enum logic [1:0] {
+    NormalRoB,
+    SimpleRoB,
+    NoRoB
+  } rob_type_e;
+
 endpackage

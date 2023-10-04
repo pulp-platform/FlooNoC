@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 - Table based routing support in `narrow_wide_chimney`
 - Support for different number of inputs and outputs in `narrow_wide_router`
+- Add wrapper for different types of Reorder Buffers in chimneys
+- Support for simple RoB-less chimneys with ID counters
 
 ### Fixed
 
