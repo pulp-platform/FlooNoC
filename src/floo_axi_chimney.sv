@@ -11,7 +11,7 @@
 /// A bidirectional network interface for connecting AXI4 Buses to the NoC
 module floo_axi_chimney
   import floo_pkg::*;
-  import floo_axi_flit_pkg::*;
+  import floo_axi_pkg::*;
 #(
   /// Atomic operation support
   parameter bit AtopSupport                 = 1'b1,
@@ -54,59 +54,60 @@ module floo_axi_chimney
   input  sram_cfg_t  sram_cfg_i,
   /// AXI4 side interfaces
   input  axi_in_req_t axi_in_req_i,
-  output axi_in_resp_t axi_in_rsp_o,
+  output axi_in_rsp_t axi_in_rsp_o,
   output axi_out_req_t axi_out_req_o,
-  input  axi_out_resp_t axi_out_rsp_i,
+  input  axi_out_rsp_t axi_out_rsp_i,
   /// Coordinates/ID of the current tile
   input  xy_id_t  xy_id_i,
   input  src_id_t id_i,
   /// Output to NoC
-  output req_flit_t req_o,
-  output rsp_flit_t rsp_o,
+  output floo_req_t floo_req_o,
+  output floo_rsp_t floo_rsp_o,
   /// Input from NoC
-  input  req_flit_t req_i,
-  input  rsp_flit_t rsp_i
+  input  floo_req_t floo_req_i,
+  input  floo_rsp_t floo_rsp_i
 );
 
   // AX queue
-  axi_in_aw_chan_t aw_queue;
-  axi_in_ar_chan_t ar_queue;
-  logic aw_queue_valid_out, aw_queue_ready_in;
-  logic ar_queue_valid_out, ar_queue_ready_in;
+  axi_in_aw_chan_t axi_aw_queue;
+  axi_in_ar_chan_t axi_ar_queue;
+  logic axi_aw_queue_valid_out, axi_aw_queue_ready_in;
+  logic axi_ar_queue_valid_out, axi_ar_queue_ready_in;
 
   axi_in_req_t axi_out_req_id_mapped;
-  axi_in_resp_t axi_out_rsp_id_mapped;
+  axi_in_rsp_t axi_out_rsp_id_mapped;
   `AXI_ASSIGN_REQ_STRUCT(axi_out_req_o, axi_out_req_id_mapped)
   `AXI_ASSIGN_RESP_STRUCT(axi_out_rsp_id_mapped, axi_out_rsp_i)
 
-  req_data_t [AxiInAw:AxiInAr] req_data_arb_data_in;
-  rsp_data_t [AxiInB:AxiInR] rsp_data_arb_data_in;
-  logic  [AxiInAw:AxiInAr] req_data_arb_req_in, req_data_arb_gnt_out;
-  logic  [AxiInB:AxiInR] rsp_data_arb_req_in, rsp_data_arb_gnt_out;
+  floo_req_chan_t [AxiAw:AxiAr] floo_req_arb_in;
+  floo_rsp_chan_t [AxiB:AxiR] floo_rsp_arb_in;
+  logic  [AxiAw:AxiAr] floo_req_arb_req_in, floo_req_arb_gnt_out;
+  logic  [AxiB:AxiR] floo_rsp_arb_req_in, floo_rsp_arb_gnt_out;
 
   // flit queue
-  req_flit_t req_in;
-  rsp_flit_t rsp_in;
-  logic req_ready_out, rsp_ready_out;
+  floo_req_chan_t floo_req_in;
+  floo_rsp_chan_t floo_rsp_in;
+  logic floo_req_in_valid, floo_rsp_in_valid;
+  logic floo_req_out_ready, floo_rsp_out_ready;
   logic [NumAxiChannels-1:0] axi_valid_in, axi_ready_out;
 
   // Flit packing
-  axi_in_aw_data_t aw_data;
-  axi_in_w_data_t w_data;
-  axi_in_ar_data_t  ar_data;
-  axi_in_b_data_t  b_data;
-  axi_in_r_data_t  r_data;
-  axi_in_aw_chan_t aw_id_mod;
-  axi_in_ar_chan_t ar_id_mod;
+  floo_axi_aw_flit_t floo_axi_aw;
+  floo_axi_w_flit_t floo_axi_w;
+  floo_axi_ar_flit_t  floo_axi_ar;
+  floo_axi_b_flit_t  floo_axi_b;
+  floo_axi_r_flit_t  floo_axi_r;
+  axi_in_aw_chan_t axi_aw_id_mod;
+  axi_in_ar_chan_t axi_ar_id_mod;
 
   // Flit unpacking
-  axi_in_aw_chan_t unpack_aw_data;
-  axi_in_ar_chan_t unpack_ar_data;
-  axi_in_w_chan_t  unpack_w_data;
-  axi_in_b_chan_t  unpack_b_data;
-  axi_in_r_chan_t  unpack_r_data;
-  req_generic_t unpack_req_generic;
-  rsp_generic_t unpack_rsp_generic;
+  axi_in_aw_chan_t axi_unpack_aw;
+  axi_in_ar_chan_t axi_unpack_ar;
+  axi_in_w_chan_t  axi_unpack_w;
+  axi_in_b_chan_t  axi_unpack_b;
+  axi_in_r_chan_t  axi_unpack_r;
+  floo_req_generic_flit_t unpack_req_generic;
+  floo_rsp_generic_flit_t unpack_rsp_generic;
 
   // Flit arbitration
   typedef enum logic {SelAw, SelW} aw_w_sel_e;
@@ -146,12 +147,12 @@ module floo_axi_chimney
     ) i_aw_queue (
       .clk_i,
       .rst_ni,
-      .data_i     ( axi_in_req_i.aw       ),
-      .valid_i    ( axi_in_req_i.aw_valid ),
-      .ready_o    ( axi_in_rsp_o.aw_ready ),
-      .data_o     ( aw_queue              ),
-      .valid_o    ( aw_queue_valid_out    ),
-      .ready_i    ( aw_queue_ready_in     )
+      .data_i     ( axi_in_req_i.aw         ),
+      .valid_i    ( axi_in_req_i.aw_valid   ),
+      .ready_o    ( axi_in_rsp_o.aw_ready   ),
+      .data_o     ( axi_aw_queue            ),
+      .valid_o    ( axi_aw_queue_valid_out  ),
+      .ready_i    ( axi_aw_queue_ready_in   )
     );
 
     spill_register #(
@@ -159,54 +160,56 @@ module floo_axi_chimney
     ) i_ar_queue (
       .clk_i,
       .rst_ni,
-      .data_i     ( axi_in_req_i.ar       ),
-      .valid_i    ( axi_in_req_i.ar_valid ),
-      .ready_o    ( axi_in_rsp_o.ar_ready ),
-      .data_o     ( ar_queue              ),
-      .valid_o    ( ar_queue_valid_out    ),
-      .ready_i    ( ar_queue_ready_in     )
+      .data_i     ( axi_in_req_i.ar         ),
+      .valid_i    ( axi_in_req_i.ar_valid   ),
+      .ready_o    ( axi_in_rsp_o.ar_ready   ),
+      .data_o     ( axi_ar_queue            ),
+      .valid_o    ( axi_ar_queue_valid_out  ),
+      .ready_i    ( axi_ar_queue_ready_in   )
     );
   end else begin : gen_no_ax_cuts
-    assign aw_queue = axi_in_req_i.aw;
-    assign aw_queue_valid_out = axi_in_req_i.aw_valid;
-    assign axi_in_rsp_o.aw_ready = aw_queue_ready_in;
+    assign axi_aw_queue = axi_in_req_i.aw;
+    assign axi_aw_queue_valid_out = axi_in_req_i.aw_valid;
+    assign axi_in_rsp_o.aw_ready = axi_aw_queue_ready_in;
 
-    assign ar_queue = axi_in_req_i.ar;
-    assign ar_queue_valid_out = axi_in_req_i.ar_valid;
-    assign axi_in_rsp_o.ar_ready = ar_queue_ready_in;
+    assign axi_ar_queue = axi_in_req_i.ar;
+    assign axi_ar_queue_valid_out = axi_in_req_i.ar_valid;
+    assign axi_in_rsp_o.ar_ready = axi_ar_queue_ready_in;
   end
 
   if (CutRsp) begin : gen_rsp_cuts
     spill_register #(
-      .T ( req_data_t )
+      .T ( floo_req_chan_t )
     ) i_data_req_arb (
       .clk_i      ( clk_i               ),
       .rst_ni     ( rst_ni              ),
-      .data_i     ( req_i.data          ),
-      .valid_i    ( req_i.valid         ),
-      .ready_o    ( req_o.ready         ),
-      .data_o     ( req_in.data         ),
-      .valid_o    ( req_in.valid        ),
-      .ready_i    ( req_ready_out       )
+      .data_i     ( floo_req_i.req      ),
+      .valid_i    ( floo_req_i.valid    ),
+      .ready_o    ( floo_req_o.ready    ),
+      .data_o     ( floo_req_in         ),
+      .valid_o    ( floo_req_in_valid   ),
+      .ready_i    ( floo_req_out_ready  )
     );
 
     spill_register #(
-      .T ( rsp_data_t )
+      .T ( floo_rsp_chan_t )
     ) i_data_rsp_arb (
       .clk_i      ( clk_i               ),
       .rst_ni     ( rst_ni              ),
-      .data_i     ( rsp_i.data          ),
-      .valid_i    ( rsp_i.valid         ),
-      .ready_o    ( rsp_o.ready         ),
-      .data_o     ( rsp_in.data         ),
-      .valid_o    ( rsp_in.valid        ),
-      .ready_i    ( rsp_ready_out       )
+      .data_i     ( floo_rsp_i.rsp      ),
+      .valid_i    ( floo_rsp_i.valid    ),
+      .ready_o    ( floo_rsp_o.ready    ),
+      .data_o     ( floo_rsp_in         ),
+      .valid_o    ( floo_rsp_in_valid   ),
+      .ready_i    ( floo_rsp_out_ready  )
     );
   end else begin : gen_no_rsp_cuts
-    assign req_in = req_i;
-    assign req_o.ready = req_ready_out;
-    assign rsp_in = rsp_i;
-    assign rsp_o.ready = rsp_ready_out;
+    assign floo_req_in = floo_req_i.req;
+    assign floo_req_in_valid = floo_req_i.valid;
+    assign floo_req_o.ready = floo_req_out_ready;
+    assign floo_rsp_in = floo_rsp_i.rsp;
+    assign floo_rsp_in_valid = floo_rsp_i.valid;
+    assign floo_rsp_o.ready = floo_rsp_out_ready;
   end
 
   ///////////////////////
@@ -214,7 +217,7 @@ module floo_axi_chimney
   ///////////////////////
 
   // AW/B RoB
-  axi_in_b_chan_t b_rob_out, b_rob_in;
+  axi_in_b_chan_t axi_b_rob_out, axi_b_rob_in;
   logic aw_rob_req_out;
   rob_idx_t aw_rob_idx_out;
   logic aw_rob_valid_in, aw_rob_ready_out;
@@ -223,7 +226,7 @@ module floo_axi_chimney
   logic b_rob_valid_out, b_rob_ready_in;
 
   // AR/R RoB
-  axi_in_r_chan_t r_rob_out, r_rob_in;
+  axi_in_r_chan_t axi_r_rob_out, axi_r_rob_in;
   logic ar_rob_req_out;
   rob_idx_t ar_rob_idx_out;
   logic ar_rob_valid_out, ar_rob_ready_in;
@@ -232,13 +235,13 @@ module floo_axi_chimney
 
   if (AtopSupport) begin : gen_atop_support
     // Bypass AW/B RoB
-    assign aw_rob_valid_in = aw_queue_valid_out && (aw_queue.atop == axi_pkg::ATOP_NONE);
-    assign aw_queue_ready_in = (aw_queue.atop == axi_pkg::ATOP_NONE)?
+    assign aw_rob_valid_in = axi_aw_queue_valid_out && (axi_aw_queue.atop == axi_pkg::ATOP_NONE);
+    assign axi_aw_queue_ready_in = (axi_aw_queue.atop == axi_pkg::ATOP_NONE)?
                                 aw_rob_ready_out : aw_rob_ready_in;
   end else begin : gen_no_atop_support
-    assign aw_rob_valid_in = aw_queue_valid_out;
-    assign aw_queue_ready_in = aw_rob_ready_out;
-    `ASSERT(NoAtopSupport, !(aw_queue_valid_out && (aw_queue.atop != axi_pkg::ATOP_NONE)))
+    assign aw_rob_valid_in = axi_aw_queue_valid_out;
+    assign axi_aw_queue_ready_in = aw_rob_ready_out;
+    `ASSERT(NoAtopSupport, !(axi_aw_queue_valid_out && (axi_aw_queue.atop != axi_pkg::ATOP_NONE)))
   end
 
   floo_simple_rob #(
@@ -257,21 +260,21 @@ module floo_axi_chimney
     .sram_cfg_i,
     .ax_valid_i     ( aw_rob_valid_in               ),
     .ax_ready_o     ( aw_rob_ready_out              ),
-    .ax_len_i       ( aw_queue.len                  ),
-    .ax_dest_i      ( dst_id[AxiInAw]               ),
+    .ax_len_i       ( axi_aw_queue.len              ),
+    .ax_dest_i      ( dst_id[AxiAw]                 ),
     .ax_valid_o     ( aw_rob_valid_out              ),
     .ax_ready_i     ( aw_rob_ready_in               ),
     .ax_rob_req_o   ( aw_rob_req_out                ),
     .ax_rob_idx_o   ( aw_rob_idx_out                ),
     .rsp_valid_i    ( b_rob_valid_in                ),
     .rsp_ready_o    ( b_rob_ready_out               ),
-    .rsp_i          ( b_rob_in                      ),
-    .rsp_rob_req_i  ( rsp_in.data.axi_in_b.rob_req  ),
-    .rsp_rob_idx_i  ( rsp_in.data.axi_in_b.rob_idx  ),
-    .rsp_last_i     ( rsp_in.data.axi_in_b.last     ),
+    .rsp_i          ( axi_b_rob_in                  ),
+    .rsp_rob_req_i  ( floo_rsp_in.axi_b.hdr.rob_req ),
+    .rsp_rob_idx_i  ( floo_rsp_in.axi_b.hdr.rob_idx ),
+    .rsp_last_i     ( floo_rsp_in.axi_b.hdr.last    ),
     .rsp_valid_o    ( b_rob_valid_out               ),
     .rsp_ready_i    ( b_rob_ready_in                ),
-    .rsp_o          ( b_rob_out                     )
+    .rsp_o          ( axi_b_rob_out                 )
   );
 
   typedef logic [AxiInDataWidth-1:0] r_rob_data_t;
@@ -298,23 +301,23 @@ module floo_axi_chimney
       .clk_i,
       .rst_ni,
       .sram_cfg_i,
-      .ax_valid_i     ( ar_queue_valid_out            ),
-      .ax_ready_o     ( ar_queue_ready_in             ),
-      .ax_len_i       ( ar_queue.len                  ),
-      .ax_dest_i      ( dst_id[AxiInAr]               ),
+      .ax_valid_i     ( axi_ar_queue_valid_out        ),
+      .ax_ready_o     ( axi_ar_queue_ready_in         ),
+      .ax_len_i       ( axi_ar_queue.len              ),
+      .ax_dest_i      ( dst_id[AxiAr]                 ),
       .ax_valid_o     ( ar_rob_valid_out              ),
       .ax_ready_i     ( ar_rob_ready_in               ),
       .ax_rob_req_o   ( ar_rob_req_out                ),
       .ax_rob_idx_o   ( ar_rob_idx_out                ),
       .rsp_valid_i    ( r_rob_valid_in                ),
       .rsp_ready_o    ( r_rob_ready_out               ),
-      .rsp_i          ( r_rob_in                      ),
-      .rsp_rob_req_i  ( rsp_in.data.axi_in_r.rob_req  ),
-      .rsp_rob_idx_i  ( rsp_in.data.axi_in_r.rob_idx  ),
-      .rsp_last_i     ( rsp_in.data.axi_in_r.last     ),
+      .rsp_i          ( axi_r_rob_in                  ),
+      .rsp_rob_req_i  ( floo_rsp_in.axi_r.hdr.rob_req ),
+      .rsp_rob_idx_i  ( floo_rsp_in.axi_r.hdr.rob_idx ),
+      .rsp_last_i     ( floo_rsp_in.axi_r.hdr.last    ),
       .rsp_valid_o    ( r_rob_valid_out               ),
       .rsp_ready_i    ( r_rob_ready_in                ),
-      .rsp_o          ( r_rob_out                     )
+      .rsp_o          ( axi_r_rob_out                 )
     );
   end else begin : gen_rob
     floo_rob #(
@@ -332,24 +335,24 @@ module floo_axi_chimney
       .clk_i,
       .rst_ni,
       .sram_cfg_i,
-      .ax_valid_i     ( ar_queue_valid_out            ),
-      .ax_ready_o     ( ar_queue_ready_in             ),
-      .ax_len_i       ( ar_queue.len                  ),
-      .ax_id_i        ( ar_queue.id                   ),
-      .ax_dest_i      ( dst_id[AxiInAr]               ),
+      .ax_valid_i     ( axi_ar_queue_valid_out        ),
+      .ax_ready_o     ( axi_ar_queue_ready_in         ),
+      .ax_len_i       ( axi_ar_queue.len              ),
+      .ax_id_i        ( axi_ar_queue.id               ),
+      .ax_dest_i      ( dst_id[AxiAr]                 ),
       .ax_valid_o     ( ar_rob_valid_out              ),
       .ax_ready_i     ( ar_rob_ready_in               ),
       .ax_rob_req_o   ( ar_rob_req_out                ),
       .ax_rob_idx_o   ( ar_rob_idx_out                ),
       .rsp_valid_i    ( r_rob_valid_in                ),
       .rsp_ready_o    ( r_rob_ready_out               ),
-      .rsp_i          ( r_rob_in                      ),
-      .rsp_rob_req_i  ( rsp_in.data.axi_in_r.rob_req  ),
-      .rsp_rob_idx_i  ( rsp_in.data.axi_in_r.rob_idx  ),
-      .rsp_last_i     ( rsp_in.data.axi_in_r.last     ),
+      .rsp_i          ( axi_r_rob_in                  ),
+      .rsp_rob_req_i  ( floo_rsp_in.axi_r.hdr.rob_req ),
+      .rsp_rob_idx_i  ( floo_rsp_in.axi_r.hdr.rob_idx ),
+      .rsp_last_i     ( floo_rsp_in.axi_r.hdr.last    ),
       .rsp_valid_o    ( r_rob_valid_out               ),
       .rsp_ready_i    ( r_rob_ready_in                ),
-      .rsp_o          ( r_rob_out                     )
+      .rsp_o          ( axi_r_rob_out                 )
     );
   end
 
@@ -361,27 +364,27 @@ module floo_axi_chimney
   if (RouteAlgo == XYRouting) begin : gen_xy_routing
     xy_id_t aw_xy_id_q, aw_xy_id, ar_xy_id;
     assign src_id = xy_id_i;
-    assign aw_xy_id.x = aw_queue.addr[XYAddrOffsetX+:$bits(xy_id_i.x)];
-    assign aw_xy_id.y = aw_queue.addr[XYAddrOffsetY+:$bits(xy_id_i.y)];
-    assign ar_xy_id.x = ar_queue.addr[XYAddrOffsetX+:$bits(xy_id_i.x)];
-    assign ar_xy_id.y = ar_queue.addr[XYAddrOffsetY+:$bits(xy_id_i.y)];
-    assign dst_id[AxiInAw] = aw_xy_id;
-    assign dst_id[AxiInAr] = ar_xy_id;
-    assign dst_id[AxiInW]  = aw_xy_id_q;
-    assign dst_id[AxiInB]  = aw_out_data_out.src_id;
-    assign dst_id[AxiInR]  = ar_out_data_out.src_id;
-    `FFL(aw_xy_id_q, aw_xy_id, aw_queue_valid_out && aw_queue_ready_in, '0)
+    assign aw_xy_id.x = axi_aw_queue.addr[XYAddrOffsetX+:$bits(xy_id_i.x)];
+    assign aw_xy_id.y = axi_aw_queue.addr[XYAddrOffsetY+:$bits(xy_id_i.y)];
+    assign ar_xy_id.x = axi_ar_queue.addr[XYAddrOffsetX+:$bits(xy_id_i.x)];
+    assign ar_xy_id.y = axi_ar_queue.addr[XYAddrOffsetY+:$bits(xy_id_i.y)];
+    assign dst_id[AxiAw] = aw_xy_id;
+    assign dst_id[AxiAr] = ar_xy_id;
+    assign dst_id[AxiW]  = aw_xy_id_q;
+    assign dst_id[AxiB]  = aw_out_data_out.src_id;
+    assign dst_id[AxiR]  = ar_out_data_out.src_id;
+    `FFL(aw_xy_id_q, aw_xy_id, axi_aw_queue_valid_out && axi_aw_queue_ready_in, '0)
   end else if (RouteAlgo == IdTable) begin : gen_id_table_routing
     id_t aw_id_q, aw_id, ar_id;
     assign src_id = id_i;
-    assign aw_id = aw_queue.addr[IdTableAddrOffset+:$bits(id_i)];
-    assign ar_id = ar_queue.addr[IdTableAddrOffset+:$bits(id_i)];
-    assign dst_id[AxiInAw] = aw_id;
-    assign dst_id[AxiInAr] = ar_id;
-    assign dst_id[AxiInW]  = aw_id_q;
-    assign dst_id[AxiInB]  = aw_out_data_out.src_id;
-    assign dst_id[AxiInR]  = ar_out_data_out.src_id;
-    `FFL(aw_id_q, aw_id, aw_queue_valid_out && aw_queue_ready_in, '0)
+    assign aw_id = axi_aw_queue.addr[IdTableAddrOffset+:$bits(id_i)];
+    assign ar_id = axi_ar_queue.addr[IdTableAddrOffset+:$bits(id_i)];
+    assign dst_id[AxiAw] = aw_id;
+    assign dst_id[AxiAr] = ar_id;
+    assign dst_id[AxiW]  = aw_id_q;
+    assign dst_id[AxiB]  = aw_out_data_out.src_id;
+    assign dst_id[AxiR]  = ar_out_data_out.src_id;
+    `FFL(aw_id_q, aw_id, axi_aw_queue_valid_out && axi_aw_queue_ready_in, '0)
   end else begin : gen_no_routing
     // TODO: Implement other routing algorithms
     $fatal(1, "Routing algorithm not implemented");
@@ -392,123 +395,123 @@ module floo_axi_chimney
   ///////////////////
 
   always_comb begin
-    aw_data         = '0;
-    aw_data.rob_req = aw_rob_req_out;
-    aw_data.rob_idx = aw_rob_idx_out;
-    aw_data.dst_id  = dst_id[AxiInAw];
-    aw_data.src_id  = src_id;
-    aw_data.last    = 1'b1;
-    aw_data.axi_ch  = AxiInAw;
-    aw_data.aw      = aw_queue;
-    aw_data.atop    = aw_queue.atop != axi_pkg::ATOP_NONE;
+    floo_axi_aw             = '0;
+    floo_axi_aw.hdr.rob_req = aw_rob_req_out;
+    floo_axi_aw.hdr.rob_idx = aw_rob_idx_out;
+    floo_axi_aw.hdr.dst_id  = dst_id[AxiAw];
+    floo_axi_aw.hdr.src_id  = src_id;
+    floo_axi_aw.hdr.last    = 1'b1;
+    floo_axi_aw.hdr.axi_ch  = AxiAw;
+    floo_axi_aw.hdr.atop    = axi_aw_queue.atop != axi_pkg::ATOP_NONE;
+    floo_axi_aw.aw          = axi_aw_queue;
   end
 
   always_comb begin
-    w_data          = '0;
-    w_data.rob_req  = aw_rob_req_out;
-    w_data.rob_idx  = aw_rob_idx_out;
-    w_data.dst_id   = dst_id[AxiInW];
-    w_data.src_id   = src_id;
-    w_data.last     = axi_in_req_i.w.last;
-    w_data.axi_ch   = AxiInW;
-    w_data.w        = axi_in_req_i.w;
+    floo_axi_w              = '0;
+    floo_axi_w.hdr.rob_req  = aw_rob_req_out;
+    floo_axi_w.hdr.rob_idx  = aw_rob_idx_out;
+    floo_axi_w.hdr.dst_id   = dst_id[AxiW];
+    floo_axi_w.hdr.src_id   = src_id;
+    floo_axi_w.hdr.last     = axi_in_req_i.w.last;
+    floo_axi_w.hdr.axi_ch   = AxiW;
+    floo_axi_w.w            = axi_in_req_i.w;
   end
 
   always_comb begin
-    ar_data         = '0;
-    ar_data.rob_req = ar_rob_req_out;
-    ar_data.rob_idx = ar_rob_idx_out;
-    ar_data.dst_id  = dst_id[AxiInAr];
-    ar_data.src_id  = src_id;
-    ar_data.last    = 1'b1;
-    ar_data.axi_ch  = AxiInAr;
-    ar_data.ar      = ar_queue;
+    floo_axi_ar             = '0;
+    floo_axi_ar.hdr.rob_req = ar_rob_req_out;
+    floo_axi_ar.hdr.rob_idx = ar_rob_idx_out;
+    floo_axi_ar.hdr.dst_id  = dst_id[AxiAr];
+    floo_axi_ar.hdr.src_id  = src_id;
+    floo_axi_ar.hdr.last    = 1'b1;
+    floo_axi_ar.hdr.axi_ch  = AxiAr;
+    floo_axi_ar.ar          = axi_ar_queue;
   end
 
   always_comb begin
-    b_data          = '0;
-    b_data.rob_req  = aw_out_data_out.rob_req;
-    b_data.rob_idx  = aw_out_data_out.rob_idx;
-    b_data.dst_id   = aw_out_data_out.src_id;
-    b_data.src_id   = src_id;
-    b_data.last     = 1'b1;
-    b_data.axi_ch   = AxiInB;
-    b_data.b        = axi_out_rsp_id_mapped.b;
-    b_data.b.id     = aw_out_data_out.id;
-    b_data.atop     = aw_out_data_out.atop;
+    floo_axi_b              = '0;
+    floo_axi_b.hdr.rob_req  = aw_out_data_out.rob_req;
+    floo_axi_b.hdr.rob_idx  = aw_out_data_out.rob_idx;
+    floo_axi_b.hdr.dst_id   = aw_out_data_out.src_id;
+    floo_axi_b.hdr.src_id   = src_id;
+    floo_axi_b.hdr.last     = 1'b1;
+    floo_axi_b.hdr.axi_ch   = AxiB;
+    floo_axi_b.hdr.atop     = aw_out_data_out.atop;
+    floo_axi_b.b            = axi_out_rsp_id_mapped.b;
+    floo_axi_b.b.id         = aw_out_data_out.id;
   end
 
   always_comb begin
-    r_data        = '0;
-    r_data.rob_req    = ar_out_data_out.rob_req;
-    r_data.rob_idx    = ar_out_data_out.rob_idx;
-    r_data.dst_id = ar_out_data_out.src_id;
-    r_data.src_id = src_id;
-    r_data.last   = axi_out_rsp_i.r.last;
-    r_data.axi_ch = AxiInR;
-    r_data.r      = axi_out_rsp_id_mapped.r;
-    r_data.r.id   = ar_out_data_out.id;
-    r_data.atop   = ar_out_data_out.atop;
+    floo_axi_r              = '0;
+    floo_axi_r.hdr.rob_req  = ar_out_data_out.rob_req;
+    floo_axi_r.hdr.rob_idx  = ar_out_data_out.rob_idx;
+    floo_axi_r.hdr.dst_id   = ar_out_data_out.src_id;
+    floo_axi_r.hdr.src_id   = src_id;
+    floo_axi_r.hdr.last     = axi_out_rsp_i.r.last;
+    floo_axi_r.hdr.axi_ch   = AxiR;
+    floo_axi_r.hdr.atop     = ar_out_data_out.atop;
+    floo_axi_r.r            = axi_out_rsp_id_mapped.r;
+    floo_axi_r.r.id         = ar_out_data_out.id;
   end
 
   always_comb begin
     aw_w_sel_d = aw_w_sel_q;
-    if (aw_queue_valid_out && aw_queue_ready_in) aw_w_sel_d = SelW;
+    if (axi_aw_queue_valid_out && axi_aw_queue_ready_in) aw_w_sel_d = SelW;
     if (axi_in_req_i.w_valid && axi_in_rsp_o.w_ready && axi_in_req_i.w.last) aw_w_sel_d = SelAw;
   end
 
   `FF(aw_w_sel_q, aw_w_sel_d, SelAw)
 
-  assign req_data_arb_req_in[AxiInAw] = (aw_w_sel_q == SelAw) && (aw_rob_valid_out ||
-                                        ((aw_queue.atop != axi_pkg::ATOP_NONE) &&
-                                          aw_queue_valid_out));
-  assign req_data_arb_req_in[AxiInW]  = (aw_w_sel_q == SelW) && axi_in_req_i.w_valid;
-  assign req_data_arb_req_in[AxiInAr] = ar_rob_valid_out;
-  assign rsp_data_arb_req_in[AxiInB]  = axi_out_rsp_i.b_valid;
-  assign rsp_data_arb_req_in[AxiInR]  = axi_out_rsp_i.r_valid;
+  assign floo_req_arb_req_in[AxiAw] = (aw_w_sel_q == SelAw) && (aw_rob_valid_out ||
+                                        ((axi_aw_queue.atop != axi_pkg::ATOP_NONE) &&
+                                          axi_aw_queue_valid_out));
+  assign floo_req_arb_req_in[AxiW]  = (aw_w_sel_q == SelW) && axi_in_req_i.w_valid;
+  assign floo_req_arb_req_in[AxiAr] = ar_rob_valid_out;
+  assign floo_rsp_arb_req_in[AxiB]  = axi_out_rsp_i.b_valid;
+  assign floo_rsp_arb_req_in[AxiR]  = axi_out_rsp_i.r_valid;
 
-  assign aw_rob_ready_in       = req_data_arb_gnt_out[AxiInAw] && (aw_w_sel_q == SelAw);
-  assign axi_in_rsp_o.w_ready  = req_data_arb_gnt_out[AxiInW] && (aw_w_sel_q == SelW);
-  assign ar_rob_ready_in       = req_data_arb_gnt_out[AxiInAr];
-  assign axi_out_req_id_mapped.b_ready = rsp_data_arb_gnt_out[AxiInB];
-  assign axi_out_req_id_mapped.r_ready = rsp_data_arb_gnt_out[AxiInR];
+  assign aw_rob_ready_in       = floo_req_arb_gnt_out[AxiAw] && (aw_w_sel_q == SelAw);
+  assign axi_in_rsp_o.w_ready  = floo_req_arb_gnt_out[AxiW] && (aw_w_sel_q == SelW);
+  assign ar_rob_ready_in       = floo_req_arb_gnt_out[AxiAr];
+  assign axi_out_req_id_mapped.b_ready = floo_rsp_arb_gnt_out[AxiB];
+  assign axi_out_req_id_mapped.r_ready = floo_rsp_arb_gnt_out[AxiR];
 
-  assign req_data_arb_data_in[AxiInAw]  = aw_data;
-  assign req_data_arb_data_in[AxiInW]   = w_data;
-  assign req_data_arb_data_in[AxiInAr]  = ar_data;
-  assign rsp_data_arb_data_in[AxiInB]   = b_data;
-  assign rsp_data_arb_data_in[AxiInR]   = r_data;
+  assign floo_req_arb_in[AxiAw]  = floo_axi_aw;
+  assign floo_req_arb_in[AxiW]   = floo_axi_w;
+  assign floo_req_arb_in[AxiAr]  = floo_axi_ar;
+  assign floo_rsp_arb_in[AxiB]   = floo_axi_b;
+  assign floo_rsp_arb_in[AxiR]   = floo_axi_r;
 
   ///////////////////////
   // FLIT ARBITRATION  //
   ///////////////////////
 
   floo_wormhole_arbiter #(
-    .NumRoutes  ( NumVirtPerPhys[PhysReq] ),
-    .flit_t     ( req_generic_t           )
+    .NumRoutes  ( 3                       ),
+    .flit_t     ( floo_req_generic_flit_t )
   ) i_req_wormhole_arbiter (
     .clk_i    ( clk_i                 ),
     .rst_ni   ( rst_ni                ),
-    .valid_i  ( req_data_arb_req_in   ),
-    .data_i   ( req_data_arb_data_in  ),
-    .ready_o  ( req_data_arb_gnt_out  ),
-    .data_o   ( req_o.data            ),
-    .ready_i  ( req_i.ready           ),
-    .valid_o  ( req_o.valid           )
+    .valid_i  ( floo_req_arb_req_in   ),
+    .data_i   ( floo_req_arb_in       ),
+    .ready_o  ( floo_req_arb_gnt_out  ),
+    .data_o   ( floo_req_o.req        ),
+    .ready_i  ( floo_req_i.ready      ),
+    .valid_o  ( floo_req_o.valid      )
   );
 
   floo_wormhole_arbiter #(
-    .NumRoutes  ( NumVirtPerPhys[PhysRsp] ),
-    .flit_t     ( rsp_generic_t           )
+    .NumRoutes  ( 2                       ),
+    .flit_t     ( floo_rsp_generic_flit_t )
   ) i_rsp_wormhole_arbiter (
     .clk_i    ( clk_i                 ),
     .rst_ni   ( rst_ni                ),
-    .valid_i  ( rsp_data_arb_req_in   ),
-    .data_i   ( rsp_data_arb_data_in  ),
-    .ready_o  ( rsp_data_arb_gnt_out  ),
-    .data_o   ( rsp_o.data            ),
-    .ready_i  ( rsp_i.ready           ),
-    .valid_o  ( rsp_o.valid           )
+    .valid_i  ( floo_rsp_arb_req_in   ),
+    .data_i   ( floo_rsp_arb_in       ),
+    .ready_o  ( floo_rsp_arb_gnt_out  ),
+    .data_o   ( floo_rsp_o.rsp        ),
+    .ready_i  ( floo_rsp_i.ready      ),
+    .valid_o  ( floo_rsp_o.valid      )
   );
 
   ////////////////////
@@ -519,61 +522,61 @@ module floo_axi_chimney
   logic b_sel_atop, r_sel_atop;
   logic b_rob_pending_q, r_rob_pending_q;
 
-  assign is_atop_b_rsp = AtopSupport && axi_valid_in[AxiInB] && unpack_rsp_generic.atop;
-  assign is_atop_r_rsp = AtopSupport && axi_valid_in[AxiInR] && unpack_rsp_generic.atop;
+  assign is_atop_b_rsp = AtopSupport && axi_valid_in[AxiB] && unpack_rsp_generic.hdr.atop;
+  assign is_atop_r_rsp = AtopSupport && axi_valid_in[AxiR] && unpack_rsp_generic.hdr.atop;
   assign b_sel_atop = is_atop_b_rsp && !b_rob_pending_q;
   assign r_sel_atop = is_atop_r_rsp && !r_rob_pending_q;
 
-  assign unpack_aw_data = req_in.data.axi_in_aw.aw;
-  assign unpack_w_data  = req_in.data.axi_in_w.w;
-  assign unpack_ar_data = req_in.data.axi_in_ar.ar;
-  assign unpack_r_data  = rsp_in.data.axi_in_r.r;
-  assign unpack_b_data  = rsp_in.data.axi_in_b.b;
-  assign unpack_req_generic = req_in.data.gen;
-  assign unpack_rsp_generic = rsp_in.data.gen;
+  assign axi_unpack_aw = floo_req_in.axi_aw.aw;
+  assign axi_unpack_w  = floo_req_in.axi_w.w;
+  assign axi_unpack_ar = floo_req_in.axi_ar.ar;
+  assign axi_unpack_r  = floo_rsp_in.axi_r.r;
+  assign axi_unpack_b  = floo_rsp_in.axi_b.b;
+  assign unpack_req_generic = floo_req_in.generic;
+  assign unpack_rsp_generic = floo_rsp_in.generic;
 
-  assign axi_valid_in[AxiInAw] = req_in.valid && (unpack_req_generic.axi_ch == AxiInAw);
-  assign axi_valid_in[AxiInW]  = req_in.valid && (unpack_req_generic.axi_ch == AxiInW);
-  assign axi_valid_in[AxiInAr] = req_in.valid && (unpack_req_generic.axi_ch == AxiInAr);
-  assign axi_valid_in[AxiInB]  = rsp_in.valid && (unpack_rsp_generic.axi_ch == AxiInB);
-  assign axi_valid_in[AxiInR]  = rsp_in.valid && (unpack_rsp_generic.axi_ch == AxiInR);
+  assign axi_valid_in[AxiAw] = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiAw);
+  assign axi_valid_in[AxiW]  = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiW);
+  assign axi_valid_in[AxiAr] = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiAr);
+  assign axi_valid_in[AxiB]  = floo_rsp_in_valid && (unpack_rsp_generic.hdr.axi_ch == AxiB);
+  assign axi_valid_in[AxiR]  = floo_rsp_in_valid && (unpack_rsp_generic.hdr.axi_ch == AxiR);
 
-  assign axi_ready_out[AxiInAw] = axi_out_rsp_i.aw_ready && !aw_out_full;
-  assign axi_ready_out[AxiInW]  = axi_out_rsp_i.w_ready;
-  assign axi_ready_out[AxiInAr] = axi_out_rsp_i.ar_ready && !ar_out_full;
-  assign axi_ready_out[AxiInB]  = b_rob_ready_out || b_sel_atop && axi_in_req_i.b_ready;
-  assign axi_ready_out[AxiInR]  = r_rob_ready_out || r_sel_atop && axi_in_req_i.r_ready;
+  assign axi_ready_out[AxiAw] = axi_out_rsp_i.aw_ready && !aw_out_full;
+  assign axi_ready_out[AxiW]  = axi_out_rsp_i.w_ready;
+  assign axi_ready_out[AxiAr] = axi_out_rsp_i.ar_ready && !ar_out_full;
+  assign axi_ready_out[AxiB]  = b_rob_ready_out || b_sel_atop && axi_in_req_i.b_ready;
+  assign axi_ready_out[AxiR]  = r_rob_ready_out || r_sel_atop && axi_in_req_i.r_ready;
 
-  assign req_ready_out = axi_ready_out[unpack_req_generic.axi_ch];
-  assign rsp_ready_out = axi_ready_out[unpack_rsp_generic.axi_ch];
+  assign floo_req_out_ready = axi_ready_out[unpack_req_generic.hdr.axi_ch];
+  assign floo_rsp_out_ready = axi_ready_out[unpack_rsp_generic.hdr.axi_ch];
 
   /////////////////////////////
   // AXI req/rsp generation  //
   ////////////////////////////
 
-  assign axi_out_req_id_mapped.aw_valid = axi_valid_in[AxiInAw] && !aw_out_full;
-  assign axi_out_req_id_mapped.w_valid  = axi_valid_in[AxiInW];
-  assign axi_out_req_id_mapped.ar_valid = axi_valid_in[AxiInAr] && !ar_out_full;
-  assign b_rob_valid_in         = axi_valid_in[AxiInB] && !is_atop_b_rsp;
-  assign r_rob_valid_in         = axi_valid_in[AxiInR] && !is_atop_r_rsp;
+  assign axi_out_req_id_mapped.aw_valid = axi_valid_in[AxiAw] && !aw_out_full;
+  assign axi_out_req_id_mapped.w_valid  = axi_valid_in[AxiW];
+  assign axi_out_req_id_mapped.ar_valid = axi_valid_in[AxiAr] && !ar_out_full;
+  assign b_rob_valid_in         = axi_valid_in[AxiB] && !is_atop_b_rsp;
+  assign r_rob_valid_in         = axi_valid_in[AxiR] && !is_atop_r_rsp;
   assign axi_in_rsp_o.b_valid   = b_rob_valid_out || is_atop_b_rsp;
   assign axi_in_rsp_o.r_valid   = r_rob_valid_out || is_atop_r_rsp;
   assign b_rob_ready_in         = axi_in_req_i.b_ready && !b_sel_atop;
   assign r_rob_ready_in         = axi_in_req_i.r_ready && !r_sel_atop;
 
-  assign axi_out_req_id_mapped.aw = aw_id_mod;
-  assign axi_out_req_id_mapped.w  = unpack_w_data;
-  assign axi_out_req_id_mapped.ar = ar_id_mod;
-  assign b_rob_in         = unpack_b_data;
-  assign r_rob_in         = unpack_r_data;
-  assign axi_in_rsp_o.b   = (b_sel_atop)? unpack_b_data : b_rob_out;
-  assign axi_in_rsp_o.r   = (r_sel_atop)? unpack_r_data : r_rob_out;
+  assign axi_out_req_id_mapped.aw = axi_aw_id_mod;
+  assign axi_out_req_id_mapped.w  = axi_unpack_w;
+  assign axi_out_req_id_mapped.ar = axi_ar_id_mod;
+  assign axi_b_rob_in         = axi_unpack_b;
+  assign axi_r_rob_in         = axi_unpack_r;
+  assign axi_in_rsp_o.b   = (b_sel_atop)? axi_unpack_b : axi_b_rob_out;
+  assign axi_in_rsp_o.r   = (r_sel_atop)? axi_unpack_r : axi_r_rob_out;
 
   logic is_atop, atop_has_r_rsp;
-  assign is_atop = AtopSupport && axi_valid_in[AxiInAw] &&
-                    (unpack_aw_data.atop != axi_pkg::ATOP_NONE);
-  assign atop_has_r_rsp = AtopSupport && axi_valid_in[AxiInAw] &&
-                          unpack_aw_data.atop[axi_pkg::ATOP_R_RESP];
+  assign is_atop = AtopSupport && axi_valid_in[AxiAw] &&
+                    (axi_unpack_aw.atop != axi_pkg::ATOP_NONE);
+  assign atop_has_r_rsp = AtopSupport && axi_valid_in[AxiAw] &&
+                          axi_unpack_aw.atop[axi_pkg::ATOP_R_RESP];
 
   assign aw_out_push = axi_out_req_o.aw_valid && axi_out_rsp_i.aw_ready;
   assign ar_out_push = axi_out_req_o.ar_valid && axi_out_rsp_i.ar_ready ||
@@ -583,18 +586,18 @@ module floo_axi_chimney
   assign ar_out_pop = axi_out_rsp_i.r_valid && axi_out_req_o.r_ready && axi_out_rsp_i.r.last;
 
   assign aw_out_data_in = '{
-    id: unpack_aw_data.id,
-    rob_req: unpack_req_generic.rob_req,
-    rob_idx: unpack_req_generic.rob_idx,
-    src_id: unpack_req_generic.src_id,
-    atop: unpack_req_generic.atop
+    id: axi_unpack_aw.id,
+    rob_req: unpack_req_generic.hdr.rob_req,
+    rob_idx: unpack_req_generic.hdr.rob_idx,
+    src_id: unpack_req_generic.hdr.src_id,
+    atop: unpack_req_generic.hdr.atop
   };
   assign ar_out_data_in = '{
-    id: (is_atop && atop_has_r_rsp)? unpack_aw_data.id : unpack_ar_data.id,
-    rob_req: unpack_req_generic.rob_req,
-    rob_idx: unpack_req_generic.rob_idx,
-    src_id: unpack_req_generic.src_id,
-    atop: unpack_req_generic.atop
+    id: (is_atop && atop_has_r_rsp)? axi_unpack_aw.id : axi_unpack_ar.id,
+    rob_req: unpack_req_generic.hdr.rob_req,
+    rob_idx: unpack_req_generic.hdr.rob_idx,
+    src_id: unpack_req_generic.hdr.src_id,
+    atop: unpack_req_generic.hdr.atop
   };
 
   floo_meta_buffer #(
@@ -644,10 +647,10 @@ module floo_axi_chimney
 
   always_comb begin
     // Assign the outgoing AX an unique ID
-    aw_id_mod    = unpack_aw_data;
-    ar_id_mod    = unpack_ar_data;
-    aw_id_mod.id = aw_out_id;
-    ar_id_mod.id = ar_out_id;
+    axi_aw_id_mod    = axi_unpack_aw;
+    axi_ar_id_mod    = axi_unpack_ar;
+    axi_aw_id_mod.id = aw_out_id;
+    axi_ar_id_mod.id = ar_out_id;
   end
 
   // Registers

@@ -6,8 +6,8 @@
 
 module floo_synth_narrow_wide_router
   import floo_pkg::*;
-  import floo_narrow_wide_flit_pkg::*;
-  import floo_param_pkg::*;
+  import floo_narrow_wide_pkg::*;
+  import floo_test_pkg::*;
 (
   input  logic   clk_i,
   input  logic   rst_ni,
@@ -15,19 +15,19 @@ module floo_synth_narrow_wide_router
 
   input  xy_id_t xy_id_i,
 
-  input   narrow_req_flit_t [NumRoutes-1:0] narrow_req_i,
-  input   narrow_rsp_flit_t [NumRoutes-1:0] narrow_rsp_i,
-  output  narrow_req_flit_t [NumRoutes-1:0] narrow_req_o,
-  output  narrow_rsp_flit_t [NumRoutes-1:0] narrow_rsp_o,
-  input   wide_flit_t   [NumRoutes-1:0] wide_i,
-  output  wide_flit_t   [NumRoutes-1:0] wide_o
+  input   floo_req_t [NumRoutes-1:0] floo_req_i,
+  input   floo_rsp_t [NumRoutes-1:0] floo_rsp_i,
+  output  floo_req_t [NumRoutes-1:0] floo_req_o,
+  output  floo_rsp_t [NumRoutes-1:0] floo_rsp_o,
+  input   floo_wide_t   [NumRoutes-1:0] floo_wide_i,
+  output  floo_wide_t   [NumRoutes-1:0] floo_wide_o
 );
 
   floo_narrow_wide_router #(
     .NumRoutes        ( NumRoutes         ),
     .ChannelFifoDepth ( ChannelFifoDepth  ),
     .OutputFifoDepth  ( OutputFifoDepth   ),
-    .RouteAlgo        ( RouteAlgo         ),
+    .RouteAlgo        ( XYRouting         ),
     .id_t             ( xy_id_t           )
   ) i_floo_narrow_wide_router (
     .clk_i,
@@ -35,12 +35,12 @@ module floo_synth_narrow_wide_router
     .test_enable_i,
     .xy_id_i,
     .id_route_map_i ('0),
-    .narrow_req_i,
-    .narrow_req_o,
-    .narrow_rsp_i,
-    .narrow_rsp_o,
-    .wide_i,
-    .wide_o
+    .floo_req_i,
+    .floo_req_o,
+    .floo_rsp_i,
+    .floo_rsp_o,
+    .floo_wide_i,
+    .floo_wide_o
   );
 
 endmodule

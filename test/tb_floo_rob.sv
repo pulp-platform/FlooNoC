@@ -12,7 +12,7 @@ module tb_floo_rob;
 
   import floo_pkg::*;
   import floo_test_pkg::*;
-  import floo_axi_flit_pkg::*;
+  import floo_axi_pkg::*;
 
   localparam time CyclTime = 10ns;
   localparam time ApplTime = 2ns;
@@ -33,32 +33,33 @@ module tb_floo_rob;
   logic clk, rst_n;
 
   axi_in_req_t  node_mst_req;
-  axi_in_resp_t node_mst_rsp;
+  axi_in_rsp_t node_mst_rsp;
 
   axi_out_req_t  [NumDirections-1:0] node_slv_req;
-  axi_out_resp_t [NumDirections-1:0] node_slv_rsp;
+  axi_out_rsp_t [NumDirections-1:0] node_slv_rsp;
   axi_in_req_t  [NumDirections-1:0] node_slv_req_id_mapped;
-  axi_in_resp_t [NumDirections-1:0] node_slv_rsp_id_mapped;
+  axi_in_rsp_t [NumDirections-1:0] node_slv_rsp_id_mapped;
 
   for (genvar i = 0; i < NumDirections; i++) begin : gen_dir
     `AXI_ASSIGN_REQ_STRUCT(node_slv_req_id_mapped[i], node_slv_req[i])
     `AXI_ASSIGN_RESP_STRUCT(node_slv_rsp_id_mapped[i], node_slv_rsp[i])
   end
 
-  req_flit_t [NumDirections-1:0] chimney_req_out, chimney_req_in;
-  rsp_flit_t [NumDirections-1:0] chimney_rsp_out, chimney_rsp_in;
-  req_data_t [NumDirections-1:0] chimney_req_data_out, chimney_req_data_in;
-  rsp_data_t [NumDirections-1:0] chimney_rsp_data_out, chimney_rsp_data_in;
+  floo_req_t [NumDirections-1:0] chimney_req_out, chimney_req_in;
+  floo_rsp_t [NumDirections-1:0] chimney_rsp_out, chimney_rsp_in;
+  floo_req_chan_t [NumDirections-1:0] chimney_req_out_chan, chimney_req_in_chan;
+  floo_rsp_chan_t [NumDirections-1:0] chimney_rsp_out_chan, chimney_rsp_in_chan;
+
   logic [NumDirections-1:0]      chimney_req_out_valid, chimney_req_out_ready;
   logic [NumDirections-1:0]      chimney_rsp_out_valid, chimney_rsp_out_ready;
   logic [NumDirections-1:0]      chimney_req_in_valid, chimney_req_in_ready;
   logic [NumDirections-1:0]      chimney_rsp_in_valid, chimney_rsp_in_ready;
 
   for (genvar i = 0; i < NumDirections; i++) begin : gen_directions
-    assign chimney_req_data_out[i] = chimney_req_out[i].data;
-    assign chimney_rsp_data_out[i] = chimney_rsp_out[i].data;
-    assign chimney_req_in[i].data = chimney_req_data_in[i];
-    assign chimney_rsp_in[i].data = chimney_rsp_data_in[i];
+    assign chimney_req_out_chan[i] = chimney_req_out[i].req;
+    assign chimney_rsp_out_chan[i] = chimney_rsp_out[i].rsp;
+    assign chimney_req_in[i].req = chimney_req_in_chan[i];
+    assign chimney_rsp_in[i].rsp = chimney_rsp_in_chan[i];
     assign chimney_req_out_valid[i] = chimney_req_out[i].valid;
     assign chimney_req_out_ready[i] = chimney_req_out[i].ready;
     assign chimney_rsp_out_valid[i] = chimney_rsp_out[i].valid;
@@ -109,9 +110,9 @@ module tb_floo_rob;
     .AxiIdOutWidth  ( AxiInIdWidth        ),
     .AxiUserWidth   ( AxiInUserWidth      ),
     .mst_req_t      ( axi_in_req_t        ),
-    .mst_rsp_t      ( axi_in_resp_t       ),
+    .mst_rsp_t      ( axi_in_rsp_t       ),
     .slv_req_t      ( axi_out_req_t       ),
-    .slv_rsp_t      ( axi_out_resp_t      ),
+    .slv_rsp_t      ( axi_out_rsp_t      ),
     .ApplTime       ( ApplTime            ),
     .TestTime       ( TestTime            ),
     .AxiMaxBurstLen ( 4                   ),
@@ -149,54 +150,54 @@ module tb_floo_rob;
     .axi_out_rsp_i  ( node_slv_rsp[Eject]       ),
     .xy_id_i        ( xy_id[Eject]              ),
     .id_i           ( '0                        ),
-    .req_o          ( chimney_req_out[Eject]    ),
-    .rsp_o          ( chimney_rsp_out[Eject]    ),
-    .req_i          ( chimney_req_in[Eject]     ),
-    .rsp_i          ( chimney_rsp_in[Eject]     )
+    .floo_req_o     ( chimney_req_out[Eject]    ),
+    .floo_rsp_o     ( chimney_rsp_out[Eject]    ),
+    .floo_req_i     ( chimney_req_in[Eject]     ),
+    .floo_rsp_i     ( chimney_rsp_in[Eject]     )
   );
 
   floo_router #(
-    .NumRoutes        ( NumDirections       ),
-    .NumVirtChannels  ( 1                   ),
-    .NumPhysChannels  ( 1                   ),
-    .flit_t           ( req_generic_t       ),
-    .ChannelFifoDepth ( 4                   ),
-    .RouteAlgo        ( XYRouting           ),
-    .id_t             ( xy_id_t             )
+    .NumRoutes        ( NumDirections           ),
+    .NumVirtChannels  ( 1                       ),
+    .NumPhysChannels  ( 1                       ),
+    .flit_t           ( floo_req_generic_flit_t ),
+    .ChannelFifoDepth ( 4                       ),
+    .RouteAlgo        ( XYRouting               ),
+    .id_t             ( xy_id_t                 )
   ) i_floo_req_router (
-    .clk_i          ( clk                     ),
-    .rst_ni         ( rst_n                   ),
-    .test_enable_i  ( 1'b0                    ),
-    .xy_id_i        ( xy_id[Eject]            ),
-    .id_route_map_i ( '0                      ),
-    .valid_i        ( chimney_req_out_valid   ),
-    .ready_o        ( chimney_req_in_ready    ),
-    .data_i         ( chimney_req_data_out    ),
-    .valid_o        ( chimney_req_in_valid    ),
-    .ready_i        ( chimney_req_out_ready   ),
-    .data_o         ( chimney_req_data_in     )
+    .clk_i          ( clk                   ),
+    .rst_ni         ( rst_n                 ),
+    .test_enable_i  ( 1'b0                  ),
+    .xy_id_i        ( xy_id[Eject]          ),
+    .id_route_map_i ( '0                    ),
+    .valid_i        ( chimney_req_out_valid ),
+    .ready_o        ( chimney_req_in_ready  ),
+    .data_i         ( chimney_req_out_chan  ),
+    .valid_o        ( chimney_req_in_valid  ),
+    .ready_i        ( chimney_req_out_ready ),
+    .data_o         ( chimney_req_in_chan   )
   );
 
   floo_router #(
-    .NumRoutes        ( NumDirections       ),
-    .NumVirtChannels  ( 1                   ),
-    .NumPhysChannels  ( 1                   ),
-    .flit_t           ( rsp_generic_t       ),
-    .ChannelFifoDepth ( 4                   ),
-    .RouteAlgo        ( XYRouting           ),
-    .id_t             ( xy_id_t             )
+    .NumRoutes        ( NumDirections           ),
+    .NumVirtChannels  ( 1                       ),
+    .NumPhysChannels  ( 1                       ),
+    .flit_t           ( floo_rsp_generic_flit_t ),
+    .ChannelFifoDepth ( 4                       ),
+    .RouteAlgo        ( XYRouting               ),
+    .id_t             ( xy_id_t                 )
   ) i_floo_rsp_router (
-    .clk_i          ( clk                     ),
-    .rst_ni         ( rst_n                   ),
-    .test_enable_i  ( 1'b0                    ),
-    .xy_id_i        ( xy_id[Eject]            ),
-    .id_route_map_i ( '0                      ),
-    .valid_i        ( chimney_rsp_out_valid   ),
-    .ready_o        ( chimney_rsp_in_ready    ),
-    .data_i         ( chimney_rsp_data_out    ),
-    .valid_o        ( chimney_rsp_in_valid    ),
-    .ready_i        ( chimney_rsp_out_ready   ),
-    .data_o         ( chimney_rsp_data_in     )
+    .clk_i          ( clk                   ),
+    .rst_ni         ( rst_n                 ),
+    .test_enable_i  ( 1'b0                  ),
+    .xy_id_i        ( xy_id[Eject]          ),
+    .id_route_map_i ( '0                    ),
+    .valid_i        ( chimney_rsp_out_valid ),
+    .ready_o        ( chimney_rsp_in_ready  ),
+    .data_i         ( chimney_rsp_out_chan  ),
+    .valid_o        ( chimney_rsp_in_valid  ),
+    .ready_i        ( chimney_rsp_out_ready ),
+    .data_o         ( chimney_rsp_in_chan   )
   );
 
   localparam slave_type_e SlaveType[NumDirections-1] = '{FastSlave, FastSlave, SlowSlave, MixedSlave};
@@ -232,10 +233,10 @@ module tb_floo_rob;
       .axi_out_rsp_i  ( node_slv_rsp[i]       ),
       .xy_id_i        ( xy_id[i]              ),
       .id_i           ( '0                    ),
-      .req_o          ( chimney_req_out[i]    ),
-      .rsp_o          ( chimney_rsp_out[i]    ),
-      .req_i          ( chimney_req_in[i]     ),
-      .rsp_i          ( chimney_rsp_in[i]     )
+      .floo_req_o     ( chimney_req_out[i]    ),
+      .floo_rsp_o     ( chimney_rsp_out[i]    ),
+      .floo_req_i     ( chimney_req_in[i]     ),
+      .floo_rsp_i     ( chimney_rsp_in[i]     )
     );
 
     floo_axi_rand_slave #(
@@ -244,7 +245,7 @@ module tb_floo_rob;
       .AxiIdWidth   ( AxiOutIdWidth   ),
       .AxiUserWidth ( AxiOutUserWidth ),
       .axi_req_t    ( axi_out_req_t   ),
-      .axi_rsp_t    ( axi_out_resp_t  ),
+      .axi_rsp_t    ( axi_out_rsp_t  ),
       .ApplTime     ( ApplTime        ),
       .TestTime     ( TestTime        ),
       .SlaveType    ( SlaveType[i]    ),
@@ -274,7 +275,7 @@ module tb_floo_rob;
     .ar_chan_t      ( axi_in_ar_chan_t    ),
     .r_chan_t       ( axi_in_r_chan_t     ),
     .req_t          ( axi_in_req_t        ),
-    .rsp_t          ( axi_in_resp_t       ),
+    .rsp_t          ( axi_in_rsp_t       ),
     .Verbose        ( 1'b0                )
   ) i_axi_reorder_compare (
     .clk_i          ( clk                                       ),

@@ -16,6 +16,7 @@
 module tb_floo_router;
 
   import floo_pkg::*;
+  import floo_axi_pkg::*;
 
   localparam time CyclTime = 10ns;
   localparam time ApplTime = 2ns;
@@ -40,8 +41,6 @@ module tb_floo_router;
   localparam int unsigned IdWidth = $clog2(NumPorts);
   localparam int unsigned FlitWidth = 123;
   localparam int unsigned MaxPacketLength = 32;
-
-  `FLOO_NOC_TYPEDEF_ID_FLIT_T(full_flit_t, IdWidth, FlitWidth)
 
   logic clk, rst_n;
 
@@ -93,10 +92,10 @@ module tb_floo_router;
   endclass
 
   //                         Source Port   Virtual Channel
-  full_flit_t  stimuli_queue[NumPorts-1:0][NumVirtChannels-1:0]              [$];
+  floo_req_generic_flit_t  stimuli_queue[NumPorts-1:0][NumVirtChannels-1:0]              [$];
 
   //                         Destination   Virtual Channel      Source Port
-  full_flit_t  golden_queue [NumPorts-1:0][NumVirtChannels-1:0][NumPorts-1:0][$];
+  floo_req_generic_flit_t  golden_queue [NumPorts-1:0][NumVirtChannels-1:0][NumPorts-1:0][$];
 
   function automatic void generate_stimuli();
     for (int port = 0; port < NumPorts; port++) begin
@@ -116,7 +115,11 @@ module tb_floo_router;
               automatic rand_data_t rand_data = new(port);
               rand_data.data_mod_id.constraint_mode(1);
               if (rand_data.randomize()) begin
-                automatic full_flit_t next_flit = '{data: rand_data.data, dst_id: stimuli.id, last: j == stimuli.len-1};
+                automatic floo_req_generic_flit_t next_flit = '0;
+                next_flit.rsvd = rand_data.data;
+                next_flit.hdr.src_id = port;
+                next_flit.hdr.dst_id = stimuli.id;
+                next_flit.hdr.last = j == stimuli.len-1;
 
                 stimuli_queue[port][virt_channel].push_back(next_flit);
                 golden_queue[port][virt_channel][stimuli.id].push_back(next_flit);
@@ -137,10 +140,10 @@ module tb_floo_router;
   // Apply Stimuli
 
   logic       [NumPorts-1:0][NumVirtChannels-1:0] pre_valid_in, pre_ready_in;
-  full_flit_t [NumPorts-1:0][NumVirtChannels-1:0] pre_data_in;
+  floo_req_generic_flit_t [NumPorts-1:0][NumVirtChannels-1:0] pre_data_in;
 
   task automatic apply_stimuli(int unsigned port, int unsigned virt_channel);
-    automatic full_flit_t stimuli;
+    automatic floo_req_generic_flit_t stimuli;
 
     // pre_valid_in[port][virt_channel] = 1'b0;
 
@@ -171,14 +174,14 @@ module tb_floo_router;
 
   logic       [NumPorts-1:0][NumVirtChannels-1:0] delayed_valid_in;
   logic       [NumPorts-1:0][NumVirtChannels-1:0] delayed_ready_in;
-  full_flit_t [NumPorts-1:0][NumVirtChannels-1:0] delayed_data_in;
+  floo_req_generic_flit_t [NumPorts-1:0][NumVirtChannels-1:0] delayed_data_in;
 
   for (genvar port = 0; port < NumPorts; port++) begin : gen_in_delay
     for (genvar virt_channel = 0; virt_channel < NumVirtChannels; virt_channel++) begin : gen_in_vc_delay
       stream_delay #(
         .StallRandom ( 1'b1        ),
         .FixedDelay  ( 1           ),
-        .payload_t   ( full_flit_t ),
+        .payload_t   ( floo_req_generic_flit_t ),
         .Seed        ( '0          )
       ) i_in_delay (
         .clk_i    (clk),
@@ -197,12 +200,12 @@ module tb_floo_router;
 
   logic       [NumPorts-1:0][NumVirtChannels-1:0] valid_in, valid_out;
   logic       [NumPorts-1:0][NumVirtChannels-1:0] ready_in, ready_out;
-  full_flit_t [NumPorts-1:0]                      data_in,  data_out;
+  floo_req_generic_flit_t [NumPorts-1:0]                      data_in,  data_out;
 
   for (genvar port = 0; port < NumPorts; port++) begin : gen_in_vc_arb
     floo_vc_arbiter #(
       .NumVirtChannels ( NumVirtChannels ),
-      .flit_t          ( full_flit_t )
+      .flit_t          ( floo_req_generic_flit_t )
     ) i_vc_arbiter (
       .clk_i   ( clk   ),
       .rst_ni  ( rst_n ),
@@ -221,7 +224,7 @@ module tb_floo_router;
   floo_router #(
     .NumRoutes       ( NumPorts        ),
     .NumVirtChannels ( NumVirtChannels ),
-    .flit_t          ( full_flit_t     ),
+    .flit_t          ( floo_req_generic_flit_t     ),
     .ChannelFifoDepth( 4               ),
     .RouteAlgo       ( IdIsPort        ),
     .IdWidth         ( IdWidth         )
@@ -244,16 +247,16 @@ module tb_floo_router;
 
   logic       [NumPorts-1:0][NumVirtChannels-1:0] fall_valid_out;
   logic       [NumPorts-1:0][NumVirtChannels-1:0] fall_ready_out;
-  full_flit_t [NumPorts-1:0][NumVirtChannels-1:0] fall_data_out;
+  floo_req_generic_flit_t [NumPorts-1:0][NumVirtChannels-1:0] fall_data_out;
   logic       [NumPorts-1:0][NumVirtChannels-1:0] delayed_valid_out;
   logic       [NumPorts-1:0][NumVirtChannels-1:0] delayed_ready_out;
-  full_flit_t [NumPorts-1:0][NumVirtChannels-1:0] delayed_data_out;
+  floo_req_generic_flit_t [NumPorts-1:0][NumVirtChannels-1:0] delayed_data_out;
 
   for (genvar port = 0; port < NumPorts; port++) begin : gen_out_delay
     for (genvar virt_channel = 0; virt_channel < NumVirtChannels; virt_channel++) begin : gen_out_vc_delay
 
       fall_through_register #(
-        .T ( full_flit_t )
+        .T ( floo_req_generic_flit_t )
       ) i_fall (
         .clk_i     (clk),
         .rst_ni    (rst_n),
@@ -272,7 +275,7 @@ module tb_floo_router;
       stream_delay #(
         .StallRandom ( 1'b1        ),
         .FixedDelay  ( 1           ),
-        .payload_t   ( full_flit_t ),
+        .payload_t   ( floo_req_generic_flit_t ),
         .Seed        ( '0          )
       ) i_in_delay (
         .clk_i    (clk),
@@ -294,7 +297,7 @@ module tb_floo_router;
    ***********************/
 
   //                       Destination   Virtual Channel
-  full_flit_t result_queue[NumPorts-1:0][NumVirtChannels-1:0][$];
+   floo_req_generic_flit_t result_queue[NumPorts-1:0][NumVirtChannels-1:0][$];
 
   task automatic collect_result(int unsigned port, int unsigned virt_channel);
 
@@ -322,18 +325,26 @@ module tb_floo_router;
     int unsigned last_physical_bin = 0;
     int unsigned all_golden_size = 0;
 
-    automatic full_flit_t result;
-    automatic full_flit_t golden;
+    automatic floo_req_generic_flit_t result;
+    automatic floo_req_generic_flit_t golden;
 
     do begin
       wait(result_queue[port][virt_channel].size() != 0);
 
       // Capture the result
-      result = result_queue[port][virt_channel].pop_front();
-      golden = golden_queue[result.data%NumPorts][virt_channel][port].pop_front();
+      if (result_queue[port][virt_channel].size() == 0) begin
+        $error("ERROR! Result queue is empty.");
+      end else begin
+        result = result_queue[port][virt_channel].pop_front();
+      end
+      if (golden_queue[result.hdr.src_id][virt_channel][port].size() == 0) begin
+        $error("ERROR! Golden queue %d is empty.", result.hdr.src_id);
+      end else begin
+        golden = golden_queue[result.hdr.src_id][virt_channel][port].pop_front();
+      end
 
-      if (result.data != golden.data) begin
-        $error("ERROR! Mismatch for port %d channel %d (from %d, target port %d).\n This was the data: %x, %x", port, virt_channel, result.data%NumPorts, result.dst_id, result.data, golden.data);
+      if (result.rsvd != golden.rsvd) begin
+        $error("ERROR! Mismatch for port %d channel %d (from %d, target port %d).\n This was the data: %x, %x", port, virt_channel, result.hdr.src_id, result.hdr.dst_id, result.rsvd, golden.rsvd);
       end
 
       all_golden_size = 0;

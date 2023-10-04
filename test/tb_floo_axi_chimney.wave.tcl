@@ -21,17 +21,17 @@ for {set i 0} {$i < 2} {incr i} {
     add wave -noupdate -expand -group $group_name -group Arbiter tb_floo_axi_chimney/i_floo_axi_chimney_${i}/aw_w_sel_q
     add wave -noupdate -expand -group $group_name -group Arbiter tb_floo_axi_chimney/i_floo_axi_chimney_${i}/aw_w_sel_d
 
-    add wave -noupdate -expand -group $group_name -group Packer tb_floo_axi_chimney/i_floo_axi_chimney_${i}/aw_data
-    add wave -noupdate -expand -group $group_name -group Packer tb_floo_axi_chimney/i_floo_axi_chimney_${i}/w_data
-    add wave -noupdate -expand -group $group_name -group Packer tb_floo_axi_chimney/i_floo_axi_chimney_${i}/b_data
-    add wave -noupdate -expand -group $group_name -group Packer tb_floo_axi_chimney/i_floo_axi_chimney_${i}/ar_data
-    add wave -noupdate -expand -group $group_name -group Packer tb_floo_axi_chimney/i_floo_axi_chimney_${i}/r_data
+    add wave -noupdate -expand -group $group_name -group Packer tb_floo_axi_chimney/i_floo_axi_chimney_${i}/floo_axi_aw
+    add wave -noupdate -expand -group $group_name -group Packer tb_floo_axi_chimney/i_floo_axi_chimney_${i}/floo_axi_w
+    add wave -noupdate -expand -group $group_name -group Packer tb_floo_axi_chimney/i_floo_axi_chimney_${i}/floo_axi_b
+    add wave -noupdate -expand -group $group_name -group Packer tb_floo_axi_chimney/i_floo_axi_chimney_${i}/floo_axi_ar
+    add wave -noupdate -expand -group $group_name -group Packer tb_floo_axi_chimney/i_floo_axi_chimney_${i}/floo_axi_r
 
-    add wave -noupdate -expand -group $group_name -group Unpacker tb_floo_axi_chimney/i_floo_axi_chimney_${i}/unpack_aw_data
-    add wave -noupdate -expand -group $group_name -group Unpacker tb_floo_axi_chimney/i_floo_axi_chimney_${i}/unpack_w_data
-    add wave -noupdate -expand -group $group_name -group Unpacker tb_floo_axi_chimney/i_floo_axi_chimney_${i}/unpack_ar_data
-    add wave -noupdate -expand -group $group_name -group Unpacker tb_floo_axi_chimney/i_floo_axi_chimney_${i}/unpack_b_data
-    add wave -noupdate -expand -group $group_name -group Unpacker tb_floo_axi_chimney/i_floo_axi_chimney_${i}/unpack_r_data
+    add wave -noupdate -expand -group $group_name -group Unpacker tb_floo_axi_chimney/i_floo_axi_chimney_${i}/axi_unpack_aw
+    add wave -noupdate -expand -group $group_name -group Unpacker tb_floo_axi_chimney/i_floo_axi_chimney_${i}/axi_unpack_w
+    add wave -noupdate -expand -group $group_name -group Unpacker tb_floo_axi_chimney/i_floo_axi_chimney_${i}/axi_unpack_ar
+    add wave -noupdate -expand -group $group_name -group Unpacker tb_floo_axi_chimney/i_floo_axi_chimney_${i}/axi_unpack_b
+    add wave -noupdate -expand -group $group_name -group Unpacker tb_floo_axi_chimney/i_floo_axi_chimney_${i}/axi_unpack_r
 
     add wave -noupdate -expand -group $group_name -group AwMetaBuffer tb_floo_axi_chimney/i_floo_axi_chimney_${i}/i_aw_meta_buffer/*
     add wave -noupdate -expand -group $group_name -group ArMetaBuffer tb_floo_axi_chimney/i_floo_axi_chimney_${i}/i_ar_meta_buffer/*

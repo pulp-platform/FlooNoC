@@ -19,12 +19,32 @@ templates = TemplateLookup(directories=[pathlib.Path(__file__).parent],
                            output_encoding="utf-8")
 
 
-def clog2(x):
+def clog2(x: int) -> int:
     """Compute the ceil of the log2 of x."""
     return int(math.ceil(math.log(x, 2)))
 
 
-def calc_axi_ch_size(aw, dw, iw, uw):
+def get_axi_chs(channel_mapping: dict, **kwargs) -> list:
+    """Return all the AXI channels."""
+    channels = []
+    for axi_chs in channel_mapping.values():
+        for key, values in axi_chs.items():
+            for v in values:
+                channels.append(f"{key}_{v}")
+    return channels
+
+
+def get_inverted_mapping(channel_mapping: dict, **kwargs) -> dict:
+    """Return the mapping of the link."""
+    mappings = {}
+    for phys_ch, ch_types in channel_mapping.items():
+        for ch_type, axi_chs in ch_types.items():
+            for axi_ch in axi_chs:
+                mappings.setdefault(ch_type, {})[axi_ch] = phys_ch
+    return mappings
+
+
+def get_axi_channel_sizes(aw: int, dw: int, iw: int, uw: int) -> dict:
     """Compute the AXI channel size in bits."""
 
     # Constant widths
@@ -55,55 +75,26 @@ def calc_axi_ch_size(aw, dw, iw, uw):
     return axi_ch_size
 
 
-def invert_map(map: list):
-    """Invert a list of lists."""
-    inv_map = {}
-    for phys_chan, axi_chans in map.items():
-        for axi_ch in axi_chans:
-            inv_map[axi_ch] = phys_chan
-    return inv_map
-
-
-def axi_channel_ordering(map: list):
-    """Return the ordering of the AXI channels."""
-    ordering = []
-    for phys_chan, axi_chans in map.items():
-        for axi_ch in axi_chans:
-            ordering.append(axi_ch)
-    return ordering
-
-
-def calc_channel_size(cfg):
-
-    rsvd_bits = {}
-    axi_ch_size = {}
-    phys_ch_size = {}
-
-    for axi_ch in cfg['axi_channels']:
-        axi_ch_size[axi_ch['name']] = calc_axi_ch_size(**axi_ch['params'])
-
-    for phys_ch, axi_chans in cfg['map'].items():
-        axi_chans_size = []
-        for axi_ch in axi_chans:
-            type = '_'.join(axi_ch.split('_')[:2])
-            ch = axi_ch.split("_")[-1]
-            axi_chans_size.append(axi_ch_size[type][ch])
-        phys_ch_size[phys_ch] = max(axi_chans_size)
-
-    for axi_ch in cfg['axi_order']:
-        type = '_'.join(axi_ch.split('_')[:2])
-        ch = axi_ch.split("_")[-1]
-        phys_ch = cfg['inv_map'][axi_ch]
-        rsvd_bits[axi_ch] = phys_ch_size[phys_ch] - axi_ch_size[type][ch]
-
-    return phys_ch_size, rsvd_bits
+def get_link_sizes(channel_mapping: dict, protocols: list, **kwargs) -> dict:
+    """Infer the link sizes AXI channels and the mapping."""
+    link_sizes = {}
+    for phys_ch, axi_chs in channel_mapping.items():
+        # Get all protocols that use this channel
+        used_protocols = [p for p in protocols if p['name'] in axi_chs and p['direction'] == 'input']
+        # Get only the exact AXI channels that are used by the link
+        used_axi_chs = [axi_chs[p['name']] for p in used_protocols]
+        # Get the sizes of the AXI channels
+        axi_ch_sizes = [get_axi_channel_sizes(**p['params']) for p in used_protocols]
+        link_message_sizes = []
+        for used_axi_ch, axi_ch_size in zip(used_axi_chs, axi_ch_sizes):
+            link_message_sizes += [axi_ch_size[ch] for ch in used_axi_ch]
+        # Get the maximum size of the link
+        link_sizes[phys_ch] = max(link_message_sizes)
+    return link_sizes
 
 
 def main():
     """Generate a flit packet package."""
-
-    # Path of the current script.
-    script_path = pathlib.Path(__file__).parent
 
     parser = argparse.ArgumentParser(
         description="Generate flit files for a given configuration")
@@ -115,16 +106,15 @@ def main():
     with open(args.config, "r") as f:
         cfg = JsonRef.replace_refs(hjson.load(f))
 
-    cfg['axi_order'] = axi_channel_ordering(cfg['map'])
-    cfg['meta']['axi_ch'] = clog2(len(cfg['axi_order']))
-    cfg['meta_bits'] = sum(cfg['meta'].values())
-    cfg['inv_map'] = invert_map(cfg['map'])
-    ch_sizes, rsvd_bits = calc_channel_size(cfg)
-    cfg['phys_ch_sizes'] = ch_sizes
-    cfg['rsvd_bits'] = rsvd_bits
+    kwargs = cfg
+    kwargs['axi_channels'] = get_axi_chs(**kwargs)
+    kwargs['header']['axi_ch'] = clog2(len(get_axi_chs(**kwargs)))
+    kwargs['inv_map'] = get_inverted_mapping(**kwargs)
+    kwargs['get_axi_channel_sizes'] = get_axi_channel_sizes
+    kwargs['link_sizes'] = get_link_sizes(**kwargs)
 
-    tpl = templates.get_template("floo_flit_pkg.sv.tpl")
-    print(tpl.render_unicode(cfg=cfg))
+    tpl = templates.get_template("floo_flit_pkg.sv.mako")
+    print(tpl.render_unicode(**kwargs))
 
 
 if __name__ == "__main__":

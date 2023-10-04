@@ -29,8 +29,8 @@ module floo_dma_test_node  #(
   parameter type axi_out_rsp_t                = axi_rsp_t,
   parameter int unsigned TFLenWidth           = 32,
   parameter int unsigned MemSysDepth          = 0,
-  parameter int unsigned MemBaseAddr          = 32'h0,
-  parameter int unsigned MemSize              = 32'h10000,
+  parameter logic [AddrWidth-1:0] MemBaseAddr = 32'h0,
+  parameter logic [AddrWidth-1:0] MemSize     = 32'h10000,
   parameter bit          MaskInvalidData      = 1,
   parameter bit          RAWCouplingAvail     = 1,
   parameter bit          HardwareLegalizer    = 1,
@@ -142,7 +142,8 @@ module floo_dma_test_node  #(
     UniqueIds:          0,
     AxiAddrWidth:       AddrWidth,
     AxiDataWidth:       DataWidth,
-    NoAddrRules:        1
+    NoAddrRules:        1,
+    PipelineStages:     0
   };
 
   //--------------------------------------

@@ -6,20 +6,20 @@
 
 module floo_synth_axi_chimney
   import floo_pkg::*;
-  import floo_axi_flit_pkg::*;
-  import floo_param_pkg::*;
+  import floo_axi_pkg::*;
+  import floo_test_pkg::*;
 (
   input  logic      clk_i,
   input  logic      rst_ni,
   input  axi_in_req_t  axi_in_req_i,
-  output axi_in_resp_t axi_in_rsp_o,
-  output axi_out_req_t  axi_out_req_o,
-  input  axi_out_resp_t axi_out_rsp_i,
+  output axi_in_rsp_t  axi_in_rsp_o,
+  output axi_out_req_t axi_out_req_o,
+  input  axi_out_rsp_t axi_out_rsp_i,
   input  xy_id_t    xy_id_i,
-  output req_flit_t req_o,
-  output rsp_flit_t rsp_o,
-  input  req_flit_t req_i,
-  input  rsp_flit_t rsp_i
+  output floo_req_t floo_req_o,
+  output floo_rsp_t floo_rsp_o,
+  input  floo_req_t floo_req_i,
+  input  floo_rsp_t floo_rsp_i
 );
 
 
@@ -41,10 +41,10 @@ module floo_synth_axi_chimney
     .axi_out_rsp_i,
     .id_i('0),
     .xy_id_i,
-    .req_o,
-    .rsp_o,
-    .req_i,
-    .rsp_i
+    .floo_req_o,
+    .floo_rsp_o,
+    .floo_req_i,
+    .floo_rsp_i
   );
 
 endmodule
