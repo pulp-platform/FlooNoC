@@ -75,18 +75,18 @@ Currently, we do not provide any open-source simulation setup. Internally, the F
 
 ```sh
 # Compile the sources
-make sim_compile
+make compile-sim
 # Run the simulation
-make sim_run_c VSIM_TB_DUT=tb_floo_dut
+make run-sim-batch VSIM_TB_DUT=tb_floo_dut
 ```
 
 or in the GUI, with prepared waveforms:
 
 ```sh
 # Compile the sources
-make sim_compile
+make compile-sim
 # Run the simulation
-make sim_run VSIM_TB_DUT=tb_floo_dut
+make run-sim VSIM_TB_DUT=tb_floo_dut
 ```
 By replacing `tb_floo_dut` with the name of the testbench you want to simulate.
 
@@ -129,6 +129,7 @@ This repository includes the following NoC IPs:
 | [floo_vc_arbiter](src/floo_vc_arbiter.sv) | A virtual channel arbiter |  |
 | [floo_rob](src/floo_rob.sv) | A table-based Reorder Buffer |  |
 | [floo_simple_rob](src/floo_simple_rob.sv) | A simplistic low-complexity Reorder Buffer |  |
+| [floo_rob_wrapper](src/floo_simple_rob.sv) | A wrapper of all available types of RoBs including RoB-less version |  |
 
 ### Verification IPs
 | Name | Description | Doc |
