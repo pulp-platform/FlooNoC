@@ -4,20 +4,6 @@ CAPI=2:
 
 name: '::floo_noc:'
 filesets:
-  spyglass_or_synthesis:
-    file_type: systemVerilogSource
-    files:
-    - src/synth/floo_synth_axi_chimney.sv
-    - src/synth/floo_synth_narrow_wide_chimney.sv
-    - src/synth/floo_synth_router.sv
-    - src/synth/floo_synth_router_simple.sv
-    - src/synth/floo_synth_narrow_wide_router.sv
-    - src/synth/floo_synth_endpoint.sv
-    depend:
-    - pulp-platform.org::common_verification:0.2.3
-    - pulp-platform.org::axi:0.38.0
-    - ::idma:0.4.2
-    - pulp-platform.org::common_cells:1.29.0
   test:
     file_type: systemVerilogSource
     files:
@@ -38,17 +24,30 @@ filesets:
     - test/tb_floo_dma_nw_chimney.sv
     - test/tb_floo_dma_mesh.sv
     depend:
+    - pulp-platform.org::common_cells:1.32.0
     - pulp-platform.org::common_verification:0.2.3
-    - pulp-platform.org::axi:0.38.0
-    - ::idma:0.4.2
-    - pulp-platform.org::common_cells:1.29.0
+    - pulp-platform.org::axi:0.39.1
+    - ::idma:0.5.1
+  spyglass_or_synthesis:
+    file_type: systemVerilogSource
+    files:
+    - test/floo_test_pkg.sv
+    - src/synth/floo_synth_axi_chimney.sv
+    - src/synth/floo_synth_narrow_wide_chimney.sv
+    - src/synth/floo_synth_router.sv
+    - src/synth/floo_synth_narrow_wide_router.sv
+    - src/synth/floo_synth_endpoint.sv
+    depend:
+    - pulp-platform.org::common_cells:1.32.0
+    - pulp-platform.org::common_verification:0.2.3
+    - pulp-platform.org::axi:0.39.1
+    - ::idma:0.5.1
   files_rtl:
     file_type: systemVerilogSource
     files:
-    - src/floo_axi_flit_pkg.sv
-    - src/floo_narrow_wide_flit_pkg.sv
+    - src/floo_axi_pkg.sv
+    - src/floo_narrow_wide_pkg.sv
     - src/floo_pkg.sv
-    - src/floo_param_pkg.sv
     - src/floo_cut.sv
     - src/floo_fifo.sv
     - src/floo_cdc.sv
@@ -57,6 +56,7 @@ filesets:
     - src/floo_wormhole_arbiter.sv
     - src/floo_simple_rob.sv
     - src/floo_rob.sv
+    - src/floo_rob_wrapper.sv
     - src/floo_meta_buffer.sv
     - src/floo_axi_chimney.sv
     - src/floo_narrow_wide_chimney.sv
@@ -66,10 +66,10 @@ filesets:
         is_include_file: true
         include_path: include
     depend:
+    - pulp-platform.org::common_cells:1.32.0
     - pulp-platform.org::common_verification:0.2.3
-    - pulp-platform.org::axi:0.38.0
-    - ::idma:0.4.2
-    - pulp-platform.org::common_cells:1.29.0
+    - pulp-platform.org::axi:0.39.1
+    - ::idma:0.5.1
 targets:
   default:
     filesets:
