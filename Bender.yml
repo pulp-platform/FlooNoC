@@ -40,6 +40,8 @@ sources:
   - src/floo_narrow_wide_router.sv
 
   - target: test
+    include_dirs:
+      - test
     files:
       # Level 0
       - test/floo_test_pkg.sv
