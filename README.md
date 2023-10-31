@@ -131,6 +131,7 @@ This repository includes the following NoC IPs:
 | [floo_rob](hw/floo_rob.sv) | A table-based Reorder Buffer |  |
 | [floo_simple_rob](hw/floo_simple_rob.sv) | A simplistic low-complexity Reorder Buffer |  |
 | [floo_rob_wrapper](hw/floo_simple_rob.sv) | A wrapper of all available types of RoBs including RoB-less version |  |
+| [floo_narrow_wide_join](hw/floo_narrow_wide_join.sv) | A mux for joining a narrow and wide AXI bus a single wide bus |  |
 
 ### Verification IPs
 | Name | Description | Doc |

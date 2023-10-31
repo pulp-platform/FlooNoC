@@ -35,6 +35,7 @@ sources:
   - hw/floo_rob_wrapper.sv
   - hw/floo_meta_buffer.sv
   # Level 2
+  - hw/floo_narrow_wide_join.sv
   - hw/floo_axi_chimney.sv
   - hw/floo_narrow_wide_chimney.sv
   - hw/floo_router.sv
