@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="docs/img/floo_noc_logo.svg" alt="Logo" width="300">
+  <img src="docs/img/floo_noc_logo.png" alt="Logo" width="300">
 
 # FlooNoC: A Fast, Low-Overhead On-chip Network
 </div>
