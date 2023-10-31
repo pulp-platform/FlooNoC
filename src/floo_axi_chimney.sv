@@ -531,8 +531,10 @@ module floo_axi_chimney
   assign axi_valid_in[AxiAw] = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiAw);
   assign axi_valid_in[AxiW]  = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiW);
   assign axi_valid_in[AxiAr] = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiAr);
-  assign axi_valid_in[AxiB]  = EnSbrPort && floo_rsp_in_valid && (unpack_rsp_generic.hdr.axi_ch == AxiB);
-  assign axi_valid_in[AxiR]  = EnSbrPort && floo_rsp_in_valid && (unpack_rsp_generic.hdr.axi_ch == AxiR);
+  assign axi_valid_in[AxiB]  = EnSbrPort && floo_rsp_in_valid &&
+                               (unpack_rsp_generic.hdr.axi_ch == AxiB);
+  assign axi_valid_in[AxiR]  = EnSbrPort && floo_rsp_in_valid &&
+                               (unpack_rsp_generic.hdr.axi_ch == AxiR);
 
   assign axi_ready_out[AxiAw] = axi_meta_buf_rsp_out.aw_ready;
   assign axi_ready_out[AxiW]  = axi_meta_buf_rsp_out.w_ready;
@@ -645,11 +647,16 @@ module floo_axi_chimney
   `ASSERT_INIT(NoSbrPortRobType, EnSbrPort || (RoBType == NoRoB))
 
   // Network Interface cannot accept any B and R responses if `EnSbrPort` is not set
-  `ASSERT(NoSbrPortBResponse, EnSbrPort || !(floo_rsp_in_valid && (unpack_rsp_generic.hdr.axi_ch == AxiB)))
-  `ASSERT(NoSbrPortRResponse, EnSbrPort || !(floo_rsp_in_valid && (unpack_rsp_generic.hdr.axi_ch == AxiR)))
+  `ASSERT(NoSbrPortBResponse, EnSbrPort || !(floo_rsp_in_valid &&
+                                             (unpack_rsp_generic.hdr.axi_ch == AxiB)))
+  `ASSERT(NoSbrPortRResponse, EnSbrPort || !(floo_rsp_in_valid &&
+                                             (unpack_rsp_generic.hdr.axi_ch == AxiR)))
   // Network Interface cannot accept any AW, AR and W requests if `EnMgrPort` is not set
-  `ASSERT(NoMgrPortAwRequest, EnMgrPort || !(floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiAw)))
-  `ASSERT(NoMgrPortArRequest, EnMgrPort || !(floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiAr)))
-  `ASSERT(NoMgrPortWRequest,  EnMgrPort || !(floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiW)))
+  `ASSERT(NoMgrPortAwRequest, EnMgrPort || !(floo_req_in_valid &&
+                                             (unpack_req_generic.hdr.axi_ch == AxiAw)))
+  `ASSERT(NoMgrPortArRequest, EnMgrPort || !(floo_req_in_valid &&
+                                             (unpack_req_generic.hdr.axi_ch == AxiAr)))
+  `ASSERT(NoMgrPortWRequest,  EnMgrPort || !(floo_req_in_valid &&
+                                             (unpack_req_generic.hdr.axi_ch == AxiW)))
 
 endmodule
