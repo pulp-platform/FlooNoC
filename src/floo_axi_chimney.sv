@@ -13,6 +13,10 @@ module floo_axi_chimney
   import floo_pkg::*;
   import floo_axi_pkg::*;
 #(
+  /// Enable the manager port of the AXI4 interface
+  parameter bit EnMgrPort                   = 1'b1,
+  /// Enable the Subordinate port of the AXI4 interface
+  parameter bit EnSbrPort                   = 1'b1,
   /// Atomic operation support
   parameter bit AtopSupport                 = 1'b1,
   /// Maximum number of oustanding Atomic transactions,
@@ -32,6 +36,8 @@ module floo_axi_chimney
   parameter int unsigned MaxTxns            = 32,
   /// Maximum number of outstanding requests per ID
   parameter int unsigned MaxTxnsPerId       = MaxTxns,
+  /// Type of the narrow reorder buffer
+  parameter rob_type_e RoBType              = NoRoB,
   /// Capacity of the reorder buffer
   parameter int unsigned ReorderBufferSize  = 32,
   /// Only used for XYRouting
@@ -64,6 +70,11 @@ module floo_axi_chimney
   input  floo_req_t floo_req_i,
   input  floo_rsp_t floo_rsp_i
 );
+
+  // Duplicate AXI port signals to degenerate ports
+  // in case they are not used
+  axi_in_req_t axi_req_in;
+  axi_in_rsp_t axi_rsp_out;
 
   // AX queue
   axi_in_aw_chan_t axi_aw_queue;
@@ -131,40 +142,64 @@ module floo_axi_chimney
   //  Spill registers  //
   ///////////////////////
 
-  if (CutAx) begin : gen_ax_cuts
-    spill_register #(
-      .T ( axi_in_aw_chan_t )
-    ) i_aw_queue (
-      .clk_i,
-      .rst_ni,
-      .data_i     ( axi_in_req_i.aw         ),
-      .valid_i    ( axi_in_req_i.aw_valid   ),
-      .ready_o    ( axi_in_rsp_o.aw_ready   ),
-      .data_o     ( axi_aw_queue            ),
-      .valid_o    ( axi_aw_queue_valid_out  ),
-      .ready_i    ( axi_aw_queue_ready_in   )
-    );
+  if (EnSbrPort) begin : gen_sbr_port
 
-    spill_register #(
-      .T ( axi_in_ar_chan_t )
-    ) i_ar_queue (
-      .clk_i,
-      .rst_ni,
-      .data_i     ( axi_in_req_i.ar         ),
-      .valid_i    ( axi_in_req_i.ar_valid   ),
-      .ready_o    ( axi_in_rsp_o.ar_ready   ),
-      .data_o     ( axi_ar_queue            ),
-      .valid_o    ( axi_ar_queue_valid_out  ),
-      .ready_i    ( axi_ar_queue_ready_in   )
-    );
-  end else begin : gen_no_ax_cuts
-    assign axi_aw_queue = axi_in_req_i.aw;
-    assign axi_aw_queue_valid_out = axi_in_req_i.aw_valid;
-    assign axi_in_rsp_o.aw_ready = axi_aw_queue_ready_in;
+    assign axi_req_in = axi_in_req_i;
+    assign axi_in_rsp_o = axi_rsp_out;
 
-    assign axi_ar_queue = axi_in_req_i.ar;
-    assign axi_ar_queue_valid_out = axi_in_req_i.ar_valid;
-    assign axi_in_rsp_o.ar_ready = axi_ar_queue_ready_in;
+    if (CutAx) begin : gen_ax_cuts
+      spill_register #(
+        .T ( axi_in_aw_chan_t )
+      ) i_aw_queue (
+        .clk_i,
+        .rst_ni,
+        .data_i     ( axi_in_req_i.aw         ),
+        .valid_i    ( axi_in_req_i.aw_valid   ),
+        .ready_o    ( axi_in_rsp_o.aw_ready   ),
+        .data_o     ( axi_aw_queue            ),
+        .valid_o    ( axi_aw_queue_valid_out  ),
+        .ready_i    ( axi_aw_queue_ready_in   )
+      );
+
+      spill_register #(
+        .T ( axi_in_ar_chan_t )
+      ) i_ar_queue (
+        .clk_i,
+        .rst_ni,
+        .data_i     ( axi_in_req_i.ar         ),
+        .valid_i    ( axi_in_req_i.ar_valid   ),
+        .ready_o    ( axi_in_rsp_o.ar_ready   ),
+        .data_o     ( axi_ar_queue            ),
+        .valid_o    ( axi_ar_queue_valid_out  ),
+        .ready_i    ( axi_ar_queue_ready_in   )
+      );
+    end else begin : gen_no_ax_cuts
+      assign axi_aw_queue = axi_in_req_i.aw;
+      assign axi_aw_queue_valid_out = axi_in_req_i.aw_valid;
+      assign axi_rsp_out.aw_ready = axi_aw_queue_ready_in;
+
+      assign axi_ar_queue = axi_in_req_i.ar;
+      assign axi_ar_queue_valid_out = axi_in_req_i.ar_valid;
+      assign axi_rsp_out.ar_ready = axi_ar_queue_ready_in;
+    end
+  end else begin : gen_err_slv_port
+    axi_err_slv #(
+      .AxiIdWidth ( AxiInIdWidth  ),
+      .ATOPs      ( AtopSupport   ),
+      .axi_req_t  ( axi_in_req_t  ),
+      .axi_resp_t ( axi_in_rsp_t  )
+    ) i_axi_err_slv (
+      .clk_i      ( clk_i         ),
+      .rst_ni     ( rst_ni        ),
+      .test_i     ( test_enable_i ),
+      .slv_req_i  ( axi_in_req_i  ),
+      .slv_resp_o ( axi_in_rsp_o  )
+    );
+    assign axi_req_in = '0;
+    assign axi_aw_queue = '0;
+    assign axi_ar_queue = '0;
+    assign axi_aw_queue_valid_out = 1'b0;
+    assign axi_ar_queue_valid_out = 1'b0;
   end
 
   if (CutRsp) begin : gen_rsp_cuts
@@ -372,9 +407,9 @@ module floo_axi_chimney
     floo_axi_w.hdr.rob_idx  = aw_rob_idx_out;
     floo_axi_w.hdr.dst_id   = dst_id[AxiW];
     floo_axi_w.hdr.src_id   = src_id;
-    floo_axi_w.hdr.last     = axi_in_req_i.w.last;
+    floo_axi_w.hdr.last     = axi_req_in.w.last;
     floo_axi_w.hdr.axi_ch   = AxiW;
-    floo_axi_w.w            = axi_in_req_i.w;
+    floo_axi_w.w            = axi_req_in.w;
   end
 
   always_comb begin
@@ -417,7 +452,7 @@ module floo_axi_chimney
   always_comb begin
     aw_w_sel_d = aw_w_sel_q;
     if (axi_aw_queue_valid_out && axi_aw_queue_ready_in) aw_w_sel_d = SelW;
-    if (axi_in_req_i.w_valid && axi_in_rsp_o.w_ready && axi_in_req_i.w.last) aw_w_sel_d = SelAw;
+    if (axi_req_in.w_valid && axi_rsp_out.w_ready && axi_req_in.w.last) aw_w_sel_d = SelAw;
   end
 
   `FF(aw_w_sel_q, aw_w_sel_d, SelAw)
@@ -425,13 +460,13 @@ module floo_axi_chimney
   assign floo_req_arb_req_in[AxiAw] = (aw_w_sel_q == SelAw) && (aw_rob_valid_out ||
                                         ((axi_aw_queue.atop != axi_pkg::ATOP_NONE) &&
                                           axi_aw_queue_valid_out));
-  assign floo_req_arb_req_in[AxiW]  = (aw_w_sel_q == SelW) && axi_in_req_i.w_valid;
+  assign floo_req_arb_req_in[AxiW]  = (aw_w_sel_q == SelW) && axi_req_in.w_valid;
   assign floo_req_arb_req_in[AxiAr] = ar_rob_valid_out;
   assign floo_rsp_arb_req_in[AxiB]  = axi_meta_buf_rsp_out.b_valid;
   assign floo_rsp_arb_req_in[AxiR]  = axi_meta_buf_rsp_out.r_valid;
 
   assign aw_rob_ready_in       = floo_req_arb_gnt_out[AxiAw] && (aw_w_sel_q == SelAw);
-  assign axi_in_rsp_o.w_ready  = floo_req_arb_gnt_out[AxiW] && (aw_w_sel_q == SelW);
+  assign axi_rsp_out.w_ready   = floo_req_arb_gnt_out[AxiW] && (aw_w_sel_q == SelW);
   assign ar_rob_ready_in       = floo_req_arb_gnt_out[AxiAr];
 
   assign floo_req_arb_in[AxiAw]  = floo_axi_aw;
@@ -496,14 +531,14 @@ module floo_axi_chimney
   assign axi_valid_in[AxiAw] = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiAw);
   assign axi_valid_in[AxiW]  = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiW);
   assign axi_valid_in[AxiAr] = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiAr);
-  assign axi_valid_in[AxiB]  = floo_rsp_in_valid && (unpack_rsp_generic.hdr.axi_ch == AxiB);
-  assign axi_valid_in[AxiR]  = floo_rsp_in_valid && (unpack_rsp_generic.hdr.axi_ch == AxiR);
+  assign axi_valid_in[AxiB]  = EnSbrPort && floo_rsp_in_valid && (unpack_rsp_generic.hdr.axi_ch == AxiB);
+  assign axi_valid_in[AxiR]  = EnSbrPort && floo_rsp_in_valid && (unpack_rsp_generic.hdr.axi_ch == AxiR);
 
   assign axi_ready_out[AxiAw] = axi_meta_buf_rsp_out.aw_ready;
   assign axi_ready_out[AxiW]  = axi_meta_buf_rsp_out.w_ready;
   assign axi_ready_out[AxiAr] = axi_meta_buf_rsp_out.ar_ready;
-  assign axi_ready_out[AxiB]  = b_rob_ready_out || b_sel_atop && axi_in_req_i.b_ready;
-  assign axi_ready_out[AxiR]  = r_rob_ready_out || r_sel_atop && axi_in_req_i.r_ready;
+  assign axi_ready_out[AxiB]  = b_rob_ready_out || b_sel_atop && axi_req_in.b_ready;
+  assign axi_ready_out[AxiR]  = r_rob_ready_out || r_sel_atop && axi_req_in.r_ready;
 
   assign floo_req_out_ready = axi_ready_out[unpack_req_generic.hdr.axi_ch];
   assign floo_rsp_out_ready = axi_ready_out[unpack_rsp_generic.hdr.axi_ch];
@@ -525,15 +560,15 @@ module floo_axi_chimney
 
   assign b_rob_valid_in         = axi_valid_in[AxiB] && !is_atop_b_rsp;
   assign r_rob_valid_in         = axi_valid_in[AxiR] && !is_atop_r_rsp;
-  assign axi_in_rsp_o.b_valid   = b_rob_valid_out || is_atop_b_rsp;
-  assign axi_in_rsp_o.r_valid   = r_rob_valid_out || is_atop_r_rsp;
-  assign b_rob_ready_in         = axi_in_req_i.b_ready && !b_sel_atop;
-  assign r_rob_ready_in         = axi_in_req_i.r_ready && !r_sel_atop;
+  assign axi_rsp_out.b_valid    = b_rob_valid_out || is_atop_b_rsp;
+  assign axi_rsp_out.r_valid    = r_rob_valid_out || is_atop_r_rsp;
+  assign b_rob_ready_in         = axi_req_in.b_ready && !b_sel_atop;
+  assign r_rob_ready_in         = axi_req_in.r_ready && !r_sel_atop;
 
   assign axi_b_rob_in         = axi_unpack_b;
   assign axi_r_rob_in         = axi_unpack_r;
-  assign axi_in_rsp_o.b   = (b_sel_atop)? axi_unpack_b : axi_b_rob_out;
-  assign axi_in_rsp_o.r   = (r_sel_atop)? axi_unpack_r : axi_r_rob_out;
+  assign axi_rsp_out.b  = (b_sel_atop)? axi_unpack_b : axi_b_rob_out;
+  assign axi_rsp_out.r  = (r_sel_atop)? axi_unpack_r : axi_r_rob_out;
 
   logic is_atop, atop_has_r_rsp;
   assign is_atop = AtopSupport && axi_valid_in[AxiAw] &&
@@ -556,28 +591,47 @@ module floo_axi_chimney
     atop: unpack_req_generic.hdr.atop
   };
 
-  floo_meta_buffer #(
-    .MaxTxns        ( MaxTxns       ),
-    .AtopSupport    ( AtopSupport   ),
-    .MaxAtomicTxns  ( MaxAtomicTxns ),
-    .buf_t          ( id_out_buf_t  ),
-    .IdInWidth      ( AxiInIdWidth  ),
-    .IdOutWidth     ( AxiOutIdWidth ),
-    .axi_req_t      ( axi_in_req_t  ),
-    .axi_rsp_t      ( axi_in_rsp_t  )
-  ) i_floo_meta_buffer (
-    .clk_i,
-    .rst_ni,
-    .test_enable_i,
-    .axi_req_i  ( axi_meta_buf_req_in   ),
-    .axi_rsp_o  ( axi_meta_buf_rsp_out  ),
-    .axi_req_o  ( axi_meta_buf_req_out  ),
-    .axi_rsp_i  ( axi_meta_buf_rsp_in   ),
-    .aw_buf_i   ( aw_out_data_in        ),
-    .ar_buf_i   ( ar_out_data_in        ),
-    .r_buf_o    ( ar_out_data_out       ),
-    .b_buf_o    ( aw_out_data_out       )
-  );
+  if (EnMgrPort) begin : gen_mgr_port
+    floo_meta_buffer #(
+      .MaxTxns        ( MaxTxns       ),
+      .AtopSupport    ( AtopSupport   ),
+      .MaxAtomicTxns  ( MaxAtomicTxns ),
+      .buf_t          ( id_out_buf_t  ),
+      .IdInWidth      ( AxiInIdWidth  ),
+      .IdOutWidth     ( AxiOutIdWidth ),
+      .axi_req_t      ( axi_in_req_t  ),
+      .axi_rsp_t      ( axi_in_rsp_t  )
+    ) i_floo_meta_buffer (
+      .clk_i,
+      .rst_ni,
+      .test_enable_i,
+      .axi_req_i  ( axi_meta_buf_req_in   ),
+      .axi_rsp_o  ( axi_meta_buf_rsp_out  ),
+      .axi_req_o  ( axi_meta_buf_req_out  ),
+      .axi_rsp_i  ( axi_meta_buf_rsp_in   ),
+      .aw_buf_i   ( aw_out_data_in        ),
+      .ar_buf_i   ( ar_out_data_in        ),
+      .r_buf_o    ( ar_out_data_out       ),
+      .b_buf_o    ( aw_out_data_out       )
+    );
+  end else begin : gen_no_mgr_port
+    axi_err_slv #(
+      .AxiIdWidth ( AxiInIdWidth  ),
+      .ATOPs      ( AtopSupport   ),
+      .axi_req_t  ( axi_in_req_t  ),
+      .axi_resp_t ( axi_in_rsp_t  )
+    ) i_axi_err_slv (
+      .clk_i      ( clk_i                 ),
+      .rst_ni     ( rst_ni                ),
+      .test_i     ( test_enable_i         ),
+      .slv_req_i  ( axi_meta_buf_req_in   ),
+      .slv_resp_o ( axi_meta_buf_rsp_out  )
+    );
+
+    assign axi_meta_buf_req_out = '0;
+    assign ar_out_data_out = '0;
+    assign aw_out_data_out = '0;
+  end
 
   // Registers
   `FF(b_rob_pending_q, b_rob_valid_out && !b_rob_ready_in && !is_atop_b_rsp, '0)
@@ -586,5 +640,16 @@ module floo_axi_chimney
   // Multiple outstanding atomics need to use different IDs
   // Non-atomic transactions all use the same ID
   `ASSERT_INIT(ToSmallIdWidth, 1 + AtopSupport * MaxAtomicTxns <= 2**AxiOutIdWidth)
+
+  // If Network Interface has no subordinate port, make sure that `RoBType` is `NoRoB`
+  `ASSERT_INIT(NoSbrPortRobType, EnSbrPort || (RoBType == NoRoB))
+
+  // Network Interface cannot accept any B and R responses if `EnSbrPort` is not set
+  `ASSERT(NoSbrPortBResponse, EnSbrPort || !(floo_rsp_in_valid && (unpack_rsp_generic.hdr.axi_ch == AxiB)))
+  `ASSERT(NoSbrPortRResponse, EnSbrPort || !(floo_rsp_in_valid && (unpack_rsp_generic.hdr.axi_ch == AxiR)))
+  // Network Interface cannot accept any AW, AR and W requests if `EnMgrPort` is not set
+  `ASSERT(NoMgrPortAwRequest, EnMgrPort || !(floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiAw)))
+  `ASSERT(NoMgrPortArRequest, EnMgrPort || !(floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiAr)))
+  `ASSERT(NoMgrPortWRequest,  EnMgrPort || !(floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiW)))
 
 endmodule

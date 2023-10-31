@@ -13,14 +13,22 @@ module floo_narrow_wide_chimney
   import floo_pkg::*;
   import floo_narrow_wide_pkg::*;
 #(
+  /// Enable the manager port of the Narrow AXI4 interface
+  parameter bit EnNarrowMgrPort                  = 1'b1,
+  /// Enable the Subordinate port of the Narrow AXI4 interface
+  parameter bit EnNarrowSbrPort                  = 1'b1,
+  /// Enable the manager port of the Wide AXI4 interface
+  parameter bit EnWideMgrPort                    = 1'b1,
+  /// Enable the Subordinate port of the Wide AXI4 interface
+  parameter bit EnWideSbrPort                    = 1'b1,
   /// Atomic operation support, currently only implemented for
   /// the narrow network!
-  parameter bit AtopSupport                 = 1'b1,
+  parameter bit AtopSupport                      = 1'b1,
   /// Maximum number of oustanding Atomic transactions,
   /// must be smaller or equal to 2**AxiOutIdWidth-1 since
   /// Every atomic transactions needs to have a unique ID
   /// and one ID is reserved for non-atomic transactions
-  parameter int unsigned MaxAtomicTxns      = 1,
+  parameter int unsigned MaxAtomicTxns           = 1,
   /// Routing Algorithm
   parameter route_algo_e RouteAlgo               = IdTable,
   /// X Coordinate address offset for XY routing
@@ -88,6 +96,13 @@ module floo_narrow_wide_chimney
   typedef logic [$clog2(NarrowReorderBufferSize)-1:0] narrow_rob_idx_t;
   typedef logic [$clog2(WideReorderBufferSize)-1:0]   wide_rob_idx_t;
 
+  // Duplicate AXI port signals to degenerate ports
+  // in case they are not used
+  axi_narrow_in_req_t axi_narrow_req_in;
+  axi_narrow_in_rsp_t axi_narrow_rsp_out;
+  axi_wide_in_req_t axi_wide_req_in;
+  axi_wide_in_rsp_t axi_wide_rsp_out;
+
   // AX queue
   axi_narrow_in_aw_chan_t axi_narrow_aw_queue;
   axi_narrow_in_ar_chan_t axi_narrow_ar_queue;
@@ -141,8 +156,8 @@ module floo_narrow_wide_chimney
   axi_wide_in_b_chan_t    axi_wide_unpack_b;
   axi_wide_in_ar_chan_t   axi_wide_unpack_ar;
   axi_wide_in_r_chan_t    axi_wide_unpack_r;
-  floo_req_generic_flit_t   floo_narrow_unpack_req_generic;
-  floo_rsp_generic_flit_t   floo_narrow_unpack_rsp_generic;
+  floo_req_generic_flit_t   floo_req_unpack_generic;
+  floo_rsp_generic_flit_t   floo_rsp_unpack_generic;
   floo_wide_generic_flit_t  floo_wide_unpack_generic;
 
   // Meta Buffers
@@ -184,71 +199,124 @@ module floo_narrow_wide_chimney
   //  Spill registers  //
   ///////////////////////
 
-  if (CutAx) begin : gen_ax_cuts
-    spill_register #(
-      .T ( axi_narrow_in_aw_chan_t )
-    ) i_narrow_aw_queue (
-      .clk_i,
-      .rst_ni,
-      .data_i   ( axi_narrow_in_req_i.aw        ),
-      .valid_i  ( axi_narrow_in_req_i.aw_valid  ),
-      .ready_o  ( axi_narrow_in_rsp_o.aw_ready  ),
-      .data_o   ( axi_narrow_aw_queue           ),
-      .valid_o  ( axi_narrow_aw_queue_valid_out ),
-      .ready_i  ( axi_narrow_aw_queue_ready_in  )
-    );
+  if (EnNarrowSbrPort) begin : gen_narrow_sbr_port
 
-    spill_register #(
-      .T ( axi_narrow_in_ar_chan_t )
-    ) i_narrow_ar_queue (
-      .clk_i,
-      .rst_ni,
-      .data_i   ( axi_narrow_in_req_i.ar        ),
-      .valid_i  ( axi_narrow_in_req_i.ar_valid  ),
-      .ready_o  ( axi_narrow_in_rsp_o.ar_ready  ),
-      .data_o   ( axi_narrow_ar_queue           ),
-      .valid_o  ( axi_narrow_ar_queue_valid_out ),
-      .ready_i  ( axi_narrow_ar_queue_ready_in  )
-    );
+    assign axi_narrow_req_in = axi_narrow_in_req_i;
+    assign axi_narrow_in_rsp_o = axi_narrow_rsp_out;
 
-    spill_register #(
-      .T ( axi_wide_in_aw_chan_t )
-    ) i_wide_aw_queue (
-      .clk_i,
-      .rst_ni,
-      .data_i   ( axi_wide_in_req_i.aw        ),
-      .valid_i  ( axi_wide_in_req_i.aw_valid  ),
-      .ready_o  ( axi_wide_in_rsp_o.aw_ready  ),
-      .data_o   ( axi_wide_aw_queue           ),
-      .valid_o  ( axi_wide_aw_queue_valid_out ),
-      .ready_i  ( axi_wide_aw_queue_ready_in  )
-    );
+    if (CutAx) begin : gen_ax_cuts
+      spill_register #(
+        .T ( axi_narrow_in_aw_chan_t )
+      ) i_narrow_aw_queue (
+        .clk_i,
+        .rst_ni,
+        .data_i   ( axi_narrow_in_req_i.aw        ),
+        .valid_i  ( axi_narrow_in_req_i.aw_valid  ),
+        .ready_o  ( axi_narrow_in_rsp_o.aw_ready  ),
+        .data_o   ( axi_narrow_aw_queue           ),
+        .valid_o  ( axi_narrow_aw_queue_valid_out ),
+        .ready_i  ( axi_narrow_aw_queue_ready_in  )
+      );
 
-    spill_register #(
-      .T ( axi_wide_in_ar_chan_t )
-    ) i_wide_ar_queue (
-      .clk_i,
-      .rst_ni,
-      .data_i   ( axi_wide_in_req_i.ar        ),
-      .valid_i  ( axi_wide_in_req_i.ar_valid  ),
-      .ready_o  ( axi_wide_in_rsp_o.ar_ready  ),
-      .data_o   ( axi_wide_ar_queue           ),
-      .valid_o  ( axi_wide_ar_queue_valid_out ),
-      .ready_i  ( axi_wide_ar_queue_ready_in  )
+      spill_register #(
+        .T ( axi_narrow_in_ar_chan_t )
+      ) i_narrow_ar_queue (
+        .clk_i,
+        .rst_ni,
+        .data_i   ( axi_narrow_in_req_i.ar        ),
+        .valid_i  ( axi_narrow_in_req_i.ar_valid  ),
+        .ready_o  ( axi_narrow_in_rsp_o.ar_ready  ),
+        .data_o   ( axi_narrow_ar_queue           ),
+        .valid_o  ( axi_narrow_ar_queue_valid_out ),
+        .ready_i  ( axi_narrow_ar_queue_ready_in  )
+      );
+
+    end else begin : gen_ax_no_cuts
+      assign axi_narrow_aw_queue = axi_narrow_in_req_i.aw;
+      assign axi_narrow_aw_queue_valid_out = axi_narrow_in_req_i.aw_valid;
+      assign axi_narrow_in_rsp_o.aw_ready = axi_narrow_aw_queue_ready_in;
+      assign axi_narrow_ar_queue = axi_narrow_in_req_i.ar;
+      assign axi_narrow_ar_queue_valid_out = axi_narrow_in_req_i.ar_valid;
+      assign axi_narrow_in_rsp_o.ar_ready = axi_narrow_ar_queue_ready_in;
+    end
+
+  end else begin : gen_narrow_err_slv_port
+    axi_err_slv #(
+      .AxiIdWidth ( NarrowInIdWidth     ),
+      .ATOPs      ( AtopSupport         ),
+      .axi_req_t  ( axi_narrow_in_req_t ),
+      .axi_resp_t ( axi_narrow_in_rsp_t )
+    ) i_axi_err_slv (
+      .clk_i      ( clk_i               ),
+      .rst_ni     ( rst_ni              ),
+      .test_i     ( test_enable_i       ),
+      .slv_req_i  ( axi_narrow_in_req_i ),
+      .slv_resp_o ( axi_narrow_in_rsp_o )
     );
-  end else begin : gen_ax_no_cuts
-    assign axi_narrow_aw_queue = axi_narrow_in_req_i.aw;
-    assign axi_narrow_aw_queue_valid_out = axi_narrow_in_req_i.aw_valid;
-    assign axi_narrow_in_rsp_o.aw_ready = axi_narrow_aw_queue_ready_in;
-    assign axi_narrow_ar_queue = axi_narrow_in_req_i.ar;
-    assign axi_narrow_ar_queue_valid_out = axi_narrow_in_req_i.ar_valid;
-    assign axi_narrow_in_rsp_o.ar_ready = axi_narrow_ar_queue_ready_in;
-    assign axi_wide_aw_queue = axi_wide_in_req_i.aw;
-    assign axi_wide_aw_queue_valid_out = axi_wide_in_req_i.aw_valid;
-    assign axi_wide_in_rsp_o.aw_ready = axi_wide_aw_queue_ready_in;
-    assign axi_wide_ar_queue = axi_wide_in_req_i.ar;
-    assign axi_wide_ar_queue_valid_out = axi_wide_in_req_i.ar_valid;
-    assign axi_wide_in_rsp_o.ar_ready = axi_wide_ar_queue_ready_in;
+    assign axi_narrow_req_in = '0;
+    assign axi_narrow_aw_queue = '0;
+    assign axi_narrow_ar_queue = '0;
+    assign axi_narrow_aw_queue_valid_out = 1'b0;
+    assign axi_narrow_ar_queue_valid_out = 1'b0;
+  end
+
+  if (EnWideSbrPort) begin : gen_wide_sbr_port
+
+    assign axi_wide_req_in = axi_wide_in_req_i;
+    assign axi_wide_in_rsp_o = axi_wide_rsp_out;
+
+    if (CutAx) begin : gen_ax_cuts
+      spill_register #(
+        .T ( axi_wide_in_aw_chan_t )
+      ) i_wide_aw_queue (
+        .clk_i,
+        .rst_ni,
+        .data_i   ( axi_wide_in_req_i.aw        ),
+        .valid_i  ( axi_wide_in_req_i.aw_valid  ),
+        .ready_o  ( axi_wide_in_rsp_o.aw_ready  ),
+        .data_o   ( axi_wide_aw_queue           ),
+        .valid_o  ( axi_wide_aw_queue_valid_out ),
+        .ready_i  ( axi_wide_aw_queue_ready_in  )
+      );
+
+      spill_register #(
+        .T ( axi_wide_in_ar_chan_t )
+      ) i_wide_ar_queue (
+        .clk_i,
+        .rst_ni,
+        .data_i   ( axi_wide_in_req_i.ar        ),
+        .valid_i  ( axi_wide_in_req_i.ar_valid  ),
+        .ready_o  ( axi_wide_in_rsp_o.ar_ready  ),
+        .data_o   ( axi_wide_ar_queue           ),
+        .valid_o  ( axi_wide_ar_queue_valid_out ),
+        .ready_i  ( axi_wide_ar_queue_ready_in  )
+      );
+    end else begin : gen_ax_no_cuts
+      assign axi_wide_aw_queue = axi_wide_in_req_i.aw;
+      assign axi_wide_aw_queue_valid_out = axi_wide_in_req_i.aw_valid;
+      assign axi_wide_in_rsp_o.aw_ready = axi_wide_aw_queue_ready_in;
+      assign axi_wide_ar_queue = axi_wide_in_req_i.ar;
+      assign axi_wide_ar_queue_valid_out = axi_wide_in_req_i.ar_valid;
+      assign axi_wide_in_rsp_o.ar_ready = axi_wide_ar_queue_ready_in;
+    end
+  end else begin : gen_wide_err_slv_port
+    axi_err_slv #(
+      .AxiIdWidth ( WideInIdWidth     ),
+      .ATOPs      ( AtopSupport       ),
+      .axi_req_t  ( axi_wide_in_req_t ),
+      .axi_resp_t ( axi_wide_in_rsp_t )
+    ) i_axi_err_slv (
+      .clk_i      ( clk_i             ),
+      .rst_ni     ( rst_ni            ),
+      .test_i     ( test_enable_i     ),
+      .slv_req_i  ( axi_wide_in_req_i ),
+      .slv_resp_o ( axi_wide_in_rsp_o )
+    );
+    assign axi_wide_req_in = '0;
+    assign axi_wide_aw_queue = '0;
+    assign axi_wide_ar_queue = '0;
+    assign axi_wide_aw_queue_valid_out = 1'b0;
+    assign axi_wide_ar_queue_valid_out = 1'b0;
   end
 
   if (CutRsp) begin : gen_rsp_cuts
@@ -637,9 +705,9 @@ module floo_narrow_wide_chimney
     floo_narrow_w.hdr.rob_idx   = rob_idx_t'(narrow_aw_rob_idx_out);
     floo_narrow_w.hdr.dst_id    = dst_id[NarrowW];
     floo_narrow_w.hdr.src_id    = src_id;
-    floo_narrow_w.hdr.last      = axi_narrow_in_req_i.w.last;
+    floo_narrow_w.hdr.last      = axi_narrow_req_in.w.last;
     floo_narrow_w.hdr.axi_ch    = NarrowW;
-    floo_narrow_w.w             = axi_narrow_in_req_i.w;
+    floo_narrow_w.w             = axi_narrow_req_in.w;
   end
 
   always_comb begin
@@ -696,9 +764,9 @@ module floo_narrow_wide_chimney
     floo_wide_w.hdr.rob_idx = rob_idx_t'(wide_aw_rob_idx_out);
     floo_wide_w.hdr.dst_id  = dst_id[WideW];
     floo_wide_w.hdr.src_id  = src_id;
-    floo_wide_w.hdr.last    = axi_wide_in_req_i.w.last;
+    floo_wide_w.hdr.last    = axi_wide_req_in.w.last;
     floo_wide_w.hdr.axi_ch  = WideW;
-    floo_wide_w.w           = axi_wide_in_req_i.w;
+    floo_wide_w.w           = axi_wide_req_in.w;
   end
 
   always_comb begin
@@ -742,14 +810,14 @@ module floo_narrow_wide_chimney
     if (axi_narrow_aw_queue_valid_out && axi_narrow_aw_queue_ready_in) begin
       narrow_aw_w_sel_d = SelW;
     end
-    if (axi_narrow_in_req_i.w_valid && axi_narrow_in_rsp_o.w_ready &&
-        axi_narrow_in_req_i.w.last) begin
+    if (axi_narrow_req_in.w_valid && axi_narrow_rsp_out.w_ready &&
+        axi_narrow_req_in.w.last) begin
       narrow_aw_w_sel_d = SelAw;
     end
     if (axi_wide_aw_queue_valid_out && axi_wide_aw_queue_ready_in) begin
       wide_aw_w_sel_d = SelW;
     end
-    if (axi_wide_in_req_i.w_valid && axi_wide_in_rsp_o.w_ready && axi_wide_in_req_i.w.last) begin
+    if (axi_wide_req_in.w_valid && axi_wide_rsp_out.w_ready && axi_wide_req_in.w.last) begin
       wide_aw_w_sel_d = SelAw;
     end
   end
@@ -762,7 +830,7 @@ module floo_narrow_wide_chimney
                                           ((axi_narrow_aw_queue.atop != axi_pkg::ATOP_NONE) &&
                                           axi_narrow_aw_queue_valid_out));
   assign floo_req_arb_req_in[NarrowW]   = (narrow_aw_w_sel_q == SelW) &&
-                                          axi_narrow_in_req_i.w_valid;
+                                          axi_narrow_req_in.w_valid;
   assign floo_req_arb_req_in[NarrowAr]  = narrow_ar_rob_valid_out;
   assign floo_req_arb_req_in[WideAw]    = (wide_aw_w_sel_q == SelAw) &&
                                           wide_aw_rob_valid_out;
@@ -771,19 +839,19 @@ module floo_narrow_wide_chimney
   assign floo_rsp_arb_req_in[NarrowR]   = axi_narrow_meta_buf_rsp_out.r_valid;
   assign floo_rsp_arb_req_in[WideB]     = axi_wide_meta_buf_rsp_out.b_valid;
   assign floo_wide_arb_req_in[WideW]    = (wide_aw_w_sel_q == SelW) &&
-                                          axi_wide_in_req_i.w_valid;
+                                          axi_wide_req_in.w_valid;
   assign floo_wide_arb_req_in[WideR]    = axi_wide_meta_buf_rsp_out.r_valid;
 
-  assign narrow_aw_rob_ready_in               = floo_req_arb_gnt_out[NarrowAw] &&
-                                                (narrow_aw_w_sel_q == SelAw);
-  assign axi_narrow_in_rsp_o.w_ready          = floo_req_arb_gnt_out[NarrowW] &&
-                                                (narrow_aw_w_sel_q == SelW);
-  assign narrow_ar_rob_ready_in               = floo_req_arb_gnt_out[NarrowAr];
-  assign wide_aw_rob_ready_in                 = floo_req_arb_gnt_out[WideAw] &&
-                                                (wide_aw_w_sel_q == SelAw);
-  assign axi_wide_in_rsp_o.w_ready            = floo_wide_arb_gnt_out[WideW] &&
-                                                (wide_aw_w_sel_q == SelW);
-  assign wide_ar_rob_ready_in                 = floo_req_arb_gnt_out[WideAr];
+  assign narrow_aw_rob_ready_in     = floo_req_arb_gnt_out[NarrowAw] &&
+                                      (narrow_aw_w_sel_q == SelAw);
+  assign axi_narrow_rsp_out.w_ready = floo_req_arb_gnt_out[NarrowW] &&
+                                      (narrow_aw_w_sel_q == SelW);
+  assign narrow_ar_rob_ready_in     = floo_req_arb_gnt_out[NarrowAr];
+  assign wide_aw_rob_ready_in       = floo_req_arb_gnt_out[WideAw] &&
+                                      (wide_aw_w_sel_q == SelAw);
+  assign axi_wide_rsp_out.w_ready   = floo_wide_arb_gnt_out[WideW] &&
+                                      (wide_aw_w_sel_q == SelW);
+  assign wide_ar_rob_ready_in       = floo_req_arb_gnt_out[WideAr];
 
   assign floo_req_arb_in[NarrowAw].narrow_aw  = floo_narrow_aw;
   assign floo_req_arb_in[NarrowW].narrow_w    = floo_narrow_w;
@@ -851,9 +919,9 @@ module floo_narrow_wide_chimney
   logic b_rob_pending_q, r_rob_pending_q;
 
   assign is_atop_b_rsp = AtopSupport && axi_valid_in[NarrowB] &&
-                         floo_narrow_unpack_rsp_generic.hdr.atop;
+                         floo_rsp_unpack_generic.hdr.atop;
   assign is_atop_r_rsp = AtopSupport && axi_valid_in[NarrowR] &&
-                         floo_narrow_unpack_rsp_generic.hdr.atop;
+                         floo_rsp_unpack_generic.hdr.atop;
   assign b_sel_atop = is_atop_b_rsp && !b_rob_pending_q;
   assign r_sel_atop = is_atop_r_rsp && !r_rob_pending_q;
 
@@ -867,47 +935,47 @@ module floo_narrow_wide_chimney
   assign axi_wide_unpack_ar   = floo_req_in.wide_ar.ar;
   assign axi_wide_unpack_r    = floo_wide_in.wide_r.r;
   assign axi_wide_unpack_b    = floo_rsp_in.wide_b.b;
-  assign floo_narrow_unpack_req_generic = floo_req_in.generic;
-  assign floo_narrow_unpack_rsp_generic = floo_rsp_in.generic;
-  assign floo_wide_unpack_generic       = floo_wide_in.generic;
+  assign floo_req_unpack_generic  = floo_req_in.generic;
+  assign floo_rsp_unpack_generic  = floo_rsp_in.generic;
+  assign floo_wide_unpack_generic = floo_wide_in.generic;
 
 
   assign axi_valid_in[NarrowAw] = floo_req_in_valid &&
-                                  (floo_narrow_unpack_req_generic.hdr.axi_ch == NarrowAw);
+                                  (floo_req_unpack_generic.hdr.axi_ch == NarrowAw);
   assign axi_valid_in[NarrowW]  = floo_req_in_valid &&
-                                  (floo_narrow_unpack_req_generic.hdr.axi_ch  == NarrowW);
+                                  (floo_req_unpack_generic.hdr.axi_ch  == NarrowW);
   assign axi_valid_in[NarrowAr] = floo_req_in_valid &&
-                                  (floo_narrow_unpack_req_generic.hdr.axi_ch == NarrowAr);
+                                  (floo_req_unpack_generic.hdr.axi_ch == NarrowAr);
   assign axi_valid_in[WideAw]   = floo_req_in_valid &&
-                                  (floo_narrow_unpack_req_generic.hdr.axi_ch == WideAw);
+                                  (floo_req_unpack_generic.hdr.axi_ch == WideAw);
   assign axi_valid_in[WideAr]   = floo_req_in_valid &&
-                                  (floo_narrow_unpack_req_generic.hdr.axi_ch == WideAr);
-  assign axi_valid_in[NarrowB]  = floo_rsp_in_valid &&
-                                  (floo_narrow_unpack_rsp_generic.hdr.axi_ch  == NarrowB);
-  assign axi_valid_in[NarrowR]  = floo_rsp_in_valid &&
-                                  (floo_narrow_unpack_rsp_generic.hdr.axi_ch  == NarrowR);
-  assign axi_valid_in[WideB]    = floo_rsp_in_valid &&
-                                  (floo_narrow_unpack_rsp_generic.hdr.axi_ch  == WideB);
+                                  (floo_req_unpack_generic.hdr.axi_ch == WideAr);
+  assign axi_valid_in[NarrowB]  = EnNarrowSbrPort && floo_rsp_in_valid &&
+                                  (floo_rsp_unpack_generic.hdr.axi_ch  == NarrowB);
+  assign axi_valid_in[NarrowR]  = EnNarrowSbrPort && floo_rsp_in_valid &&
+                                  (floo_rsp_unpack_generic.hdr.axi_ch  == NarrowR);
+  assign axi_valid_in[WideB]    = EnWideSbrPort && floo_rsp_in_valid &&
+                                  (floo_rsp_unpack_generic.hdr.axi_ch  == WideB);
   assign axi_valid_in[WideW]    = floo_wide_in_valid &&
                                   (floo_wide_unpack_generic.hdr.axi_ch  == WideW);
-  assign axi_valid_in[WideR]    = floo_wide_in_valid &&
+  assign axi_valid_in[WideR]    = EnWideSbrPort && floo_wide_in_valid &&
                                   (floo_wide_unpack_generic.hdr.axi_ch  == WideR);
 
   assign axi_ready_out[NarrowAw]  = axi_narrow_meta_buf_rsp_out.aw_ready;
   assign axi_ready_out[NarrowW]   = axi_narrow_meta_buf_rsp_out.w_ready;
   assign axi_ready_out[NarrowAr]  = axi_narrow_meta_buf_rsp_out.ar_ready;
   assign axi_ready_out[NarrowB]   = narrow_b_rob_ready_out ||
-                                      b_sel_atop && axi_narrow_in_req_i.b_ready;
+                                    b_sel_atop && axi_narrow_req_in.b_ready;
   assign axi_ready_out[NarrowR]   = narrow_r_rob_ready_out ||
-                                      r_sel_atop && axi_narrow_in_req_i.r_ready;
+                                    r_sel_atop && axi_narrow_req_in.r_ready;
   assign axi_ready_out[WideAw]    = axi_wide_meta_buf_rsp_out.aw_ready;
   assign axi_ready_out[WideW]     = axi_wide_meta_buf_rsp_out.w_ready;
   assign axi_ready_out[WideAr]    = axi_wide_meta_buf_rsp_out.ar_ready;
   assign axi_ready_out[WideB]     = wide_b_rob_ready_out;
   assign axi_ready_out[WideR]     = wide_r_rob_ready_out;
 
-  assign floo_req_out_ready  = axi_ready_out[floo_narrow_unpack_req_generic.hdr.axi_ch];
-  assign floo_rsp_out_ready  = axi_ready_out[floo_narrow_unpack_rsp_generic.hdr.axi_ch];
+  assign floo_req_out_ready  = axi_ready_out[floo_req_unpack_generic.hdr.axi_ch];
+  assign floo_rsp_out_ready  = axi_ready_out[floo_rsp_unpack_generic.hdr.axi_ch];
   assign floo_wide_out_ready = axi_ready_out[floo_wide_unpack_generic.hdr.axi_ch];
 
   /////////////////////////////
@@ -936,29 +1004,29 @@ module floo_narrow_wide_chimney
     r_ready   : floo_wide_arb_gnt_out[WideR]
   };
 
-  assign narrow_b_rob_valid_in                  = axi_valid_in[NarrowB] && !is_atop_b_rsp;
-  assign narrow_r_rob_valid_in                  = axi_valid_in[NarrowR] && !is_atop_r_rsp;
-  assign axi_narrow_in_rsp_o.b_valid            = narrow_b_rob_valid_out || is_atop_b_rsp;
-  assign axi_narrow_in_rsp_o.r_valid            = narrow_r_rob_valid_out || is_atop_r_rsp;
-  assign narrow_b_rob_ready_in                  = axi_narrow_in_req_i.b_ready && !b_sel_atop;
-  assign narrow_r_rob_ready_in                  = axi_narrow_in_req_i.r_ready && !r_sel_atop;
-  assign wide_b_rob_valid_in                    = axi_valid_in[WideB];
-  assign wide_r_rob_valid_in                    = axi_valid_in[WideR];
-  assign axi_wide_in_rsp_o.b_valid              = wide_b_rob_valid_out;
-  assign axi_wide_in_rsp_o.r_valid              = wide_r_rob_valid_out;
-  assign wide_b_rob_ready_in                    = axi_wide_in_req_i.b_ready;
-  assign wide_r_rob_ready_in                    = axi_wide_in_req_i.r_ready;
+  assign narrow_b_rob_valid_in      = axi_valid_in[NarrowB] && !is_atop_b_rsp;
+  assign narrow_r_rob_valid_in      = axi_valid_in[NarrowR] && !is_atop_r_rsp;
+  assign axi_narrow_rsp_out.b_valid = narrow_b_rob_valid_out || is_atop_b_rsp;
+  assign axi_narrow_rsp_out.r_valid = narrow_r_rob_valid_out || is_atop_r_rsp;
+  assign narrow_b_rob_ready_in      = axi_narrow_req_in.b_ready && !b_sel_atop;
+  assign narrow_r_rob_ready_in      = axi_narrow_req_in.r_ready && !r_sel_atop;
+  assign wide_b_rob_valid_in        = axi_valid_in[WideB];
+  assign wide_r_rob_valid_in        = axi_valid_in[WideR];
+  assign axi_wide_rsp_out.b_valid   = wide_b_rob_valid_out;
+  assign axi_wide_rsp_out.r_valid   = wide_r_rob_valid_out;
+  assign wide_b_rob_ready_in        = axi_wide_req_in.b_ready;
+  assign wide_r_rob_ready_in        = axi_wide_req_in.r_ready;
 
-  assign axi_narrow_b_rob_in              = axi_narrow_unpack_b;
-  assign axi_narrow_r_rob_in              = axi_narrow_unpack_r;
-  assign axi_narrow_in_rsp_o.b            = (b_sel_atop)? axi_narrow_unpack_b
-                                            : axi_narrow_b_rob_out;
-  assign axi_narrow_in_rsp_o.r            = (r_sel_atop)? axi_narrow_unpack_r
-                                            : axi_narrow_r_rob_out;
-  assign axi_wide_b_rob_in                = axi_wide_unpack_b;
-  assign axi_wide_r_rob_in                = axi_wide_unpack_r;
-  assign axi_wide_in_rsp_o.b              = axi_wide_b_rob_out;
-  assign axi_wide_in_rsp_o.r              = axi_wide_r_rob_out;
+  assign axi_narrow_b_rob_in  = axi_narrow_unpack_b;
+  assign axi_narrow_r_rob_in  = axi_narrow_unpack_r;
+  assign axi_narrow_rsp_out.b = (b_sel_atop)? axi_narrow_unpack_b
+                                : axi_narrow_b_rob_out;
+  assign axi_narrow_rsp_out.r = (r_sel_atop)? axi_narrow_unpack_r
+                                : axi_narrow_r_rob_out;
+  assign axi_wide_b_rob_in    = axi_wide_unpack_b;
+  assign axi_wide_r_rob_in    = axi_wide_unpack_r;
+  assign axi_wide_rsp_out.b   = axi_wide_b_rob_out;
+  assign axi_wide_rsp_out.r   = axi_wide_r_rob_out;
 
   logic is_atop, atop_has_r_rsp;
   assign is_atop = AtopSupport && axi_valid_in[NarrowAw] &&
@@ -968,76 +1036,112 @@ module floo_narrow_wide_chimney
 
   assign narrow_aw_out_data_in = '{
     id: axi_narrow_unpack_aw.id,
-    rob_req: floo_narrow_unpack_req_generic.hdr.rob_req,
-    rob_idx: floo_narrow_unpack_req_generic.hdr.rob_idx,
-    src_id: floo_narrow_unpack_req_generic.hdr.src_id,
-    atop: floo_narrow_unpack_req_generic.hdr.atop
+    rob_req: floo_req_unpack_generic.hdr.rob_req,
+    rob_idx: floo_req_unpack_generic.hdr.rob_idx,
+    src_id: floo_req_unpack_generic.hdr.src_id,
+    atop: floo_req_unpack_generic.hdr.atop
   };
   assign narrow_ar_out_data_in = '{
     id: (is_atop && atop_has_r_rsp)? axi_narrow_unpack_aw.id : axi_narrow_unpack_ar.id,
-    rob_req: floo_narrow_unpack_req_generic.hdr.rob_req,
-    rob_idx: floo_narrow_unpack_req_generic.hdr.rob_idx,
-    src_id: floo_narrow_unpack_req_generic.hdr.src_id,
-    atop: floo_narrow_unpack_req_generic.hdr.atop
+    rob_req: floo_req_unpack_generic.hdr.rob_req,
+    rob_idx: floo_req_unpack_generic.hdr.rob_idx,
+    src_id: floo_req_unpack_generic.hdr.src_id,
+    atop: floo_req_unpack_generic.hdr.atop
   };
   assign wide_aw_out_data_in = '{
     id: axi_wide_unpack_aw.id,
-    rob_req: floo_narrow_unpack_req_generic.hdr.rob_req,
-    rob_idx: floo_narrow_unpack_req_generic.hdr.rob_idx,
-    src_id: floo_narrow_unpack_req_generic.hdr.src_id
+    rob_req: floo_req_unpack_generic.hdr.rob_req,
+    rob_idx: floo_req_unpack_generic.hdr.rob_idx,
+    src_id: floo_req_unpack_generic.hdr.src_id
   };
   assign wide_ar_out_data_in = '{
     id: axi_wide_unpack_ar.id,
-    rob_req: floo_narrow_unpack_req_generic.hdr.rob_req,
-    rob_idx: floo_narrow_unpack_req_generic.hdr.rob_idx,
-    src_id: floo_narrow_unpack_req_generic.hdr.src_id
+    rob_req: floo_req_unpack_generic.hdr.rob_req,
+    rob_idx: floo_req_unpack_generic.hdr.rob_idx,
+    src_id: floo_req_unpack_generic.hdr.src_id
   };
 
-  floo_meta_buffer #(
-    .MaxTxns        ( NarrowMaxTxns       ),
-    .AtopSupport    ( AtopSupport         ),
-    .MaxAtomicTxns  ( MaxAtomicTxns       ),
-    .buf_t          ( narrow_id_out_buf_t ),
-    .IdInWidth      ( NarrowInIdWidth     ),
-    .IdOutWidth     ( NarrowOutIdWidth    ),
-    .axi_req_t      ( axi_narrow_in_req_t ),
-    .axi_rsp_t      ( axi_narrow_in_rsp_t )
-  ) i_narrow_meta_buffer (
-    .clk_i,
-    .rst_ni,
-    .test_enable_i,
-    .axi_req_i  ( axi_narrow_meta_buf_req_in   ),
-    .axi_rsp_o  ( axi_narrow_meta_buf_rsp_out  ),
-    .axi_req_o  ( axi_narrow_meta_buf_req_out  ),
-    .axi_rsp_i  ( axi_narrow_meta_buf_rsp_in   ),
-    .aw_buf_i   ( narrow_aw_out_data_in        ),
-    .ar_buf_i   ( narrow_ar_out_data_in        ),
-    .r_buf_o    ( narrow_ar_out_data_out       ),
-    .b_buf_o    ( narrow_aw_out_data_out       )
-  );
+  if (EnNarrowMgrPort) begin : gen_narrow_mgr_port
+    floo_meta_buffer #(
+      .MaxTxns        ( NarrowMaxTxns       ),
+      .AtopSupport    ( AtopSupport         ),
+      .MaxAtomicTxns  ( MaxAtomicTxns       ),
+      .buf_t          ( narrow_id_out_buf_t ),
+      .IdInWidth      ( NarrowInIdWidth     ),
+      .IdOutWidth     ( NarrowOutIdWidth    ),
+      .axi_req_t      ( axi_narrow_in_req_t ),
+      .axi_rsp_t      ( axi_narrow_in_rsp_t )
+    ) i_narrow_meta_buffer (
+      .clk_i,
+      .rst_ni,
+      .test_enable_i,
+      .axi_req_i  ( axi_narrow_meta_buf_req_in   ),
+      .axi_rsp_o  ( axi_narrow_meta_buf_rsp_out  ),
+      .axi_req_o  ( axi_narrow_meta_buf_req_out  ),
+      .axi_rsp_i  ( axi_narrow_meta_buf_rsp_in   ),
+      .aw_buf_i   ( narrow_aw_out_data_in        ),
+      .ar_buf_i   ( narrow_ar_out_data_in        ),
+      .r_buf_o    ( narrow_ar_out_data_out       ),
+      .b_buf_o    ( narrow_aw_out_data_out       )
+    );
+  end else begin : gen_no_narrow_mgr_port
+    axi_err_slv #(
+      .AxiIdWidth ( NarrowInIdWidth     ),
+      .ATOPs      ( AtopSupport         ),
+      .axi_req_t  ( axi_narrow_in_req_t ),
+      .axi_resp_t ( axi_narrow_in_rsp_t )
+    ) i_axi_err_slv (
+      .clk_i      ( clk_i                       ),
+      .rst_ni     ( rst_ni                      ),
+      .test_i     ( test_enable_i               ),
+      .slv_req_i  ( axi_narrow_meta_buf_req_in  ),
+      .slv_resp_o ( axi_narrow_meta_buf_rsp_out )
+    );
+    assign axi_narrow_meta_buf_req_out = '0;
+    assign narrow_ar_out_data_out = '0;
+    assign narrow_aw_out_data_out = '0;
+  end
 
-  floo_meta_buffer #(
-    .MaxTxns        ( WideMaxTxns       ),
-    .AtopSupport    ( 1'b1              ),
-    .MaxAtomicTxns  ( MaxAtomicTxns     ),
-    .buf_t          ( wide_id_out_buf_t ),
-    .IdInWidth      ( WideInIdWidth     ),
-    .IdOutWidth     ( WideOutIdWidth    ),
-    .axi_req_t      ( axi_wide_in_req_t ),
-    .axi_rsp_t      ( axi_wide_in_rsp_t )
-  ) i_wide_meta_buffer (
-    .clk_i,
-    .rst_ni,
-    .test_enable_i,
-    .axi_req_i  ( axi_wide_meta_buf_req_in   ),
-    .axi_rsp_o  ( axi_wide_meta_buf_rsp_out  ),
-    .axi_req_o  ( axi_wide_meta_buf_req_out  ),
-    .axi_rsp_i  ( axi_wide_meta_buf_rsp_in   ),
-    .aw_buf_i   ( wide_aw_out_data_in        ),
-    .ar_buf_i   ( wide_ar_out_data_in        ),
-    .r_buf_o    ( wide_ar_out_data_out       ),
-    .b_buf_o    ( wide_aw_out_data_out       )
-  );
+  if (EnWideMgrPort) begin : gen_wide_mgr_port
+    floo_meta_buffer #(
+      .MaxTxns        ( WideMaxTxns       ),
+      .AtopSupport    ( 1'b1              ),
+      .MaxAtomicTxns  ( MaxAtomicTxns     ),
+      .buf_t          ( wide_id_out_buf_t ),
+      .IdInWidth      ( WideInIdWidth     ),
+      .IdOutWidth     ( WideOutIdWidth    ),
+      .axi_req_t      ( axi_wide_in_req_t ),
+      .axi_rsp_t      ( axi_wide_in_rsp_t )
+    ) i_wide_meta_buffer (
+      .clk_i,
+      .rst_ni,
+      .test_enable_i,
+      .axi_req_i  ( axi_wide_meta_buf_req_in   ),
+      .axi_rsp_o  ( axi_wide_meta_buf_rsp_out  ),
+      .axi_req_o  ( axi_wide_meta_buf_req_out  ),
+      .axi_rsp_i  ( axi_wide_meta_buf_rsp_in   ),
+      .aw_buf_i   ( wide_aw_out_data_in        ),
+      .ar_buf_i   ( wide_ar_out_data_in        ),
+      .r_buf_o    ( wide_ar_out_data_out       ),
+      .b_buf_o    ( wide_aw_out_data_out       )
+    );
+  end else begin : gen_no_wide_mgr_port
+    axi_err_slv #(
+      .AxiIdWidth ( WideInIdWidth     ),
+      .ATOPs      ( 1'b1              ),
+      .axi_req_t  ( axi_wide_in_req_t ),
+      .axi_resp_t ( axi_wide_in_rsp_t )
+    ) i_axi_err_slv (
+      .clk_i      ( clk_i                     ),
+      .rst_ni     ( rst_ni                    ),
+      .test_i     ( test_enable_i             ),
+      .slv_req_i  ( axi_wide_meta_buf_req_in  ),
+      .slv_resp_o ( axi_wide_meta_buf_rsp_out )
+    );
+    assign axi_wide_meta_buf_req_out = '0;
+    assign wide_ar_out_data_out = '0;
+    assign wide_aw_out_data_out = '0;
+  end
 
   // Registers
   `FF(b_rob_pending_q, narrow_b_rob_valid_out && !narrow_b_rob_ready_in && !is_atop_b_rsp, '0)
@@ -1052,17 +1156,11 @@ module floo_narrow_wide_chimney
   // Non-atomic transactions all use the same ID
   `ASSERT_INIT(ToSmallIdWidth, 1 + AtopSupport * MaxAtomicTxns <= 2**NarrowOutIdWidth)
 
+  // If Network Interface has no subordinate port, make sure that `RoBType` is `NoRoB`
+  `ASSERT_INIT(NoNarrowSbrPortRobType, EnNarrowSbrPort || (NarrowRoBType == NoRoB))
+  `ASSERT_INIT(NoWideSbrPortRobType, EnWideSbrPort || (WideRoBType == NoRoB))
+
   // Data and valid signals must be stable/asserted when ready is low
-  // `ASSERT(NarrowReqOutStableData, req_o.valid && !req_i.ready
-  //                                 |=> $stable(req_o.data))
-  // `ASSERT(NarrowReqInStableData, req_i.valid && !req_o.ready
-  //                                 |=> $stable(req_i.data))
-  // `ASSERT(NarrowRspOutStableData, rsp_o.valid && !rsp_i.ready
-  //                                 |=> $stable(rsp_o.data))
-  // `ASSERT(NarrowRspInStableData, rsp_i.valid && !rsp_o.ready
-  //                                 |=> $stable(rsp_i.data))
-  // `ASSERT(WideOutStableData, wide_o.valid && !wide_i.ready |=> $stable(wide_o.data))
-  // `ASSERT(WideStableData, wide_i.valid && !wide_o.ready |=> $stable(wide_i.data))
   `ASSERT(NarrowReqOutStableValid, floo_req_o.valid &&
                                    !floo_req_i.ready |=> floo_req_o.valid)
   `ASSERT(NarrowReqInStableValid, floo_req_i.valid &&
@@ -1075,4 +1173,18 @@ module floo_narrow_wide_chimney
                               !floo_wide_i.ready |=> floo_wide_o.valid)
   `ASSERT(WideStableValid, floo_wide_i.valid &&
                            !floo_wide_o.ready |=> floo_wide_i.valid)
+
+  // Network Interface cannot accept any B and R responses if `En*SbrPort` are not set
+  `ASSERT(NoNarrowSbrPortBResponse, EnNarrowSbrPort || !(floo_rsp_in_valid && (floo_rsp_unpack_generic.hdr.axi_ch == NarrowB)))
+  `ASSERT(NoNarrowSbrPortRResponse, EnNarrowSbrPort || !(floo_rsp_in_valid && (floo_rsp_unpack_generic.hdr.axi_ch == NarrowR)))
+  `ASSERT(NoWideSbrPortBResponse, EnWideSbrPort || !(floo_rsp_in_valid && (floo_rsp_unpack_generic.hdr.axi_ch == WideB)))
+  `ASSERT(NoWideSbrPortRResponse, EnWideSbrPort || !(floo_wide_in_valid && (floo_wide_unpack_generic.hdr.axi_ch == WideR)))
+  // Network Interface cannot accept any AW, AR and W requests if `En*MgrPort` is not set
+  `ASSERT(NoNarrowMgrPortAwRequest, EnNarrowMgrPort || !(floo_req_in_valid && (floo_req_unpack_generic.hdr.axi_ch == NarrowAw)))
+  `ASSERT(NoNarrowMgrPortArRequest, EnNarrowMgrPort || !(floo_req_in_valid && (floo_req_unpack_generic.hdr.axi_ch == NarrowAr)))
+  `ASSERT(NoNarrowMgrPortWRequest,  EnNarrowMgrPort || !(floo_req_in_valid && (floo_req_unpack_generic.hdr.axi_ch == NarrowW)))
+  `ASSERT(NoWideMgrPortAwRequest, EnWideMgrPort || !(floo_req_in_valid && (floo_req_unpack_generic.hdr.axi_ch == WideAw)))
+  `ASSERT(NoWideMgrPortArRequest, EnWideMgrPort || !(floo_req_in_valid && (floo_req_unpack_generic.hdr.axi_ch == WideAr)))
+  `ASSERT(NoWideMgrPortWRequest,  EnWideMgrPort || !(floo_wide_in_valid && (floo_wide_unpack_generic.hdr.axi_ch == WideW)))
+
 endmodule
