@@ -92,9 +92,12 @@ module floo_narrow_wide_join #(
   typedef logic [AxiWideDataWidth/8-1:0] wide_strb_t;
   typedef logic [AxiUserWidth-1:0] user_t;
 
-  `AXI_TYPEDEF_ALL_CT(axi_narrow_iw_conv, axi_narrow_iw_conv_req_t, axi_narrow_iw_conv_rsp_t, addr_t, id_conv_t, narrow_data_t, narrow_strb_t, user_t)
-  `AXI_TYPEDEF_ALL_CT(axi_wide_iw_conv, axi_wide_iw_conv_req_t, axi_wide_iw_conv_rsp_t, addr_t, id_conv_t, wide_data_t, wide_strb_t, user_t)
-  `AXI_TYPEDEF_ALL_CT(axi_out, axi_out_req_t, axi_out_rsp_t, addr_t, id_t, wide_data_t, wide_strb_t, user_t)
+  `AXI_TYPEDEF_ALL_CT(axi_narrow_iw_conv, axi_narrow_iw_conv_req_t, axi_narrow_iw_conv_rsp_t,
+                      addr_t, id_conv_t, narrow_data_t, narrow_strb_t, user_t)
+  `AXI_TYPEDEF_ALL_CT(axi_wide_iw_conv, axi_wide_iw_conv_req_t, axi_wide_iw_conv_rsp_t,
+                      addr_t, id_conv_t, wide_data_t, wide_strb_t, user_t)
+  `AXI_TYPEDEF_ALL_CT(axi_out, axi_out_req_t, axi_out_rsp_t,
+                      addr_t, id_t, wide_data_t, wide_strb_t, user_t)
 
   axi_narrow_req_t axi_narrow_req_filter_atop;
   axi_narrow_rsp_t axi_narrow_rsp_filter_atop;
