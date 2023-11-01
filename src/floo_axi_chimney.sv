@@ -155,7 +155,7 @@ module floo_axi_chimney
         .rst_ni,
         .data_i     ( axi_in_req_i.aw         ),
         .valid_i    ( axi_in_req_i.aw_valid   ),
-        .ready_o    ( axi_in_rsp_o.aw_ready   ),
+        .ready_o    ( axi_rsp_out.aw_ready    ),
         .data_o     ( axi_aw_queue            ),
         .valid_o    ( axi_aw_queue_valid_out  ),
         .ready_i    ( axi_aw_queue_ready_in   )
@@ -168,7 +168,7 @@ module floo_axi_chimney
         .rst_ni,
         .data_i     ( axi_in_req_i.ar         ),
         .valid_i    ( axi_in_req_i.ar_valid   ),
-        .ready_o    ( axi_in_rsp_o.ar_ready   ),
+        .ready_o    ( axi_rsp_out.ar_ready    ),
         .data_o     ( axi_ar_queue            ),
         .valid_o    ( axi_ar_queue_valid_out  ),
         .ready_i    ( axi_ar_queue_ready_in   )

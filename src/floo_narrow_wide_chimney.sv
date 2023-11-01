@@ -212,7 +212,7 @@ module floo_narrow_wide_chimney
         .rst_ni,
         .data_i   ( axi_narrow_in_req_i.aw        ),
         .valid_i  ( axi_narrow_in_req_i.aw_valid  ),
-        .ready_o  ( axi_narrow_in_rsp_o.aw_ready  ),
+        .ready_o  ( axi_narrow_rsp_out.aw_ready   ),
         .data_o   ( axi_narrow_aw_queue           ),
         .valid_o  ( axi_narrow_aw_queue_valid_out ),
         .ready_i  ( axi_narrow_aw_queue_ready_in  )
@@ -225,7 +225,7 @@ module floo_narrow_wide_chimney
         .rst_ni,
         .data_i   ( axi_narrow_in_req_i.ar        ),
         .valid_i  ( axi_narrow_in_req_i.ar_valid  ),
-        .ready_o  ( axi_narrow_in_rsp_o.ar_ready  ),
+        .ready_o  ( axi_narrow_rsp_out.ar_ready   ),
         .data_o   ( axi_narrow_ar_queue           ),
         .valid_o  ( axi_narrow_ar_queue_valid_out ),
         .ready_i  ( axi_narrow_ar_queue_ready_in  )
@@ -234,10 +234,10 @@ module floo_narrow_wide_chimney
     end else begin : gen_ax_no_cuts
       assign axi_narrow_aw_queue = axi_narrow_in_req_i.aw;
       assign axi_narrow_aw_queue_valid_out = axi_narrow_in_req_i.aw_valid;
-      assign axi_narrow_in_rsp_o.aw_ready = axi_narrow_aw_queue_ready_in;
+      assign axi_narrow_rsp_out.aw_ready = axi_narrow_aw_queue_ready_in;
       assign axi_narrow_ar_queue = axi_narrow_in_req_i.ar;
       assign axi_narrow_ar_queue_valid_out = axi_narrow_in_req_i.ar_valid;
-      assign axi_narrow_in_rsp_o.ar_ready = axi_narrow_ar_queue_ready_in;
+      assign axi_narrow_rsp_out.ar_ready = axi_narrow_ar_queue_ready_in;
     end
 
   end else begin : gen_narrow_err_slv_port
@@ -273,7 +273,7 @@ module floo_narrow_wide_chimney
         .rst_ni,
         .data_i   ( axi_wide_in_req_i.aw        ),
         .valid_i  ( axi_wide_in_req_i.aw_valid  ),
-        .ready_o  ( axi_wide_in_rsp_o.aw_ready  ),
+        .ready_o  ( axi_wide_rsp_out.aw_ready   ),
         .data_o   ( axi_wide_aw_queue           ),
         .valid_o  ( axi_wide_aw_queue_valid_out ),
         .ready_i  ( axi_wide_aw_queue_ready_in  )
@@ -286,7 +286,7 @@ module floo_narrow_wide_chimney
         .rst_ni,
         .data_i   ( axi_wide_in_req_i.ar        ),
         .valid_i  ( axi_wide_in_req_i.ar_valid  ),
-        .ready_o  ( axi_wide_in_rsp_o.ar_ready  ),
+        .ready_o  ( axi_wide_rsp_out.ar_ready   ),
         .data_o   ( axi_wide_ar_queue           ),
         .valid_o  ( axi_wide_ar_queue_valid_out ),
         .ready_i  ( axi_wide_ar_queue_ready_in  )
@@ -294,10 +294,10 @@ module floo_narrow_wide_chimney
     end else begin : gen_ax_no_cuts
       assign axi_wide_aw_queue = axi_wide_in_req_i.aw;
       assign axi_wide_aw_queue_valid_out = axi_wide_in_req_i.aw_valid;
-      assign axi_wide_in_rsp_o.aw_ready = axi_wide_aw_queue_ready_in;
+      assign axi_wide_rsp_out.aw_ready = axi_wide_aw_queue_ready_in;
       assign axi_wide_ar_queue = axi_wide_in_req_i.ar;
       assign axi_wide_ar_queue_valid_out = axi_wide_in_req_i.ar_valid;
-      assign axi_wide_in_rsp_o.ar_ready = axi_wide_ar_queue_ready_in;
+      assign axi_wide_rsp_out.ar_ready = axi_wide_ar_queue_ready_in;
     end
   end else begin : gen_wide_err_slv_port
     axi_err_slv #(
