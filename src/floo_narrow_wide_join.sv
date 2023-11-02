@@ -21,39 +21,42 @@ module floo_narrow_wide_join #(
   /// ID width of the wide AXI bus
   parameter int unsigned AxiWideIdInWidth             = 0,
   /// ID width of the resulting AXI bus
+  /// To prevent the instantiation of any ID remappers,
+  /// `AxiIdOutWidth` should be chosen, such that:
+  /// max(`AxiNarrowIdWidth` and `AxiWideIdWidth`) == AxidOutWidth - 1
   parameter int unsigned AxiIdOutWidth                = 0,
-  /// This is the Id width of the busses before
-  /// muxing them together. To prevent the instantiation of any ID remappers,
-  /// `AxiIdConvWidth` resp. `AxiIdOutWidth` should be chosen,
-  /// such that the bigger of `AxiNarrowIdWidth` and `AxiWideIdWidth`
-  /// is equal to `AxiIdConvWidth`
+  /// ID width of the busses before muxing them together.
   localparam int unsigned AxiIdConvWidth              = AxiIdOutWidth - 1,
+  /// Default parameter for number of inflight narrow transactions
+  localparam int unsigned AxiNarrowMaxTxns            = 8,
   /// Maximum number of in-flight AXI narrow write transactions
-  parameter int unsigned AxiNarrowMaxWriteTxns        = 0,
+  parameter int unsigned AxiNarrowMaxWriteTxns        = AxiNarrowMaxTxns,
   /// Maximum number of in-flight AXI narrow read transactions
-  parameter int unsigned AxiNarrowMaxReadTxns         = 0,
-  /// Maximum number of in-flight AXI wide write transactions
-  parameter int unsigned AxiWideMaxWriteTxns          = 0,
+  parameter int unsigned AxiNarrowMaxReadTxns         = AxiNarrowMaxTxns,
   /// Number of unique IDs on the narrow AXI bus
-  parameter int unsigned AxiNarrowSlvPortMaxUniqIds   = 0,
+  parameter int unsigned AxiNarrowSlvPortMaxUniqIds   = 2**AxiNarrowIdInWidth,
   /// Maximum number of in-flight AXI transactions on the narrow AXI bus
-  parameter int unsigned AxiNarrowSlvPortMaxTxnsPerId = 0,
+  parameter int unsigned AxiNarrowSlvPortMaxTxnsPerId = AxiNarrowMaxTxns,
   /// Maximum number of in-flight transactions at the narrow slave port
-  parameter int unsigned AxiNarrowSlvPortMaxTxns      = 0,
+  parameter int unsigned AxiNarrowSlvPortMaxTxns      = AxiNarrowMaxTxns,
   /// Maximum number of different IDs that can be in flight at the narrow master port
-  parameter int unsigned AxiNarrowMstPortMaxUniqIds   = 0,
+  parameter int unsigned AxiNarrowMstPortMaxUniqIds   = 2**AxiIdConvWidth,
   /// Maximum number of in-flight transactions with the same ID at the narrow master port.
-  parameter int unsigned AxiNarrowMstPortMaxTxnsPerId = 0,
+  parameter int unsigned AxiNarrowMstPortMaxTxnsPerId = AxiNarrowMaxTxns,
+  /// Default parameter for number of inflight wide transactions
+  localparam int unsigned AxiWideMaxTxns              = 32,
+  /// Maximum number of in-flight AXI wide write transactions
+  parameter int unsigned AxiWideMaxWriteTxns          = AxiWideMaxTxns,
   /// Number of unique IDs on the wide AXI bus
-  parameter int unsigned AxiWideSlvPortMaxUniqIds     = 0,
+  parameter int unsigned AxiWideSlvPortMaxUniqIds     = 2**AxiWideIdInWidth,
   /// Maximum number of in-flight AXI transactions on the wide AXI bus
-  parameter int unsigned AxiWideSlvPortMaxTxnsPerId   = 0,
+  parameter int unsigned AxiWideSlvPortMaxTxnsPerId   = AxiWideMaxTxns,
   /// Maximum number of in-flight transactions at the wide slave port
-  parameter int unsigned AxiWideSlvPortMaxTxns        = 0,
+  parameter int unsigned AxiWideSlvPortMaxTxns        = AxiWideMaxTxns,
   /// Maximum number of different IDs that can be in flight at the wide master port
-  parameter int unsigned AxiWideMstPortMaxUniqIds     = 0,
+  parameter int unsigned AxiWideMstPortMaxUniqIds     = 2**AxiIdConvWidth,
   /// Maximum number of in-flight transactions with the same ID at the wide master port.
-  parameter int unsigned AxiWideMstPortMaxTxnsPerId   = 0,
+  parameter int unsigned AxiWideMstPortMaxTxnsPerId   = AxiWideMaxTxns,
     /// Address width of both AXI4+ATOP ports
   parameter int unsigned AxiAddrWidth                 = 32'd0,
   /// Data width of narrow AXI4+ATOP ports
