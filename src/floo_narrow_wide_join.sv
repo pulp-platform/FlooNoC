@@ -223,7 +223,7 @@ module floo_narrow_wide_join #(
     .AxiAddrWidth         ( AxiAddrWidth                  ),
     .AxiIdWidth           ( AxiIdConvWidth                ),
     .aw_chan_t            ( axi_narrow_iw_conv_aw_chan_t  ),
-    .mst_w_chan_t         ( axi_wide_iw_conv_aw_chan_t    ),
+    .mst_w_chan_t         ( axi_wide_iw_conv_w_chan_t     ),
     .slv_w_chan_t         ( axi_narrow_iw_conv_w_chan_t   ),
     .b_chan_t             ( axi_narrow_iw_conv_b_chan_t   ),
     .ar_chan_t            ( axi_narrow_iw_conv_ar_chan_t  ),
