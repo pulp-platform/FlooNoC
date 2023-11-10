@@ -138,7 +138,7 @@ module tb_floo_rob;
     .MaxTxns            ( MaxTxns             ),
     .MaxTxnsPerId       ( MaxTxnsPerId        ),
     .ReorderBufferSize  ( ReorderBufferSize   ),
-    .xy_id_t            ( xy_id_t             )
+    .id_t               ( xy_id_t             )
   ) i_floo_axi_chimney (
     .clk_i          ( clk                       ),
     .rst_ni         ( rst_n                     ),
@@ -148,8 +148,7 @@ module tb_floo_rob;
     .axi_in_rsp_o   ( node_mst_rsp              ),
     .axi_out_req_o  ( node_slv_req[Eject]       ),
     .axi_out_rsp_i  ( node_slv_rsp[Eject]       ),
-    .xy_id_i        ( xy_id[Eject]              ),
-    .id_i           ( '0                        ),
+    .id_i           ( xy_id[Eject]              ),
     .floo_req_o     ( chimney_req_out[Eject]    ),
     .floo_rsp_o     ( chimney_rsp_out[Eject]    ),
     .floo_req_i     ( chimney_req_in[Eject]     ),
@@ -221,7 +220,7 @@ module tb_floo_rob;
       .MaxTxns            ( MaxTxns             ),
       .MaxTxnsPerId       ( MaxTxnsPerId        ),
       .ReorderBufferSize  ( ReorderBufferSize   ),
-      .xy_id_t            ( xy_id_t             )
+      .id_t               ( xy_id_t             )
     ) i_floo_axi_chimney (
       .clk_i          ( clk                   ),
       .rst_ni         ( rst_n                 ),
@@ -231,8 +230,7 @@ module tb_floo_rob;
       .axi_in_rsp_o   (                       ),
       .axi_out_req_o  ( node_slv_req[i]       ),
       .axi_out_rsp_i  ( node_slv_rsp[i]       ),
-      .xy_id_i        ( xy_id[i]              ),
-      .id_i           ( '0                    ),
+      .id_i           ( xy_id[i]              ),
       .floo_req_o     ( chimney_req_out[i]    ),
       .floo_rsp_o     ( chimney_rsp_out[i]    ),
       .floo_req_i     ( chimney_req_in[i]     ),
