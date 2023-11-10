@@ -4,37 +4,6 @@
 //
 // Thomas Benz <tbenz@ethz.ch>
 
-// write a byte to the AXI-attached memory
-task write_byte_dma_mem (
-    input byte_t byte_i,
-    input addr_t addr_i
-);
-    i_axi_dma_sim_mem.mem[addr_i] = byte_i;
-endtask
-
-task write_byte_axi_in_mem (
-    input byte_t byte_i,
-    input addr_t addr_i
-);
-    i_axi_in_sim_mem.mem[addr_i] = byte_i;
-endtask
-
-task automatic init_mem (
-    ref tb_dma_job_t now_r
-);
-    addr_t now;
-    byte_t to_write;
-    now = 0;
-    while (now < now_r.length) begin
-        // to_write = $urandom();
-        to_write = now_r.src_addr + now;
-        // model.write_byte   (to_write, now_r.src_addr + now);
-        write_byte_dma_mem (to_write, now_r.src_addr + now);
-        write_byte_axi_in_mem (to_write, now_r.src_addr + now);
-        now++;
-    end
-endtask
-
 // read jobs from the job file
 task automatic read_jobs (
     input string       filename,

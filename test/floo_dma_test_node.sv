@@ -6,6 +6,7 @@
 //  - Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 `include "axi/typedef.svh"
+`include "axi/assign.svh"
 `include "idma/typedef.svh"
 
 /// An endpoint node with a DMA master port and a Simulation Memory Slave port
@@ -221,68 +222,46 @@ module floo_dma_test_node  #(
     .default_mst_port_i     ( 1'b1          )
   );
 
-  axi_sim_mem #(
-    .AddrWidth         ( $clog2(MemSize)  ),
-    .DataWidth         ( DataWidth        ),
-    .IdWidth           ( AxiIdInWidth     ),
-    .UserWidth         ( UserWidth        ),
-    .axi_req_t         ( axi_in_req_t     ),
-    .axi_rsp_t         ( axi_in_rsp_t     ),
-    .WarnUninitialized ( 1'b0             ),
-    .ClearErrOnAccess  ( 1'b1             ),
-    .ApplDelay         ( TA               ),
-    .AcqDelay          ( TT               )
-  ) i_axi_in_sim_mem (
-    .clk_i              ( clk_i               ),
-    .rst_ni             ( rst_ni              ),
-    .axi_req_i          ( axi_in_req_i        ),
-    .axi_rsp_o          ( axi_in_rsp_o        ),
-    .mon_r_last_o       ( /* NOT CONNECTED */ ),
-    .mon_r_beat_count_o ( /* NOT CONNECTED */ ),
-    .mon_r_user_o       ( /* NOT CONNECTED */ ),
-    .mon_r_id_o         ( /* NOT CONNECTED */ ),
-    .mon_r_data_o       ( /* NOT CONNECTED */ ),
-    .mon_r_addr_o       ( /* NOT CONNECTED */ ),
-    .mon_r_valid_o      ( /* NOT CONNECTED */ ),
-    .mon_w_last_o       ( /* NOT CONNECTED */ ),
-    .mon_w_beat_count_o ( /* NOT CONNECTED */ ),
-    .mon_w_user_o       ( /* NOT CONNECTED */ ),
-    .mon_w_id_o         ( /* NOT CONNECTED */ ),
-    .mon_w_data_o       ( /* NOT CONNECTED */ ),
-    .mon_w_addr_o       ( /* NOT CONNECTED */ ),
-    .mon_w_valid_o      ( /* NOT CONNECTED */ )
+  floo_axi_rand_slave #(
+    .AxiAddrWidth ( AddrWidth                 ),
+    .AxiDataWidth ( DataWidth                 ),
+    .AxiIdWidth   ( AxiIdOutWidth             ),
+    .AxiUserWidth ( UserWidth                 ),
+    .AxiStrbWidth ( StrbWidth                 ),
+    .ApplTime     ( TA                        ),
+    .TestTime     ( TT                        ),
+    .SlaveType    ( floo_test_pkg::FastSlave  ),
+    .NumSlaves    ( 1                         ),
+    .axi_req_t    ( axi_xbar_req_t            ),
+    .axi_rsp_t    ( axi_xbar_resp_t           )
+  ) i_dma_sim_mem (
+    .clk_i              ( clk_i       ),
+    .rst_ni             ( rst_ni      ),
+    .slv_port_req_i     ( axi_mem_req ),
+    .slv_port_rsp_o     ( axi_mem_rsp ),
+    .mon_mst_port_req_o (             ),
+    .mon_mst_port_rsp_o (             )
   );
 
-  axi_sim_mem #(
-    .AddrWidth         ( MemSize          ),
-    .DataWidth         ( DataWidth        ),
-    .IdWidth           ( AxiIdOutWidth    ),
-    .UserWidth         ( UserWidth        ),
-    .axi_req_t         ( axi_xbar_req_t   ),
-    .axi_rsp_t         ( axi_xbar_resp_t  ),
-    .WarnUninitialized ( 1'b0             ),
-    .ClearErrOnAccess  ( 1'b1             ),
-    .ApplDelay         ( TA               ),
-    .AcqDelay          ( TT               )
-  ) i_axi_dma_sim_mem (
-    .clk_i              ( clk_i               ),
-    .rst_ni             ( rst_ni              ),
-    .axi_req_i          ( axi_mem_req         ),
-    .axi_rsp_o          ( axi_mem_rsp         ),
-    .mon_r_last_o       ( /* NOT CONNECTED */ ),
-    .mon_r_beat_count_o ( /* NOT CONNECTED */ ),
-    .mon_r_user_o       ( /* NOT CONNECTED */ ),
-    .mon_r_id_o         ( /* NOT CONNECTED */ ),
-    .mon_r_data_o       ( /* NOT CONNECTED */ ),
-    .mon_r_addr_o       ( /* NOT CONNECTED */ ),
-    .mon_r_valid_o      ( /* NOT CONNECTED */ ),
-    .mon_w_last_o       ( /* NOT CONNECTED */ ),
-    .mon_w_beat_count_o ( /* NOT CONNECTED */ ),
-    .mon_w_user_o       ( /* NOT CONNECTED */ ),
-    .mon_w_id_o         ( /* NOT CONNECTED */ ),
-    .mon_w_data_o       ( /* NOT CONNECTED */ ),
-    .mon_w_addr_o       ( /* NOT CONNECTED */ ),
-    .mon_w_valid_o      ( /* NOT CONNECTED */ )
+  floo_axi_rand_slave #(
+    .AxiAddrWidth ( AddrWidth                 ),
+    .AxiDataWidth ( DataWidth                 ),
+    .AxiIdWidth   ( AxiIdInWidth              ),
+    .AxiUserWidth ( UserWidth                 ),
+    .AxiStrbWidth ( StrbWidth                 ),
+    .ApplTime     ( TA                        ),
+    .TestTime     ( TT                        ),
+    .SlaveType    ( floo_test_pkg::FastSlave  ),
+    .NumSlaves    ( 1                         ),
+    .axi_req_t    ( axi_in_req_t              ),
+    .axi_rsp_t    ( axi_in_rsp_t              )
+  ) i_sink_in_mem (
+    .clk_i              ( clk_i         ),
+    .rst_ni             ( rst_ni        ),
+    .slv_port_req_i     ( axi_in_req_i  ),
+    .slv_port_rsp_o     ( axi_in_rsp_o  ),
+    .mon_mst_port_req_o (               ),
+    .mon_mst_port_rsp_o (               )
   );
 
   assign xbar_in_req = axi_dma_req;
@@ -396,8 +375,6 @@ module floo_dma_test_node  #(
         automatic tb_dma_job_t now = req_jobs.pop_front();
         // print job to terminal
         if (EnableDebug) $display("[DMA%0d]%s", JobId + 1, now.pprint());
-        // init mem (model and AXI)
-        init_mem(now);
         // launch DUT
         drv.launch_tf(
                       now.length,
