@@ -55,8 +55,7 @@ module floo_narrow_wide_chimney
   parameter bit CutAx                            = 1'b1,
   /// Cut timing paths of incoming responses from the NoC
   parameter bit CutRsp                           = 1'b1,
-  /// Only used for XYRouting
-  parameter type xy_id_t                         = logic,
+  /// Type of Coordinates/Id
   parameter type id_t                            = logic,
   /// Only used for IDRouting
   parameter type id_rule_t                       = logic,
@@ -79,7 +78,6 @@ module floo_narrow_wide_chimney
   output axi_wide_out_req_t axi_wide_out_req_o,
   input  axi_wide_out_rsp_t axi_wide_out_rsp_i,
   /// Coordinates/ID of the current tile
-  input  xy_id_t    xy_id_i,
   input  id_t       id_i,
   /// Routing table
   input  id_rule_t[NumRules-1:0]  id_map_i,
@@ -188,7 +186,6 @@ module floo_narrow_wide_chimney
 
   // Routing
   id_t [NumNarrowWideAxiChannels-1:0] dst_id;
-  id_t src_id;
 
   narrow_id_out_buf_t narrow_aw_out_data_in, narrow_aw_out_data_out;
   narrow_id_out_buf_t narrow_ar_out_data_in, narrow_ar_out_data_out;
@@ -611,17 +608,16 @@ module floo_narrow_wide_chimney
 
 
   if (RouteAlgo == XYRouting) begin : gen_xy_routing
-    xy_id_t narrow_aw_xy_id_q, narrow_aw_xy_id, narrow_ar_xy_id;
-    xy_id_t wide_aw_xy_id_q, wide_aw_xy_id, wide_ar_xy_id;
-    assign src_id = xy_id_i;
-    assign narrow_aw_xy_id.x = axi_narrow_aw_queue.addr[XYAddrOffsetX+:$bits(xy_id_i.x)];
-    assign narrow_aw_xy_id.y = axi_narrow_aw_queue.addr[XYAddrOffsetY+:$bits(xy_id_i.y)];
-    assign narrow_ar_xy_id.x = axi_narrow_ar_queue.addr[XYAddrOffsetX+:$bits(xy_id_i.x)];
-    assign narrow_ar_xy_id.y = axi_narrow_ar_queue.addr[XYAddrOffsetY+:$bits(xy_id_i.y)];
-    assign wide_aw_xy_id.x = axi_wide_aw_queue.addr[XYAddrOffsetX+:$bits(xy_id_i.x)];
-    assign wide_aw_xy_id.y = axi_wide_aw_queue.addr[XYAddrOffsetY+:$bits(xy_id_i.y)];
-    assign wide_ar_xy_id.x = axi_wide_ar_queue.addr[XYAddrOffsetX+:$bits(xy_id_i.x)];
-    assign wide_ar_xy_id.y = axi_wide_ar_queue.addr[XYAddrOffsetY+:$bits(xy_id_i.y)];
+    id_t narrow_aw_xy_id_q, narrow_aw_xy_id, narrow_ar_xy_id;
+    id_t wide_aw_xy_id_q, wide_aw_xy_id, wide_ar_xy_id;
+    assign narrow_aw_xy_id.x = axi_narrow_aw_queue.addr[XYAddrOffsetX+:$bits(id_i.x)];
+    assign narrow_aw_xy_id.y = axi_narrow_aw_queue.addr[XYAddrOffsetY+:$bits(id_i.y)];
+    assign narrow_ar_xy_id.x = axi_narrow_ar_queue.addr[XYAddrOffsetX+:$bits(id_i.x)];
+    assign narrow_ar_xy_id.y = axi_narrow_ar_queue.addr[XYAddrOffsetY+:$bits(id_i.y)];
+    assign wide_aw_xy_id.x = axi_wide_aw_queue.addr[XYAddrOffsetX+:$bits(id_i.x)];
+    assign wide_aw_xy_id.y = axi_wide_aw_queue.addr[XYAddrOffsetY+:$bits(id_i.y)];
+    assign wide_ar_xy_id.x = axi_wide_ar_queue.addr[XYAddrOffsetX+:$bits(id_i.x)];
+    assign wide_ar_xy_id.y = axi_wide_ar_queue.addr[XYAddrOffsetY+:$bits(id_i.y)];
     assign dst_id[NarrowAw] = narrow_aw_xy_id;
     assign dst_id[NarrowAr] = narrow_ar_xy_id;
     assign dst_id[NarrowW]  = narrow_aw_xy_id_q;
@@ -692,7 +688,7 @@ module floo_narrow_wide_chimney
     floo_narrow_aw.hdr.rob_req  = narrow_aw_rob_req_out;
     floo_narrow_aw.hdr.rob_idx  = rob_idx_t'(narrow_aw_rob_idx_out);
     floo_narrow_aw.hdr.dst_id   = dst_id[NarrowAw];
-    floo_narrow_aw.hdr.src_id   = src_id;
+    floo_narrow_aw.hdr.src_id   = id_i;
     floo_narrow_aw.hdr.last     = 1'b1;
     floo_narrow_aw.hdr.axi_ch   = NarrowAw;
     floo_narrow_aw.hdr.atop     = axi_narrow_aw_queue.atop != axi_pkg::ATOP_NONE;
@@ -704,7 +700,7 @@ module floo_narrow_wide_chimney
     floo_narrow_w.hdr.rob_req   = narrow_aw_rob_req_out;
     floo_narrow_w.hdr.rob_idx   = rob_idx_t'(narrow_aw_rob_idx_out);
     floo_narrow_w.hdr.dst_id    = dst_id[NarrowW];
-    floo_narrow_w.hdr.src_id    = src_id;
+    floo_narrow_w.hdr.src_id    = id_i;
     floo_narrow_w.hdr.last      = axi_narrow_req_in.w.last;
     floo_narrow_w.hdr.axi_ch    = NarrowW;
     floo_narrow_w.w             = axi_narrow_req_in.w;
@@ -715,7 +711,7 @@ module floo_narrow_wide_chimney
     floo_narrow_ar.hdr.rob_req  = narrow_ar_rob_req_out;
     floo_narrow_ar.hdr.rob_idx  = rob_idx_t'(narrow_ar_rob_idx_out);
     floo_narrow_ar.hdr.dst_id   = dst_id[NarrowAr];
-    floo_narrow_ar.hdr.src_id   = src_id;
+    floo_narrow_ar.hdr.src_id   = id_i;
     floo_narrow_ar.hdr.last     = 1'b1;
     floo_narrow_ar.hdr.axi_ch   = NarrowAr;
     floo_narrow_ar.ar           = axi_narrow_ar_queue;
@@ -726,7 +722,7 @@ module floo_narrow_wide_chimney
     floo_narrow_b.hdr.rob_req = narrow_aw_out_data_out.rob_req;
     floo_narrow_b.hdr.rob_idx = rob_idx_t'(narrow_aw_out_data_out.rob_idx);
     floo_narrow_b.hdr.dst_id  = narrow_aw_out_data_out.src_id;
-    floo_narrow_b.hdr.src_id  = src_id;
+    floo_narrow_b.hdr.src_id  = id_i;
     floo_narrow_b.hdr.last    = 1'b1;
     floo_narrow_b.hdr.axi_ch  = NarrowB;
     floo_narrow_b.hdr.atop    = narrow_aw_out_data_out.atop;
@@ -739,7 +735,7 @@ module floo_narrow_wide_chimney
     floo_narrow_r.hdr.rob_req = narrow_ar_out_data_out.rob_req;
     floo_narrow_r.hdr.rob_idx = rob_idx_t'(narrow_ar_out_data_out.rob_idx);
     floo_narrow_r.hdr.dst_id  = narrow_ar_out_data_out.src_id;
-    floo_narrow_r.hdr.src_id  = src_id;
+    floo_narrow_r.hdr.src_id  = id_i;
     floo_narrow_r.hdr.axi_ch  = NarrowR;
     floo_narrow_r.hdr.last    = axi_narrow_out_rsp_i.r.last;
     floo_narrow_r.hdr.atop    = narrow_ar_out_data_out.atop;
@@ -752,7 +748,7 @@ module floo_narrow_wide_chimney
     floo_wide_aw.hdr.rob_req  = wide_aw_rob_req_out;
     floo_wide_aw.hdr.rob_idx  = rob_idx_t'(wide_aw_rob_idx_out);
     floo_wide_aw.hdr.dst_id   = dst_id[WideAw];
-    floo_wide_aw.hdr.src_id   = src_id;
+    floo_wide_aw.hdr.src_id   = id_i;
     floo_wide_aw.hdr.last     = 1'b1;
     floo_wide_aw.hdr.axi_ch   = WideAw;
     floo_wide_aw.aw           = axi_wide_aw_queue;
@@ -763,7 +759,7 @@ module floo_narrow_wide_chimney
     floo_wide_w.hdr.rob_req = wide_aw_rob_req_out;
     floo_wide_w.hdr.rob_idx = rob_idx_t'(wide_aw_rob_idx_out);
     floo_wide_w.hdr.dst_id  = dst_id[WideW];
-    floo_wide_w.hdr.src_id  = src_id;
+    floo_wide_w.hdr.src_id  = id_i;
     floo_wide_w.hdr.last    = axi_wide_req_in.w.last;
     floo_wide_w.hdr.axi_ch  = WideW;
     floo_wide_w.w           = axi_wide_req_in.w;
@@ -774,7 +770,7 @@ module floo_narrow_wide_chimney
     floo_wide_ar.hdr.rob_req  = wide_ar_rob_req_out;
     floo_wide_ar.hdr.rob_idx  = rob_idx_t'(wide_ar_rob_idx_out);
     floo_wide_ar.hdr.dst_id   = dst_id[WideAr];
-    floo_wide_ar.hdr.src_id   = src_id;
+    floo_wide_ar.hdr.src_id   = id_i;
     floo_wide_ar.hdr.last     = 1'b1;
     floo_wide_ar.hdr.axi_ch   = WideAr;
     floo_wide_ar.ar           = axi_wide_ar_queue;
@@ -785,7 +781,7 @@ module floo_narrow_wide_chimney
     floo_wide_b.hdr.rob_req = wide_aw_out_data_out.rob_req;
     floo_wide_b.hdr.rob_idx = rob_idx_t'(wide_aw_out_data_out.rob_idx);
     floo_wide_b.hdr.dst_id  = wide_aw_out_data_out.src_id;
-    floo_wide_b.hdr.src_id  = src_id;
+    floo_wide_b.hdr.src_id  = id_i;
     floo_wide_b.hdr.last    = 1'b1;
     floo_wide_b.hdr.axi_ch  = WideB;
     floo_wide_b.b           = axi_wide_meta_buf_rsp_out.b;
@@ -797,7 +793,7 @@ module floo_narrow_wide_chimney
     floo_wide_r.hdr.rob_req = wide_ar_out_data_out.rob_req;
     floo_wide_r.hdr.rob_idx = rob_idx_t'(wide_ar_out_data_out.rob_idx);
     floo_wide_r.hdr.dst_id  = wide_ar_out_data_out.src_id;
-    floo_wide_r.hdr.src_id  = src_id;
+    floo_wide_r.hdr.src_id  = id_i;
     floo_wide_r.hdr.axi_ch  = WideR;
     floo_wide_r.hdr.last    = axi_wide_out_rsp_i.r.last;
     floo_wide_r.r           = axi_wide_meta_buf_rsp_out.r;
