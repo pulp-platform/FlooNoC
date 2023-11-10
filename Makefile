@@ -85,13 +85,19 @@ clean-sources:
 # Traffic Generation #
 ######################
 
+TRAFFIC_GEN ?= util/gen_jobs.py
+TRAFFIC_TB ?= dma_mesh
+TRAFFIC_TYPE ?= random
+TRAFFIC_RW ?= read
+TRAFFIC_OUTDIR ?= test/jobs
+
 .PHONY: jobs clean-jobs
-jobs: util/gen_jobs.py
-	mkdir -p test/jobs
-	./util/gen_jobs.py --out_dir test/jobs
+jobs: $(TRAFFIC_GEN)
+	mkdir -p $(TRAFFIC_OUTDIR)
+	$(TRAFFIC_GEN) --out_dir $(TRAFFIC_OUTDIR) --tb $(TRAFFIC_TB) --type $(TRAFFIC_TYPE) --rw $(TRAFFIC_RW)
 
 clean-jobs:
-	rm -rf test/jobs
+	rm -rf $(TRAFFIC_OUTDIR)
 
 ########################
 # QuestaSim Simulation #
