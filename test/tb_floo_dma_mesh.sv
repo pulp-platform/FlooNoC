@@ -211,8 +211,6 @@ module tb_floo_dma_mesh;
       .WideMaxTxns              ( WideMaxTxns             ),
       .NarrowReorderBufferSize  ( NarrowReorderBufferSize ),
       .WideReorderBufferSize    ( WideReorderBufferSize   ),
-      .NarrowRoBSimple          ( NarrowRoBSimple         ),
-      .WideRoBSimple            ( WideRoBSimple           ),
       .CutAx                    ( CutAx                   ),
       .CutRsp                   ( CutRsp                  ),
       .xy_id_t                  ( xy_id_t                 )
@@ -222,6 +220,7 @@ module tb_floo_dma_mesh;
       .sram_cfg_i           ( '0                ),
       .test_enable_i        ( 1'b0              ),
       .id_i                 ( '0                ),
+      .id_map_i             ( '0                ),
       .xy_id_i              ( xy_id_hbm         ),
       .axi_narrow_in_req_i  ( '0                ),
       .axi_narrow_in_rsp_o  (                   ),
@@ -351,8 +350,6 @@ module tb_floo_dma_mesh;
         .WideMaxTxns              ( WideMaxTxns             ),
         .NarrowReorderBufferSize  ( NarrowReorderBufferSize ),
         .WideReorderBufferSize    ( WideReorderBufferSize   ),
-        .NarrowRoBSimple          ( NarrowRoBSimple         ),
-        .WideRoBSimple            ( WideRoBSimple           ),
         .CutAx                    ( CutAx                   ),
         .CutRsp                   ( CutRsp                  ),
         .xy_id_t                  ( xy_id_t                 )
@@ -362,6 +359,7 @@ module tb_floo_dma_mesh;
         .sram_cfg_i           ( '0                            ),
         .test_enable_i        ( 1'b0                          ),
         .id_i                 ( '0                            ),
+        .id_map_i             ( '0                            ),
         .xy_id_i              ( current_id                    ),
         .axi_narrow_in_req_i  ( narrow_man_req[x][y]          ),
         .axi_narrow_in_rsp_o  ( narrow_man_rsp[x][y]          ),
