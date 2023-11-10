@@ -75,7 +75,7 @@ run-traffic:
   parallel:
     matrix:
       - TRAFFIC_TYPE: [random, hbm, onehop]
-      - TRAFFIC_RW: [read, write]
+        TRAFFIC_RW: [read, write]
   needs:
     - collect-bender-sources
     - compile-vsim
