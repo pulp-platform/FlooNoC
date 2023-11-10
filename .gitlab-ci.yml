@@ -71,6 +71,7 @@ run-traffic:
   stage: run
   variables:
     VSIM_TB_DUT: tb_floo_dma_mesh
+    JOB_NAME: mesh
   parallel:
     matrix:
       - TRAFFIC_TYPE: [random, hbm, onehop]
