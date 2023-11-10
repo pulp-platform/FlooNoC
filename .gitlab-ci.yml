@@ -67,6 +67,22 @@ run-vsim:
       when: manual
     - when: always
 
+run-traffic:
+  stage: run
+  variables:
+    VSIM_TB_DUT: tb_floo_dma_mesh
+  parallel:
+    matrix:
+      - TRAFFIC_TYPE: [random, hbm, onehop]
+      - TRAFFIC_RW: [read, write]
+  needs:
+    - collect-bender-sources
+    - compile-vsim
+  script:
+    - make jobs
+    - make run-sim-batch | tee vsim.log 2>&1
+    - 'grep "Errors: 0," vsim.log'
+
 morty:
   stage: build
   script:
