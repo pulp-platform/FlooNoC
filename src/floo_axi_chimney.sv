@@ -40,8 +40,8 @@ module floo_axi_chimney
   parameter rob_type_e RoBType              = NoRoB,
   /// Capacity of the reorder buffer
   parameter int unsigned ReorderBufferSize  = 32,
-  /// Only used for XYRouting
-  parameter type xy_id_t                    = logic,
+  /// Type of Coordinates/Id
+  parameter type id_t                       = logic,
   /// Cut timing paths of outgoing requests
   parameter bit CutAx                       = 1'b0,
   /// Cut timing paths of incoming responses
@@ -61,8 +61,7 @@ module floo_axi_chimney
   output axi_out_req_t axi_out_req_o,
   input  axi_out_rsp_t axi_out_rsp_i,
   /// Coordinates/ID of the current tile
-  input  xy_id_t  xy_id_i,
-  input  src_id_t id_i,
+  input  id_t  id_i,
   /// Output to NoC
   output floo_req_t floo_req_o,
   output floo_rsp_t floo_rsp_o,
@@ -120,8 +119,6 @@ module floo_axi_chimney
   typedef enum logic {SelAw, SelW} aw_w_sel_e;
   aw_w_sel_e aw_w_sel_q, aw_w_sel_d;
 
-  typedef dst_id_t id_t;
-
   // ID tracking
   typedef struct packed {
     axi_in_id_t id;
@@ -133,7 +130,6 @@ module floo_axi_chimney
 
   // Routing
   id_t [NumAxiChannels-1:0] dst_id;
-  id_t src_id;
 
   id_out_buf_t aw_out_data_in, aw_out_data_out;
   id_out_buf_t ar_out_data_in, ar_out_data_out;
@@ -357,12 +353,11 @@ module floo_axi_chimney
 
 
   if (RouteAlgo == XYRouting) begin : gen_xy_routing
-    xy_id_t aw_xy_id_q, aw_xy_id, ar_xy_id;
-    assign src_id = xy_id_i;
-    assign aw_xy_id.x = axi_aw_queue.addr[XYAddrOffsetX+:$bits(xy_id_i.x)];
-    assign aw_xy_id.y = axi_aw_queue.addr[XYAddrOffsetY+:$bits(xy_id_i.y)];
-    assign ar_xy_id.x = axi_ar_queue.addr[XYAddrOffsetX+:$bits(xy_id_i.x)];
-    assign ar_xy_id.y = axi_ar_queue.addr[XYAddrOffsetY+:$bits(xy_id_i.y)];
+    id_t aw_xy_id_q, aw_xy_id, ar_xy_id;
+    assign aw_xy_id.x = axi_aw_queue.addr[XYAddrOffsetX+:$bits(id_i.x)];
+    assign aw_xy_id.y = axi_aw_queue.addr[XYAddrOffsetY+:$bits(id_i.y)];
+    assign ar_xy_id.x = axi_ar_queue.addr[XYAddrOffsetX+:$bits(id_i.x)];
+    assign ar_xy_id.y = axi_ar_queue.addr[XYAddrOffsetY+:$bits(id_i.y)];
     assign dst_id[AxiAw] = aw_xy_id;
     assign dst_id[AxiAr] = ar_xy_id;
     assign dst_id[AxiW]  = aw_xy_id_q;
@@ -371,7 +366,6 @@ module floo_axi_chimney
     `FFL(aw_xy_id_q, aw_xy_id, axi_aw_queue_valid_out && axi_aw_queue_ready_in, '0)
   end else if (RouteAlgo == IdTable) begin : gen_id_table_routing
     id_t aw_id_q, aw_id, ar_id;
-    assign src_id = id_i;
     assign aw_id = axi_aw_queue.addr[IdTableAddrOffset+:$bits(id_i)];
     assign ar_id = axi_ar_queue.addr[IdTableAddrOffset+:$bits(id_i)];
     assign dst_id[AxiAw] = aw_id;
@@ -394,7 +388,7 @@ module floo_axi_chimney
     floo_axi_aw.hdr.rob_req = aw_rob_req_out;
     floo_axi_aw.hdr.rob_idx = aw_rob_idx_out;
     floo_axi_aw.hdr.dst_id  = dst_id[AxiAw];
-    floo_axi_aw.hdr.src_id  = src_id;
+    floo_axi_aw.hdr.src_id  = id_i;
     floo_axi_aw.hdr.last    = 1'b1;
     floo_axi_aw.hdr.axi_ch  = AxiAw;
     floo_axi_aw.hdr.atop    = axi_aw_queue.atop != axi_pkg::ATOP_NONE;
@@ -406,7 +400,7 @@ module floo_axi_chimney
     floo_axi_w.hdr.rob_req  = aw_rob_req_out;
     floo_axi_w.hdr.rob_idx  = aw_rob_idx_out;
     floo_axi_w.hdr.dst_id   = dst_id[AxiW];
-    floo_axi_w.hdr.src_id   = src_id;
+    floo_axi_w.hdr.src_id   = id_i;
     floo_axi_w.hdr.last     = axi_req_in.w.last;
     floo_axi_w.hdr.axi_ch   = AxiW;
     floo_axi_w.w            = axi_req_in.w;
@@ -417,7 +411,7 @@ module floo_axi_chimney
     floo_axi_ar.hdr.rob_req = ar_rob_req_out;
     floo_axi_ar.hdr.rob_idx = ar_rob_idx_out;
     floo_axi_ar.hdr.dst_id  = dst_id[AxiAr];
-    floo_axi_ar.hdr.src_id  = src_id;
+    floo_axi_ar.hdr.src_id  = id_i;
     floo_axi_ar.hdr.last    = 1'b1;
     floo_axi_ar.hdr.axi_ch  = AxiAr;
     floo_axi_ar.ar          = axi_ar_queue;
@@ -428,7 +422,7 @@ module floo_axi_chimney
     floo_axi_b.hdr.rob_req  = aw_out_data_out.rob_req;
     floo_axi_b.hdr.rob_idx  = aw_out_data_out.rob_idx;
     floo_axi_b.hdr.dst_id   = aw_out_data_out.src_id;
-    floo_axi_b.hdr.src_id   = src_id;
+    floo_axi_b.hdr.src_id   = id_i;
     floo_axi_b.hdr.last     = 1'b1;
     floo_axi_b.hdr.axi_ch   = AxiB;
     floo_axi_b.hdr.atop     = aw_out_data_out.atop;
@@ -441,7 +435,7 @@ module floo_axi_chimney
     floo_axi_r.hdr.rob_req  = ar_out_data_out.rob_req;
     floo_axi_r.hdr.rob_idx  = ar_out_data_out.rob_idx;
     floo_axi_r.hdr.dst_id   = ar_out_data_out.src_id;
-    floo_axi_r.hdr.src_id   = src_id;
+    floo_axi_r.hdr.src_id   = id_i;
     floo_axi_r.hdr.last     = axi_out_rsp_i.r.last;
     floo_axi_r.hdr.axi_ch   = AxiR;
     floo_axi_r.hdr.atop     = ar_out_data_out.atop;

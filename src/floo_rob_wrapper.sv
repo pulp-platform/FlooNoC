@@ -130,13 +130,14 @@ module floo_rob_wrapper
     localparam int unsigned CounterWidth = $clog2(MaxRoTxnsPerId);
 
     logic push, pop;
+    logic counter_full;
     logic in_flight;
     dest_t prev_dest;
 
     // A new transaction can be pushed if it is the first one
     // i.e. `in_flight` is not set or if the previous transaction
     // has the same destination
-    assign push = ax_valid_i && (!in_flight || ax_dest_i == prev_dest);
+    assign push = ax_valid_i && (!in_flight || ax_dest_i == prev_dest) && !counter_full;
     // Whenever a response arrives we can pop the transaction
     assign pop = rsp_valid_i && rsp_last_i;
 
@@ -161,7 +162,7 @@ module floo_rob_wrapper
       .lookup_axi_id_i              ( ax_id_i             ),
       .lookup_mst_select_o          ( prev_dest           ),
       .lookup_mst_select_occupied_o ( in_flight           ),
-      .full_o                       ( /* TODO */          ),
+      .full_o                       ( counter_full        ),
       .push_axi_id_i                ( ax_id_i             ),
       .push_mst_select_i            ( ax_dest_i           ),
       .push_i                       ( push && ax_ready_i  ),  // Only push on handshake

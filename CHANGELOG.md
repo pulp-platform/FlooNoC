@@ -9,6 +9,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 ### Added
 
 - Added Chimney Parameters `EnMgrPort` and `EnSbrPort` to properly parametrize Manager resp. Subordinate-only instances of a chimney
+- Added `XYRouteOpt` parameter to router to enable/disable routing optimizations when using `XYRouting`
+
+### Changed
+
+- Removed `xy_id_i` ports from AXI chimneys in favor of a generic `id_i` port for both `IdTable` and `XYRouting`
+
+### Fixed
+
+- Fixed missing backpressure in the `NoRoB` version of the reorder buffer, which could lead to overflow of counters
 
 ## [0.2.1] - 2023-10-13
 

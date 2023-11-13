@@ -24,6 +24,7 @@ module floo_router import floo_pkg::*; #(
   /// Configuration parameters for special network topologies
   parameter int unsigned NumInput         = NumRoutes,
   parameter int unsigned NumOutput        = NumRoutes,
+  parameter bit          XYRouteOpt       = 1'b1,
   parameter bit          NoLoopback       = 1'b1
 ) (
   input  logic                                       clk_i,
@@ -121,7 +122,7 @@ module floo_router import floo_pkg::*; #(
         if (in_route == out_route && NoLoopback) begin : gen_inout_identical
           assign masked_all_ready[in_route][v_chan][out_route] = '0;
           // TODO MICHAERO: assert no loopback routing!!!
-        end else if ((RouteAlgo == XYRouting) &&
+        end else if ((RouteAlgo == XYRouting) && XYRouteOpt &&
                     (in_route == South || in_route == North) &&
                     (out_route == East || out_route == West)) begin : gen_xy_opt
           assign masked_all_ready[in_route][v_chan][out_route] = '0;

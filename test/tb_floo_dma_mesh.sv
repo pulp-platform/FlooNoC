@@ -211,18 +211,16 @@ module tb_floo_dma_mesh;
       .WideMaxTxns              ( WideMaxTxns             ),
       .NarrowReorderBufferSize  ( NarrowReorderBufferSize ),
       .WideReorderBufferSize    ( WideReorderBufferSize   ),
-      .NarrowRoBSimple          ( NarrowRoBSimple         ),
-      .WideRoBSimple            ( WideRoBSimple           ),
       .CutAx                    ( CutAx                   ),
       .CutRsp                   ( CutRsp                  ),
-      .xy_id_t                  ( xy_id_t                 )
+      .id_t                     ( xy_id_t                 )
     ) i_hbm_chimney [NumChimneys-1:0] (
       .clk_i                ( clk               ),
       .rst_ni               ( rst_n             ),
       .sram_cfg_i           ( '0                ),
       .test_enable_i        ( 1'b0              ),
-      .id_i                 ( '0                ),
-      .xy_id_i              ( xy_id_hbm         ),
+      .id_i                 ( xy_id_hbm         ),
+      .id_map_i             ( '0                ),
       .axi_narrow_in_req_i  ( '0                ),
       .axi_narrow_in_rsp_o  (                   ),
       .axi_narrow_out_req_o ( narrow_hbm_req[i] ),
@@ -351,18 +349,16 @@ module tb_floo_dma_mesh;
         .WideMaxTxns              ( WideMaxTxns             ),
         .NarrowReorderBufferSize  ( NarrowReorderBufferSize ),
         .WideReorderBufferSize    ( WideReorderBufferSize   ),
-        .NarrowRoBSimple          ( NarrowRoBSimple         ),
-        .WideRoBSimple            ( WideRoBSimple           ),
         .CutAx                    ( CutAx                   ),
         .CutRsp                   ( CutRsp                  ),
-        .xy_id_t                  ( xy_id_t                 )
+        .id_t                     ( xy_id_t                 )
       ) i_dma_chimney (
         .clk_i                ( clk                           ),
         .rst_ni               ( rst_n                         ),
         .sram_cfg_i           ( '0                            ),
         .test_enable_i        ( 1'b0                          ),
-        .id_i                 ( '0                            ),
-        .xy_id_i              ( current_id                    ),
+        .id_i                 ( current_id                    ),
+        .id_map_i             ( '0                            ),
         .axi_narrow_in_req_i  ( narrow_man_req[x][y]          ),
         .axi_narrow_in_rsp_o  ( narrow_man_rsp[x][y]          ),
         .axi_narrow_out_req_o ( narrow_sub_req[x][y]          ),
@@ -384,6 +380,7 @@ module tb_floo_dma_mesh;
         .ChannelFifoDepth ( ChannelFifoDepth  ),
         .OutputFifoDepth  ( OutputFifoDepth   ),
         .RouteAlgo        ( RouteAlgo         ),
+        .XYRouteOpt       ( 1'b0              ),
         .id_t             ( xy_id_t           )
       ) i_router (
         .clk_i          ( clk         ),

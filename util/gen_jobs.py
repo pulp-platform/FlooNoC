@@ -58,79 +58,83 @@ def emit_jobs(jobs, out_dir, name, id):
         job_file.close()
 
 
-def gen_chimney2chimney_traffic(data_width: int = data_widths['narrow'],
-                                burst_length: int = 16,
-                                num_bursts: int = 16,
+def gen_chimney2chimney_traffic(narrow_burst_length: int = 16,
+                                num_narrow_bursts: int = 16,
                                 rw: str = 'write',
                                 bidir: bool = False,
-                                outdir: str = 'jobs'):
+                                out_dir: str = 'jobs',
+                                **kwargs):
     """Generate Chimney to Chimney traffic."""
     num_masters = 2
     for i in range(num_masters):
         jobs = ""
         if bidir or i == 0:
-            for j in range(num_bursts):
-                length = burst_length*data_width/8
+            for j in range(num_narrow_bursts):
+                length = narrow_burst_length*data_widths['narrow']/8
                 assert (length <= MEM_SIZE)
                 src_addr = 0 if rw == 'write' else MEM_SIZE
                 dst_addr = MEM_SIZE if rw == 'write' else 0
                 job_str = gen_job_str(length, src_addr, dst_addr)
                 jobs += job_str
-        emit_jobs(jobs, outdir, 'chimney2chimney', i)
+        emit_jobs(jobs, out_dir, 'chimney2chimney', i)
 
 
-def gen_nw_chimney2chimney_traffic(data_widths: dict = data_widths,
-                                   burst_lengths: dict = {'wide': 16, 'narrow': 1},
-                                   num_bursts: dict = {'wide': 100, 'narrow': 1},
-                                   rw: str = 'write',
-                                   bidir: bool = False,
-                                   outdir: str = 'jobs'):
+def gen_nw_chimney2chimney_traffic(narrow_burst_length: int,
+                                   wide_burst_length: int,
+                                   num_narrow_bursts: int,
+                                   num_wide_bursts: int,
+                                   rw: str,
+                                   bidir: bool,
+                                   out_dir: str,
+                                   **kwargs):
     """Generate Narrow Wide Chimney to Chimney traffic."""
     num_masters = 2
     for i in range(num_masters):
         wide_jobs = ""
         narrow_jobs = ""
-        wide_length = burst_lengths['wide']*data_widths['wide']/8
-        narrow_length = burst_lengths['narrow']*data_widths['narrow']/8
+        wide_length = wide_burst_length*data_widths['wide']/8
+        narrow_length = narrow_burst_length*data_widths['narrow']/8
         assert (wide_length <= MEM_SIZE and narrow_length <= MEM_SIZE)
         src_addr = 0 if rw == 'write' else MEM_SIZE
         dst_addr = MEM_SIZE if rw == 'write' else 0
         if bidir or i == 0:
-            for j in range(num_bursts['wide']):
+            for j in range(num_wide_bursts):
                 wide_jobs += gen_job_str(wide_length, src_addr, dst_addr)
-            for j in range(num_bursts['narrow']):
+            for j in range(num_narrow_bursts):
                 narrow_jobs += gen_job_str(narrow_length, src_addr, dst_addr)
-        emit_jobs(wide_jobs, outdir, 'nw_chimney2chimney', i)
-        emit_jobs(narrow_jobs, outdir, 'nw_chimney2chimney', i+100)
+        emit_jobs(wide_jobs, out_dir, 'nw_chimney2chimney', i)
+        emit_jobs(narrow_jobs, out_dir, 'nw_chimney2chimney', i+100)
 
 
-def gen_mesh_traffic(data_widths: dict = data_widths,
-                     burst_lengths: dict = {'wide': 16, 'narrow': 1},
-                     num_bursts: dict = {'wide': 100, 'narrow': 1},
-                     rw: str = 'write',
-                     traffic_type: str = 'hbm',
-                     outdir: str = 'jobs'):
+def gen_mesh_traffic(narrow_burst_length: int,
+                     wide_burst_length: int,
+                     num_narrow_bursts: int,
+                     num_wide_bursts: int,
+                     rw: str,
+                     type: str,
+                     out_dir: str,
+                     **kwargs):
     """Generate Mesh traffic."""
     for x in range(1, NUM_X+1):
         for y in range(1, NUM_Y+1):
             wide_jobs = ""
             narrow_jobs = ""
-            wide_length = burst_lengths['wide']*data_widths['wide']/8
-            narrow_length = burst_lengths['narrow']*data_widths['narrow']/8
+            wide_length = wide_burst_length*data_widths['wide']/8
+            narrow_length = narrow_burst_length*data_widths['narrow']/8
             assert (wide_length <= MEM_SIZE and narrow_length <= MEM_SIZE)
-            if traffic_type == 'hbm':
+            if type == 'hbm':
                 # Tile x=0 are the HBM channels
                 # Each core read from the channel of its y coordinate
                 hbm_addr = get_xy_base_addr(0, y)
                 local_addr = get_xy_base_addr(x, y)
                 src_addr = hbm_addr if rw == 'read' else local_addr
                 dst_addr = local_addr if rw == 'read' else hbm_addr
-            elif traffic_type == 'random':
+            elif type == 'random':
                 local_addr = get_xy_base_addr(x, y)
                 ext_addr = get_xy_base_addr(random.randint(1, NUM_X), random.randint(1, NUM_Y))
                 src_addr = ext_addr if rw == 'read' else local_addr
                 dst_addr = local_addr if rw == 'read' else ext_addr
-            elif traffic_type == 'onehop':
+            elif type == 'onehop':
                 if not (x == 1 and y == 1):
                     wide_length = 0
                     narrow_length = 0
@@ -142,13 +146,13 @@ def gen_mesh_traffic(data_widths: dict = data_widths,
                     src_addr = ext_addr if rw == 'read' else local_addr
                     dst_addr = local_addr if rw == 'read' else ext_addr
             else:
-                raise ValueError(f'Unknown traffic type: {traffic_type}')
-            for j in range(num_bursts['wide']):
+                raise ValueError(f'Unknown traffic type: {type}')
+            for j in range(num_wide_bursts):
                 wide_jobs += gen_job_str(wide_length, src_addr, dst_addr)
-            for j in range(num_bursts['narrow']):
+            for j in range(num_narrow_bursts):
                 narrow_jobs += gen_job_str(narrow_length, src_addr, dst_addr)
-            emit_jobs(wide_jobs, outdir, 'mesh', x + (y-1)*NUM_X)
-            emit_jobs(narrow_jobs, outdir, 'mesh', x + (y-1)*NUM_X + 100)
+            emit_jobs(wide_jobs, out_dir, 'mesh', x + (y-1)*NUM_X)
+            emit_jobs(narrow_jobs, out_dir, 'mesh', x + (y-1)*NUM_X + 100)
 
 
 def main():
@@ -156,28 +160,26 @@ def main():
     # parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--out_dir', type=str, default='test/jobs')
-    parser.add_argument('--num_narrow_bursts', type=int, default=0)
+    parser.add_argument('--num_narrow_bursts', type=int, default=10)
     parser.add_argument('--num_wide_bursts', type=int, default=100)
     parser.add_argument('--narrow_burst_length', type=int, default=1)
     parser.add_argument('--wide_burst_length', type=int, default=16)
     parser.add_argument('--bidir', action='store_true')
-    parser.add_argument('--traffic_type', type=str, default='mesh')
+    parser.add_argument('--tb', type=str, default='dma_mesh')
+    parser.add_argument('--type', type=str, default='random')
+    parser.add_argument('--rw', type=str, default='read')
     args = parser.parse_args()
 
-    num_bursts = {'narrow': args.num_narrow_bursts, 'wide': args.num_wide_bursts}
-    burst_lengths = {'wide': args.wide_burst_length, 'narrow': args.narrow_burst_length}
+    kwargs = vars(args)
 
-    if args.traffic_type == 'chimney2chimney':
-        gen_chimney2chimney_traffic(data_widths['narrow'], burst_lengths['narrow'], num_bursts['narrow'], rw='write',
-                                    bidir=args.bidir, outdir=args.out_dir)
-    elif args.traffic_type == 'nw_chimney2chimney':
-        gen_nw_chimney2chimney_traffic(data_widths, burst_lengths, num_bursts, rw='read',
-                                       bidir=args.bidir, outdir=args.out_dir)
-    elif args.traffic_type == 'mesh':
-        gen_mesh_traffic(data_widths, burst_lengths, num_bursts, rw='read',
-                         traffic_type='hbm', outdir=args.out_dir)
+    if args.tb == 'chimney2chimney':
+        gen_chimney2chimney_traffic(**kwargs)
+    elif args.tb == 'nw_chimney2chimney':
+        gen_nw_chimney2chimney_traffic(**kwargs)
+    elif args.tb == 'dma_mesh':
+        gen_mesh_traffic(**kwargs)
     else:
-        raise ValueError(f'Unknown traffic type: {args.traffic_type}')
+        raise ValueError(f'Unknown testbench: {args.tb}')
 
 
 if __name__ == "__main__":
