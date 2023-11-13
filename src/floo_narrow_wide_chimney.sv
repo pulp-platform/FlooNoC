@@ -91,9 +91,6 @@ module floo_narrow_wide_chimney
   input  floo_wide_t  floo_wide_i
 );
 
-  typedef logic [$clog2(NarrowReorderBufferSize)-1:0] narrow_rob_idx_t;
-  typedef logic [$clog2(WideReorderBufferSize)-1:0]   wide_rob_idx_t;
-
   // Duplicate AXI port signals to degenerate ports
   // in case they are not used
   axi_narrow_in_req_t axi_narrow_req_in;
@@ -172,7 +169,7 @@ module floo_narrow_wide_chimney
   typedef struct packed {
     axi_narrow_in_id_t  id;
     logic               rob_req;
-    narrow_rob_idx_t    rob_idx;
+    rob_idx_t           rob_idx;
     id_t                src_id;
     logic               atop;
   } narrow_id_out_buf_t;
@@ -180,7 +177,7 @@ module floo_narrow_wide_chimney
   typedef struct packed {
     axi_wide_in_id_t  id;
     logic             rob_req;
-    wide_rob_idx_t    rob_idx;
+    rob_idx_t         rob_idx;
     id_t              src_id;
   } wide_id_out_buf_t;
 
@@ -375,14 +372,14 @@ module floo_narrow_wide_chimney
   // AW/B RoB
   axi_narrow_in_b_chan_t axi_narrow_b_rob_out, axi_narrow_b_rob_in;
   logic  narrow_aw_rob_req_out;
-  narrow_rob_idx_t narrow_aw_rob_idx_out;
+  rob_idx_t narrow_aw_rob_idx_out;
   logic narrow_aw_rob_valid_out, narrow_aw_rob_ready_in;
   logic narrow_aw_rob_valid_in, narrow_aw_rob_ready_out;
   logic narrow_b_rob_valid_in, narrow_b_rob_ready_out;
   logic narrow_b_rob_valid_out, narrow_b_rob_ready_in;
   axi_wide_in_b_chan_t axi_wide_b_rob_out, axi_wide_b_rob_in;
   logic  wide_aw_rob_req_out;
-  narrow_rob_idx_t wide_aw_rob_idx_out;
+  rob_idx_t wide_aw_rob_idx_out;
   logic wide_aw_rob_valid_out, wide_aw_rob_ready_in;
   logic wide_b_rob_valid_in, wide_b_rob_ready_out;
   logic wide_b_rob_valid_out, wide_b_rob_ready_in;
@@ -390,20 +387,20 @@ module floo_narrow_wide_chimney
   // AR/R RoB
   axi_narrow_in_r_chan_t axi_narrow_r_rob_out, axi_narrow_r_rob_in;
   logic  narrow_ar_rob_req_out;
-  narrow_rob_idx_t narrow_ar_rob_idx_out;
+  rob_idx_t narrow_ar_rob_idx_out;
   logic narrow_ar_rob_valid_out, narrow_ar_rob_ready_in;
   logic narrow_r_rob_valid_in, narrow_r_rob_ready_out;
   logic narrow_r_rob_valid_out, narrow_r_rob_ready_in;
   axi_wide_in_r_chan_t axi_wide_r_rob_out, axi_wide_r_rob_in;
   logic  wide_ar_rob_req_out;
-  wide_rob_idx_t wide_ar_rob_idx_out;
+  rob_idx_t wide_ar_rob_idx_out;
   logic wide_ar_rob_valid_out, wide_ar_rob_ready_in;
   logic wide_r_rob_valid_in, wide_r_rob_ready_out;
   logic wide_r_rob_valid_out, wide_r_rob_ready_in;
 
   logic narrow_b_rob_rob_req;
   logic narrow_b_rob_last;
-  narrow_rob_idx_t narrow_b_rob_rob_idx;
+  rob_idx_t narrow_b_rob_rob_idx;
   assign narrow_b_rob_rob_req = floo_rsp_in.narrow_b.hdr.rob_req;
   assign narrow_b_rob_rob_idx = floo_rsp_in.narrow_b.hdr.rob_idx;
   assign narrow_b_rob_last = floo_rsp_in.narrow_b.hdr.last;
@@ -459,7 +456,7 @@ module floo_narrow_wide_chimney
 
   logic wide_b_rob_rob_req;
   logic wide_b_rob_last;
-  narrow_rob_idx_t wide_b_rob_rob_idx;
+  rob_idx_t wide_b_rob_rob_idx;
   assign wide_b_rob_rob_req = floo_rsp_in.wide_b.hdr.rob_req;
   assign wide_b_rob_rob_idx = floo_rsp_in.wide_b.hdr.rob_idx;
   assign wide_b_rob_last = floo_rsp_in.wide_b.hdr.last;
@@ -473,7 +470,7 @@ module floo_narrow_wide_chimney
     .ax_id_t            ( axi_wide_in_id_t      ),
     .rsp_chan_t         ( axi_wide_in_b_chan_t  ),
     .rsp_meta_t         ( axi_wide_in_b_chan_t  ),
-    .rob_idx_t          ( narrow_rob_idx_t      ),
+    .rob_idx_t          ( rob_idx_t             ),
     .dest_t             ( id_t                  ),
     .sram_cfg_t         ( sram_cfg_t            )
   ) i_wide_b_rob (
@@ -516,7 +513,7 @@ module floo_narrow_wide_chimney
 
   logic narrow_r_rob_rob_req;
   logic narrow_r_rob_last;
-  narrow_rob_idx_t narrow_r_rob_rob_idx;
+  rob_idx_t narrow_r_rob_rob_idx;
   assign narrow_r_rob_rob_req = floo_rsp_in.narrow_r.hdr.rob_req;
   assign narrow_r_rob_rob_idx = floo_rsp_in.narrow_r.hdr.rob_idx;
   assign narrow_r_rob_last = floo_rsp_in.narrow_r.hdr.last;
@@ -531,7 +528,7 @@ module floo_narrow_wide_chimney
     .rsp_chan_t         ( axi_narrow_in_r_chan_t  ),
     .rsp_data_t         ( axi_narrow_in_data_t    ),
     .rsp_meta_t         ( narrow_meta_t           ),
-    .rob_idx_t          ( narrow_rob_idx_t        ),
+    .rob_idx_t          ( rob_idx_t               ),
     .dest_t             ( id_t                    ),
     .sram_cfg_t         ( sram_cfg_t              )
   ) i_narrow_r_rob (
@@ -560,7 +557,7 @@ module floo_narrow_wide_chimney
 
   logic wide_r_rob_rob_req;
   logic wide_r_rob_last;
-  wide_rob_idx_t wide_r_rob_rob_idx;
+  rob_idx_t wide_r_rob_rob_idx;
   assign wide_r_rob_rob_req = floo_wide_in.wide_r.hdr.rob_req;
   assign wide_r_rob_rob_idx = floo_wide_in.wide_r.hdr.rob_idx;
   assign wide_r_rob_last = floo_wide_in.wide_r.hdr.last;
@@ -575,7 +572,7 @@ module floo_narrow_wide_chimney
     .rsp_chan_t         ( axi_wide_in_r_chan_t  ),
     .rsp_data_t         ( axi_wide_in_data_t    ),
     .rsp_meta_t         ( wide_meta_t           ),
-    .rob_idx_t          ( wide_rob_idx_t        ),
+    .rob_idx_t          ( rob_idx_t             ),
     .dest_t             ( id_t                  ),
     .sram_cfg_t         ( sram_cfg_t            )
   ) i_wide_r_rob (
