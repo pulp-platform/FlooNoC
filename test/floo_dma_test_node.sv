@@ -54,7 +54,7 @@ module floo_dma_test_node  #(
   // debug
   localparam bit Debug         = 1'b0;
   localparam bit ModelOutput   = 1'b0;
-  localparam bit PrintFifoInfo = 1'b1;
+  localparam bit PrintFifoInfo = 1'b0;
 
   // dependent parameters
   localparam int unsigned StrbWidth       = DataWidth / 8;
