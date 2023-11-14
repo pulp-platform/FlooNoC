@@ -5,7 +5,7 @@
 # Author: Michael Rogenmoser <michaero@iis.ee.ethz.ch>
 
 variables:
-  VSIM: 'questa-2022.3 vsim'
+  VSIM: 'questa-2023.4 vsim'
   BENDER: 'bender'
   SPYGLASS: 'spyglass-2022.06 sg_shell'
 
