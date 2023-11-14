@@ -29,9 +29,24 @@
 
 package floo_${name}_pkg;
 
+  import floo_pkg::*;
+
   ////////////////////////
   //   AXI Parameters   //
   ////////////////////////
+
+<% i = 0 %> \
+  typedef enum {
+% for phys_ch, mapping in channel_mapping.items():
+  % for ch_type, axi_chs in mapping.items():
+    % for axi_ch in axi_chs:
+    ${camelcase(f"{ch_type}_{axi_ch}")} = ${i},
+      <% i += 1 %> \
+    % endfor
+  % endfor
+% endfor
+    NumAxiChannels = ${i}
+  } axi_ch_e;
 
 % for prot in protocols:
   localparam int unsigned ${camelcase(prot_full_name(**prot, prefix=''))}AddrWidth = ${prot['params']['aw']};
@@ -56,22 +71,37 @@ package floo_${name}_pkg;
   //   Header Typedefs   //
   /////////////////////////
 
-% for m, l in header.items():
-  % if l > 1:
-  typedef logic [${l-1}:0] ${m}_t;
-  % endif
-% endfor
+  localparam route_algo_e RouteAlgo = ${routing['route_algo']};
+  typedef logic [${routing['rob_idx_bits']}:0] rob_idx_t;
+
+% if routing['route_algo'] == 'XYRouting':
+  localparam int unsigned NumXBits = ${routing['num_x_bits']};
+  localparam int unsigned NumYBits = ${routing['num_y_bits']};
+  localparam int unsigned XAddrOffset = ${routing['addr_offset_bits']};
+  localparam int unsigned YAddrOffset = ${routing['addr_offset_bits'] + routing['num_x_bits']};
 
   typedef struct packed {
-    % for m, l in header.items():
-    % if l == 1:
-    logic ${m};
-    % else:
-    ${m}_t ${m};
-    % endif
-    % endfor
-  } hdr_t;
+      logic [NumXBits-1:0] x;
+      logic [NumYBits-1:0] y;
+  } xy_id_t;
+% elif routing['route_algo'] == 'IdTable':
+  typedef logic [${routing['num_id_bits']-1}:0] id_t;
+% endif
 
+  typedef struct packed {
+    logic rob_req;
+    rob_idx_t rob_idx;
+% if routing['route_algo'] == 'XYRouting':
+    xy_id_t dst_id;
+    xy_id_t src_id;
+% elif routing['route_algo'] == 'IdTable':
+    id_t dst_id;
+    id_t src_id;
+% endif
+    logic last;
+    logic atop;
+    axi_ch_e axi_ch;
+  } hdr_t;
 
     ////////////////////////////
     //   AXI Flits Typedefs   //

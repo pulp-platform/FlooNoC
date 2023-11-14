@@ -121,7 +121,7 @@ module floo_narrow_wide_chimney
   floo_wide_chan_t floo_wide_in;
   logic floo_req_in_valid, floo_rsp_in_valid, floo_wide_in_valid;
   logic floo_req_out_ready, floo_rsp_out_ready, floo_wide_out_ready;
-  logic [NumNarrowWideAxiChannels-1:0] axi_valid_in, axi_ready_out;
+  logic [NumAxiChannels-1:0] axi_valid_in, axi_ready_out;
 
   // Flit packing
   floo_narrow_aw_flit_t floo_narrow_aw;
@@ -182,7 +182,7 @@ module floo_narrow_wide_chimney
   } wide_id_out_buf_t;
 
   // Routing
-  id_t [NumNarrowWideAxiChannels-1:0] dst_id;
+  id_t [NumAxiChannels-1:0] dst_id;
 
   narrow_id_out_buf_t narrow_aw_out_data_in, narrow_aw_out_data_out;
   narrow_id_out_buf_t narrow_ar_out_data_in, narrow_ar_out_data_out;
