@@ -253,7 +253,7 @@ module axi_reorder_compare #(
   end
 
   for (genvar i = 0; i < NumSlaves; i++) begin : gen_slv_step_3
-    always_ff @(posedge clk_i) begin : gen_slv_step_3
+    always_ff @(posedge clk_i) begin : slv_step_3
       if (mon_slv_rsp_i[i].b_valid && mon_slv_req_i[i].b_ready) begin
         automatic b_chan_t b;
         b = mon_slv_rsp_i[i].b;
