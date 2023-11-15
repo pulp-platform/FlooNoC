@@ -60,8 +60,8 @@ package floo_axi_pkg;
 
   localparam int unsigned NumXBits = 3;
   localparam int unsigned NumYBits = 3;
-  localparam int unsigned XAddrOffset = 36;
-  localparam int unsigned YAddrOffset = 39;
+  localparam int unsigned XAddrOffset = 16;
+  localparam int unsigned YAddrOffset = 19;
 
   typedef struct packed {
     logic [NumXBits-1:0] x;
