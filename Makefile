@@ -66,20 +66,22 @@ endif
 # Flit Generation #
 ###################
 
-FLIT_CFG ?= $(shell find util -name "*.hjson")
-FLIT_SRC ?= $(patsubst util/%_cfg.hjson,src/floo_%_pkg.sv,$(FLIT_CFG))
+FLIT_OUT_DIR ?= src
+FLIT_CFG_DIR ?= util
+FLIT_CFG ?= $(shell find $(FLIT_CFG_DIR) -name "*.hjson")
+FLIT_SRC ?= $(patsubst $(FLIT_CFG_DIR)/%_cfg.hjson,$(FLIT_OUT_DIR)/floo_%_pkg.sv,$(FLIT_CFG))
 FLIT_GEN ?= util/flit_gen.py
 FLIT_TPL ?= util/floo_flit_pkg.sv.mako
 
 .PHONY: sources clean-sources
 
 sources: $(FLIT_SRC)
-src/floo_%_pkg.sv: util/%_cfg.hjson $(FLIT_GEN) $(FLIT_TPL)
-	./util/flit_gen.py -c $< > $@
+$(FLIT_OUT_DIR)/floo_%_pkg.sv: $(FLIT_CFG_DIR)/%_cfg.hjson $(FLIT_GEN) $(FLIT_TPL)
+	$(FLIT_GEN) -c $< > $@
 	$(VERIBLE_FMT) --inplace --try_wrap_long_lines $@
 
 clean-sources:
-	rm -f src/floo_*_pkg.sv
+	rm -f $(FLIT_SRC)
 
 ######################
 # Traffic Generation #
