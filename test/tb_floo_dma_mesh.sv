@@ -386,7 +386,7 @@ module tb_floo_dma_mesh;
         .clk_i          ( clk         ),
         .rst_ni         ( rst_n       ),
         .test_enable_i  ( 1'b0        ),
-        .xy_id_i        ( current_id  ),
+        .id_i           ( current_id  ),
         .id_route_map_i ( '0          ),
         .floo_req_i     ( req_in      ),
         .floo_req_o     ( req_out     ),

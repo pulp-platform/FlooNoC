@@ -54,7 +54,7 @@ module floo_synth_endpoint
     .XYAddrOffsetY      ( 32'd20              ),
     .MaxTxnsPerId       ( MaxTxnsPerId        ),
     .ReorderBufferSize  ( ReorderBufferSize   ),
-    .xy_id_t            ( xy_id_t             ),
+    .id_t               ( xy_id_t             ),
     .CutAx              ( CutAx               ),
     .CutRsp             ( CutRsp              )
   ) i_floo_axi_chimney (
@@ -67,7 +67,6 @@ module floo_synth_endpoint
     .axi_out_req_o,
     .axi_out_rsp_i,
     .id_i('0),
-    .xy_id_i,
     .floo_req_o(chimney_req_out),
     .floo_rsp_o(chimney_rsp_out),
     .floo_req_i(chimney_req_in),
