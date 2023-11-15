@@ -68,22 +68,22 @@ package floo_axi_pkg;
     logic [NumYBits-1:0] y;
   } xy_id_t;
 
-  function logic [NumXBits-1:0] get_x_coord(logic [31:0] addr);
+  function automatic logic [NumXBits-1:0] get_x_coord(logic [31:0] addr);
     return addr[XAddrOffset+:NumXBits];
   endfunction
 
-  function logic [NumYBits-1:0] get_y_coord(logic [31:0] addr);
+  function automatic logic [NumYBits-1:0] get_y_coord(logic [31:0] addr);
     return addr[YAddrOffset+:NumYBits];
   endfunction
 
-  function xy_id_t get_xy_id(logic [31:0] addr);
+  function automatic xy_id_t get_xy_id(logic [31:0] addr);
     xy_id_t id;
     id.x = get_x_coord(addr);
     id.y = get_y_coord(addr);
     return id;
   endfunction
 
-  function logic [31:0] get_base_addr(xy_id_t id);
+  function automatic logic [31:0] get_base_addr(xy_id_t id);
     logic [31:0] addr;
     addr = id.x << XAddrOffset + id.y << YAddrOffset;
     return addr;
