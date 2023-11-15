@@ -47,9 +47,7 @@ module floo_axi_chimney
   /// Cut timing paths of incoming responses
   parameter bit CutRsp                      = 1'b1,
   /// Type for implementation inputs and outputs
-  parameter type         sram_cfg_t         = logic,
-  /// RoB index type
-  localparam type        rob_idx_t          = logic [$clog2(ReorderBufferSize)-1:0]
+  parameter type         sram_cfg_t         = logic
 ) (
   input  logic clk_i,
   input  logic rst_ni,
