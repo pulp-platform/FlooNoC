@@ -9,29 +9,6 @@
 /// Currently only contains useful functions and some constants and typedefs
 package floo_pkg;
 
-  typedef enum logic [3:0] {
-    NarrowAw,
-    NarrowW,
-    NarrowAr,
-    WideAw,
-    WideAr,
-    NarrowB,
-    NarrowR,
-    WideB,
-    WideW,
-    WideR,
-    NumNarrowWideAxiChannels
-  } narrow_wide_axi_ch_e;
-
-  typedef enum logic [2:0] {
-    AxiAw,
-    AxiW,
-    AxiAr,
-    AxiB,
-    AxiR,
-    NumAxiChannels
-  } axi_ch_e;
-
   typedef enum logic[1:0] {
     IdIsPort,
     IdTable,

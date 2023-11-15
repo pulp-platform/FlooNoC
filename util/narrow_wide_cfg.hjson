@@ -7,30 +7,29 @@
 {
     name: "narrow_wide",
     protocols: [
-      {name: 'narrow', direction: 'input', params: {dw: 64, aw: 48, iw: 4, uw: 5 }},
-      {name: 'narrow', direction: 'output', params: {dw: 64, aw: 48, iw: 2, uw: 5 }},
-      {name: 'wide', direction: 'input', params: {dw: 512, aw: 48, iw: 3, uw: 1 }},
-      {name: 'wide', direction: 'output', params: {dw: 512, aw: 48, iw: 1, uw: 1 }},
+      {name: 'narrow', direction: 'input', params: {dw: 64, aw: 48, iw: 4, uw: 5 }}
+      {name: 'narrow', direction: 'output', params: {dw: 64, aw: 48, iw: 2, uw: 5 }}
+      {name: 'wide', direction: 'input', params: {dw: 512, aw: 48, iw: 3, uw: 1 }}
+      {name: 'wide', direction: 'output', params: {dw: 512, aw: 48, iw: 1, uw: 1 }}
     ]
     channel_mapping: {
       req: {
-            narrow: ['aw', 'w', 'ar'],
+            narrow: ['aw', 'w', 'ar']
             wide: ['aw', 'ar']
-      },
+      }
       rsp: {
-          narrow: ['b', 'r'],
+          narrow: ['b', 'r']
           wide: ['b']
-      },
+      }
       wide: {
           wide: ['w', 'r']
       }
-    },
-    header: {
-      rob_req: 1,
-      rob_idx: 8,
-      dst_id: 6,
-      src_id: 6,
-      last: 1,
-      atop: 1
+    }
+    routing: {
+      route_algo: XYRouting
+      num_x_bits: 3
+      num_y_bits: 3
+      addr_offset_bits: 36
+      rob_idx_bits: 8
     }
 }

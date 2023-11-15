@@ -7,19 +7,18 @@
 {
     name: "axi",
     protocols: [
-      {name: 'axi', direction: 'input', params: {dw: 64, aw: 32, iw: 3, uw: 1 }},
-      {name: 'axi', direction: 'output', params: {dw: 64, aw: 32, iw: 3, uw: 1 }},
+      {name: 'axi', direction: 'input', params: {dw: 64, aw: 32, iw: 3, uw: 1 }}
+      {name: 'axi', direction: 'output', params: {dw: 64, aw: 32, iw: 3, uw: 1 }}
     ]
     channel_mapping: {
-      req: {axi: ['aw', 'w', 'ar']},
+      req: {axi: ['aw', 'w', 'ar']}
       rsp: {axi: ['b', 'r']}
     },
-    header: {
-      rob_req: 1,
-      rob_idx: 6,
-      dst_id: 6,
-      src_id: 6,
-      last: 1,
-      atop: 1,
+    routing: {
+      route_algo: XYRouting
+      num_x_bits: 3
+      num_y_bits: 3
+      addr_offset_bits: 16
+      rob_idx_bits: 8
     }
 }

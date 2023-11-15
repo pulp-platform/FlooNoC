@@ -108,7 +108,6 @@ def main():
 
     kwargs = cfg
     kwargs['axi_channels'] = get_axi_chs(**kwargs)
-    kwargs['header']['axi_ch'] = clog2(len(get_axi_chs(**kwargs)))
     kwargs['inv_map'] = get_inverted_mapping(**kwargs)
     kwargs['get_axi_channel_sizes'] = get_axi_channel_sizes
     kwargs['link_sizes'] = get_link_sizes(**kwargs)

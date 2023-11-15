@@ -9,9 +9,25 @@
 
 package floo_narrow_wide_pkg;
 
+  import floo_pkg::*;
+
   ////////////////////////
   //   AXI Parameters   //
   ////////////////////////
+
+  typedef enum {
+    NarrowAw = 0,
+    NarrowW = 1,
+    NarrowAr = 2,
+    WideAw = 3,
+    WideAr = 4,
+    NarrowB = 5,
+    NarrowR = 6,
+    WideB = 7,
+    WideW = 8,
+    WideR = 9,
+    NumAxiChannels = 10
+  } axi_ch_e;
 
   localparam int unsigned NarrowInAddrWidth = 48;
   localparam int unsigned NarrowInDataWidth = 64;
@@ -73,21 +89,49 @@ package floo_narrow_wide_pkg;
   //   Header Typedefs   //
   /////////////////////////
 
-  typedef logic [7:0] rob_idx_t;
-  typedef logic [5:0] dst_id_t;
-  typedef logic [5:0] src_id_t;
-  typedef logic [3:0] axi_ch_t;
+  localparam route_algo_e RouteAlgo = XYRouting;
+  typedef logic [8:0] rob_idx_t;
+
+  localparam int unsigned NumXBits = 3;
+  localparam int unsigned NumYBits = 3;
+  localparam int unsigned XAddrOffset = 36;
+  localparam int unsigned YAddrOffset = 39;
+
+  typedef struct packed {
+    logic [NumXBits-1:0] x;
+    logic [NumYBits-1:0] y;
+  } xy_id_t;
+
+  function automatic logic [NumXBits-1:0] get_x_coord(logic [47:0] addr);
+    return addr[XAddrOffset+:NumXBits];
+  endfunction
+
+  function automatic logic [NumYBits-1:0] get_y_coord(logic [47:0] addr);
+    return addr[YAddrOffset+:NumYBits];
+  endfunction
+
+  function automatic xy_id_t get_xy_id(logic [47:0] addr);
+    xy_id_t id;
+    id.x = get_x_coord(addr);
+    id.y = get_y_coord(addr);
+    return id;
+  endfunction
+
+  function automatic logic [47:0] get_base_addr(xy_id_t id);
+    logic [47:0] addr;
+    addr = id.x << XAddrOffset + id.y << YAddrOffset;
+    return addr;
+  endfunction
 
   typedef struct packed {
     logic rob_req;
     rob_idx_t rob_idx;
-    dst_id_t dst_id;
-    src_id_t src_id;
+    xy_id_t dst_id;
+    xy_id_t src_id;
     logic last;
     logic atop;
-    axi_ch_t axi_ch;
+    axi_ch_e axi_ch;
   } hdr_t;
-
 
   ////////////////////////////
   //   AXI Flits Typedefs   //

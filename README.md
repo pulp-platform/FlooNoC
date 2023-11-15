@@ -149,28 +149,27 @@ The AXI channels(s) needs to be configured in `util/*cfg.hjson`. The following e
 
 ```
   axi_channels: [
-    {name: 'axi', direction: 'input', params: {dw: 64, aw: 32, iw: 3, uw: 1 }},
+    {name: 'axi', direction: 'input', params: {dw: 64, aw: 32, iw: 3, uw: 1 }}
   ]
 ```
 Multiple physical links can be declared and the mapping of the AXI channels to the physical link can be configured in `util/*cfg.json`. The following example shows the configuration for two physical channels, one for requests and one for responses. The mapping of the AXI channels to the physical link is done by specifying the AXI channels in the `map` field.
 
 ```
   channel_mapping: {
-    req: {axi: ['aw', 'w', 'ar']},
+    req: {axi: ['aw', 'w', 'ar']}
     rsp: {axi: ['b', 'r']}
-  },
+  }
 ```
 
-FlooNoC does not send any header and tail flits to avoid serilization overhead. Instead additional needed information is sent in parallel and can be specified with the `header` argument and the number of bits required. For instance, the `rob_req` field specifies if a responses needs to be reorderd. The `rob_idx` field specifies the index of the ROB that is used to track the outstanding requests. The `dst_id` & `src_id` fields specifies source and destination to route the packet. The `last` field specifies the last signal of the of a burst transfer used in wormhole routing.
+FlooNoC does not send any header and tail flits to avoid serilization overhead. Instead additional needed routing information is sent in parallel and needs to be specified in the `routing` field. Examples for the different routing algorithms can be found in `util/*cfg.hjson`. The following example shows the configuration for a XY routing algorithm with 3-bit X and Y coordinates, 36-bit address offset, and 8-bit RoB index.
 
 ```
-  header: {
-    rob_req: 1,
-    rob_idx: 6,
-    dst_id: 6,
-    src_id: 6,
-    last: 1,
-    atop: 1,
+  routing: {
+    route_algo: XYRouting
+    num_x_bits: 3
+    num_y_bits: 3
+    addr_offset_bits: 36
+    rob_idx_bits: 8
   }
 ```
 Finally, the package source files can be generated with:
