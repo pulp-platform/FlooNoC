@@ -18,7 +18,7 @@
       route_algo: XYRouting
       num_x_bits: 3
       num_y_bits: 3
-      addr_offset_bits: 36
+      addr_offset_bits: 16
       rob_idx_bits: 8
     }
 }
