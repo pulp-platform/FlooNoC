@@ -102,6 +102,27 @@ package floo_narrow_wide_pkg;
     logic [NumYBits-1:0] y;
   } xy_id_t;
 
+  function logic [NumXBits-1:0] get_x_coord(logic [47:0] addr);
+    return addr[XAddrOffset+:NumXBits];
+  endfunction
+
+  function logic [NumYBits-1:0] get_y_coord(logic [47:0] addr);
+    return addr[YAddrOffset+:NumYBits];
+  endfunction
+
+  function xy_id_t get_xy_id(logic [47:0] addr);
+    xy_id_t id;
+    id.x = get_x_coord(addr);
+    id.y = get_y_coord(addr);
+    return id;
+  endfunction
+
+  function logic [47:0] get_base_addr(xy_id_t id);
+    logic [47:0] addr;
+    addr = id.x << XAddrOffset + id.y << YAddrOffset;
+    return addr;
+  endfunction
+
   typedef struct packed {
     logic rob_req;
     rob_idx_t rob_idx;
