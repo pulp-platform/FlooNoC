@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 ### Changed
 
 - Removed `xy_id_i` ports from AXI chimneys in favor of a generic `id_i` port for both `IdTable` and `XYRouting`
+- Changed auto-generated package configuration schema. The `header` field is replaced in favor of a `routing` field that better represents the information needed for routing.
 
 ### Fixed
 
