@@ -33,7 +33,7 @@ module floo_synth_narrow_wide_router
     .clk_i,
     .rst_ni,
     .test_enable_i,
-    .xy_id_i,
+    .id_i(xy_id_i),
     .id_route_map_i ('0),
     .floo_req_i,
     .floo_req_o,

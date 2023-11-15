@@ -41,6 +41,4 @@ package floo_test_pkg;
   localparam rob_type_e WideRoBType = NoRoB;
   localparam int unsigned WideReorderBufferSize = 32'd128;
 
-  `FLOO_NOC_TYPEDEF_XY_ID_T(xy_id_t, NumX, NumY)
-
 endpackage
