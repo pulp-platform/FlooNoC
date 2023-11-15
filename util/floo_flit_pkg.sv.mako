@@ -81,9 +81,30 @@ package floo_${name}_pkg;
   localparam int unsigned YAddrOffset = ${routing['addr_offset_bits'] + routing['num_x_bits']};
 
   typedef struct packed {
-      logic [NumXBits-1:0] x;
-      logic [NumYBits-1:0] y;
+    logic [NumXBits-1:0] x;
+    logic [NumYBits-1:0] y;
   } xy_id_t;
+
+  function logic [NumXBits-1:0] get_x_coord(logic [${protocols[0]['params']['aw']-1}:0] addr);
+    return addr[XAddrOffset +: NumXBits];
+  endfunction
+
+  function logic [NumYBits-1:0] get_y_coord(logic [${protocols[0]['params']['aw']-1}:0] addr);
+    return addr[YAddrOffset +: NumYBits];
+  endfunction
+
+  function xy_id_t get_xy_id(logic [${protocols[0]['params']['aw']-1}:0] addr);
+    xy_id_t id;
+    id.x = get_x_coord(addr);
+    id.y = get_y_coord(addr);
+    return id;
+  endfunction
+
+  function logic [${protocols[0]['params']['aw']-1}:0] get_base_addr(xy_id_t id);
+    logic [${protocols[0]['params']['aw']-1}:0] addr;
+    addr = id.x << XAddrOffset + id.y << YAddrOffset;
+    return addr;
+  endfunction
 % elif routing['route_algo'] == 'IdTable':
   typedef logic [${routing['num_id_bits']-1}:0] id_t;
 % endif
