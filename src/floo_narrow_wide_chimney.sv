@@ -31,10 +31,19 @@ module floo_narrow_wide_chimney
   parameter int unsigned MaxAtomicTxns           = 1,
   /// Routing Algorithm
   parameter route_algo_e RouteAlgo               = IdTable,
+  /// Whether to look up the coordinates in a table or
+  /// directly read them from the request address with an offset
+  parameter bit UseIdTable                       = 1'b0,
   /// X Coordinate address offset for XY routing
   parameter int unsigned XYAddrOffsetX           = 0,
   /// Y Coordinate address offset for XY routing
   parameter int unsigned XYAddrOffsetY           = 0,
+  /// ID address offset for ID routing
+  parameter int unsigned IdAddrOffset       = 0,
+  /// Number of Endpoints in the system, only used for Table based routing
+  parameter int unsigned NumIDs                  = 0,
+  /// Number of rules in the routing table, only used for Table based routing
+  parameter int unsigned NumRules                = 0,
   /// Number of maximum oustanding requests on the narrow network
   parameter int unsigned NarrowMaxTxns           = 32,
   /// Number of maximum oustanding requests on the wide network
@@ -59,8 +68,6 @@ module floo_narrow_wide_chimney
   parameter type id_t                            = logic,
   /// Only used for IDRouting
   parameter type id_rule_t                       = logic,
-  parameter int unsigned NumIDs                  = 1,
-  parameter int unsigned NumRules                = NumIDs,
   /// Type for implementation inputs and outputs
   parameter type sram_cfg_t                      = logic
 ) (
@@ -603,78 +610,57 @@ module floo_narrow_wide_chimney
   //   ROUTING   //
   /////////////////
 
+  typedef enum logic [2:0] {
+    NarrowAwReq,
+    NarrowArReq,
+    WideAwReq,
+    WideArReq,
+    NumAddrDecoders
+  } axi_req_ch_e;
+  typedef axi_narrow_in_addr_t addr_t;
 
-  if (RouteAlgo == XYRouting) begin : gen_xy_routing
-    id_t narrow_aw_xy_id_q, narrow_aw_xy_id, narrow_ar_xy_id;
-    id_t wide_aw_xy_id_q, wide_aw_xy_id, wide_ar_xy_id;
-    assign narrow_aw_xy_id.x = axi_narrow_aw_queue.addr[XYAddrOffsetX+:$bits(id_i.x)];
-    assign narrow_aw_xy_id.y = axi_narrow_aw_queue.addr[XYAddrOffsetY+:$bits(id_i.y)];
-    assign narrow_ar_xy_id.x = axi_narrow_ar_queue.addr[XYAddrOffsetX+:$bits(id_i.x)];
-    assign narrow_ar_xy_id.y = axi_narrow_ar_queue.addr[XYAddrOffsetY+:$bits(id_i.y)];
-    assign wide_aw_xy_id.x = axi_wide_aw_queue.addr[XYAddrOffsetX+:$bits(id_i.x)];
-    assign wide_aw_xy_id.y = axi_wide_aw_queue.addr[XYAddrOffsetY+:$bits(id_i.y)];
-    assign wide_ar_xy_id.x = axi_wide_ar_queue.addr[XYAddrOffsetX+:$bits(id_i.x)];
-    assign wide_ar_xy_id.y = axi_wide_ar_queue.addr[XYAddrOffsetY+:$bits(id_i.y)];
-    assign dst_id[NarrowAw] = narrow_aw_xy_id;
-    assign dst_id[NarrowAr] = narrow_ar_xy_id;
-    assign dst_id[NarrowW]  = narrow_aw_xy_id_q;
-    assign dst_id[NarrowB]  = narrow_aw_out_data_out.src_id;
-    assign dst_id[NarrowR]  = narrow_ar_out_data_out.src_id;
-    assign dst_id[WideAw] = wide_aw_xy_id;
-    assign dst_id[WideAr] = wide_ar_xy_id;
-    assign dst_id[WideW]  = wide_aw_xy_id_q;
-    assign dst_id[WideB]  = wide_aw_out_data_out.src_id;
-    assign dst_id[WideR]  = wide_ar_out_data_out.src_id;
-    `FFL(narrow_aw_xy_id_q,narrow_aw_xy_id, axi_narrow_aw_queue_valid_out &&
-                                            axi_narrow_aw_queue_ready_in,'0)
-    `FFL(wide_aw_xy_id_q, wide_aw_xy_id, axi_wide_aw_queue_valid_out &&
-                                            axi_wide_aw_queue_ready_in, '0)
-  end else if (RouteAlgo == IdTable) begin : gen_id_table_routing
-    typedef enum logic [1:0] {NarrowAwReq, NarrowArReq, WideAwReq, WideArReq} axi_req_ch_e;
-    id_t narrow_aw_id_q, wide_aw_id_q;
-    axi_narrow_in_addr_t [WideArReq:NarrowAwReq] decode_addr_in;
-    id_t [WideArReq:NarrowAwReq] dst_addr_out;
+  id_t narrow_aw_id_q, wide_aw_id_q;
 
-    assign decode_addr_in[NarrowAwReq] = axi_narrow_aw_queue.addr;
-    assign decode_addr_in[NarrowArReq] = axi_narrow_ar_queue.addr;
-    assign decode_addr_in[WideAwReq] = axi_wide_aw_queue.addr;
-    assign decode_addr_in[WideArReq] = axi_wide_ar_queue.addr;
+  addr_t [NumAddrDecoders-1:0] addr_to_decode;
+  id_t [NumAddrDecoders-1:0] decoded_id;
+  assign addr_to_decode[NarrowAwReq] = axi_narrow_aw_queue.addr;
+  assign addr_to_decode[NarrowArReq] = axi_narrow_ar_queue.addr;
+  assign addr_to_decode[WideAwReq] = axi_wide_aw_queue.addr;
+  assign addr_to_decode[WideArReq] = axi_wide_ar_queue.addr;
 
-    addr_decode #(
-      .NoIndices  ( NumIDs                ),
-      .NoRules    ( NumRules              ),
-      .addr_t     ( axi_narrow_in_addr_t  ),
-      .rule_t     ( id_rule_t             ),
-      .idx_t      ( id_t                  )
-    ) i_addr_dst_decode [3:0] (
-      .addr_i           ( decode_addr_in  ),
-      .addr_map_i       ( id_map_i        ),
-      .idx_o            ( dst_addr_out    ),
-      .dec_valid_o      (                 ),
-      .dec_error_o      (                 ),
-      .en_default_idx_i ( 1'b0            ),
-      .default_idx_i    ( '0              )
-    );
+  floo_route_comp #(
+    .RouteAlgo      ( RouteAlgo     ),
+    .UseIdTable     ( UseIdTable    ),
+    .XYAddrOffsetX  ( XYAddrOffsetX ),
+    .XYAddrOffsetY  ( XYAddrOffsetY ),
+    .IdAddrOffset   ( IdAddrOffset  ),
+    .NumIDs         ( NumIDs        ),
+    .NumRules       ( NumRules      ),
+    .id_t           ( id_t          ),
+    .id_rule_t      ( id_rule_t     ),
+    .addr_t         ( addr_t        )
+  ) i_floo_narrow_route_comp [NumAddrDecoders-1:0] (
+    .clk_i,
+    .rst_ni,
+    .id_map_i,
+    .addr_i     ( addr_to_decode  ),
+    .id_o       ( decoded_id      )
+  );
 
-    assign src_id = id_i;
-    assign dst_id[NarrowAw] = dst_addr_out[NarrowAwReq];
-    assign dst_id[NarrowW]  = narrow_aw_id_q;
-    assign dst_id[NarrowAr] = dst_addr_out[NarrowArReq];
-    assign dst_id[NarrowB]  = narrow_aw_out_data_out.src_id;
-    assign dst_id[NarrowR]  = narrow_ar_out_data_out.src_id;
-    assign dst_id[WideAw] = dst_addr_out[WideAwReq];
-    assign dst_id[WideW]  = wide_aw_id_q;
-    assign dst_id[WideAr] = dst_addr_out[WideArReq];
-    assign dst_id[WideB]  = wide_aw_out_data_out.src_id;
-    assign dst_id[WideR]  = wide_ar_out_data_out.src_id;
-    `FFL(narrow_aw_id_q, dst_id[NarrowAw], axi_narrow_aw_queue_valid_out &&
-                                       axi_narrow_aw_queue_ready_in, '0)
-    `FFL(wide_aw_id_q, dst_id[WideAw], axi_wide_aw_queue_valid_out &&
-                                       axi_wide_aw_queue_ready_in, '0)
-  end else begin : gen_no_routing
-    // TODO: Implement other routing algorithms
-    $fatal(1, "Routing algorithm not implemented");
-  end
+  assign dst_id[NarrowAw] = decoded_id[NarrowAwReq];
+  assign dst_id[NarrowW]  = narrow_aw_id_q;
+  assign dst_id[NarrowAr] = decoded_id[NarrowArReq];
+  assign dst_id[NarrowB]  = narrow_aw_out_data_out.src_id;
+  assign dst_id[NarrowR]  = narrow_ar_out_data_out.src_id;
+  assign dst_id[WideAw] = decoded_id[WideAwReq];
+  assign dst_id[WideW]  = wide_aw_id_q;
+  assign dst_id[WideAr] = decoded_id[WideArReq];
+  assign dst_id[WideB]  = wide_aw_out_data_out.src_id;
+  assign dst_id[WideR]  = wide_ar_out_data_out.src_id;
+  `FFL(narrow_aw_id_q, dst_id[NarrowAw], axi_narrow_aw_queue_valid_out &&
+                                         axi_narrow_aw_queue_ready_in, '0)
+  `FFL(wide_aw_id_q, dst_id[WideAw], axi_wide_aw_queue_valid_out &&
+                                     axi_wide_aw_queue_ready_in, '0)
 
   ///////////////////
   // FLIT PACKING  //
@@ -1152,6 +1138,11 @@ module floo_narrow_wide_chimney
   // If Network Interface has no subordinate port, make sure that `RoBType` is `NoRoB`
   `ASSERT_INIT(NoNarrowSbrPortRobType, EnNarrowSbrPort || (NarrowRoBType == NoRoB))
   `ASSERT_INIT(NoWideSbrPortRobType, EnWideSbrPort || (WideRoBType == NoRoB))
+
+  // Check that all addresses have the same width
+  `ASSERT_INIT(SameAddrWidth1, NarrowInAddrWidth == NarrowOutAddrWidth)
+  `ASSERT_INIT(SameAddrWidth2, WideInAddrWidth == NarrowOutAddrWidth)
+  `ASSERT_INIT(SameAddrWidth3, WideInAddrWidth == WideOutAddrWidth)
 
   // Data and valid signals must be stable/asserted when ready is low
   `ASSERT(NarrowReqOutStableValid, floo_req_o.valid &&

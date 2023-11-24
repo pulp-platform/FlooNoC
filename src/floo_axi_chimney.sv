@@ -26,13 +26,20 @@ module floo_axi_chimney
   parameter int unsigned MaxAtomicTxns      = 1,
   /// Routing Algorithm
   parameter route_algo_e RouteAlgo          = IdTable,
+  /// Whether to look up the coordinates in a table or
+  /// directly read them from the request address
+  parameter bit UseIdTable                  = 1'b0,
   /// X Coordinate address offset for XY routing
   parameter int unsigned XYAddrOffsetX      = 0,
   /// Y Coordinate address offset for XY routing
   parameter int unsigned XYAddrOffsetY      = 0,
   /// ID address offset for ID routing
-  parameter int unsigned IdTableAddrOffset  = 8,
-  /// Number of maximum oustanding requests
+  parameter int unsigned IdAddrOffset       = 0,
+  /// Number of Endpoints in the system, only used for Table based routing
+  parameter int unsigned NumIDs             = 0,
+  /// Number of rules in the routing table, only used for Table based routing
+  parameter int unsigned NumRules           = 0,
+  /// ID address offset for ID routing
   parameter int unsigned MaxTxns            = 32,
   /// Maximum number of outstanding requests per ID
   parameter int unsigned MaxTxnsPerId       = MaxTxns,
@@ -40,12 +47,14 @@ module floo_axi_chimney
   parameter rob_type_e RoBType              = NoRoB,
   /// Capacity of the reorder buffer
   parameter int unsigned ReorderBufferSize  = 32,
-  /// Type of Coordinates/Id
-  parameter type id_t                       = logic,
   /// Cut timing paths of outgoing requests
   parameter bit CutAx                       = 1'b0,
   /// Cut timing paths of incoming responses
   parameter bit CutRsp                      = 1'b1,
+  /// Type of Coordinates/Id
+  parameter type id_t                       = logic,
+  /// Only used for IDRouting
+  parameter type id_rule_t                  = logic,
   /// Type for implementation inputs and outputs
   parameter type         sram_cfg_t         = logic
 ) (
@@ -60,6 +69,8 @@ module floo_axi_chimney
   input  axi_out_rsp_t axi_out_rsp_i,
   /// Coordinates/ID of the current tile
   input  id_t  id_i,
+  /// Routing table
+  input  id_rule_t[NumRules-1:0]  id_map_i,
   /// Output to NoC
   output floo_req_t floo_req_o,
   output floo_rsp_t floo_rsp_o,
@@ -349,33 +360,42 @@ module floo_axi_chimney
   //   ROUTING   //
   /////////////////
 
+  typedef enum logic [1:0] {AwReq, ArReq, NumAddrDecoders} axi_req_ch_e;
 
-  if (RouteAlgo == XYRouting) begin : gen_xy_routing
-    id_t aw_xy_id_q, aw_xy_id, ar_xy_id;
-    assign aw_xy_id.x = axi_aw_queue.addr[XYAddrOffsetX+:$bits(id_i.x)];
-    assign aw_xy_id.y = axi_aw_queue.addr[XYAddrOffsetY+:$bits(id_i.y)];
-    assign ar_xy_id.x = axi_ar_queue.addr[XYAddrOffsetX+:$bits(id_i.x)];
-    assign ar_xy_id.y = axi_ar_queue.addr[XYAddrOffsetY+:$bits(id_i.y)];
-    assign dst_id[AxiAw] = aw_xy_id;
-    assign dst_id[AxiAr] = ar_xy_id;
-    assign dst_id[AxiW]  = aw_xy_id_q;
-    assign dst_id[AxiB]  = aw_out_data_out.src_id;
-    assign dst_id[AxiR]  = ar_out_data_out.src_id;
-    `FFL(aw_xy_id_q, aw_xy_id, axi_aw_queue_valid_out && axi_aw_queue_ready_in, '0)
-  end else if (RouteAlgo == IdTable) begin : gen_id_table_routing
-    id_t aw_id_q, aw_id, ar_id;
-    assign aw_id = axi_aw_queue.addr[IdTableAddrOffset+:$bits(id_i)];
-    assign ar_id = axi_ar_queue.addr[IdTableAddrOffset+:$bits(id_i)];
-    assign dst_id[AxiAw] = aw_id;
-    assign dst_id[AxiAr] = ar_id;
-    assign dst_id[AxiW]  = aw_id_q;
-    assign dst_id[AxiB]  = aw_out_data_out.src_id;
-    assign dst_id[AxiR]  = ar_out_data_out.src_id;
-    `FFL(aw_id_q, aw_id, axi_aw_queue_valid_out && axi_aw_queue_ready_in, '0)
-  end else begin : gen_no_routing
-    // TODO: Implement other routing algorithms
-    $fatal(1, "Routing algorithm not implemented");
-  end
+  id_t axi_aw_id_q;
+
+  axi_in_addr_t [NumAddrDecoders-1:0] addr_to_decode;
+  id_t [NumAddrDecoders-1:0] decoded_id;
+  assign addr_to_decode[AwReq] = axi_aw_queue.addr;
+  assign addr_to_decode[ArReq] = axi_ar_queue.addr;
+
+  floo_route_comp #(
+    .RouteAlgo      ( RouteAlgo     ),
+    .UseIdTable     ( UseIdTable    ),
+    .XYAddrOffsetX  ( XYAddrOffsetX ),
+    .XYAddrOffsetY  ( XYAddrOffsetY ),
+    .IdAddrOffset   ( IdAddrOffset  ),
+    .NumIDs         ( NumIDs        ),
+    .NumRules       ( NumRules      ),
+    .id_t           ( id_t          ),
+    .id_rule_t      ( id_rule_t     ),
+    .addr_t         ( axi_in_addr_t        )
+  ) i_floo_narrow_route_comp [NumAddrDecoders-1:0] (
+    .clk_i,
+    .rst_ni,
+    .id_map_i,
+    .addr_i     ( addr_to_decode  ),
+    .id_o       ( decoded_id      )
+  );
+
+  assign dst_id[AxiAw] = decoded_id[AwReq];
+  assign dst_id[AxiW]  = axi_aw_id_q;
+  assign dst_id[AxiAr] = decoded_id[ArReq];
+  assign dst_id[AxiB]  = aw_out_data_out.src_id;
+  assign dst_id[AxiR]  = ar_out_data_out.src_id;
+  `FFL(axi_aw_id_q, dst_id[AxiAw], axi_aw_queue_valid_out &&
+                                   axi_aw_queue_ready_in, '0)
+
 
   ///////////////////
   // FLIT PACKING  //
