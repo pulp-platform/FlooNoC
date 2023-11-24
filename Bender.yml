@@ -27,6 +27,7 @@ sources:
   - src/floo_fifo.sv
   - src/floo_cdc.sv
   - src/floo_route_select.sv
+  - src/floo_route_comp.sv
   - src/floo_vc_arbiter.sv
   - src/floo_wormhole_arbiter.sv
   - src/floo_simple_rob.sv
