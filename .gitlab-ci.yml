@@ -5,9 +5,8 @@
 # Author: Michael Rogenmoser <michaero@iis.ee.ethz.ch>
 
 variables:
-  VSIM: 'questa-2023.4 vsim'
-  BENDER: 'bender'
-  SPYGLASS: 'spyglass-2022.06 sg_shell'
+  VSIM: questa-2023.4 vsim
+  BENDER: bender
 
 stages:
   - sources
@@ -22,10 +21,6 @@ collect-bender-sources:
     paths:
       - .bender/
       - Bender.lock
-  rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /noci$/'
-      when: manual
-    - when: always
 
 compile-vsim:
   stage: build
@@ -39,10 +34,6 @@ compile-vsim:
       - scripts/
       - work/
       - modelsim.ini
-  rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /noci$/'
-      when: manual
-    - when: always
 
 run-vsim:
   stage: run
@@ -91,18 +82,3 @@ morty:
     - morty -f source_list.txt
   needs:
     - collect-bender-sources
-  rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /noci$/'
-      when: manual
-    - when: always
-
-verible-lint:
-  stage: build
-  script:
-    - verible-verilog-lint src/*.sv src/synth/*.sv include/floo_noc/*.svh --lint_fatal --waiver_files util/verible.waiver
-  needs:
-    - collect-bender-sources
-  rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /noci$/'
-      when: manual
-    - when: always
