@@ -1,0 +1,36 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  FlooNoC: A Multi-Tb/s Wide NoC for Heterogeneous AXI4
+  Traffic
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Tim
+    family-names: Fischer
+    email: fischeti@iis.ee.ethz.ch
+    affiliation: ETH Zurich
+    orcid: 'https://orcid.org/0009-0007-9700-1286'
+identifiers:
+  - type: doi
+    value: 10.1109/MDAT.2023.3306720
+repository-code: 'https://github.com/pulp-platform/FlooNoC'
+abstract: >-
+  This article introduces an open-source, low-latency
+  Network-on-Chip (NoC) designed to tackle bandwidth
+  challenges faced by traditional narrow and serialized
+  NoCs. The authors demonstrate the effectiveness of wide
+  channels by integrating a 5 × 5 router and links within a
+  9-core compute cluster using 12-nm FinFet technology.
+keywords:
+  - Bandwidth
+  - Protocols
+  - Scalability
+  - Network-on-Chip
+  - Routing
+  - Network Interfaces
+license: SHL-0.51
