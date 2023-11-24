@@ -610,7 +610,13 @@ module floo_narrow_wide_chimney
   //   ROUTING   //
   /////////////////
 
-  typedef enum logic [2:0] {NarrowAwReq, NarrowArReq, WideAwReq, WideArReq, NumAddrDecoders} axi_req_ch_e;
+  typedef enum logic [2:0] {
+    NarrowAwReq,
+    NarrowArReq,
+    WideAwReq,
+    WideArReq,
+    NumAddrDecoders
+  } axi_req_ch_e;
   typedef axi_narrow_in_addr_t addr_t;
 
   id_t narrow_aw_id_q, wide_aw_id_q;
