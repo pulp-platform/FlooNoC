@@ -35,6 +35,7 @@ sources:
   - src/floo_rob_wrapper.sv
   - src/floo_meta_buffer.sv
   # Level 2
+  - src/floo_narrow_wide_join.sv
   - src/floo_axi_chimney.sv
   - src/floo_narrow_wide_chimney.sv
   - src/floo_router.sv
