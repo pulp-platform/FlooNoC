@@ -23,7 +23,8 @@ dependencies = [
   "matplotlib",
   "mako",
   "ruamel.yaml",
-  "hjson"
+  "hjson",
+  "click"
 ]
 
 [build-system]
