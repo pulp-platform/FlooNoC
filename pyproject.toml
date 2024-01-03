@@ -36,6 +36,9 @@ Homepage = "https://iis-git.ee.ethz.ch/axi-noc/floogen"
 [project.scripts]
 floogen = "floogen.floo_gen:main"
 
+[tool.setuptools]
+packages = ["floogen"]
+
 [tool.setuptools.package-data]
 "floogen.templates" = ["*.mako"]
 
