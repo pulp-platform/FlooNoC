@@ -32,7 +32,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project.urls]
-Homepage = "https://iis-git.ee.ethz.ch/axi-noc/floogen"
+Homepage = "https://github.com/pulp-platform/FlooNoC"
 
 [project.scripts]
 floogen = "floogen.floo_gen:main"
