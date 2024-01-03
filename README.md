@@ -104,42 +104,42 @@ This repository includes the following NoC IPs:
 ### Routers
 | Name | Description | Doc |
 | --- | --- | --- |
-| [floo_router](src/floo_router.sv) | A simple router with configurable number of ports, physical and virtual channels, and input/output buffers |  |
-| [floo_narrow_wide_router](src/floo_narrow_wide_router.sv) | Wrapper of a multi-link router for narrow and wide links |  |
+| [floo_router](hw/floo_router.sv) | A simple router with configurable number of ports, physical and virtual channels, and input/output buffers |  |
+| [floo_narrow_wide_router](hw/floo_narrow_wide_router.sv) | Wrapper of a multi-link router for narrow and wide links |  |
 
 ### Network Interfaces
 | Name | Description | Doc |
 | --- | --- | --- |
-| [floo_axi_chimney](src/floo_axi_chimney.sv) | A bidirectional network interface for connecting AXI4 Buses to the NoC |  |
-| [floo_narrow_wide_chimney](src/floo_narrow_wide_chimney.sv) | A bidirectional network interface for connecting narrow & wide AXI Buses to the multi-link NoC |  |
+| [floo_axi_chimney](hw/floo_axi_chimney.sv) | A bidirectional network interface for connecting AXI4 Buses to the NoC |  |
+| [floo_narrow_wide_chimney](hw/floo_narrow_wide_chimney.sv) | A bidirectional network interface for connecting narrow & wide AXI Buses to the multi-link NoC |  |
 
 ### Topologies
 | Name | Description | Doc |
 | --- | --- | --- |
-| [floo_mesh](src/floo_mesh.sv) | A mesh topology with configurable number of rows and columns |  |
-| [floo_mesh_ruche](src/floo_mesh_ruche.sv) | A mesh topology with ruche channels and a configurable number of rows and columns |  |
+| [floo_mesh](hw/floo_mesh.sv) | A mesh topology with configurable number of rows and columns |  |
+| [floo_mesh_ruche](hw/floo_mesh_ruche.sv) | A mesh topology with ruche channels and a configurable number of rows and columns |  |
 
 ### Common IPs
 | Name | Description | Doc |
 | --- | --- | --- |
-| [floo_fifo](src/floo_fifo.sv) | A FIFO buffer with configurable depth |  |
-| [floo_cut](src/floo_cut.sv) | Elastic buffers for cuting timing paths |  |
-| [floo_cdc](src/floo_cdc.sv) | A Clock-Domain-Crossing (CDC) module implemented with a gray-counter based FIFO. |  |
-| [floo_wormhole_arbiter](src/floo_wormhole_arbiter.sv) | A wormhole arbiter |  |
-| [floo_vc_arbiter](src/floo_vc_arbiter.sv) | A virtual channel arbiter |  |
-| [floo_rob](src/floo_rob.sv) | A table-based Reorder Buffer |  |
-| [floo_simple_rob](src/floo_simple_rob.sv) | A simplistic low-complexity Reorder Buffer |  |
-| [floo_rob_wrapper](src/floo_simple_rob.sv) | A wrapper of all available types of RoBs including RoB-less version |  |
+| [floo_fifo](hw/floo_fifo.sv) | A FIFO buffer with configurable depth |  |
+| [floo_cut](hw/floo_cut.sv) | Elastic buffers for cuting timing paths |  |
+| [floo_cdc](hw/floo_cdc.sv) | A Clock-Domain-Crossing (CDC) module implemented with a gray-counter based FIFO. |  |
+| [floo_wormhole_arbiter](hw/floo_wormhole_arbiter.sv) | A wormhole arbiter |  |
+| [floo_vc_arbiter](hw/floo_vc_arbiter.sv) | A virtual channel arbiter |  |
+| [floo_rob](hw/floo_rob.sv) | A table-based Reorder Buffer |  |
+| [floo_simple_rob](hw/floo_simple_rob.sv) | A simplistic low-complexity Reorder Buffer |  |
+| [floo_rob_wrapper](hw/floo_simple_rob.sv) | A wrapper of all available types of RoBs including RoB-less version |  |
 
 ### Verification IPs
 | Name | Description | Doc |
 | --- | --- | --- |
-| [axi_bw_monitor](test/axi_bw_monitor.sv) | A AXI4 Bus Monitor for measuring the throughput and latency of the AXI4 Bus |  |
-| [axi_reorder_compare](test/axi_reorder_compare.sv) | A AXI4 Bus Monitor for verifying the order of AXI transactions with the same ID |  |
-| [floo_axi_rand_slave](test/floo_axi_rand_slave.sv) | A AXI4 Bus Multi-Slave generating random AXI respones with configurable response time |  |
-| [floo_axi_test_node](test/floo_axi_test_node.sv) | A AXI4 Bus Master-Slave Node for generating random AXI transactions |  |
-| [floo_dma_test_node](test/floo_dma_test_node.sv) | An endpoint node with a DMA master port and a Simulation Memory Slave port |  |
-| [floo_hbm_model](test/floo_hbm_model.sv) | A very simple model of the HBM memory controller with configurable delay |  |
+| [axi_bw_monitor](hw/test/axi_bw_monitor.sv) | A AXI4 Bus Monitor for measuring the throughput and latency of the AXI4 Bus |  |
+| [axi_reorder_compare](hw/test/axi_reorder_compare.sv) | A AXI4 Bus Monitor for verifying the order of AXI transactions with the same ID |  |
+| [floo_axi_rand_slave](hw/test/floo_axi_rand_slave.sv) | A AXI4 Bus Multi-Slave generating random AXI respones with configurable response time |  |
+| [floo_axi_test_node](hw/test/floo_axi_test_node.sv) | A AXI4 Bus Master-Slave Node for generating random AXI transactions |  |
+| [floo_dma_test_node](hw/test/floo_dma_test_node.sv) | An endpoint node with a DMA master port and a Simulation Memory Slave port |  |
+| [floo_hbm_model](hw/test/floo_hbm_model.sv) | A very simple model of the HBM memory controller with configurable delay |  |
 
 ## 🎛️ Configuration
 
