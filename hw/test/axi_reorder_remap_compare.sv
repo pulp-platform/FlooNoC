@@ -31,7 +31,7 @@ module axi_reorder_remap_compare #(
   output logic end_of_sim_o
 );
 
-`include "axi_print_txns.svh"
+`include "include/axi_print_txns.svh"
 
 aw_chan_t aw_queue_sent [NumAxiInIds-1:0][$];
 aw_chan_t aw_queue_recv [NumAxiOutIds-1:0][$];
