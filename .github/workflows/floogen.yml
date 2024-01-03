@@ -31,10 +31,39 @@ jobs:
         python -m pip install -e .
     - name: Generate NoCs
       run: |
-        python -m floogen -c floogen/examples/${{ matrix.examples }}.yml
+        floogen -c floogen/examples/${{ matrix.examples }}.yml --no_formatting
     - name: Format generated NoCs
       uses: chipsalliance/verible-formatter-action@main
       with:
         files:
           ./generated/*.sv
         github_token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: Upload generated NoCs
+        path: generated/
+
+        # jobs:
+        #   job1:
+        #     runs-on: ubuntu-latest
+        #     steps:
+        #       # ...
+
+        #       - name: Upload artifact
+        #         uses: actions/upload-artifact@v2
+        #         with:
+        #           name: my-artifact
+        #           path: path/to/artifact
+
+        #   job2:
+        #     needs: job1
+        #     runs-on: ubuntu-latest
+        #     steps:
+        #       # ...
+
+        #       - name: Download artifact
+        #         uses: actions/download-artifact@v2
+        #         with:
+        #           name: my-artifact
+        #           path: path/to/download/location
