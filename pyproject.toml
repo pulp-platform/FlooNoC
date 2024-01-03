@@ -24,6 +24,7 @@ dependencies = [
   "mako",
   "ruamel.yaml",
   "hjson",
+  "jsonref",
   "click"
 ]
 
