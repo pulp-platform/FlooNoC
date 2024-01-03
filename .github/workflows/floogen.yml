@@ -39,10 +39,12 @@ jobs:
           ./generated/${{ matrix.examples }}_floo_noc.sv
         github_token: ${{ secrets.GITHUB_TOKEN }}
     - name: Upload artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
-        name: Upload generated NoCs
+        name: ${{ matrix.examples }}
         path: generated/${{ matrix.examples }}_floo_noc.sv
+        if-no-files-found: error
+        retention-days: 1
 
         # jobs:
         #   job1:
@@ -67,3 +69,21 @@ jobs:
         #         with:
         #           name: my-artifact
         #           path: path/to/download/location
+  #################
+  # Lint SV files #
+  #################
+  lint-nocs:
+    runs-on: ubuntu-latest
+    needs: gen-nocs
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          path: generated
+      - name: Lint SV files
+        uses: chipsalliance/verible-linter-action@main
+        with:
+          paths:
+            ./generated
+          github_token: ${{ secrets.GITHUB_TOKEN }}
