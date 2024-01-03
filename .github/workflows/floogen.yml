@@ -9,9 +9,9 @@ name: floogen
 on: [push, pull_request]
 
 jobs:
-  #################
-  # Generate NoCs #
-  #################
+  #####################
+  # Generate SV files #
+  #####################
   gen-nocs:
     runs-on: ubuntu-latest
     strategy:
