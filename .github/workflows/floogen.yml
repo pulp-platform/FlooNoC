@@ -36,13 +36,13 @@ jobs:
       uses: chipsalliance/verible-formatter-action@main
       with:
         files:
-          ./generated/*.sv
+          ./generated/${{ matrix.examples }}_floo_noc.sv
         github_token: ${{ secrets.GITHUB_TOKEN }}
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
         name: Upload generated NoCs
-        path: generated/
+        path: generated/${{ matrix.examples }}_floo_noc.sv
 
         # jobs:
         #   job1:
