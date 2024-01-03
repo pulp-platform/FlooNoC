@@ -66,7 +66,7 @@ endif
 # Flit Generation #
 ###################
 
-FLIT_OUT_DIR ?= src
+FLIT_OUT_DIR ?= hw
 FLIT_CFG_DIR ?= util
 FLIT_CFG ?= $(shell find $(FLIT_CFG_DIR) -name "*.hjson")
 FLIT_SRC ?= $(patsubst $(FLIT_CFG_DIR)/%_cfg.hjson,$(FLIT_OUT_DIR)/floo_%_pkg.sv,$(FLIT_CFG))
@@ -91,7 +91,7 @@ TRAFFIC_GEN ?= util/gen_jobs.py
 TRAFFIC_TB ?= dma_mesh
 TRAFFIC_TYPE ?= random
 TRAFFIC_RW ?= read
-TRAFFIC_OUTDIR ?= test/jobs
+TRAFFIC_OUTDIR ?= hw/test/jobs
 
 .PHONY: jobs clean-jobs
 jobs: $(TRAFFIC_GEN)
