@@ -1,0 +1,105 @@
+name: occamy_tree
+description: "Occamy configuration for FlooGen"
+
+routing:
+  route_algo: "ID"
+  use_id_table: true
+
+
+protocols:
+  - name: "narrow"
+    type: "AXI4"
+    direction: "manager"
+    data_width: 64
+    addr_width: 48
+    id_width: 2
+    user_width: 5
+  - name: "narrow"
+    type: "AXI4"
+    direction: "subordinate"
+    data_width: 64
+    addr_width: 48
+    id_width: 4
+    user_width: 5
+  - name: "wide"
+    type: "AXI4"
+    direction: "manager"
+    data_width: 512
+    addr_width: 48
+    id_width: 1
+    user_width: 1
+  - name: "wide"
+    type: "AXI4"
+    direction: "subordinate"
+    data_width: 512
+    addr_width: 48
+    id_width: 3
+    user_width: 1
+
+endpoints:
+  - name: "cluster"
+    array: [6, 4]
+    addr_range:
+      base: 0x0000_1000_0000
+      size: 0x0000_0004_0000
+    mgr_port_protocol:
+      - "narrow"
+      - "wide"
+    sbr_port_protocol:
+      - "narrow"
+      - "wide"
+  - name: "hbm"
+    array: [8]
+    addr_range:
+      base: 0x0000_8000_0000
+      size: 0x0000_4000_0000
+    sbr_port_protocol:
+      - "narrow"
+      - "wide"
+  - name: "serial_link"
+    addr_range:
+      start: 0x0100_0000_0000
+      end: 0x01ff_ffff_ffff
+    mgr_port_protocol:
+      - "narrow"
+      - "wide"
+    sbr_port_protocol:
+      - "narrow"
+      - "wide"
+  - name: "peripherals"
+    addr_range:
+      start: 0x0000_0000_0000
+      end: 0x0000_0fff_ffff
+    mgr_port_protocol:
+      - "narrow"
+    sbr_port_protocol:
+      - "narrow"
+
+routers:
+  - name: "router"
+    tree: [1, 6] # Number of routers per level
+
+connections:
+  - src: "cluster"
+    dst: "router"
+    src_range:
+    - [0, 5]
+    - [0, 3]
+    dst_lvl: 1
+    allow_multi: true
+    bidirectional: true
+  - src: "router"
+    dst: "hbm"
+    dst_range:
+    - [0, 7]
+    src_lvl: 0
+    allow_multi: true
+    bidirectional: true
+  - src: "router"
+    dst: "serial_link"
+    src_lvl: 0
+    bidirectional: true
+  - src: "router"
+    dst: "peripherals"
+    src_lvl: 0
+    bidirectional: true
