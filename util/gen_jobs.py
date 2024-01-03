@@ -120,7 +120,8 @@ def gen_mesh_traffic(
     num_wide_bursts: int,
     rw: str,
     traffic_type: str,
-    out_dir: str
+    out_dir: str,
+    **_kwargs
 ):
     # pylint: disable=too-many-arguments, too-many-locals
     """Generate Mesh traffic."""
@@ -175,7 +176,7 @@ def main():
     parser.add_argument("--wide_burst_length", type=int, default=16)
     parser.add_argument("--bidir", action="store_true")
     parser.add_argument("--tb", type=str, default="dma_mesh")
-    parser.add_argument("--type", type=str, default="random")
+    parser.add_argument("--traffic_type", type=str, default="random")
     parser.add_argument("--rw", type=str, default="read")
     args = parser.parse_args()
 
