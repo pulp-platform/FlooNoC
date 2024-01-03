@@ -42,7 +42,7 @@ sources:
 
   - target: test
     include_dirs:
-      - hw/test/include
+      - hw/test
     files:
       # Level 0
       - hw/test/floo_test_pkg.sv
