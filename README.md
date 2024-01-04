@@ -15,6 +15,7 @@ This repository provides modules for the FlooNoC, a Network-on-Chip (NoC) which 
 
 [![CI status](https://github.com/pulp-platform/FlooNoC/actions/workflows/gitlab-ci.yml/badge.svg?branch=main)](https://github.com/pulp-platform/FlooNoC/actions/workflows/gitlab-ci.yml?query=branch%3Amain)
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/pulp-platform/FlooNoC?color=blue&label=current&sort=semver)](CHANGELOG.md)
+![License](https://img.shields.io/badge/license-Apache--2.0-green)
 ![License](https://img.shields.io/badge/license-SHL--0.51-green)
 
 [Design Principles](#-design-principles) •
@@ -42,7 +43,7 @@ The names of the IPs are inspired by the [Harry Potter](https://en.wikipedia.org
 > In use for centuries, the Floo Network, while somewhat uncomfortable, has many advantages. Firstly, unlike broomsticks, the Network can be used without fear of breaking the International Statute of Secrecy. Secondly, unlike Apparition, there is little to no danger of serious injury. Thirdly, it can be used to transport children, the elderly and the infirm."
 
 ## 🔐 License
-Unless specified otherwise in the respective file headers, all code checked into this repository is made available under a permissive license. All hardware sources and tool scripts are licensed under the Solderpad Hardware License 0.51 (see [`LICENSE`](LICENSE))
+Unless specified otherwise in the respective file headers, all code checked into this repository is made available under a permissive license. All software sources are licensed under the Apache License 2.0 (see [`LICENSE`](LICENSE)), and all hardware sources in the `hw` folder are licensed under the Solderpad Hardware License 0.51 (see [`hw/LICENSE`](hw/LICENSE)).
 
 ## 📚 Publication
 If you use FlooNoC in your research, please cite the following paper:
