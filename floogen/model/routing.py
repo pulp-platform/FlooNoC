@@ -243,6 +243,9 @@ class RoutingTable(BaseModel):
             while i < len(ranges) - 1:
                 if ranges[i].addr_range.end == ranges[i + 1].addr_range.start:
                     ranges[i].addr_range.end = ranges[i + 1].addr_range.end
+                    ranges[i].addr_range.size = (
+                        ranges[i].addr_range.end - ranges[i].addr_range.start
+                    )
                     del ranges[i + 1]
                 else:
                     i += 1
