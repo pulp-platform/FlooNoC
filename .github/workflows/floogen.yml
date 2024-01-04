@@ -9,6 +9,23 @@ name: floogen
 on: [push, pull_request]
 
 jobs:
+
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -e .
+    - name: Run unit tests
+      run: |
+        python -m pytest -v
+
   #####################
   # Generate SV files #
   #####################
@@ -46,29 +63,6 @@ jobs:
         if-no-files-found: error
         retention-days: 1
 
-        # jobs:
-        #   job1:
-        #     runs-on: ubuntu-latest
-        #     steps:
-        #       # ...
-
-        #       - name: Upload artifact
-        #         uses: actions/upload-artifact@v2
-        #         with:
-        #           name: my-artifact
-        #           path: path/to/artifact
-
-        #   job2:
-        #     needs: job1
-        #     runs-on: ubuntu-latest
-        #     steps:
-        #       # ...
-
-        #       - name: Download artifact
-        #         uses: actions/download-artifact@v2
-        #         with:
-        #           name: my-artifact
-        #           path: path/to/download/location
   #################
   # Lint SV files #
   #################
