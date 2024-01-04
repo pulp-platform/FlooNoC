@@ -25,7 +25,8 @@ dependencies = [
   "ruamel.yaml",
   "hjson",
   "jsonref",
-  "click"
+  "click",
+  "pytest"
 ]
 
 [build-system]
@@ -43,6 +44,9 @@ packages = ["floogen"]
 
 [tool.setuptools.package-data]
 "floogen.templates" = ["*.mako"]
+
+[tool.pytest.ini_options]
+testpaths = ["floogen/tests"]
 
 [tool.pylint.format]
 max-line-length = 100
