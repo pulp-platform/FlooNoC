@@ -140,9 +140,9 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
         """Return the endpoint nodes."""
         return self.get_nodes(filters=[self.is_ep_node], with_name=with_name)
 
-    def get_prot_edges(self):
+    def get_prot_edges(self, with_name=False):
         """Return the protocol edges."""
-        return self.get_edges(filters=[self.is_prot_edge])
+        return self.get_edges(filters=[self.is_prot_edge], with_name=with_name)
 
     def get_link_edges(self, with_name=False):
         """Return the link edges."""
