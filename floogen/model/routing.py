@@ -149,6 +149,9 @@ class AddrRange(BaseModel):
             case {"size": size, "base": base}:
                 addr_dict["start"] = base
                 addr_dict["end"] = base + size
+            case {"start": start, "end": end, "size": size}:
+                if end - start != size:
+                    raise ValueError("Invalid address range specification")
             case {"start": start, "end": end}:
                 addr_dict["size"] = end - start
             case {"start": start, "size": size}:
