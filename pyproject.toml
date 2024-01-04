@@ -26,6 +26,7 @@ dependencies = [
   "hjson",
   "jsonref",
   "click",
+  "pylint",
   "pytest"
 ]
 
