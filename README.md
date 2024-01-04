@@ -43,7 +43,7 @@ The names of the IPs are inspired by the [Harry Potter](https://en.wikipedia.org
 > In use for centuries, the Floo Network, while somewhat uncomfortable, has many advantages. Firstly, unlike broomsticks, the Network can be used without fear of breaking the International Statute of Secrecy. Secondly, unlike Apparition, there is little to no danger of serious injury. Thirdly, it can be used to transport children, the elderly and the infirm."
 
 ## 🔐 License
-Unless specified otherwise in the respective file headers, all code checked into this repository is made available under a permissive license. All software sources are licensed under the Apache License 2.0 (see [`LICENSE`](LICENSE)), and all hardware sources in the `hw` folder are licensed under the Solderpad Hardware License 0.51 (see [`hw/LICENSE`](hw/LICENSE)).
+All code checked into this repository is made available under a permissive license. All software sources are licensed under the Apache License 2.0 (see [`LICENSE`](LICENSE)), and all hardware sources in the `hw` folder are licensed under the Solderpad Hardware License 0.51 (see [`hw/LICENSE`](hw/LICENSE)).
 
 ## 📚 Publication
 If you use FlooNoC in your research, please cite the following paper:
