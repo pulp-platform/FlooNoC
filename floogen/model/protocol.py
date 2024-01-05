@@ -68,19 +68,6 @@ class AXI4(ProtocolDesc):
 
         return axi_ch_size
 
-    def get_hjson_dict(self) -> str:
-        """Return the Hjson configuration of the protocol."""
-        prot_dict = {
-            "name": self.name,
-            "direction": self.svdirection,
-            "params": {
-                "dw": self.data_width,
-                "aw": self.addr_width,
-                "iw": self.id_width,
-                "uw": self.user_width,
-            },
-        }
-        return prot_dict
     def full_name(self) -> str:
         """Return the name of the protocol."""
         return f"axi_{self.name}_{short_dir(self.svdirection)}"

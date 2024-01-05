@@ -8,7 +8,6 @@
 from typing import Optional, List, ClassVar
 from importlib import resources
 
-import hjson
 import networkx as nx
 import matplotlib.pyplot as plt
 from mako.lookup import Template
