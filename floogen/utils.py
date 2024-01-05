@@ -6,6 +6,8 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 import math
+import shutil
+import subprocess
 from typing import Union
 
 
@@ -68,3 +70,18 @@ def sv_struct_typedef(name: str, fields: dict, union=False) -> str:
     typedef += f"}} {name};\n\n"
     return typedef
 
+def verible_format(string: str) -> str:
+    """Format the string using verible-verilog-format."""
+    if shutil.which("verible-verilog-format") is None:
+        raise RuntimeError(
+            "verible-verilog-format not found. Please install it to use the --format option."
+        )
+    # Format the output using verible-verilog-format, by piping it into the stdin
+    # of the formatter and capturing the stdout
+    return subprocess.run(
+        ["verible-verilog-format", "-"],
+        input=string,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
