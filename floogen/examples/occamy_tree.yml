@@ -16,28 +16,28 @@ protocols:
     direction: "manager"
     data_width: 64
     addr_width: 48
-    id_width: 2
-    user_width: 5
+    id_width: 4
+    user_width: 1
   - name: "narrow"
     type: "AXI4"
     direction: "subordinate"
     data_width: 64
     addr_width: 48
-    id_width: 4
-    user_width: 5
+    id_width: 2
+    user_width: 1
   - name: "wide"
     type: "AXI4"
     direction: "manager"
     data_width: 512
     addr_width: 48
-    id_width: 1
+    id_width: 3
     user_width: 1
   - name: "wide"
     type: "AXI4"
     direction: "subordinate"
     data_width: 512
     addr_width: 48
-    id_width: 3
+    id_width: 1
     user_width: 1
 
 endpoints:
