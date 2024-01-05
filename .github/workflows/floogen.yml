@@ -21,7 +21,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install -e .
+        python -m pip install .
     - name: Run unit tests
       run: |
         python -m pytest -v
@@ -45,7 +45,7 @@ jobs:
         python -m pip install --upgrade pip
     - name: Install floogen
       run: |
-        python -m pip install -e .
+        python -m pip install .
     - name: Generate NoCs
       run: |
         floogen -c floogen/examples/${{ matrix.examples }}.yml -o generated --no_formatting
