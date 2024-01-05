@@ -41,7 +41,12 @@ Homepage = "https://github.com/pulp-platform/FlooNoC"
 floogen = "floogen.floo_gen:main"
 
 [tool.setuptools]
-packages = ["floogen"]
+packages = [
+  "floogen",
+  "floogen.model",
+  "floogen.templates",
+  "floogen.tests",
+]
 
 [tool.setuptools.package-data]
 "floogen.templates" = ["*.mako"]
