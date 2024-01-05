@@ -47,7 +47,6 @@ sources:
       # Level 0
       - hw/test/floo_test_pkg.sv
       # Level 1
-      - hw/test/axi_channel_compare.sv
       - hw/test/floo_axi_test_node.sv
       - hw/test/floo_axi_rand_slave.sv
       - hw/test/floo_dma_test_node.sv
