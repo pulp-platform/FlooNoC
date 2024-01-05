@@ -62,26 +62,33 @@ ifneq ("$(wildcard test/$(VSIM_TB_DUT).wave.tcl)","")
     VSIM_FLAGS_GUI += -do "source test/$(VSIM_TB_DUT).wave.tcl"
 endif
 
-###################
-# Flit Generation #
-###################
+###########
+# FlooGen #
+###########
 
-FLIT_OUT_DIR ?= hw
-FLIT_CFG_DIR ?= util
-FLIT_CFG ?= $(shell find $(FLIT_CFG_DIR) -name "*.hjson")
-FLIT_SRC ?= $(patsubst $(FLIT_CFG_DIR)/%_cfg.hjson,$(FLIT_OUT_DIR)/floo_%_pkg.sv,$(FLIT_CFG))
-FLIT_GEN ?= util/flit_gen.py
-FLIT_TPL ?= util/floo_flit_pkg.sv.mako
+FLOOGEN ?= floogen
 
-.PHONY: sources clean-sources
+FLOOGEN_OUT_DIR ?= $(MKFILE_DIR)generated
+FLOOGEN_PKG_OUT_DIR ?= $(MKFILE_DIR)hw
+FLOOGEN_CFG_DIR ?= $(MKFILE_DIR)floogen/examples
+FLOOGEN_TPL_DIR ?= $(MKFILE_DIR)floogen/templates
 
-sources: $(FLIT_SRC)
-$(FLIT_OUT_DIR)/floo_%_pkg.sv: $(FLIT_CFG_DIR)/%_cfg.hjson $(FLIT_GEN) $(FLIT_TPL)
-	$(FLIT_GEN) -c $< > $@
-	$(VERIBLE_FMT) --inplace --try_wrap_long_lines $@
+FLOOGEN_PKG_CFG ?= $(shell find $(FLOOGEN_CFG_DIR) -name "*_pkg.yml")
+FLOOGEN_PKG_SRC ?= $(patsubst $(FLOOGEN_CFG_DIR)/%_pkg.yml,$(FLOOGEN_PKG_OUT_DIR)/floo_%_pkg.sv,$(FLOOGEN_PKG_CFG))
+FLOOGEN_TPL ?= $(shell find $(FLOOGEN_TPL_DIR) -name "*.mako")
+
+.PHONY: install-floogen sources clean-sources
+
+install-floogen:
+	@which $(FLOOGEN) > /dev/null || (echo "Installing floogen..." && pip install .)
+
+sources: install-floogen $(FLOOGEN_PKG_SRC)
+$(FLOOGEN_PKG_OUT_DIR)/floo_%_pkg.sv: $(FLOOGEN_CFG_DIR)/%_pkg.yml $(FLOOGEN_TPL)
+	$(FLOOGEN) -c $< --only-pkg --pkg-outdir $(FLOOGEN_PKG_OUT_DIR)
 
 clean-sources:
-	rm -f $(FLIT_SRC)
+	rm -rf $(FLOOGEN_OUT_DIR)
+	rm -f $(FLOOGEN_PKG_SRC)
 
 ######################
 # Traffic Generation #
