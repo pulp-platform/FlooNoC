@@ -20,7 +20,7 @@ from floogen.model.graph import Graph
 from floogen.model.endpoint import EndpointDesc, Endpoint
 from floogen.model.router import RouterDesc, NarrowWideRouter, NarrowWideXYRouter
 from floogen.model.connection import ConnectionDesc
-from floogen.model.link import NarrowWideLink, XYLinks
+from floogen.model.link import NarrowWideLink, XYLinks, NarrowLink
 from floogen.model.network_interface import NarrowWideAxiNI
 from floogen.model.protocol import AXI4, AXI4Bus
 from floogen.utils import clog2
@@ -35,6 +35,9 @@ class Network(BaseModel): # pylint: disable=too-many-public-methods
 
     with resources.path("floogen.templates", "floo_noc_top.sv.mako") as _tpl_path:
         tpl: ClassVar = Template(filename=str(_tpl_path))
+
+    with resources.path("floogen.templates", "floo_flit_pkg.sv.mako") as _tpl_path:
+        tpl_pkg: ClassVar = Template(filename=str(_tpl_path))
 
     name: str
     description: Optional[str]
@@ -570,15 +573,15 @@ class Network(BaseModel): # pylint: disable=too-many-public-methods
 
     def render_link_cfg(self):
         """Render the link configuration file"""
-        routing = self.routing.model_dump()
-        routing["route_algo"] = self.routing.route_algo.value
-        hjson_dict = {
-            "name": "narrow_wide",
-            "protocols": [p.get_hjson_dict() for p in self.protocols],
-            "channel_mapping": NarrowWideLink.get_mapping(),
-            "routing": routing,
-        }
-        return hjson.dumps(hjson_dict)
+        prot_names = [prot.name for prot in self.protocols]
+        if "wide" in prot_names and "narrow" in prot_names:
+            axi_type, link_type = "narrow_wide", NarrowWideLink
+        else:
+            axi_type, link_type = "axi", NarrowLink
+
+        return axi_type, self.tpl_pkg.render(
+            name=axi_type, noc=self, link=link_type
+        )
 
     def visualize(self, savefig=True, filename: str = "network.png"):
         """Visualize the network graph."""

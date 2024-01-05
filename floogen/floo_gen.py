@@ -12,6 +12,7 @@ import subprocess
 
 from floogen.config_parser import parse_config
 from floogen.model.network import Network
+from floogen.utils import verible_format
 
 
 def parse_args():
@@ -21,10 +22,29 @@ def parse_args():
         "-c", "--config", type=pathlib.Path, required=True, help="Path to the configuration file."
     )
     parser.add_argument(
-        "-o", "--output", type=pathlib.Path, required=False, help="Path to the output directory."
+        "-o",
+        "--outdir",
+        type=pathlib.Path,
+        required=False,
+        help="Path to the output directory of the generated output.",
     )
     parser.add_argument(
-        "--no_formatting",
+        "--pkg-outdir",
+        dest="pkg_outdir",
+        type=pathlib.Path,
+        required=False,
+        default=pathlib.Path(__file__).parent.parent / "hw",
+        help="Path to the output directory of the generated output.",
+    )
+    parser.add_argument(
+        "--only-pkg",
+        dest="only_pkg",
+        action="store_true",
+        help="Only generate the package file."
+    )
+    parser.add_argument(
+        "--no-format",
+        dest="no_format",
         action="store_true",
         help="Do not format the output.",
     )
@@ -42,41 +62,34 @@ def main():
     if args.visualize:
         network.visualize()
 
-    network.create_network()
-    network.compile_network()
-    network.gen_routing_info()
+    if not args.only_pkg:
+        network.create_network()
+        network.compile_network()
+        network.gen_routing_info()
 
-    # Generate the network description
-    rendered_top = network.render_network()
-    rendered_cfg = network.render_link_cfg()
-    if  not args.no_formatting:
-        if shutil.which("verible-verilog-format") is None:
-            raise RuntimeError(
-                "verible-verilog-format not found. Please install it to use the --format option."
-            )
-        # Format the output using verible-verilog-format, by piping it into the stdin
-        # of the formatter and capturing the stdout
-        rendered_top = subprocess.run(
-            ["verible-verilog-format", "-"],
-            input=rendered_top,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout
+        # Generate the network description
+        rendered_top = network.render_network()
+        if not args.no_format:
+            rendered_top = verible_format(rendered_top)
+        # Write the network description to file or print it to stdout
+        if args.outdir:
+            args.outdir.mkdir(parents=True, exist_ok=True)
+            top_file_name = args.outdir / (network.name + "_floo_noc.sv")
+            with open(top_file_name, "w+", encoding="utf-8") as top_file:
+                top_file.write(rendered_top)
+        else:
+            print(rendered_top)
 
-    # Write the network description to file or print it to stdout
-    if args.output:
-        # Create the output directory if it does not exist
-        args.output.mkdir(parents=True, exist_ok=True)
-        top_file_name = args.output / (network.name + "_floo_noc.sv")
-        cfg_file_name = args.output / ("narrow_wide_cfg.hjson")
-        with open(top_file_name, "w+", encoding="utf-8") as top_file:
-            top_file.write(rendered_top)
-        with open(cfg_file_name, "w+", encoding="utf-8") as cfg_file:
-            cfg_file.write(rendered_cfg)
-    else:
-        print(rendered_top)
-        print(rendered_cfg)
+    axi_type, rendered_pkg = network.render_link_cfg()
+    if not args.no_format:
+        rendered_pkg = verible_format(rendered_pkg)
+        # Write the link configuration to file or print it to stdout
+        if args.pkg_outdir:
+            cfg_file_name = args.pkg_outdir / (f"floo_{axi_type}_pkg.sv")
+            with open(cfg_file_name, "w+", encoding="utf-8") as cfg_file:
+                cfg_file.write(rendered_pkg)
+        else:
+            print(rendered_pkg)
 
 
 if __name__ == "__main__":
