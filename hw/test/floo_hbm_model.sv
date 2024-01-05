@@ -10,7 +10,6 @@
 module floo_hbm_model #(
   parameter time         TA           = 1ns,
   parameter time         TT           = 9ns,
-  parameter time         TCK          = 10ns,
   parameter int unsigned Latency      = 100,
   parameter int unsigned NumChannels  = 1,
   parameter int unsigned MemSize      = 32'h10000,
