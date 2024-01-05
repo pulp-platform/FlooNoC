@@ -9,6 +9,8 @@ from typing import ClassVar, List, Union, Dict, Optional, NamedTuple
 from abc import ABC, abstractmethod
 from pydantic import BaseModel
 
+from floogen.utils import snake_to_camel, sv_struct_typedef
+
 
 class Link(BaseModel, ABC):
     """
@@ -25,6 +27,8 @@ class Link(BaseModel, ABC):
     is_array: bool = False
     array: list = None
 
+    channel_mapping: ClassVar[Dict] = {}
+
     @abstractmethod
     def declare(self):
         """Declare the link in the generated code."""
@@ -32,6 +36,101 @@ class Link(BaseModel, ABC):
     @abstractmethod
     def render_ports(self):
         """Declare the ports of the link."""
+
+    @classmethod
+    def render_enum_decl(cls):
+        """Render the enum declaration of the link."""
+        string = "typedef enum {"
+        i = 0
+        for _, mapping in cls.channel_mapping.items():
+            for ch_type, axi_chs in mapping.items():
+                for axi_ch in axi_chs:
+                    string += f"{snake_to_camel(f"{ch_type}_{axi_ch}")} = {i},\n"
+                    i += 1
+        string += f"NumAxiChannels = {i}\n}} axi_ch_e;\n"
+        return string
+
+    @classmethod
+    def get_inverted_mapping(cls):
+        """Return the mapping from axi to physical channels."""
+        mappings = {}
+        for phys_ch, ch_types in cls.channel_mapping.items():
+            for ch_type, axi_chs in ch_types.items():
+                for axi_ch in axi_chs:
+                    mappings.setdefault(ch_type, {})[axi_ch] = phys_ch
+        return mappings
+
+    @classmethod
+    def calc_link_sizes(cls, protocols):
+        """Infer the link sizes from the network."""
+        link_sizes = {}
+        for phys_ch, axi_chs in cls.channel_mapping.items():
+            # Get all protocols that use this channel
+            prots = [
+                p
+                for p in protocols
+                if p.name in axi_chs and p.direction == "manager"
+            ]
+            # Get only the exact AXI channels that are used by the link
+            used_axi_chs = [axi_chs[p.name] for p in prots]
+            # Get the sizes of the AXI channels
+            axi_ch_sizes = [p.get_axi_channel_sizes() for p in prots]
+            link_message_sizes = []
+            for used_axi_ch, axi_ch_size in zip(used_axi_chs, axi_ch_sizes):
+                link_message_sizes += [axi_ch_size[ch] for ch in used_axi_ch]
+            # Get the maximum size of the link
+            link_sizes[phys_ch] = max(link_message_sizes)
+        return link_sizes
+
+    @classmethod
+    def render_flit(cls, protocols):
+        """Render the flit of the protocol."""
+        string = ""
+        inv_mapping = cls.get_inverted_mapping()
+        link_sizes = cls.calc_link_sizes(protocols)
+        for p in protocols:
+            if p.direction == "manager":
+                for axi_ch, size in p.get_axi_channel_sizes().items():
+                    phys_ch = inv_mapping[p.name][axi_ch]
+                    phys_ch_size = link_sizes[phys_ch]
+                    rsvd_size = phys_ch_size - size
+                    struct_dict = {
+                        "hdr": "hdr_t",
+                        axi_ch: f"{p.full_name()}_{axi_ch}_chan_t",
+                    }
+                    if phys_ch_size - size > 0:
+                        struct_dict["rsvd"] = f"logic[{rsvd_size-1}:0]"
+                    string += sv_struct_typedef(f"floo_{p.name}_{axi_ch}_flit_t", struct_dict)
+
+        for phys_ch, size in link_sizes.items():
+            struct_dict = {
+                "hdr": "hdr_t",
+                "rsvd": f"logic[{size-1}:0]",
+            }
+            string += sv_struct_typedef(f"floo_{phys_ch}_generic_flit_t", struct_dict)
+        return string
+
+    @classmethod
+    def render_channels(cls) -> str:
+        """Render the channels of the protocol."""
+        string = ""
+        for phys_ch, axi_chs in cls.channel_mapping.items():
+            struct_dict = {}
+            for axi_name, axi_chs in axi_chs.items():
+                for axi_ch in axi_chs:
+                    struct_dict[axi_name + '_' + axi_ch] = f"floo_{axi_name}_{axi_ch}_flit_t"
+            struct_dict["generic"] = f"floo_{phys_ch}_generic_flit_t"
+            string += sv_struct_typedef(f"floo_{phys_ch}_chan_t", struct_dict, union=True)
+        return string
+
+    @classmethod
+    def render_link_typedefs(cls) -> str:
+        """Render the typedefs of the protocol."""
+        string = ""
+        for phys_ch in cls.channel_mapping:
+            struct_dict = {"valid": "logic", "ready": "logic", phys_ch: f"floo_{phys_ch}_chan_t"}
+            string += sv_struct_typedef(f"floo_{phys_ch}_t", struct_dict)
+        return string
 
 
 class XYLinks(NamedTuple):
@@ -86,15 +185,7 @@ class NarrowWideLink(Link):
         """Return the mapping of the link."""
         return cls.channel_mapping
 
-    @classmethod
-    def get_inverted_mapping(cls):
-        """Return the mapping of the link."""
-        mappings = {}
-        for phys_ch, ch_types in cls.channel_mapping.items():
-            for ch_type, axi_chs in ch_types.items():
-                for axi_ch in axi_chs:
-                    mappings.setdefault(ch_type, {})[axi_ch] = phys_ch
-        return mappings
+
 
     def declare(self):
         """Declare the link in the generated code."""
@@ -125,6 +216,11 @@ class NarrowLink(Link):
     Link class to describe a link with instantiation template and
     configuration parameters.
     """
+
+    channel_mapping: ClassVar[Dict] = {
+        "req": {"axi": ["aw", "w", "ar"]},
+        "rsp": {"axi": ["b", "r"]},
+    }
 
     def declare(self):
         """Declare the link in the generated code."""

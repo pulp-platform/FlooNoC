@@ -524,27 +524,6 @@ class Network(BaseModel): # pylint: disable=too-many-public-methods
         for ni in self.graph.get_ni_nodes():
             ni.routing.table = self.routing.table.model_copy()
 
-    def calc_link_sizes(self):
-        """Infer the link sizes from the network."""
-        link_sizes = {}
-        for phys_ch, axi_chs in NarrowWideLink.channel_mapping.items():
-            # Get all protocols that use this channel
-            protocols = [
-                protocol
-                for protocol in self.protocols
-                if protocol.name in axi_chs and protocol.direction == "input"
-            ]
-            # Get only the exact AXI channels that are used by the link
-            used_axi_chs = [axi_chs[p.name] for p in protocols]
-            # Get the sizes of the AXI channels
-            axi_ch_sizes = [p.get_axi_channel_sizes() for p in protocols]
-            link_message_sizes = []
-            for used_axi_ch, axi_ch_size in zip(used_axi_chs, axi_ch_sizes):
-                link_message_sizes += [axi_ch_size[ch] for ch in used_axi_ch]
-            # Get the maximum size of the link
-            link_sizes[phys_ch] = max(link_message_sizes)
-        return link_sizes
-
     def render_ports(self):
         """Render the ports in the generated code."""
         ports, declared_ports = [], []
