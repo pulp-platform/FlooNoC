@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 
 from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator
 
-from floogen.model.utils import cdiv
+from floogen.utils import cdiv, sv_param_decl, sv_typedef, sv_struct_typedef
 
 
 class RouteAlgo(Enum):
@@ -302,3 +302,54 @@ class Routing(BaseModel):
         if isinstance(v, str):
             v = RouteAlgo[v]
         return v
+
+    def render_param_decl(self) -> str:
+        """Render the SystemVerilog parameter declaration."""
+        string = ""
+        string += sv_param_decl("RouteAlgo", self.route_algo.value, dtype="route_algo_e")
+        match (self.route_algo):
+            case RouteAlgo.XY:
+                string += sv_param_decl("NumXBits", self.num_x_bits)
+                string += sv_param_decl("NumYBits", self.num_y_bits)
+            case RouteAlgo.ID:
+                string += sv_param_decl("NumIdBits", self.num_id_bits)
+            case _:
+                pass
+
+        match (self.use_id_table, self.route_algo):
+            case (False, RouteAlgo.XY):
+                string += sv_param_decl("XAddrOffset", self.addr_offset_bits)
+                string += sv_param_decl("YAddrOffset", self.addr_offset_bits + self.num_x_bits)
+            case (False, RouteAlgo.ID):
+                string += sv_param_decl("AddrOffset", self.addr_offset_bits)
+            case _:
+                pass
+        return string
+
+    def render_typedefs(self) -> str:
+        """Render the SystemVerilog typedefs."""
+        string = ""
+        string += sv_typedef("rob_idx_t", array_size=self.rob_idx_bits)
+        match self.route_algo:
+            case RouteAlgo.XY:
+                string += sv_typedef("x_bits_t", array_size=self.num_x_bits)
+                string += sv_typedef("y_bits_t", array_size=self.num_y_bits)
+                string += sv_struct_typedef("id_t", {"x": "x_bits_t", "y": "y_bits_t"})
+            case RouteAlgo.ID:
+                string += sv_typedef("id_t", array_size=self.num_id_bits)
+            case _:
+                pass
+        return string
+
+    def render_flit_header(self) -> str:
+        """Render the SystemVerilog flit header."""
+        header_fields = {
+            "rob_req": "logic",
+            "rob_idx": "rob_idx_t",
+            "dst_id": "id_t",
+            "src_id": "id_t",
+            "last": "logic",
+            "atop": "logic",
+            "axi_ch": "axi_ch_e"
+        }
+        return sv_struct_typedef("hdr_t", header_fields)
