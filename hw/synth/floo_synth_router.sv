@@ -13,7 +13,7 @@ module floo_synth_router
   input  logic   rst_ni,
   input  logic   test_enable_i,
 
-  input  xy_id_t xy_id_i,
+  input  id_t xy_id_i,
 
   input  floo_req_t [NumRoutes-1:0] req_i,
   input  floo_rsp_t [NumRoutes-1:0] rsp_i,
@@ -51,7 +51,7 @@ module floo_synth_router
     .ChannelFifoDepth ( 2                       ),
     .RouteAlgo        ( XYRouting               ),
     .IdWidth          ( 4                       ),
-    .id_t             ( xy_id_t                 ),
+    .id_t             ( id_t                    ),
     .NumAddrRules     ( 1                       )
   ) i_req_floo_router (
     .clk_i,

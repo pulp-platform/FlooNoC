@@ -33,15 +33,15 @@ module axi_reorder_remap_compare #(
 
 `include "include/axi_print_txns.svh"
 
-aw_chan_t aw_queue_sent [NumAxiInIds-1:0][$];
-aw_chan_t aw_queue_recv [NumAxiOutIds-1:0][$];
+aw_chan_t aw_queue_sent [NumAxiInIds][$];
+aw_chan_t aw_queue_recv [NumAxiOutIds][$];
 aw_chan_t aw_w_queue_sent [$];
 aw_chan_t aw_w_queue_recv [$];
-w_chan_t  w_queue  [NumAxiInIds-1:0][$];
-ar_chan_t ar_queue_sent [NumAxiInIds-1:0][$];
-ar_chan_t ar_queue_recv [NumAxiOutIds-1:0][$];
-b_chan_t  b_queue  [NumAxiInIds-1:0][$];
-r_chan_t  r_queue  [NumAxiInIds-1:0][$];
+w_chan_t  w_queue  [NumAxiInIds][$];
+ar_chan_t ar_queue_sent [NumAxiInIds][$];
+ar_chan_t ar_queue_recv [NumAxiOutIds][$];
+b_chan_t  b_queue  [NumAxiInIds][$];
+r_chan_t  r_queue  [NumAxiInIds][$];
 
 always_ff @(posedge clk_i) begin : send_ax
   if (mon_mst_req_i.aw_valid && mon_mst_rsp_i.aw_ready) begin
@@ -58,6 +58,7 @@ always_ff @(posedge clk_i) begin : send_ax
   end
 end
 
+// verilog_lint: waive-start always-ff-non-blocking
 always_ff @(posedge clk_i) begin : recv_ax
   if (mon_slv_req_i.aw_valid && mon_slv_rsp_i.aw_ready) begin
     automatic aw_chan_t mst_aw, slv_aw;
@@ -125,7 +126,9 @@ always_ff @(posedge clk_i) begin : recv_ax
     if (!match) $error("No AR for AR");
   end
 end
+// verilog_lint: waive-stop always-ff-non-blocking
 
+// verilog_lint: waive-start always-ff-non-blocking
 always_ff @(posedge clk_i) begin : send_rsp
   if (mon_slv_rsp_i.b_valid && mon_slv_req_i.b_ready) begin
     // Check if AW in queue
@@ -144,7 +147,9 @@ always_ff @(posedge clk_i) begin : send_rsp
     if (mon_slv_rsp_i.r.last) ar_queue_recv[mon_slv_rsp_i.r.id].pop_front();
   end
 end
+// verilog_lint: waive-stop always-ff-non-blocking
 
+// verilog_lint: waive-start always-ff-non-blocking
 always_ff @(posedge clk_i) begin : recv_rsp
   if (mon_mst_rsp_i.b_valid && mon_mst_req_i.b_ready) begin
     automatic b_chan_t mst_b, slv_b;
@@ -169,6 +174,7 @@ always_ff @(posedge clk_i) begin : recv_rsp
     if (mst_r !== slv_r) $error("R does not match");
   end
 end
+// verilog_lint: waive-stop always-ff-non-blocking
 
 logic [NumAxiInIds-1:0] aw_queue_sent_empty;
 logic [NumAxiOutIds-1:0] aw_queue_recv_empty;
@@ -183,7 +189,7 @@ logic [NumAxiInIds-1:0] r_queue_empty;
 assign aw_w_queue_sent_empty = (aw_w_queue_sent.size() == 0);
 assign aw_w_queue_recv_empty = (aw_w_queue_recv.size() == 0);
 
-for (genvar i = 0; i < NumAxiInIds; i++) begin : aw_queue_sent_empty_gen
+for (genvar i = 0; i < NumAxiInIds; i++) begin : gen_aw_queue_sent_empty
   assign aw_queue_sent_empty[i] = (aw_queue_sent[i].size() == 0);
   assign w_queue_empty[i] = (w_queue[i].size() == 0);
   assign ar_queue_sent_empty[i] = (ar_queue_sent[i].size() == 0);
@@ -191,7 +197,7 @@ for (genvar i = 0; i < NumAxiInIds; i++) begin : aw_queue_sent_empty_gen
   assign r_queue_empty[i] = (r_queue[i].size() == 0);
 end
 
-for (genvar i = 0; i < NumAxiOutIds; i++) begin : aw_queue_recv_empty_gen
+for (genvar i = 0; i < NumAxiOutIds; i++) begin : gen_aw_queue_recv_empty
   assign aw_queue_recv_empty[i] = (aw_queue_recv[i].size() == 0);
   assign ar_queue_recv_empty[i] = (ar_queue_recv[i].size() == 0);
 end

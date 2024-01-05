@@ -17,7 +17,7 @@ module tb_floo_dma_nw_chimney;
   localparam time ApplTime = 2ns;
   localparam time TestTime = 8ns;
 
-  localparam NumTargets = 2;
+  localparam int unsigned NumTargets = 2;
 
   localparam int unsigned ReorderBufferSize = 128;
   localparam int unsigned MaxTxns = 32;
@@ -62,8 +62,8 @@ module tb_floo_dma_nw_chimney;
   );
 
   typedef struct packed {
-    logic [NarrowInAddrWidth-1:0] start_addr;
-    logic [NarrowInAddrWidth-1:0] end_addr;
+    logic [AxiNarrowInAddrWidth-1:0] start_addr;
+    logic [AxiNarrowInAddrWidth-1:0] end_addr;
   } node_addr_region_t;
 
   localparam int unsigned MemBaseAddr = 32'h0000_0000;
@@ -73,11 +73,11 @@ module tb_floo_dma_nw_chimney;
     .TA             ( ApplTime              ),
     .TT             ( TestTime              ),
     .TCK            ( CyclTime              ),
-    .DataWidth      ( NarrowInDataWidth     ),
-    .AddrWidth      ( NarrowInAddrWidth     ),
-    .UserWidth      ( NarrowInUserWidth     ),
-    .AxiIdInWidth   ( NarrowOutIdWidth      ),
-    .AxiIdOutWidth  ( NarrowInIdWidth       ),
+    .DataWidth      ( AxiNarrowInDataWidth  ),
+    .AddrWidth      ( AxiNarrowInAddrWidth  ),
+    .UserWidth      ( AxiNarrowInUserWidth  ),
+    .AxiIdInWidth   ( AxiNarrowOutIdWidth   ),
+    .AxiIdOutWidth  ( AxiNarrowInIdWidth    ),
     .MemBaseAddr    ( MemBaseAddr           ),
     .MemSize        ( MemSize               ),
     .axi_in_req_t   ( axi_narrow_out_req_t  ),
@@ -99,11 +99,11 @@ module tb_floo_dma_nw_chimney;
     .TA             ( ApplTime            ),
     .TT             ( TestTime            ),
     .TCK            ( CyclTime            ),
-    .DataWidth      ( WideInDataWidth     ),
-    .AddrWidth      ( WideInAddrWidth     ),
-    .UserWidth      ( WideInUserWidth     ),
-    .AxiIdInWidth   ( WideOutIdWidth      ),
-    .AxiIdOutWidth  ( WideInIdWidth       ),
+    .DataWidth      ( AxiWideInDataWidth  ),
+    .AddrWidth      ( AxiWideInAddrWidth  ),
+    .UserWidth      ( AxiWideInUserWidth  ),
+    .AxiIdInWidth   ( AxiWideOutIdWidth   ),
+    .AxiIdOutWidth  ( AxiWideInIdWidth    ),
     .MemBaseAddr    ( MemBaseAddr         ),
     .MemSize        ( MemSize             ),
     .axi_in_req_t   ( axi_wide_out_req_t  ),
@@ -121,7 +121,7 @@ module tb_floo_dma_nw_chimney;
     .end_of_sim_o   ( end_of_sim[1]   )
   );
 
-  axi_channel_compare #(
+  axi_chan_compare #(
     .aw_chan_t  ( axi_narrow_in_aw_chan_t ),
     .w_chan_t   ( axi_narrow_in_w_chan_t  ),
     .b_chan_t   ( axi_narrow_in_b_chan_t  ),
@@ -130,14 +130,15 @@ module tb_floo_dma_nw_chimney;
     .req_t      ( axi_narrow_in_req_t     ),
     .resp_t     ( axi_narrow_in_rsp_t     )
   ) i_narrow_channel_compare_0 (
-    .clk_i      ( clk                         ),
+    .clk_a_i    ( clk                         ),
+    .clk_b_i    ( clk                         ),
     .axi_a_req  ( narrow_man_req[0]           ),
     .axi_a_res  ( narrow_man_rsp[0]           ),
     .axi_b_req  ( narrow_sub_req_id_mapped[1] ),
     .axi_b_res  ( narrow_sub_rsp_id_mapped[1] )
   );
 
-  axi_channel_compare #(
+  axi_chan_compare #(
     .aw_chan_t  ( axi_wide_in_aw_chan_t ),
     .w_chan_t   ( axi_wide_in_w_chan_t  ),
     .b_chan_t   ( axi_wide_in_b_chan_t  ),
@@ -146,7 +147,8 @@ module tb_floo_dma_nw_chimney;
     .req_t      ( axi_wide_in_req_t     ),
     .resp_t     ( axi_wide_in_rsp_t     )
   ) i_wide_channel_compare_0 (
-    .clk_i      ( clk             ),
+    .clk_a_i    ( clk             ),
+    .clk_b_i    ( clk             ),
     .axi_a_req  ( wide_man_req[0] ),
     .axi_a_res  ( wide_man_rsp[0] ),
     .axi_b_req  ( wide_sub_req_id_mapped[1] ),
@@ -260,7 +262,7 @@ module tb_floo_dma_nw_chimney;
     .floo_wide_i          ( chimney_wide_cut[0] )
   );
 
-  axi_channel_compare #(
+  axi_chan_compare #(
     .aw_chan_t  ( axi_narrow_in_aw_chan_t ),
     .w_chan_t   ( axi_narrow_in_w_chan_t  ),
     .b_chan_t   ( axi_narrow_in_b_chan_t  ),
@@ -269,14 +271,15 @@ module tb_floo_dma_nw_chimney;
     .req_t      ( axi_narrow_in_req_t     ),
     .resp_t     ( axi_narrow_in_rsp_t     )
   ) i_narrow_channel_compare_1 (
-    .clk_i      ( clk                         ),
+    .clk_a_i    ( clk                         ),
+    .clk_b_i    ( clk                         ),
     .axi_a_req  ( narrow_man_req[1]           ),
     .axi_a_res  ( narrow_man_rsp[1]           ),
     .axi_b_req  ( narrow_sub_req_id_mapped[0] ),
     .axi_b_res  ( narrow_sub_rsp_id_mapped[0] )
   );
 
-  axi_channel_compare #(
+  axi_chan_compare #(
     .aw_chan_t  ( axi_wide_in_aw_chan_t ),
     .w_chan_t   ( axi_wide_in_w_chan_t  ),
     .b_chan_t   ( axi_wide_in_b_chan_t  ),
@@ -285,7 +288,8 @@ module tb_floo_dma_nw_chimney;
     .req_t      ( axi_wide_in_req_t     ),
     .resp_t     ( axi_wide_in_rsp_t     )
   ) i_wide_channel_compare_1 (
-    .clk_i      ( clk                       ),
+    .clk_a_i    ( clk                       ),
+    .clk_b_i    ( clk                       ),
     .axi_a_req  ( wide_man_req[1]           ),
     .axi_a_res  ( wide_man_rsp[1]           ),
     .axi_b_req  ( wide_sub_req_id_mapped[0] ),
@@ -296,11 +300,11 @@ module tb_floo_dma_nw_chimney;
     .TA             ( ApplTime              ),
     .TT             ( TestTime              ),
     .TCK            ( CyclTime              ),
-    .DataWidth      ( NarrowInDataWidth     ),
-    .AddrWidth      ( NarrowInAddrWidth     ),
-    .UserWidth      ( NarrowInUserWidth     ),
-    .AxiIdInWidth   ( NarrowOutIdWidth      ),
-    .AxiIdOutWidth  ( NarrowInIdWidth       ),
+    .DataWidth      ( AxiNarrowInDataWidth  ),
+    .AddrWidth      ( AxiNarrowInAddrWidth  ),
+    .UserWidth      ( AxiNarrowInUserWidth  ),
+    .AxiIdInWidth   ( AxiNarrowOutIdWidth   ),
+    .AxiIdOutWidth  ( AxiNarrowInIdWidth    ),
     .MemBaseAddr    ( MemBaseAddr           ),
     .MemSize        ( MemSize               ),
     .axi_in_req_t   ( axi_narrow_out_req_t  ),
@@ -322,11 +326,11 @@ module tb_floo_dma_nw_chimney;
     .TA             ( ApplTime            ),
     .TT             ( TestTime            ),
     .TCK            ( CyclTime            ),
-    .DataWidth      ( WideInDataWidth     ),
-    .AddrWidth      ( WideInAddrWidth     ),
-    .UserWidth      ( WideInUserWidth     ),
-    .AxiIdInWidth   ( WideOutIdWidth      ),
-    .AxiIdOutWidth  ( WideInIdWidth       ),
+    .DataWidth      ( AxiWideInDataWidth  ),
+    .AddrWidth      ( AxiWideInAddrWidth  ),
+    .UserWidth      ( AxiWideInUserWidth  ),
+    .AxiIdInWidth   ( AxiWideOutIdWidth   ),
+    .AxiIdOutWidth  ( AxiWideInIdWidth    ),
     .MemBaseAddr    ( MemBaseAddr         ),
     .MemSize        ( MemSize             ),
     .axi_in_req_t   ( axi_wide_out_req_t  ),
@@ -347,8 +351,8 @@ module tb_floo_dma_nw_chimney;
   axi_bw_monitor #(
     .req_t      ( axi_narrow_in_req_t ),
     .rsp_t      ( axi_narrow_in_rsp_t ),
-    .AxiIdWidth ( NarrowInIdWidth     ),
-    .name       ( "narrow 0"          )
+    .AxiIdWidth ( AxiNarrowInIdWidth  ),
+    .Name       ( "narrow 0"          )
     ) i_axi_narrow_bw_monitor_0 (
       .clk_i        ( clk               ),
       .en_i         ( rst_n             ),
@@ -360,8 +364,8 @@ module tb_floo_dma_nw_chimney;
   axi_bw_monitor #(
     .req_t      ( axi_narrow_in_req_t ),
     .rsp_t      ( axi_narrow_in_rsp_t ),
-    .AxiIdWidth ( NarrowInIdWidth     ),
-    .name       ( "narrow 1"          )
+    .AxiIdWidth ( AxiNarrowInIdWidth  ),
+    .Name       ( "narrow 1"          )
   ) i_axi_narrow_bw_monitor_1 (
     .clk_i        ( clk               ),
     .en_i         ( rst_n             ),
@@ -373,28 +377,32 @@ module tb_floo_dma_nw_chimney;
   axi_bw_monitor #(
     .req_t      ( axi_wide_in_req_t ),
     .rsp_t      ( axi_wide_in_rsp_t ),
-    .AxiIdWidth ( WideInIdWidth     ),
-    .name       ( "wide 0"          )
+    .AxiIdWidth ( AxiWideInIdWidth  ),
+    .Name       ( "wide 0"          )
   ) i_axi_wide_bw_monitor_0 (
-    .clk_i        ( clk             ),
-    .en_i         ( rst_n           ),
-    .end_of_sim_i ( &end_of_sim     ),
-    .req_i        ( wide_man_req[0] ),
-    .rsp_i        ( wide_man_rsp[0] )
-  );
+    .clk_i          ( clk             ),
+    .en_i           ( rst_n           ),
+    .end_of_sim_i   ( &end_of_sim     ),
+    .req_i          ( wide_man_req[0] ),
+    .rsp_i          ( wide_man_rsp[0] ),
+    .ar_in_flight_o (                 ),
+    .aw_in_flight_o (                 )
+    );
 
   axi_bw_monitor #(
     .req_t      ( axi_wide_in_req_t ),
     .rsp_t      ( axi_wide_in_rsp_t ),
-    .AxiIdWidth ( WideInIdWidth     ),
-    .name       ( "wide 1"          )
+    .AxiIdWidth ( AxiWideInIdWidth  ),
+    .Name       ( "wide 1"          )
   ) i_axi_wide_bw_monitor_1 (
-    .clk_i        ( clk             ),
-    .en_i         ( rst_n           ),
-    .end_of_sim_i ( &end_of_sim     ),
-    .req_i        ( wide_man_req[1] ),
-    .rsp_i        ( wide_man_rsp[1] )
-  );
+    .clk_i          ( clk             ),
+    .en_i           ( rst_n           ),
+    .end_of_sim_i   ( &end_of_sim     ),
+    .req_i          ( wide_man_req[1] ),
+    .rsp_i          ( wide_man_rsp[1] ),
+    .ar_in_flight_o (                 ),
+    .aw_in_flight_o (                 )
+    );
 
   initial begin
     wait(&end_of_sim);

@@ -18,8 +18,8 @@ module tb_floo_rob;
   localparam time ApplTime = 2ns;
   localparam time TestTime = 8ns;
 
-  localparam NumReads = 1000;
-  localparam NumWrites = 1000;
+  localparam int unsigned NumReads = 1000;
+  localparam int unsigned NumWrites = 1000;
 
   localparam int unsigned NumX = 4;
   localparam int unsigned NumY = 4;
@@ -199,7 +199,8 @@ module tb_floo_rob;
     .data_o         ( chimney_rsp_in_chan   )
   );
 
-  localparam slave_type_e SlaveType[NumDirections-1] = '{FastSlave, FastSlave, SlowSlave, MixedSlave};
+  localparam slave_type_e SlaveType[NumDirections-1] = '{
+    FastSlave, FastSlave, SlowSlave, MixedSlave};
 
   for (genvar i = North; i <= West; i++) begin : gen_slaves
 

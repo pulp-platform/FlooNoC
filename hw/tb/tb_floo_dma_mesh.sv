@@ -22,9 +22,9 @@ module tb_floo_dma_mesh;
   `FLOO_NOC_TYPEDEF_XY_ID_T(xy_id_t, NumX+2, NumY+2)
 
   localparam int unsigned HBMChannels = NumY;
-  localparam int unsigned HBMSize = 32'h10000; // 64KB
   localparam int unsigned HBMLatency = 100;
-  localparam int unsigned MemSize = HBMSize;
+  localparam logic [AxiNarrowInAddrWidth-1:0] HBMSize = 48'h10000; // 64KB
+  localparam logic [AxiNarrowInAddrWidth-1:0] MemSize = HBMSize;
 
   // Narrow Wide Chimney parameters
   localparam bit CutAx = 1'b1;
@@ -108,9 +108,9 @@ module tb_floo_dma_mesh;
     .Latency      ( HBMLatency              ),
     .NumChannels  ( 1                       ),
     .MemSize      ( HBMSize                 ),
-    .DataWidth    ( WideOutDataWidth        ),
-    .UserWidth    ( WideOutUserWidth        ),
-    .IdWidth      ( WideOutIdWidth          ),
+    .DataWidth    ( AxiWideOutDataWidth     ),
+    .UserWidth    ( AxiWideOutUserWidth     ),
+    .IdWidth      ( AxiWideOutIdWidth       ),
     .axi_req_t    ( axi_wide_out_req_t      ),
     .axi_rsp_t    ( axi_wide_out_rsp_t      ),
     .aw_chan_t    ( axi_wide_out_aw_chan_t  ),
@@ -132,9 +132,9 @@ module tb_floo_dma_mesh;
     .Latency      ( HBMLatency                ),
     .NumChannels  ( 1                         ),
     .MemSize      ( HBMSize                   ),
-    .DataWidth    ( NarrowOutDataWidth        ),
-    .UserWidth    ( NarrowOutUserWidth        ),
-    .IdWidth      ( NarrowOutIdWidth          ),
+    .DataWidth    ( AxiNarrowOutDataWidth     ),
+    .UserWidth    ( AxiNarrowOutUserWidth     ),
+    .IdWidth      ( AxiNarrowOutIdWidth       ),
     .axi_req_t    ( axi_narrow_out_req_t      ),
     .axi_rsp_t    ( axi_narrow_out_rsp_t      ),
     .aw_chan_t    ( axi_narrow_out_aw_chan_t  ),
@@ -247,25 +247,25 @@ module tb_floo_dma_mesh;
   for (genvar x = 0; x < NumX; x++) begin : gen_x
     for (genvar y = 0; y < NumX; y++) begin : gen_y
       xy_id_t current_id;
-      localparam string narrow_dma_name = $sformatf("narrow_dma_%0d_%0d", x, y);
-      localparam string wide_dma_name   = $sformatf("wide_dma_%0d_%0d", x, y);
+      localparam string NarrowDmaName = $sformatf("narrow_dma_%0d_%0d", x, y);
+      localparam string WideDmaName   = $sformatf("wide_dma_%0d_%0d", x, y);
       floo_req_t [NumDirections-1:0] req_out, req_in;
       floo_rsp_t [NumDirections-1:0] rsp_out, rsp_in;
       floo_wide_t       [NumDirections-1:0] wide_out, wide_in;
 
-      localparam int unsigned index = y * NumX + x+1;
-      localparam MemBaseAddr = (x+1) << XYAddrOffsetX | (y+1) << XYAddrOffsetY;
+      localparam int unsigned Index = y * NumX + x+1;
+      localparam logic [AxiNarrowInAddrWidth-1:0] MemBaseAddr = (x+1) << XYAddrOffsetX | (y+1) << XYAddrOffsetY;
       assign current_id = '{x: x+1, y: y+1};
 
       floo_dma_test_node #(
         .TA             ( ApplTime              ),
         .TT             ( TestTime              ),
         .TCK            ( CyclTime              ),
-        .DataWidth      ( NarrowInDataWidth     ),
-        .AddrWidth      ( NarrowInAddrWidth     ),
-        .UserWidth      ( NarrowInUserWidth     ),
-        .AxiIdInWidth   ( NarrowOutIdWidth      ),
-        .AxiIdOutWidth  ( NarrowInIdWidth       ),
+        .DataWidth      ( AxiNarrowInDataWidth  ),
+        .AddrWidth      ( AxiNarrowInAddrWidth  ),
+        .UserWidth      ( AxiNarrowInUserWidth  ),
+        .AxiIdInWidth   ( AxiNarrowOutIdWidth   ),
+        .AxiIdOutWidth  ( AxiNarrowInIdWidth    ),
         .MemBaseAddr    ( MemBaseAddr           ),
         .MemSize        ( MemSize               ),
         .NumAxInFlight  ( 2*NarrowMaxTxnsPerId  ),
@@ -273,7 +273,7 @@ module tb_floo_dma_mesh;
         .axi_in_rsp_t   ( axi_narrow_out_rsp_t  ),
         .axi_out_req_t  ( axi_narrow_in_req_t   ),
         .axi_out_rsp_t  ( axi_narrow_in_rsp_t   ),
-        .JobId          ( 100 + index           )
+        .JobId          ( 100 + Index           )
       ) i_narrow_dma_node (
         .clk_i          ( clk                   ),
         .rst_ni         ( rst_n                 ),
@@ -288,11 +288,11 @@ module tb_floo_dma_mesh;
         .TA             ( ApplTime            ),
         .TT             ( TestTime            ),
         .TCK            ( CyclTime            ),
-        .DataWidth      ( WideInDataWidth     ),
-        .AddrWidth      ( WideInAddrWidth     ),
-        .UserWidth      ( WideInUserWidth     ),
-        .AxiIdInWidth   ( WideOutIdWidth      ),
-        .AxiIdOutWidth  ( WideInIdWidth       ),
+        .DataWidth      ( AxiWideInDataWidth  ),
+        .AddrWidth      ( AxiWideInAddrWidth  ),
+        .UserWidth      ( AxiWideInUserWidth  ),
+        .AxiIdInWidth   ( AxiWideOutIdWidth   ),
+        .AxiIdOutWidth  ( AxiWideInIdWidth    ),
         .MemBaseAddr    ( MemBaseAddr         ),
         .MemSize        ( MemSize             ),
         .NumAxInFlight  ( 2*WideMaxTxnsPerId  ),
@@ -300,7 +300,7 @@ module tb_floo_dma_mesh;
         .axi_in_rsp_t   ( axi_wide_out_rsp_t  ),
         .axi_out_req_t  ( axi_wide_in_req_t   ),
         .axi_out_rsp_t  ( axi_wide_in_rsp_t   ),
-        .JobId          ( index               )
+        .JobId          ( Index               )
       ) i_wide_dma_node (
         .clk_i          ( clk                 ),
         .rst_ni         ( rst_n               ),
@@ -314,8 +314,8 @@ module tb_floo_dma_mesh;
       axi_bw_monitor #(
         .req_t      ( axi_narrow_in_req_t ),
         .rsp_t      ( axi_narrow_in_rsp_t ),
-        .AxiIdWidth ( NarrowInIdWidth     ),
-        .name       ( narrow_dma_name     )
+        .AxiIdWidth ( AxiNarrowInIdWidth  ),
+        .name       ( NarrowDmaName       )
       ) i_axi_narrow_bw_monitor (
         .clk_i        ( clk                   ),
         .en_i         ( rst_n                 ),
@@ -329,8 +329,8 @@ module tb_floo_dma_mesh;
       axi_bw_monitor #(
         .req_t      ( axi_wide_in_req_t ),
         .rsp_t      ( axi_wide_in_rsp_t ),
-        .AxiIdWidth ( WideInIdWidth     ),
-        .name       ( wide_dma_name     )
+        .AxiIdWidth ( AxiWideInIdWidth  ),
+        .name       ( WideDmaName       )
       ) i_axi_wide_bw_monitor (
         .clk_i        ( clk                 ),
         .en_i         ( rst_n               ),

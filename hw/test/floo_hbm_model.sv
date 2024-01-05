@@ -89,7 +89,7 @@ module floo_hbm_model #(
     );
   end
 
-  for (genvar i = 0; i < NumChannels; i++) begin
+  for (genvar i = 0; i < NumChannels; i++) begin : gen_rand_slaves
     initial begin
       axi_rand_slave[i] = new( slave_dv[i] );
       axi_rand_slave[i].reset();

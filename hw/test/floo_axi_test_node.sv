@@ -104,7 +104,9 @@ module floo_axi_test_node #(
     end_of_sim = 1'b0;
 
     for (int i = 0; i < NumAddrRegions; i++) begin
-      axi_rand_master.add_memory_region(AddrRegions[i].start_addr, AddrRegions[i].end_addr, axi_pkg::DEVICE_NONBUFFERABLE);
+      axi_rand_master.add_memory_region(AddrRegions[i].start_addr,
+                                        AddrRegions[i].end_addr,
+                                        axi_pkg::DEVICE_NONBUFFERABLE);
     end
 
     axi_rand_master.reset();

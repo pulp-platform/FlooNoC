@@ -11,7 +11,7 @@ module axi_bw_monitor #(
   parameter type rsp_t    = logic,
   parameter int unsigned AxiIdWidth = 4,
   parameter int unsigned NumAxiIds = 2**AxiIdWidth,
-  parameter string name = ""
+  parameter string Name = ""
 ) (
   input logic clk_i,
   input logic en_i,
@@ -143,8 +143,10 @@ module axi_bw_monitor #(
     read_util = real'(r_cnt) * 100 / real'(cycle_cnt);
     write_util = real'(w_cnt) * 100 / real'(cycle_cnt);
 
-    $display("[Monitor %s][Read] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%", name, read_latency_mean, read_latency_stddev, read_bw, read_util);
-    $display("[Monitor %s][Write] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%", name, write_latency_mean, write_latency_stddev, write_bw, write_util);
+    $display("[Monitor %s][Read] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
+             Name, read_latency_mean, read_latency_stddev, read_bw, read_util);
+    $display("[Monitor %s][Write] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
+             Name, write_latency_mean, write_latency_stddev, write_bw, write_util);
   end
 
 endmodule

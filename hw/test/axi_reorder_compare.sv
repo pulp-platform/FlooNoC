@@ -128,24 +128,21 @@ module axi_reorder_compare #(
     int unsigned num_rsp;
   } out_rsp_t;
 
-  aw_chan_t aw_queue [NumSlaves-1:0][$];
-  w_chan_t  w_queue  [NumSlaves-1:0][$];
-  ar_chan_t ar_queue [NumSlaves-1:0][$];
-  b_chan_t  b_queue  [NumSlaves-1:0][NumAxiIds-1:0][$];
-  r_chan_t  r_queue  [NumSlaves-1:0][NumAxiIds-1:0][$];
+  aw_chan_t aw_queue [NumSlaves][$];
+  w_chan_t  w_queue  [NumSlaves][$];
+  ar_chan_t ar_queue [NumSlaves][$];
+  b_chan_t  b_queue  [NumSlaves][NumAxiIds][$];
+  r_chan_t  r_queue  [NumSlaves][NumAxiIds][$];
 
-  out_rsp_t r_out_rsp_queue[NumAxiIds-1:0][$];
-  out_rsp_t b_out_rsp_queue[NumAxiIds-1:0][$];
+  out_rsp_t r_out_rsp_queue[NumAxiIds][$];
+  out_rsp_t b_out_rsp_queue[NumAxiIds][$];
 
-  id_t aw_id_queue [NumSlaves-1:0][$];
-  id_t ar_id_queue [NumSlaves-1:0][$];
+  id_t aw_id_queue [NumSlaves][$];
+  id_t ar_id_queue [NumSlaves][$];
 
   typedef logic [$clog2(NumSlaves)-1:0] slv_id_t;
   slv_id_t w_slv_idx[$];
   slv_id_t aw_slv_idx, ar_slv_idx;
-  slv_id_t aw_slv_id[NumAxiIds-1:0][$];
-  slv_id_t ar_slv_id[NumAxiIds-1:0][$];
-  slv_id_t w_slv_id[NumAxiIds-1:0][$];
 
   addr_decode #(
     .NoIndices  ( NumAddrRegions  ),
@@ -198,6 +195,7 @@ module axi_reorder_compare #(
     end
   end
 
+  // verilog_lint: waive-start always-ff-non-blocking
   for (genvar i = 0; i < NumSlaves; i++) begin : gen_slv_step_2
     always_ff @(posedge clk_i) begin : step_2
       if (mon_slv_req_i[i].aw_valid && mon_slv_rsp_i[i].aw_ready) begin
@@ -251,7 +249,9 @@ module axi_reorder_compare #(
       end
     end
   end
+  // verilog_lint: waive-stop always-ff-non-blocking
 
+  // verilog_lint: waive-start always-ff-non-blocking
   for (genvar i = 0; i < NumSlaves; i++) begin : gen_slv_step_3
     always_ff @(posedge clk_i) begin : slv_step_3
       if (mon_slv_rsp_i[i].b_valid && mon_slv_req_i[i].b_ready) begin
@@ -267,11 +267,14 @@ module axi_reorder_compare #(
         r.id = ar_id_queue[i][0];
         if (r.last) void'(ar_id_queue[i].pop_front());
         r_queue[i][r.id].push_back(r);
-        if (Verbose) $info("Slave[%0d] Issued R: id=%0d, data=%0x, last=%0b", i, r.id, r.data, r.last);
+        if (Verbose) $info("Slave[%0d] Issued R: id=%0d, data=%0x, last=%0b",
+                           i, r.id, r.data, r.last);
       end
     end
   end
+  // verilog_lint: waive-stop always-ff-non-blocking
 
+  // verilog_lint: waive-start always-ff-non-blocking
   always_ff @(posedge clk_i) begin : step_4
     if (mon_mst_rsp_i.b_valid && mon_mst_req_i.b_ready) begin
       automatic b_chan_t b_exp, b_act;
@@ -290,7 +293,8 @@ module axi_reorder_compare #(
       end else begin
         // This should always be true for B
         if (b_out_rsp_queue[b_id][0].num_rsp == 0) begin
-          if (b_out_rsp_queue[b_id].size() == 0) $error("B: id=%0d out response queue is empty!", b_id);
+          if (b_out_rsp_queue[b_id].size() == 0)
+            $error("B: id=%0d out response queue is empty!", b_id);
           void'(b_out_rsp_queue[b_id].pop_front());
         end else begin
           b_out_rsp_queue[b_id][0].num_rsp--;
@@ -322,6 +326,7 @@ module axi_reorder_compare #(
       end
     end
   end
+  // verilog_lint: waive-stop always-ff-non-blocking
 
   logic [NumSlaves-1:0] aw_queue_empty;
   logic [NumSlaves-1:0] w_queue_empty;

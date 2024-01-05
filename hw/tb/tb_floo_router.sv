@@ -22,15 +22,15 @@ module tb_floo_router;
   localparam time ApplTime = 2ns;
   localparam time TestTime = 8ns;
 
-  task cycle_start();
+  task automatic cycle_start();
     #ApplTime;
   endtask : cycle_start
 
-  task cycle_end();
+  task automatic cycle_end();
     #TestTime;
   endtask : cycle_end
 
-  task started_cycle_end();
+  task automatic started_cycle_end();
     #(TestTime-ApplTime);
   endtask : started_cycle_end
 
@@ -65,7 +65,7 @@ module tb_floo_router;
       this.id = in_id;
     endfunction
 
-    constraint data_mod_id {
+    constraint data_mod_id_c {
       data % NumPorts == id;
     }
   endclass
@@ -79,12 +79,12 @@ module tb_floo_router;
       this.source = in_source;
     endfunction
 
-    constraint id_in_range {
+    constraint id_in_range_c {
       id < NumPorts;
       id != source;
     }
 
-    constraint len_is_reasonable {
+    constraint len_is_reasonable_c {
       len <= 32;
       len > 0;
     }
@@ -92,10 +92,10 @@ module tb_floo_router;
   endclass
 
   //                         Source Port   Virtual Channel
-  floo_req_generic_flit_t  stimuli_queue[NumPorts-1:0][NumVirtChannels-1:0]              [$];
+  floo_req_generic_flit_t  stimuli_queue[NumPorts][NumVirtChannels][$];
 
   //                         Destination   Virtual Channel      Source Port
-  floo_req_generic_flit_t  golden_queue [NumPorts-1:0][NumVirtChannels-1:0][NumPorts-1:0][$];
+  floo_req_generic_flit_t  golden_queue [NumPorts][NumVirtChannels][NumPorts][$];
 
   function automatic void generate_stimuli();
     for (int port = 0; port < NumPorts; port++) begin
@@ -106,14 +106,14 @@ module tb_floo_router;
           automatic stimuli_t stimuli = new(port);
 
           // Active Constraints
-          stimuli.id_in_range.constraint_mode(1);
-          stimuli.len_is_reasonable.constraint_mode(1);
+          stimuli.id_in_range_c.constraint_mode(1);
+          stimuli.len_is_reasonable_c.constraint_mode(1);
 
           // Randomize
           if (stimuli.randomize()) begin
             for (int j = 0; j < stimuli.len; j++) begin
               automatic rand_data_t rand_data = new(port);
-              rand_data.data_mod_id.constraint_mode(1);
+              rand_data.data_mod_id_c.constraint_mode(1);
               if (rand_data.randomize()) begin
                 automatic floo_req_generic_flit_t next_flit = '0;
                 next_flit.rsvd = rand_data.data;
@@ -177,7 +177,7 @@ module tb_floo_router;
   floo_req_generic_flit_t [NumPorts-1:0][NumVirtChannels-1:0] delayed_data_in;
 
   for (genvar port = 0; port < NumPorts; port++) begin : gen_in_delay
-    for (genvar virt_channel = 0; virt_channel < NumVirtChannels; virt_channel++) begin : gen_in_vc_delay
+    for (genvar vc = 0; vc < NumVirtChannels; vc++) begin : gen_in_vc_delay
       stream_delay #(
         .StallRandom ( 1'b1        ),
         .FixedDelay  ( 1           ),
@@ -187,13 +187,13 @@ module tb_floo_router;
         .clk_i    (clk),
         .rst_ni   (rst_n),
 
-        .payload_i( pre_data_in [port][virt_channel] ),
-        .ready_o  ( pre_ready_in[port][virt_channel] ),
-        .valid_i  ( pre_valid_in[port][virt_channel] ),
+        .payload_i( pre_data_in [port][vc] ),
+        .ready_o  ( pre_ready_in[port][vc] ),
+        .valid_i  ( pre_valid_in[port][vc] ),
 
-        .payload_o( delayed_data_in [port][virt_channel] ),
-        .ready_i  ( delayed_ready_in[port][virt_channel] ),
-        .valid_o  ( delayed_valid_in[port][virt_channel] )
+        .payload_o( delayed_data_in [port][vc] ),
+        .ready_i  ( delayed_ready_in[port][vc] ),
+        .valid_o  ( delayed_valid_in[port][vc] )
       );
     end
   end
@@ -297,7 +297,7 @@ module tb_floo_router;
    ***********************/
 
   //                       Destination   Virtual Channel
-   floo_req_generic_flit_t result_queue[NumPorts-1:0][NumVirtChannels-1:0][$];
+  floo_req_generic_flit_t result_queue[NumPorts][NumVirtChannels][$];
 
   task automatic collect_result(int unsigned port, int unsigned virt_channel);
 
@@ -344,7 +344,9 @@ module tb_floo_router;
       end
 
       if (result.rsvd != golden.rsvd) begin
-        $error("ERROR! Mismatch for port %d channel %d (from %d, target port %d).\n This was the data: %x, %x", port, virt_channel, result.hdr.src_id, result.hdr.dst_id, result.rsvd, golden.rsvd);
+        $error("ERROR! Mismatch for port %d channel %d (from %d, target port %d).\n \
+        This was the data: %x, %x",
+        port, virt_channel, result.hdr.src_id, result.hdr.dst_id, result.rsvd, golden.rsvd);
       end
 
       all_golden_size = 0;

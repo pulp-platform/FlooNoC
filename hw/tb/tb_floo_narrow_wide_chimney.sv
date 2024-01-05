@@ -17,14 +17,14 @@ module tb_floo_narrow_wide_chimney;
   localparam time ApplTime = 2ns;
   localparam time TestTime = 8ns;
 
-  localparam NarrowNumReads = 1000;
-  localparam NarrowNumWrites = 1000;
-  localparam WideNumReads = 1000;
-  localparam WideNumWrites = 1000;
+  localparam int unsigned NarrowNumReads = 1000;
+  localparam int unsigned NarrowNumWrites = 1000;
+  localparam int unsigned WideNumReads = 1000;
+  localparam int unsigned WideNumWrites = 1000;
 
   localparam bit AtopSupport = 1'b1;
 
-  localparam NumTargets = 2;
+  localparam int unsigned NumTargets = 2;
 
   localparam int unsigned ReorderBufferSize = 128;
   localparam int unsigned MaxTxns = 32;
@@ -69,8 +69,8 @@ module tb_floo_narrow_wide_chimney;
   );
 
   typedef struct packed {
-    logic [NarrowInAddrWidth-1:0] start_addr;
-    logic [NarrowInAddrWidth-1:0] end_addr;
+    logic [AxiNarrowInAddrWidth-1:0] start_addr;
+    logic [AxiNarrowInAddrWidth-1:0] end_addr;
   } node_addr_region_t;
 
   localparam int unsigned NumAddrRegions = 1;
@@ -80,8 +80,8 @@ module tb_floo_narrow_wide_chimney;
 
   typedef struct packed {
     int unsigned idx;
-    logic [NarrowInAddrWidth-1:0] start_addr;
-    logic [NarrowInAddrWidth-1:0] end_addr;
+    logic [AxiNarrowInAddrWidth-1:0] start_addr;
+    logic [AxiNarrowInAddrWidth-1:0] end_addr;
   } node_addr_region_id_t;
 
   node_addr_region_id_t [NumTargets-1:0] node_addr_regions;
@@ -91,11 +91,11 @@ module tb_floo_narrow_wide_chimney;
   };
 
   floo_axi_test_node #(
-    .AxiAddrWidth   ( NarrowInAddrWidth     ),
-    .AxiDataWidth   ( NarrowInDataWidth     ),
-    .AxiIdInWidth   ( NarrowOutIdWidth      ),
-    .AxiIdOutWidth  ( NarrowInIdWidth       ),
-    .AxiUserWidth   ( NarrowInUserWidth     ),
+    .AxiAddrWidth   ( AxiNarrowInAddrWidth  ),
+    .AxiDataWidth   ( AxiNarrowInDataWidth  ),
+    .AxiIdInWidth   ( AxiNarrowOutIdWidth   ),
+    .AxiIdOutWidth  ( AxiNarrowInIdWidth    ),
+    .AxiUserWidth   ( AxiNarrowInUserWidth  ),
     .mst_req_t      ( axi_narrow_in_req_t   ),
     .mst_rsp_t      ( axi_narrow_in_rsp_t   ),
     .slv_req_t      ( axi_narrow_out_req_t  ),
@@ -120,11 +120,11 @@ module tb_floo_narrow_wide_chimney;
   );
 
   floo_axi_test_node #(
-    .AxiAddrWidth   ( WideInAddrWidth     ),
-    .AxiDataWidth   ( WideInDataWidth     ),
-    .AxiIdInWidth   ( WideOutIdWidth      ),
-    .AxiIdOutWidth  ( WideInIdWidth       ),
-    .AxiUserWidth   ( WideInUserWidth     ),
+    .AxiAddrWidth   ( AxiWideInAddrWidth  ),
+    .AxiDataWidth   ( AxiWideInDataWidth  ),
+    .AxiIdInWidth   ( AxiWideOutIdWidth   ),
+    .AxiIdOutWidth  ( AxiWideInIdWidth    ),
+    .AxiUserWidth   ( AxiWideInUserWidth  ),
     .mst_req_t      ( axi_wide_in_req_t   ),
     .mst_rsp_t      ( axi_wide_in_rsp_t   ),
     .slv_req_t      ( axi_wide_out_req_t  ),
@@ -149,8 +149,8 @@ module tb_floo_narrow_wide_chimney;
   );
 
   axi_reorder_remap_compare #(
-    .AxiInIdWidth   ( NarrowInIdWidth         ),
-    .AxiOutIdWidth  ( NarrowOutIdWidth        ),
+    .AxiInIdWidth   ( AxiNarrowInIdWidth      ),
+    .AxiOutIdWidth  ( AxiNarrowOutIdWidth     ),
     .aw_chan_t      ( axi_narrow_in_aw_chan_t ),
     .w_chan_t       ( axi_narrow_in_w_chan_t  ),
     .b_chan_t       ( axi_narrow_in_b_chan_t  ),
@@ -167,7 +167,7 @@ module tb_floo_narrow_wide_chimney;
     .end_of_sim_o   ( end_of_sim[2]               )
   );
 
-  axi_channel_compare #(
+  axi_chan_compare #(
     .aw_chan_t  ( axi_wide_in_aw_chan_t ),
     .w_chan_t   ( axi_wide_in_w_chan_t  ),
     .b_chan_t   ( axi_wide_in_b_chan_t  ),
@@ -176,7 +176,8 @@ module tb_floo_narrow_wide_chimney;
     .req_t      ( axi_wide_in_req_t     ),
     .resp_t     ( axi_wide_in_rsp_t     )
   ) i_wide_channel_compare_0 (
-    .clk_i      ( clk                       ),
+    .clk_a_i    ( clk                       ),
+    .clk_b_i    ( clk                       ),
     .axi_a_req  ( wide_man_req[0]           ),
     .axi_a_res  ( wide_man_rsp[0]           ),
     .axi_b_req  ( wide_sub_req_id_mapped[1] ),
@@ -260,8 +261,8 @@ module tb_floo_narrow_wide_chimney;
   );
 
   axi_reorder_remap_compare #(
-    .AxiInIdWidth   ( NarrowInIdWidth         ),
-    .AxiOutIdWidth  ( NarrowOutIdWidth        ),
+    .AxiInIdWidth   ( AxiNarrowInIdWidth      ),
+    .AxiOutIdWidth  ( AxiNarrowOutIdWidth     ),
     .aw_chan_t      ( axi_narrow_in_aw_chan_t ),
     .w_chan_t       ( axi_narrow_in_w_chan_t  ),
     .b_chan_t       ( axi_narrow_in_b_chan_t  ),
@@ -278,7 +279,7 @@ module tb_floo_narrow_wide_chimney;
     .end_of_sim_o   ( end_of_sim[3]               )
   );
 
-  axi_channel_compare #(
+  axi_chan_compare #(
     .aw_chan_t  ( axi_wide_in_aw_chan_t ),
     .w_chan_t   ( axi_wide_in_w_chan_t  ),
     .b_chan_t   ( axi_wide_in_b_chan_t  ),
@@ -287,7 +288,8 @@ module tb_floo_narrow_wide_chimney;
     .req_t      ( axi_wide_in_req_t     ),
     .resp_t     ( axi_wide_in_rsp_t     )
   ) i_wide_channel_compare_1 (
-    .clk_i      ( clk             ),
+    .clk_a_i    ( clk             ),
+    .clk_b_i    ( clk             ),
     .axi_a_req  ( wide_man_req[1] ),
     .axi_a_res  ( wide_man_rsp[1] ),
     .axi_b_req  ( wide_sub_req_id_mapped[0] ),
@@ -295,11 +297,11 @@ module tb_floo_narrow_wide_chimney;
   );
 
   floo_axi_test_node #(
-    .AxiAddrWidth   ( NarrowInAddrWidth     ),
-    .AxiDataWidth   ( NarrowInDataWidth     ),
-    .AxiIdOutWidth  ( NarrowInIdWidth       ),
-    .AxiIdInWidth   ( NarrowOutIdWidth      ),
-    .AxiUserWidth   ( NarrowInUserWidth     ),
+    .AxiAddrWidth   ( AxiNarrowInAddrWidth  ),
+    .AxiDataWidth   ( AxiNarrowInDataWidth  ),
+    .AxiIdOutWidth  ( AxiNarrowInIdWidth    ),
+    .AxiIdInWidth   ( AxiNarrowOutIdWidth   ),
+    .AxiUserWidth   ( AxiNarrowInUserWidth  ),
     .mst_req_t      ( axi_narrow_in_req_t   ),
     .mst_rsp_t      ( axi_narrow_in_rsp_t   ),
     .slv_req_t      ( axi_narrow_out_req_t  ),
@@ -324,11 +326,11 @@ module tb_floo_narrow_wide_chimney;
   );
 
   floo_axi_test_node #(
-    .AxiAddrWidth   ( WideInAddrWidth     ),
-    .AxiDataWidth   ( WideInDataWidth     ),
-    .AxiIdInWidth   ( WideOutIdWidth      ),
-    .AxiIdOutWidth  ( WideInIdWidth       ),
-    .AxiUserWidth   ( WideInUserWidth     ),
+    .AxiAddrWidth   ( AxiWideInAddrWidth  ),
+    .AxiDataWidth   ( AxiWideInDataWidth  ),
+    .AxiIdInWidth   ( AxiWideOutIdWidth   ),
+    .AxiIdOutWidth  ( AxiWideInIdWidth    ),
+    .AxiUserWidth   ( AxiWideInUserWidth  ),
     .mst_req_t      ( axi_wide_in_req_t   ),
     .mst_rsp_t      ( axi_wide_in_rsp_t   ),
     .slv_req_t      ( axi_wide_out_req_t  ),

@@ -6,14 +6,14 @@
 
 module floo_synth_router_simple
   import floo_pkg::*;
-  import floo_axi_flit_pkg::*;
-  import floo_param_pkg::*;
+  import floo_axi_pkg::*;
+  import floo_test_pkg::*;
 #(
   parameter int unsigned DataWidth = 32,
   parameter type data_t = logic [DataWidth-1:0],
   parameter type flit_t = struct packed {
     data_t data;
-    xy_id_t id;
+    id_t id;
     logic  last;
   }
 ) (
@@ -21,7 +21,7 @@ module floo_synth_router_simple
   input  logic   rst_ni,
   input  logic   test_enable_i,
 
-  input  xy_id_t xy_id_i,
+  input  id_t xy_id_i,
 
   input  flit_t [NumRoutes-1:0] data_i,
   output  flit_t [NumRoutes-1:0] data_o,
@@ -40,7 +40,7 @@ module floo_synth_router_simple
     .OutputFifoDepth  ( 0         ),
     .RouteAlgo        ( XYRouting ),
     .IdWidth          ( 4         ),
-    .id_t             ( xy_id_t   ),
+    .id_t             ( id_t      ),
     .NumAddrRules     ( 1         )
   ) i_req_floo_router (
     .clk_i,

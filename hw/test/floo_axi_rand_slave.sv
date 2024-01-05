@@ -182,7 +182,7 @@ module floo_axi_rand_slave
   axi_rand_fast_slave_t axi_rand_fast_slave[NumSlaves];
 
   if (SlaveType == SlowSlave) begin : gen_slow_slaves
-    for (genvar i = 0; i < NumSlaves; i++) begin
+    for (genvar i = 0; i < NumSlaves; i++) begin : gen_slow_slaves
       initial begin
         axi_rand_slow_slave[i] = new( slave_dv[i] );
         axi_rand_slow_slave[i].reset();
@@ -191,7 +191,7 @@ module floo_axi_rand_slave
       end
     end
   end else if (SlaveType == FastSlave) begin : gen_fast_slaves
-    for (genvar i = 0; i < NumSlaves; i++) begin
+    for (genvar i = 0; i < NumSlaves; i++) begin : gen_fast_slaves
       initial begin
         axi_rand_fast_slave[i] = new( slave_dv[i] );
         axi_rand_fast_slave[i].reset();
@@ -200,15 +200,15 @@ module floo_axi_rand_slave
       end
     end
   end else if (SlaveType == MixedSlave) begin : gen_mixed_slaves
-    for (genvar i = 0; i < NumSlaves; i++) begin
-      if (i % 2 == 0) begin
+    for (genvar i = 0; i < NumSlaves; i++) begin : gen_mixed_slaves
+      if (i % 2 == 0) begin : gen_slow_slaves
         initial begin
           axi_rand_slow_slave[i] = new( slave_dv[i] );
           axi_rand_slow_slave[i].reset();
           @(posedge rst_ni)
           axi_rand_slow_slave[i].run();
         end
-      end else begin
+      end else begin : gen_fast_slaves
         initial begin
           axi_rand_fast_slave[i] = new( slave_dv[i] );
           axi_rand_fast_slave[i].reset();

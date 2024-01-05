@@ -17,14 +17,14 @@ module tb_floo_axi_chimney;
   localparam time ApplTime = 2ns;
   localparam time TestTime = 8ns;
 
-  localparam NumReads0 = 1000;
-  localparam NumWrites0 = 1000;
-  localparam NumReads1 = 1000;
-  localparam NumWrites1 = 1000;
+  localparam int unsigned NumReads0 = 1000;
+  localparam int unsigned NumWrites0 = 1000;
+  localparam int unsigned NumReads1 = 1000;
+  localparam int unsigned NumWrites1 = 1000;
 
   localparam bit AtopSupport = 1'b1;
 
-  localparam NumTargets = 2;
+  localparam int unsigned NumTargets = 2;
 
   localparam int unsigned ReorderBufferSize = 64;
   localparam int unsigned MaxTxns = 32;

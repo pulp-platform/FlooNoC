@@ -17,7 +17,7 @@ module tb_floo_dma_chimney;
   localparam time ApplTime = 0ns;
   localparam time TestTime = 10ns;
 
-  localparam NumTargets = 2;
+  localparam int unsigned NumTargets = 2;
 
   localparam int unsigned ReorderBufferSize = 128;
   localparam int unsigned MaxTxns = 32;
@@ -83,7 +83,7 @@ module tb_floo_dma_chimney;
     .end_of_sim_o   ( end_of_sim[0]   )
   );
 
-  axi_channel_compare #(
+  axi_chan_compare #(
     .aw_chan_t  ( axi_in_aw_chan_t ),
     .w_chan_t   ( axi_in_w_chan_t  ),
     .b_chan_t   ( axi_in_b_chan_t  ),
@@ -91,8 +91,9 @@ module tb_floo_dma_chimney;
     .r_chan_t   ( axi_in_r_chan_t  ),
     .req_t      ( axi_in_req_t     ),
     .resp_t     ( axi_in_rsp_t     )
-  ) i_axi_channel_compare_0 (
-    .clk_i      ( clk                  ),
+  ) i_axi_chan_compare_0 (
+    .clk_a_i    ( clk                  ),
+    .clk_b_i    ( clk                  ),
     .axi_a_req  ( node_man_req[0]      ),
     .axi_a_res  ( node_man_rsp[0]      ),
     .axi_b_req  ( sub_req_id_mapped[1] ),
@@ -145,16 +146,17 @@ module tb_floo_dma_chimney;
     .floo_rsp_i     ( chimney_rsp[0]  )
   );
 
-  axi_channel_compare #(
+  axi_chan_compare #(
     .aw_chan_t  ( axi_in_aw_chan_t ),
     .w_chan_t   ( axi_in_w_chan_t  ),
     .b_chan_t   ( axi_in_b_chan_t  ),
     .ar_chan_t  ( axi_in_ar_chan_t ),
     .r_chan_t   ( axi_in_r_chan_t  ),
     .req_t      ( axi_in_req_t     ),
-    .resp_t     ( axi_in_rsp_t    )
-  ) i_axi_channel_compare_1 (
-    .clk_i(clk),
+    .resp_t     ( axi_in_rsp_t     )
+  ) i_axi_chan_compare_1 (
+    .clk_a_i    ( clk                  ),
+    .clk_b_i    ( clk                  ),
     .axi_a_req  ( node_man_req[1]      ),
     .axi_a_res  ( node_man_rsp[1]      ),
     .axi_b_req  ( sub_req_id_mapped[0] ),
@@ -172,7 +174,7 @@ module tb_floo_dma_chimney;
     .MemBaseAddr  ( MemBaseAddr     ),
     .MemSize      ( MemSize         ),
     .axi_req_t    ( axi_in_req_t    ),
-    .axi_rsp_t    ( axi_in_rsp_t   ),
+    .axi_rsp_t    ( axi_in_rsp_t    ),
     .JobId        ( 1               )
   ) i_floo_dma_test_node_1 (
     .clk_i          ( clk             ),
@@ -186,14 +188,16 @@ module tb_floo_dma_chimney;
 
   axi_bw_monitor #(
     .req_t      ( axi_in_req_t  ),
-    .rsp_t      ( axi_in_rsp_t ),
+    .rsp_t      ( axi_in_rsp_t  ),
     .AxiIdWidth ( AxiInIdWidth  )
   ) i_axi_bw_monitor (
-    .clk_i        ( clk             ),
-    .en_i         ( rst_n           ),
-    .end_of_sim_i ( &end_of_sim     ),
-    .req_i        ( node_man_req[0] ),
-    .rsp_i        ( node_man_rsp[0] )
+    .clk_i          ( clk             ),
+    .en_i           ( rst_n           ),
+    .end_of_sim_i   ( &end_of_sim     ),
+    .req_i          ( node_man_req[0] ),
+    .rsp_i          ( node_man_rsp[0] ),
+    .ar_in_flight_o (                 ),
+    .aw_in_flight_o (                 )
   );
 
   initial begin
