@@ -9,6 +9,7 @@ from typing import Optional, List, TypeVar, Union
 from typing_extensions import Annotated
 from pydantic import BaseModel, StringConstraints, model_validator
 
+from floogen.utils import short_dir, snake_to_camel, sv_param_decl, sv_typedef
 
 class ProtocolDesc(BaseModel):
     """Protocol class to describe a protocol."""
@@ -80,6 +81,36 @@ class AXI4(ProtocolDesc):
             },
         }
         return prot_dict
+    def full_name(self) -> str:
+        """Return the name of the protocol."""
+        return f"axi_{self.name}_{short_dir(self.svdirection)}"
+
+    def render_params(self) -> str:
+        """Render the parameters of the protocol."""
+        cfull_name = snake_to_camel(self.full_name())
+        string = sv_param_decl(cfull_name + "AddrWidth", self.addr_width)
+        string += sv_param_decl(cfull_name + "DataWidth", self.data_width)
+        string += sv_param_decl(cfull_name + "IdWidth", self.id_width)
+        string += sv_param_decl(cfull_name + "UserWidth", self.user_width)
+        return string + "\n"
+
+    def render_typedefs(self) -> str:
+        """Render the typedefs of the protocol."""
+        full_name = self.full_name()
+        string = sv_typedef(full_name + "_addr_t", array_size=self.addr_width)
+        string += sv_typedef(full_name + "_data_t", array_size=self.data_width)
+        string += sv_typedef(full_name + "_strb_t", array_size=self.data_width // 8)
+        string += sv_typedef(full_name + "_id_t", array_size=self.id_width)
+        string += sv_typedef(full_name + "_user_t", array_size=self.user_width)
+        string += f"`AXI_TYPEDEF_ALL_CT({full_name}, \
+            {full_name}_req_t, \
+            {full_name}_rsp_t, \
+            {full_name}_addr_t, \
+            {full_name}_id_t, \
+            {full_name}_data_t, \
+            {full_name}_strb_t, \
+            {full_name}_user_t)\n\n"
+        return string
 
 
 class AXI4Bus(AXI4):
