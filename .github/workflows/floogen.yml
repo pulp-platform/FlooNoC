@@ -78,6 +78,7 @@ jobs:
       - name: Lint SV files
         uses: chipsalliance/verible-linter-action@main
         with:
+          config_file: util/verible.waiver
           paths:
             ./generated
           github_token: ${{ secrets.GITHUB_TOKEN }}
