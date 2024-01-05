@@ -30,9 +30,6 @@ collect-bender-sources:
 
 compile-vsim:
   stage: build
-  before_script:
-    - $CONDA create -n venv python=3.10 -y
-    - $CONDA activate venv
   script:
     - make compile-sim | tee compile.log 2>&1
     - '! grep "Error: " compile.log'
