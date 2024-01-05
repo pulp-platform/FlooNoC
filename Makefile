@@ -84,7 +84,7 @@ install-floogen:
 
 sources: install-floogen $(FLOOGEN_PKG_SRC)
 $(FLOOGEN_PKG_OUT_DIR)/floo_%_pkg.sv: $(FLOOGEN_CFG_DIR)/%_pkg.yml $(FLOOGEN_TPL)
-	$(FLOOGEN) -c $< --only-pkg --pkg-outdir $(FLOOGEN_PKG_OUT_DIR)
+	$(FLOOGEN) -c $< --only-pkg --pkg-outdir $(FLOOGEN_PKG_OUT_DIR) $(FLOOGEN_ARGS)
 
 clean-sources:
 	rm -rf $(FLOOGEN_OUT_DIR)
