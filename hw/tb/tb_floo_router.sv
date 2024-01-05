@@ -253,7 +253,7 @@ module tb_floo_router;
   floo_req_generic_flit_t [NumPorts-1:0][NumVirtChannels-1:0] delayed_data_out;
 
   for (genvar port = 0; port < NumPorts; port++) begin : gen_out_delay
-    for (genvar virt_channel = 0; virt_channel < NumVirtChannels; virt_channel++) begin : gen_out_vc_delay
+    for (genvar vc = 0; vc < NumVirtChannels; vc++) begin : gen_out_vc_delay
 
       fall_through_register #(
         .T ( floo_req_generic_flit_t )
@@ -263,13 +263,13 @@ module tb_floo_router;
         .clr_i     (1'b0),
         .testmode_i(1'b0),
 
-        .valid_i   ( valid_out     [port][virt_channel] ),
-        .ready_o   ( ready_out     [port][virt_channel] ),
+        .valid_i   ( valid_out     [port][vc] ),
+        .ready_o   ( ready_out     [port][vc] ),
         .data_i    ( data_out      [port] ),
 
-        .valid_o   ( fall_valid_out[port][virt_channel] ),
-        .ready_i   ( fall_ready_out[port][virt_channel] ),
-        .data_o    ( fall_data_out [port][virt_channel] )
+        .valid_o   ( fall_valid_out[port][vc] ),
+        .ready_i   ( fall_ready_out[port][vc] ),
+        .data_o    ( fall_data_out [port][vc] )
       );
 
       stream_delay #(
@@ -281,13 +281,13 @@ module tb_floo_router;
         .clk_i    (clk),
         .rst_ni   (rst_n),
 
-        .payload_i( fall_data_out [port][virt_channel] ),
-        .ready_o  ( fall_ready_out[port][virt_channel] ),
-        .valid_i  ( fall_valid_out[port][virt_channel] ),
+        .payload_i( fall_data_out [port][vc] ),
+        .ready_o  ( fall_ready_out[port][vc] ),
+        .valid_i  ( fall_valid_out[port][vc] ),
 
-        .payload_o( delayed_data_out [port][virt_channel] ),
-        .ready_i  ( delayed_ready_out[port][virt_channel] ),
-        .valid_o  ( delayed_valid_out[port][virt_channel] )
+        .payload_o( delayed_data_out [port][vc] ),
+        .ready_i  ( delayed_ready_out[port][vc] ),
+        .valid_o  ( delayed_valid_out[port][vc] )
       );
     end
   end
@@ -344,9 +344,8 @@ module tb_floo_router;
       end
 
       if (result.rsvd != golden.rsvd) begin
-        $error("ERROR! Mismatch for port %d channel %d (from %d, target port %d).\n \
-        This was the data: %x, %x",
-        port, virt_channel, result.hdr.src_id, result.hdr.dst_id, result.rsvd, golden.rsvd);
+        $error("ERROR! Mismatch for port %d channel %d (from %d, target port %d)",
+               port, virt_channel, result.hdr.src_id, result.hdr.dst_id);
       end
 
       all_golden_size = 0;

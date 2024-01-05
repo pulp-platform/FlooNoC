@@ -190,8 +190,10 @@ module axi_reorder_compare #(
     end
     if (mon_mst_req_i.ar_valid && mon_mst_rsp_i.ar_ready) begin
       ar_queue[ar_slv_idx].push_back(mon_mst_req_i.ar);
-      r_out_rsp_queue[mon_mst_req_i.ar.id].push_back('{slv_id: ar_slv_idx, num_rsp: mon_mst_req_i.ar.len});
-      if (Verbose) $info("Issued AR: id=%0d, len=%0d", mon_mst_req_i.ar.id, mon_mst_req_i.ar.len+1);
+      r_out_rsp_queue[mon_mst_req_i.ar.id].push_back(
+        '{slv_id: ar_slv_idx, num_rsp: mon_mst_req_i.ar.len});
+      if (Verbose) $info("Issued AR: id=%0d, len=%0d",
+                         mon_mst_req_i.ar.id, mon_mst_req_i.ar.len+1);
     end
   end
 

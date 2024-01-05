@@ -254,7 +254,8 @@ module tb_floo_dma_mesh;
       floo_wide_t       [NumDirections-1:0] wide_out, wide_in;
 
       localparam int unsigned Index = y * NumX + x+1;
-      localparam logic [AxiNarrowInAddrWidth-1:0] MemBaseAddr = (x+1) << XYAddrOffsetX | (y+1) << XYAddrOffsetY;
+      localparam logic [AxiNarrowInAddrWidth-1:0] MemBaseAddr =
+          (x+1) << XYAddrOffsetX | (y+1) << XYAddrOffsetY;
       assign current_id = '{x: x+1, y: y+1};
 
       floo_dma_test_node #(
