@@ -27,13 +27,17 @@ jobs:
           pip install .
       - name: Install bender
         uses: pulp-platform/pulp-actions/bender-install@v2
-      - name: Install verible
+      - name: Make clean sources
         run: |
-          curl -Ls -o verible.tar.gz https://github.com/chipsalliance/verible/releases/download/v0.0-3313-gddcea377/verible-v0.0-3313-gddcea377-Ubuntu-22.04-jammy-x86_64.tar.gz
-          mkdir verible && tar -xzf verible.tar.gz -C verible --strip-components 1
-      - name: Check clean make targets
+          make clean sources FLOOGEN_ARGS="--no-format"
+      - name: Format with verible
+        uses: chipsalliance/verible-formatter-action@main
+        with:
+          files:
+            ./hw/**/*.sv
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check clean
         run: |
-          make clean sources VERIBLE_FMT=verible/bin/verible-verilog-format
           git status && test -z "$(git status --porcelain)"
 
   ###############
@@ -53,14 +57,18 @@ jobs:
           pip install .
       - name: Install bender
         uses: pulp-platform/pulp-actions/bender-install@v2
-      - name: Install verible
+      - name: Make clean sources
         run: |
-          curl -Ls -o verible.tar.gz https://github.com/chipsalliance/verible/releases/download/v0.0-3313-gddcea377/verible-v0.0-3313-gddcea377-Ubuntu-22.04-jammy-x86_64.tar.gz
-          mkdir verible && tar -xzf verible.tar.gz -C verible --strip-components 1
-      - name: Check clean makefile
+          make -B sources FLOOGEN_ARGS="--no-format"
+      - name: Format with verible
+        uses: chipsalliance/verible-formatter-action@main
+        with:
+          files:
+            ./hw/**/*.sv
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check clean
         run: |
-          make -B sources VERIBLE_FMT=verible/bin/verible-verilog-format
-          git status && test -z "$(git status --porcelain)"
+            git status && test -z "$(git status --porcelain)"
 
   #####################
   # Bender up-to-date #
