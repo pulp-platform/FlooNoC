@@ -21,18 +21,15 @@ module tb_floo_dma_mesh;
 
   `FLOO_NOC_TYPEDEF_XY_ID_T(xy_id_t, NumX+2, NumY+2)
 
-  localparam int unsigned HBMChannels = NumY;
   localparam int unsigned HBMLatency = 100;
-  localparam logic [AxiNarrowInAddrWidth-1:0] HBMSize = 48'h10000; // 64KB
-  localparam logic [AxiNarrowInAddrWidth-1:0] MemSize = HBMSize;
+  localparam int unsigned HBMSize = 32'h10000; // 64KB
+  localparam int unsigned MemSize = HBMSize;
 
   // Narrow Wide Chimney parameters
   localparam bit CutAx = 1'b1;
   localparam bit CutRsp = 1'b0;
-  localparam bit NarrowRoBSimple = 1'b1;
   localparam int unsigned NarrowMaxTxnsPerId = 4;
   localparam int unsigned NarrowReorderBufferSize = 32'd256;
-  localparam bit WideRoBSimple = 1'b0;
   localparam int unsigned WideMaxTxnsPerId = 32;
   localparam int unsigned WideReorderBufferSize = 32'd64;
   localparam int unsigned NarrowMaxTxns = 32;
@@ -104,7 +101,6 @@ module tb_floo_dma_mesh;
   floo_hbm_model #(
     .TA           ( ApplTime                ),
     .TT           ( TestTime                ),
-    .TCK          ( CyclTime                ),
     .Latency      ( HBMLatency              ),
     .NumChannels  ( 1                       ),
     .MemSize      ( HBMSize                 ),
@@ -128,7 +124,6 @@ module tb_floo_dma_mesh;
   floo_hbm_model #(
     .TA           ( ApplTime                  ),
     .TT           ( TestTime                  ),
-    .TCK          ( CyclTime                  ),
     .Latency      ( HBMLatency                ),
     .NumChannels  ( 1                         ),
     .MemSize      ( HBMSize                   ),
@@ -316,7 +311,7 @@ module tb_floo_dma_mesh;
         .req_t      ( axi_narrow_in_req_t ),
         .rsp_t      ( axi_narrow_in_rsp_t ),
         .AxiIdWidth ( AxiNarrowInIdWidth  ),
-        .name       ( NarrowDmaName       )
+        .Name       ( NarrowDmaName       )
       ) i_axi_narrow_bw_monitor (
         .clk_i        ( clk                   ),
         .en_i         ( rst_n                 ),
@@ -331,7 +326,7 @@ module tb_floo_dma_mesh;
         .req_t      ( axi_wide_in_req_t ),
         .rsp_t      ( axi_wide_in_rsp_t ),
         .AxiIdWidth ( AxiWideInIdWidth  ),
-        .name       ( WideDmaName       )
+        .Name       ( WideDmaName       )
       ) i_axi_wide_bw_monitor (
         .clk_i        ( clk                 ),
         .en_i         ( rst_n               ),
