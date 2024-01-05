@@ -8,9 +8,11 @@ variables:
   VSIM: questa-2023.4 vsim
   BENDER: bender
   PYTHON: /home/fischeti/micromamba/bin/python
+  FLOOGEN: $PYTHON -m floogen
 
 before_script:
   - $PYTHON -m pip install .
+  - export FLOOGEN=$FLOOGEN
 
 stages:
   - sources
