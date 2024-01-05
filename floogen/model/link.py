@@ -45,7 +45,8 @@ class Link(BaseModel, ABC):
         for _, mapping in cls.channel_mapping.items():
             for ch_type, axi_chs in mapping.items():
                 for axi_ch in axi_chs:
-                    string += f"{snake_to_camel(f"{ch_type}_{axi_ch}")} = {i},\n"
+                    name = f"{ch_type}_{axi_ch}"
+                    string += f"{snake_to_camel(name)} = {i},\n"
                     i += 1
         string += f"NumAxiChannels = {i}\n}} axi_ch_e;\n"
         return string
