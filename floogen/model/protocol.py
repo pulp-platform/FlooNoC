@@ -70,6 +70,8 @@ class AXI4(ProtocolDesc):
 
     def full_name(self) -> str:
         """Return the name of the protocol."""
+        if "axi" in self.name:
+            return f"{self.name}_{short_dir(self.svdirection)}"
         return f"axi_{self.name}_{short_dir(self.svdirection)}"
 
     def render_params(self) -> str:
