@@ -48,7 +48,7 @@ jobs:
         python -m pip install .
     - name: Generate NoCs
       run: |
-        floogen -c floogen/examples/${{ matrix.examples }}.yml -o generated --no_formatting
+        floogen -c floogen/examples/${{ matrix.examples }}.yml -o generated --no-format
     - name: Format generated NoCs
       uses: chipsalliance/verible-formatter-action@main
       with:
