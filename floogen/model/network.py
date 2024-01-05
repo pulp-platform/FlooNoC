@@ -23,7 +23,7 @@ from floogen.model.connection import ConnectionDesc
 from floogen.model.link import NarrowWideLink, XYLinks
 from floogen.model.network_interface import NarrowWideAxiNI
 from floogen.model.protocol import AXI4, AXI4Bus
-from floogen.model.utils import clog2
+from floogen.utils import clog2
 
 
 class Network(BaseModel): # pylint: disable=too-many-public-methods

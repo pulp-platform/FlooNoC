@@ -6,6 +6,7 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 import math
+from typing import Union
 
 
 def cdiv(x, y) -> int:
@@ -31,4 +32,39 @@ def snake_to_camel(name: str) -> str:
 def short_dir(direction: str) -> str:
     """Returns the short direction string."""
     return "in" if direction == "input" else "out"
+
+
+def sv_param_decl(
+    name: str,
+    value: Union[int, str],
+    ptype: str = "localparam",
+    dtype: str = "int unsigned",
+    array_size: int = None,
+) -> str:
+    """Declare a SystemVerilog parameter."""
+    assert ptype in ["localparam", "parameter"]
+    assert array_size is None or isinstance(array_size, int)
+    if array_size is None:
+        return f"{ptype} {dtype} {name} = {value};\n"
+    return f"{ptype} {dtype}[{array_size-1}:0] {name} = {value};\n"
+
+
+def sv_typedef(name: str, dtype: str = "logic", array_size: int = None) -> str:
+    """Declare a SystemVerilog typedef."""
+    assert array_size is None or isinstance(array_size, int)
+    if array_size is None:
+        return f"typedef {dtype} {name};\n"
+    return f"typedef {dtype}[{array_size-1}:0] {name};\n"
+
+
+def sv_struct_typedef(name: str, fields: dict, union=False) -> str:
+    """Declare a SystemVerilog struct typedef."""
+    if union:
+        typedef = "typedef union packed {\n"
+    else:
+        typedef = "typedef struct packed {\n"
+    for field, dtype in fields.items():
+        typedef += f"    {dtype} {field};\n"
+    typedef += f"}} {name};\n\n"
+    return typedef
 
