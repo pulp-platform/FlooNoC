@@ -243,7 +243,7 @@ module floo_narrow_wide_chimney
 
   end else begin : gen_narrow_err_slv_port
     axi_err_slv #(
-      .AxiIdWidth ( NarrowInIdWidth     ),
+      .AxiIdWidth ( AxiNarrowInIdWidth  ),
       .ATOPs      ( AtopSupport         ),
       .axi_req_t  ( axi_narrow_in_req_t ),
       .axi_resp_t ( axi_narrow_in_rsp_t )
@@ -302,7 +302,7 @@ module floo_narrow_wide_chimney
     end
   end else begin : gen_wide_err_slv_port
     axi_err_slv #(
-      .AxiIdWidth ( WideInIdWidth     ),
+      .AxiIdWidth ( AxiWideInIdWidth  ),
       .ATOPs      ( AtopSupport       ),
       .axi_req_t  ( axi_wide_in_req_t ),
       .axi_resp_t ( axi_wide_in_rsp_t )
@@ -1046,8 +1046,8 @@ module floo_narrow_wide_chimney
       .AtopSupport    ( AtopSupport         ),
       .MaxAtomicTxns  ( MaxAtomicTxns       ),
       .buf_t          ( narrow_id_out_buf_t ),
-      .IdInWidth      ( NarrowInIdWidth     ),
-      .IdOutWidth     ( NarrowOutIdWidth    ),
+      .IdInWidth      ( AxiNarrowInIdWidth  ),
+      .IdOutWidth     ( AxiNarrowOutIdWidth ),
       .axi_req_t      ( axi_narrow_in_req_t ),
       .axi_rsp_t      ( axi_narrow_in_rsp_t )
     ) i_narrow_meta_buffer (
@@ -1065,7 +1065,7 @@ module floo_narrow_wide_chimney
     );
   end else begin : gen_no_narrow_mgr_port
     axi_err_slv #(
-      .AxiIdWidth ( NarrowInIdWidth     ),
+      .AxiIdWidth ( AxiNarrowInIdWidth  ),
       .ATOPs      ( AtopSupport         ),
       .axi_req_t  ( axi_narrow_in_req_t ),
       .axi_resp_t ( axi_narrow_in_rsp_t )
@@ -1087,8 +1087,8 @@ module floo_narrow_wide_chimney
       .AtopSupport    ( 1'b1              ),
       .MaxAtomicTxns  ( MaxAtomicTxns     ),
       .buf_t          ( wide_id_out_buf_t ),
-      .IdInWidth      ( WideInIdWidth     ),
-      .IdOutWidth     ( WideOutIdWidth    ),
+      .IdInWidth      ( AxiWideInIdWidth  ),
+      .IdOutWidth     ( AxiWideOutIdWidth ),
       .axi_req_t      ( axi_wide_in_req_t ),
       .axi_rsp_t      ( axi_wide_in_rsp_t )
     ) i_wide_meta_buffer (
@@ -1106,7 +1106,7 @@ module floo_narrow_wide_chimney
     );
   end else begin : gen_no_wide_mgr_port
     axi_err_slv #(
-      .AxiIdWidth ( WideInIdWidth     ),
+      .AxiIdWidth ( AxiWideInIdWidth  ),
       .ATOPs      ( 1'b1              ),
       .axi_req_t  ( axi_wide_in_req_t ),
       .axi_resp_t ( axi_wide_in_rsp_t )
@@ -1133,16 +1133,16 @@ module floo_narrow_wide_chimney
 
   // Multiple outstanding atomics need to use different IDs
   // Non-atomic transactions all use the same ID
-  `ASSERT_INIT(ToSmallIdWidth, 1 + AtopSupport * MaxAtomicTxns <= 2**NarrowOutIdWidth)
+  `ASSERT_INIT(ToSmallIdWidth, 1 + AtopSupport * MaxAtomicTxns <= 2**AxiNarrowOutIdWidth)
 
   // If Network Interface has no subordinate port, make sure that `RoBType` is `NoRoB`
   `ASSERT_INIT(NoNarrowSbrPortRobType, EnNarrowSbrPort || (NarrowRoBType == NoRoB))
   `ASSERT_INIT(NoWideSbrPortRobType, EnWideSbrPort || (WideRoBType == NoRoB))
 
   // Check that all addresses have the same width
-  `ASSERT_INIT(SameAddrWidth1, NarrowInAddrWidth == NarrowOutAddrWidth)
-  `ASSERT_INIT(SameAddrWidth2, WideInAddrWidth == NarrowOutAddrWidth)
-  `ASSERT_INIT(SameAddrWidth3, WideInAddrWidth == WideOutAddrWidth)
+  `ASSERT_INIT(SameAddrWidth1, AxiNarrowInAddrWidth == AxiNarrowOutAddrWidth)
+  `ASSERT_INIT(SameAddrWidth2, AxiWideInAddrWidth == AxiNarrowOutAddrWidth)
+  `ASSERT_INIT(SameAddrWidth3, AxiWideInAddrWidth == AxiWideOutAddrWidth)
 
   // Data and valid signals must be stable/asserted when ready is low
   `ASSERT(NarrowReqOutStableValid, floo_req_o.valid &&
