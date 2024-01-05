@@ -24,31 +24,31 @@ package floo_axi_pkg;
   } axi_ch_e;
 
 
-  localparam int unsigned AxiInAddrWidth = 48;
+  localparam int unsigned AxiInAddrWidth = 32;
   localparam int unsigned AxiInDataWidth = 64;
-  localparam int unsigned AxiInIdWidth = 4;
+  localparam int unsigned AxiInIdWidth = 3;
   localparam int unsigned AxiInUserWidth = 1;
 
 
-  localparam int unsigned AxiOutAddrWidth = 48;
+  localparam int unsigned AxiOutAddrWidth = 32;
   localparam int unsigned AxiOutDataWidth = 64;
-  localparam int unsigned AxiOutIdWidth = 2;
+  localparam int unsigned AxiOutIdWidth = 3;
   localparam int unsigned AxiOutUserWidth = 1;
 
 
-  typedef logic [47:0] axi_in_addr_t;
+  typedef logic [31:0] axi_in_addr_t;
   typedef logic [63:0] axi_in_data_t;
   typedef logic [7:0] axi_in_strb_t;
-  typedef logic [3:0] axi_in_id_t;
+  typedef logic [2:0] axi_in_id_t;
   typedef logic [0:0] axi_in_user_t;
   `AXI_TYPEDEF_ALL_CT(axi_in, axi_in_req_t, axi_in_rsp_t, axi_in_addr_t, axi_in_id_t, axi_in_data_t,
                       axi_in_strb_t, axi_in_user_t)
 
 
-  typedef logic [47:0] axi_out_addr_t;
+  typedef logic [31:0] axi_out_addr_t;
   typedef logic [63:0] axi_out_data_t;
   typedef logic [7:0] axi_out_strb_t;
-  typedef logic [1:0] axi_out_id_t;
+  typedef logic [2:0] axi_out_id_t;
   typedef logic [0:0] axi_out_user_t;
   `AXI_TYPEDEF_ALL_CT(axi_out, axi_out_req_t, axi_out_rsp_t, axi_out_addr_t, axi_out_id_t,
                       axi_out_data_t, axi_out_strb_t, axi_out_user_t)
@@ -95,12 +95,12 @@ package floo_axi_pkg;
   typedef struct packed {
     hdr_t hdr;
     axi_in_aw_chan_t aw;
+    logic [2:0] rsvd;
   } floo_axi_aw_flit_t;
 
   typedef struct packed {
     hdr_t hdr;
     axi_in_w_chan_t w;
-    logic [13:0] rsvd;
   } floo_axi_w_flit_t;
 
   typedef struct packed {
@@ -112,7 +112,7 @@ package floo_axi_pkg;
   typedef struct packed {
     hdr_t hdr;
     axi_in_ar_chan_t ar;
-    logic [5:0] rsvd;
+    logic [8:0] rsvd;
   } floo_axi_ar_flit_t;
 
   typedef struct packed {
@@ -122,12 +122,12 @@ package floo_axi_pkg;
 
   typedef struct packed {
     hdr_t hdr;
-    logic [87:0] rsvd;
+    logic [73:0] rsvd;
   } floo_req_generic_flit_t;
 
   typedef struct packed {
     hdr_t hdr;
-    logic [71:0] rsvd;
+    logic [70:0] rsvd;
   } floo_rsp_generic_flit_t;
 
 

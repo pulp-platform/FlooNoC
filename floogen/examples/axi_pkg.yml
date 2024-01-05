@@ -17,15 +17,15 @@ protocols:
     type: "AXI4"
     direction: "manager"
     data_width: 64
-    addr_width: 48
-    id_width: 4
+    addr_width: 32
+    id_width: 3
     user_width: 1
   - name: "axi"
     type: "AXI4"
     direction: "subordinate"
     data_width: 64
-    addr_width: 48
-    id_width: 2
+    addr_width: 32
+    id_width: 3
     user_width: 1
 
 endpoints: []
