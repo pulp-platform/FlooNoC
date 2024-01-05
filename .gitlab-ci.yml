@@ -9,10 +9,9 @@ variables:
   BENDER: bender
   PYTHON: /home/fischeti/micromamba/bin/python
   FLOOGEN: $PYTHON -m floogen
+  CONDA: /usr/local/anaconda3/bin/conda
 
-before_script:
-  - $PYTHON -m pip install .
-  - export FLOOGEN=$FLOOGEN
+
 
 stages:
   - sources
@@ -30,6 +29,9 @@ collect-bender-sources:
 
 compile-vsim:
   stage: build
+  before_script:
+    - $CONDA create -n venv python=3.10 -y
+    - $CONDA active venv
   script:
     - make compile-sim | tee compile.log 2>&1
     - '! grep "Error: " compile.log'
