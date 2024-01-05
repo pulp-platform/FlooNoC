@@ -25,7 +25,7 @@ from floogen.model.protocol import AXI4, AXI4Bus
 from floogen.utils import clog2
 
 
-class Network(BaseModel): # pylint: disable=too-many-public-methods
+class Network(BaseModel):  # pylint: disable=too-many-public-methods
     """
     Network class to describe a network with routers and endpoints.
     """
@@ -366,7 +366,8 @@ class Network(BaseModel): # pylint: disable=too-many-public-methods
                 for i in ep.mgr_port_protocol:
                     prot = {}
                     protocol = [
-                        p for p in self.protocols if p.name == i and p.direction == "manager"][0]
+                        p for p in self.protocols if p.name == i and p.direction == "manager"
+                    ][0]
                     prot["base_name"] = f"{ep.name}_{protocol.name}"
                     prot["source"] = ep_name
                     prot["dest"] = ep.get_ni_name(ep_name)
@@ -392,10 +393,9 @@ class Network(BaseModel): # pylint: disable=too-many-public-methods
                     sbr_ports.append(protocol)
                 self.graph.set_edge_obj((prot["source"], prot["dest"]), sbr_ports)
             # Add endpoint object to the node
-            self.graph.set_node_obj(ep_name, Endpoint(
-                mgr_ports=mgr_ports,
-                sbr_ports=sbr_ports,
-                **ep.__dict__))
+            self.graph.set_node_obj(
+                ep_name, Endpoint(mgr_ports=mgr_ports, sbr_ports=sbr_ports, **ep.__dict__)
+            )
 
     def compile_nis(self):
         """Compile the endpoints in the network."""
@@ -406,7 +406,7 @@ class Network(BaseModel): # pylint: disable=too-many-public-methods
                 "endpoint": ep_desc,
                 "routing": self.routing,
                 "addr_range": ep_desc.addr_range.model_copy() if ep_desc.addr_range else None,
-                "id": self.graph.get_node_id(ni_name).model_copy()
+                "id": self.graph.get_node_id(ni_name).model_copy(),
             }
 
             assert ep_desc

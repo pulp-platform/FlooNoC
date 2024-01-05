@@ -17,14 +17,15 @@ class ProtocolDesc(BaseModel):
     name: str
     description: Optional[str] = ""
     type: str
-    direction: Annotated[str, StringConstraints(pattern=r'manager|subordinate')]
+    direction: Annotated[str, StringConstraints(pattern=r"manager|subordinate")]
     svdirection: str
 
     @model_validator(mode="before")
     def set_svdirection(self):
         """Set the SystemVerilog direction."""
-        self['svdirection'] =  "input" if self['direction'] == "manager" else "output"
+        self["svdirection"] = "input" if self["direction"] == "manager" else "output"
         return self
+
 
 class AXI4(ProtocolDesc):
     """AXI4 protocol class."""
@@ -34,7 +35,7 @@ class AXI4(ProtocolDesc):
     id_width: int
     user_width: int
 
-    def get_axi_channel_sizes(self) -> dict: # pylint: disable=too-many-locals
+    def get_axi_channel_sizes(self) -> dict:  # pylint: disable=too-many-locals
         """Return the sizes of each of the AXI channels."""
 
         burst = 2
@@ -114,7 +115,6 @@ class AXI4Bus(AXI4):
     subtype: str = ""
     type_prefix: str = "axi"
 
-
     def _invert_dir(self):
         """Invert the direction of the protocol."""
         return "input" if self.svdirection == "output" else "output"
@@ -192,7 +192,6 @@ class AXI4Bus(AXI4):
             {self._array_to_sv_array()} {self.rsp_name(port=True)}"
         )
         return ports
-
 
 
 Protocols = TypeVar("Protocols", bound=ProtocolDesc)
