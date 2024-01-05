@@ -7,8 +7,6 @@
 
 import argparse
 import pathlib
-import shutil
-import subprocess
 
 from floogen.config_parser import parse_config
 from floogen.model.network import Network

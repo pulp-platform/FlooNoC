@@ -121,8 +121,7 @@ class AXI4Bus(AXI4):
 
     def _type_name(self):
         """Return the type name of the protocol."""
-        short_dir = "in" if self.svdirection == "input" else "out"
-        return f"{self.type_prefix}_{self.name}_{short_dir}"
+        return f"{self.type_prefix}_{self.name}_{short_dir(self.svdirection)}"
 
     def _array_to_sv_array(self):
         """Convert the array to a SystemVerilog array."""
