@@ -16,21 +16,28 @@ jobs:
   check-clean:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10'
           cache: 'pip'
-      - run: pip install -r requirements.txt
+      - name: Install dependencies and package
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
       - name: Install bender
         uses: pulp-platform/pulp-actions/bender-install@v2
-      - name: Install verible
+      - name: Make clean sources
         run: |
-          curl -Ls -o verible.tar.gz https://github.com/chipsalliance/verible/releases/download/v0.0-3313-gddcea377/verible-v0.0-3313-gddcea377-Ubuntu-22.04-jammy-x86_64.tar.gz
-          mkdir verible && tar -xzf verible.tar.gz -C verible --strip-components 1
-      - name: Check clean make targets
+          make clean sources FLOOGEN_ARGS="--no-format"
+      - name: Format with verible
+        uses: chipsalliance/verible-formatter-action@main
+        with:
+          files:
+            ./hw/**/*.sv
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check clean
         run: |
-          make clean sources VERIBLE_FMT=verible/bin/verible-verilog-format
           git status && test -z "$(git status --porcelain)"
 
   ###############
@@ -39,22 +46,29 @@ jobs:
   check-stale:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10'
           cache: 'pip'
-      - run: pip install -r requirements.txt
+      - name: Install dependencies and package
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
       - name: Install bender
         uses: pulp-platform/pulp-actions/bender-install@v2
-      - name: Install verible
+      - name: Make clean sources
         run: |
-          curl -Ls -o verible.tar.gz https://github.com/chipsalliance/verible/releases/download/v0.0-3313-gddcea377/verible-v0.0-3313-gddcea377-Ubuntu-22.04-jammy-x86_64.tar.gz
-          mkdir verible && tar -xzf verible.tar.gz -C verible --strip-components 1
-      - name: Check clean makefile
+          make -B sources FLOOGEN_ARGS="--no-format"
+      - name: Format with verible
+        uses: chipsalliance/verible-formatter-action@main
+        with:
+          files:
+            ./hw/**/*.sv
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check clean
         run: |
-          make -B sources VERIBLE_FMT=verible/bin/verible-verilog-format
-          git status && test -z "$(git status --porcelain)"
+            git status && test -z "$(git status --porcelain)"
 
   #####################
   # Bender up-to-date #
@@ -68,18 +82,39 @@ jobs:
   ################
   # Verible Lint #
   ################
-  lint:
+  verible-lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: chipsalliance/verible-linter-action@main
       with:
+        config_file: ''
         paths: |
-          ./src
+          ./hw
         extra_args: "--waiver_files util/verible.waiver"
         github_token: ${{ secrets.GITHUB_TOKEN }}
         fail_on_error: true
         reviewdog_reporter: github-check
+
+  ##########
+  # PyLint #
+  ##########
+  pylint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+    - name: Install dependencies and package
+      run: |
+        python -m pip install --upgrade pip
+        pip install .
+    - name: Analysing the code with pylint
+      run: |
+        pylint $(git ls-files '*.py')
 
   #################
   # Check License #

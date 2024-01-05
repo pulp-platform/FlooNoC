@@ -15,62 +15,61 @@ dependencies:
   idma: { git: "https://github.com/pulp-platform/iDMA.git", version: 0.5.1 }
 
 export_include_dirs:
-  - include
+  - hw/include
 
 sources:
   # Level 0
-  - src/floo_pkg.sv
-  - src/floo_axi_pkg.sv
-  - src/floo_narrow_wide_pkg.sv
+  - hw/floo_pkg.sv
+  - hw/floo_axi_pkg.sv
+  - hw/floo_narrow_wide_pkg.sv
   # Level 1
-  - src/floo_cut.sv
-  - src/floo_fifo.sv
-  - src/floo_cdc.sv
-  - src/floo_route_select.sv
-  - src/floo_route_comp.sv
-  - src/floo_vc_arbiter.sv
-  - src/floo_wormhole_arbiter.sv
-  - src/floo_simple_rob.sv
-  - src/floo_rob.sv
-  - src/floo_rob_wrapper.sv
-  - src/floo_meta_buffer.sv
+  - hw/floo_cut.sv
+  - hw/floo_fifo.sv
+  - hw/floo_cdc.sv
+  - hw/floo_route_select.sv
+  - hw/floo_route_comp.sv
+  - hw/floo_vc_arbiter.sv
+  - hw/floo_wormhole_arbiter.sv
+  - hw/floo_simple_rob.sv
+  - hw/floo_rob.sv
+  - hw/floo_rob_wrapper.sv
+  - hw/floo_meta_buffer.sv
   # Level 2
-  - src/floo_axi_chimney.sv
-  - src/floo_narrow_wide_chimney.sv
-  - src/floo_router.sv
-  - src/floo_narrow_wide_router.sv
+  - hw/floo_axi_chimney.sv
+  - hw/floo_narrow_wide_chimney.sv
+  - hw/floo_router.sv
+  - hw/floo_narrow_wide_router.sv
 
   - target: test
     include_dirs:
-      - test
+      - hw/test
     files:
       # Level 0
-      - test/floo_test_pkg.sv
+      - hw/test/floo_test_pkg.sv
       # Level 1
-      - test/axi_channel_compare.sv
-      - test/floo_axi_test_node.sv
-      - test/floo_axi_rand_slave.sv
-      - test/floo_dma_test_node.sv
-      - test/axi_reorder_compare.sv
-      - test/axi_reorder_remap_compare.sv
-      - test/axi_bw_monitor.sv
-      - test/floo_hbm_model.sv
+      - hw/test/floo_axi_test_node.sv
+      - hw/test/floo_axi_rand_slave.sv
+      - hw/test/floo_dma_test_node.sv
+      - hw/test/axi_reorder_compare.sv
+      - hw/test/axi_reorder_remap_compare.sv
+      - hw/test/axi_bw_monitor.sv
+      - hw/test/floo_hbm_model.sv
       # Level 2
-      - test/tb_floo_axi_chimney.sv
-      - test/tb_floo_narrow_wide_chimney.sv
-      - test/tb_floo_router.sv
-      - test/tb_floo_rob.sv
-      - test/tb_floo_dma_chimney.sv
-      - test/tb_floo_dma_nw_chimney.sv
-      - test/tb_floo_dma_mesh.sv
+      - hw/tb/tb_floo_axi_chimney.sv
+      - hw/tb/tb_floo_narrow_wide_chimney.sv
+      - hw/tb/tb_floo_router.sv
+      - hw/tb/tb_floo_rob.sv
+      - hw/tb/tb_floo_dma_chimney.sv
+      - hw/tb/tb_floo_dma_nw_chimney.sv
+      - hw/tb/tb_floo_dma_mesh.sv
 
   - target: any(synthesis,spyglass)
     files:
       # Level 0
-      - test/floo_test_pkg.sv
+      - hw/test/floo_test_pkg.sv
       # Level 1
-      - src/synth/floo_synth_axi_chimney.sv
-      - src/synth/floo_synth_narrow_wide_chimney.sv
-      - src/synth/floo_synth_router.sv
-      - src/synth/floo_synth_narrow_wide_router.sv
-      - src/synth/floo_synth_endpoint.sv
+      - hw/synth/floo_synth_axi_chimney.sv
+      - hw/synth/floo_synth_narrow_wide_chimney.sv
+      - hw/synth/floo_synth_router.sv
+      - hw/synth/floo_synth_narrow_wide_router.sv
+      - hw/synth/floo_synth_endpoint.sv

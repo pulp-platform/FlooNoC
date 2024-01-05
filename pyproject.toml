@@ -1,0 +1,69 @@
+# Copyright 2023 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+
+[project]
+name = "floogen"
+version = "0.1.0"
+authors = [
+  { name="Tim Fischer", email="fischeti@iis.ee.ethz.ch" },
+]
+description = "A Network Generator for FlooNoC"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "License :: OSI Approved :: Apache License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+  "pydantic",
+  "networkx",
+  "matplotlib",
+  "mako",
+  "ruamel.yaml",
+  "hjson",
+  "jsonref",
+  "click",
+  "pylint",
+  "pytest"
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+Homepage = "https://github.com/pulp-platform/FlooNoC"
+
+[project.scripts]
+floogen = "floogen.floo_gen:main"
+
+[tool.setuptools]
+packages = [
+  "floogen",
+  "floogen.model",
+  "floogen.templates",
+  "floogen.tests",
+]
+
+[tool.setuptools.package-data]
+"floogen.templates" = ["*.mako"]
+
+[tool.pytest.ini_options]
+testpaths = ["floogen/tests"]
+
+[tool.pylint.format]
+max-line-length = 100
+jobs = 4
+suggestion-mode = 'yes'
+
+[tool.pylint.disable]
+disable = [
+    "C0114",  # Missing module docstring
+    "R0801"   # Similar lines in 2 files, TODO: Remove this once FlooGen is integrated into FlooNoC
+]
+
+[tool.black]
+line-length = 100

@@ -1,20 +1,85 @@
+# Temporary and binary files
+*~
+*.py[cod]
+*.so
+*.cfg
+!.isort.cfg
+!setup.cfg
+*.orig
+*.log
+*.pot
+__pycache__/*
+.cache/*
+.*.swp
+*/.ipynb_checkpoints/*
+.DS_Store
+
+# Project files
+.ropeproject
+.project
+.pydevproject
+.settings
+.idea
+.vscode
+.dvt
+tags
+
+# Package files
+*.egg
+*.eggs/
+.installed.cfg
+*.egg-info
+
+# Unittest and coverage
+htmlcov/*
+.coverage
+.coverage.*
+.tox
+junit*.xml
+coverage.xml
+.pytest_cache/
+
+# Build and docs folder/files
+build/*
+dist/*
+sdist/*
+docs/api/*
+docs/_rst/*
+docs/_build/*
+cover/*
+MANIFEST
+
+# Per-project virtualenvs
+.venv*/
+.conda*/
+.python-version
+
+# bender
 .bender
-*modelsim.ini
-*transcript
-*work
+Bender.lock
+Bender.local
+deps
+
+# Auto generated sources
+generated
+*.png
+hw/test/jobs
+
+# QuestaSim
+work
+work-vsim
+modelsim.ini
+transcript
 vsim.wlf
 scripts/compile_vsim.tcl
-working_dir/*
-compile.log
-Bender.lock
-.dvt
-dvt_build.log
-.vscode
+
+# Verible
 verible*
 
 # spyglass
 scripts/spyglass/*
 
-test/jobs
+# Misc
 *.csv
 **/*.log
+reviewdog
