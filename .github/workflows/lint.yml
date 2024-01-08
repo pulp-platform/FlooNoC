@@ -35,7 +35,6 @@ jobs:
         with:
           files:
             ./hw/**/*.sv
-          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Check clean
         run: |
           git status && test -z "$(git status --porcelain)"
@@ -65,7 +64,6 @@ jobs:
         with:
           files:
             ./hw/**/*.sv
-          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Check clean
         run: |
             git status && test -z "$(git status --porcelain)"

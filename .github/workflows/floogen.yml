@@ -54,7 +54,6 @@ jobs:
       with:
         files:
           ./generated/${{ matrix.examples }}_floo_noc.sv
-        github_token: ${{ secrets.GITHUB_TOKEN }}
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
