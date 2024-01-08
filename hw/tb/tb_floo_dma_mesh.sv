@@ -5,6 +5,7 @@
 // Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 `include "floo_noc/typedef.svh"
+`include "common_cells/assertions.svh"
 
 module tb_floo_dma_mesh;
 
@@ -22,6 +23,10 @@ module tb_floo_dma_mesh;
   localparam int unsigned HBMLatency = 100;
   localparam int unsigned HBMSize = 32'h10000; // 64KB
   localparam int unsigned MemSize = HBMSize;
+
+  `ASSERT_INIT(NotEnoughXBits, $clog2(NumX + 2) <= $bits(x_bits_t))
+  `ASSERT_INIT(NotEnoughYBits, $clog2(NumY + 2) <= $bits(y_bits_t))
+  `ASSERT_INIT(NotEnoughAddrOffset, $clog2(HBMSize) <= XYAddrOffsetX)
 
   // Narrow Wide Chimney parameters
   localparam bit CutAx = 1'b1;
