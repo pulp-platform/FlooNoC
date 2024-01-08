@@ -168,6 +168,7 @@ module tb_floo_narrow_wide_chimney;
   );
 
   axi_chan_compare #(
+    .IgnoreId   ( 1'b1                  ),
     .aw_chan_t  ( axi_wide_in_aw_chan_t ),
     .w_chan_t   ( axi_wide_in_w_chan_t  ),
     .b_chan_t   ( axi_wide_in_b_chan_t  ),
@@ -280,6 +281,7 @@ module tb_floo_narrow_wide_chimney;
   );
 
   axi_chan_compare #(
+    .IgnoreId   ( 1'b1                  ),
     .aw_chan_t  ( axi_wide_in_aw_chan_t ),
     .w_chan_t   ( axi_wide_in_w_chan_t  ),
     .b_chan_t   ( axi_wide_in_b_chan_t  ),
