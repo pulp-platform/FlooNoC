@@ -32,9 +32,6 @@ module tb_floo_dma_mesh;
   localparam int unsigned WideReorderBufferSize = 32'd64;
   localparam int unsigned NarrowMaxTxns = 32;
   localparam int unsigned WideMaxTxns = 32;
-  localparam route_algo_e RouteAlgo = XYRouting;
-  localparam int unsigned XYAddrOffsetX = $clog2(HBMSize);
-  localparam int unsigned XYAddrOffsetY = $clog2(HBMSize) + $clog2(NumX+1);
   localparam int unsigned ChannelFifoDepth = 2;
   localparam int unsigned OutputFifoDepth = 32;
 
