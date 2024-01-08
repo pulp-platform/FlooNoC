@@ -202,12 +202,16 @@ class RoutingRule(BaseModel):
     def render(self, aw=None):
         """Render the SystemVerilog routing rule."""
         if aw is not None:
-            return f"'{{idx: {self.dest.render()}, \
-                start_addr: {aw}'h{self.addr_range.start:0{cdiv(aw,4)}x}, \
-                end_addr: {aw}'h{self.addr_range.end:0{cdiv(aw,4)}x}}}"
-        return f"'{{idx: {self.dest.render()}, \
-            start_addr: {self.addr_range.start}, \
-            end_addr: {self.addr_range.end}}}"
+            return (
+                f"'{{idx: {self.dest.render()}, "
+                f"start_addr: {aw}'h{self.addr_range.start:0{cdiv(aw,4)}x}, "
+                f"end_addr: {aw}'h{self.addr_range.end:0{cdiv(aw,4)}x}}}"
+            )
+        return (
+            f"'{{idx: {self.dest.render()}, "
+            f"start_addr: {self.addr_range.start}, "
+            f"end_addr: {self.addr_range.end}}}"
+        )
 
 
 class RoutingTable(BaseModel):
