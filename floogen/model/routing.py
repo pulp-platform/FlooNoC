@@ -11,7 +11,14 @@ from abc import ABC, abstractmethod
 
 from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator
 
-from floogen.utils import cdiv, sv_param_decl, sv_typedef, sv_struct_typedef
+from floogen.utils import (
+    cdiv,
+    sv_param_decl,
+    sv_typedef,
+    sv_struct_typedef,
+    bool_to_sv,
+    snake_to_camel,
+)
 
 
 class RouteAlgo(Enum):
@@ -307,6 +314,7 @@ class Routing(BaseModel):
         """Render the SystemVerilog parameter declaration."""
         string = ""
         string += sv_param_decl("RouteAlgo", self.route_algo.value, dtype="route_algo_e")
+        string += sv_param_decl("UseIdTable", bool_to_sv(self.use_id_table), dtype="bit")
         match (self.route_algo):
             case RouteAlgo.XY:
                 string += sv_param_decl("NumXBits", self.num_x_bits)
@@ -350,6 +358,6 @@ class Routing(BaseModel):
             "src_id": "id_t",
             "last": "logic",
             "atop": "logic",
-            "axi_ch": "axi_ch_e"
+            "axi_ch": "axi_ch_e",
         }
         return sv_struct_typedef("hdr_t", header_fields)

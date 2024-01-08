@@ -35,6 +35,10 @@ def short_dir(direction: str) -> str:
     """Returns the short direction string."""
     return "in" if direction == "input" else "out"
 
+def bool_to_sv(value: bool) -> str:
+    """Converts a boolean to a SystemVerilog string."""
+    return "1'b1" if value else "1'b0"
+
 
 def sv_param_decl(
     name: str,
