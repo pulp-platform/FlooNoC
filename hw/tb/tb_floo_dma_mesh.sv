@@ -19,8 +19,6 @@ module tb_floo_dma_mesh;
   localparam int unsigned NumY = 4;
   localparam int unsigned NumMax = (NumX > NumY) ? NumX : NumY;
 
-  `FLOO_NOC_TYPEDEF_XY_ID_T(xy_id_t, NumX+2, NumY+2)
-
   localparam int unsigned HBMLatency = 100;
   localparam int unsigned HBMSize = 32'h10000; // 64KB
   localparam int unsigned MemSize = HBMSize;
@@ -151,7 +149,7 @@ module tb_floo_dma_mesh;
     floo_req_t [NumChimneys-1:0] req_hbm_in, req_hbm_out;
     floo_rsp_t [NumChimneys-1:0] rsp_hbm_in, rsp_hbm_out;
     floo_wide_t [NumChimneys-1:0]       wide_hbm_in, wide_hbm_out;
-    xy_id_t [NumChimneys-1:0]           xy_id_hbm;
+    id_t [NumChimneys-1:0]           xy_id_hbm;
 
     if (i == North) begin : gen_north_hbm_chimneys
       for (genvar j = 0; j < NumChimneys; j++) begin : gen_hbm_chimney_xy_id
@@ -208,7 +206,7 @@ module tb_floo_dma_mesh;
       .WideReorderBufferSize    ( WideReorderBufferSize   ),
       .CutAx                    ( CutAx                   ),
       .CutRsp                   ( CutRsp                  ),
-      .id_t                     ( xy_id_t                 )
+      .id_t                     ( id_t                    )
     ) i_hbm_chimney [NumChimneys-1:0] (
       .clk_i                ( clk               ),
       .rst_ni               ( rst_n             ),
@@ -241,7 +239,7 @@ module tb_floo_dma_mesh;
 
   for (genvar x = 0; x < NumX; x++) begin : gen_x
     for (genvar y = 0; y < NumX; y++) begin : gen_y
-      xy_id_t current_id;
+      id_t current_id;
       localparam string NarrowDmaName = $sformatf("narrow_dma_%0d_%0d", x, y);
       localparam string WideDmaName   = $sformatf("wide_dma_%0d_%0d", x, y);
       floo_req_t [NumDirections-1:0] req_out, req_in;
@@ -347,7 +345,7 @@ module tb_floo_dma_mesh;
         .WideReorderBufferSize    ( WideReorderBufferSize   ),
         .CutAx                    ( CutAx                   ),
         .CutRsp                   ( CutRsp                  ),
-        .id_t                     ( xy_id_t                 )
+        .id_t                     ( id_t                    )
       ) i_dma_chimney (
         .clk_i                ( clk                           ),
         .rst_ni               ( rst_n                         ),
@@ -377,7 +375,7 @@ module tb_floo_dma_mesh;
         .OutputFifoDepth  ( OutputFifoDepth   ),
         .RouteAlgo        ( RouteAlgo         ),
         .XYRouteOpt       ( 1'b0              ),
-        .id_t             ( xy_id_t           )
+        .id_t             ( id_t              )
       ) i_router (
         .clk_i          ( clk         ),
         .rst_ni         ( rst_n       ),
