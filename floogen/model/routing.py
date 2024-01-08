@@ -268,16 +268,40 @@ class RoutingTable(BaseModel):
 
     def render(self, name, aw=None, id_offset=None):
         """Render the SystemVerilog routing table."""
+        string = ""
+        rules = self.rules.copy()
         if id_offset is not None:
-            for rule in self.rules:
+            for rule in rules:
                 rule.dest -= id_offset
+        # typedef of the address rule
         addr_type = f"logic [{aw-1}:0]" if aw is not None else "id_t"
-        rule_type_str = f"typedef struct packed {{id_t idx; {addr_type} \
-            start_addr; {addr_type} end_addr;}} {name}_table_rule_t;\n\n"
-        decl_str = f"{name}_table_rule_t [{len(self.rules)-1}:0] {name}_table;\n"
-        for i, rule in enumerate(self.rules):
-            decl_str += f"assign {name}_table[{i}] = {rule.render(aw)};\n"
-        return rule_type_str + decl_str
+        rule_type_dict = {
+            "idx": "id_t",
+            "start_addr": addr_type,
+            "end_addr": addr_type,
+        }
+        string += sv_struct_typedef(f"{name}_rule_t", rule_type_dict)
+        # size and numbers of rules (of the table)
+        string += sv_param_decl(f"{snake_to_camel(name)}NumIDs", len(rules))
+        string += sv_param_decl(f"{snake_to_camel(name)}NumRules", len(rules)) + "\n"
+        rules_str = ""
+        if not rules:
+            string += sv_param_decl(
+                f"{snake_to_camel(name)}",
+                value="'{default: 0}",
+                dtype=f"{name}_rule_t",
+            )
+            return string
+        for rule in rules:
+            rules_str += f"{rule.render(aw)},\n"
+        rules_str = rules_str[:-2]
+        string += sv_param_decl(
+            f"{snake_to_camel(name)}",
+            value="'{\n" + rules_str + "\n}",
+            dtype=f"{name}_rule_t",
+            array_size=len(rules),
+        )
+        return string
 
     def pprint(self):
         """Pretty print the routing table."""
