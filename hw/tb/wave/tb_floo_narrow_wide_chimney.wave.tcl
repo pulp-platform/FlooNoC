@@ -60,13 +60,13 @@ for {set i 0} {$i < 2} {incr i} {
     add wave -noupdate -expand -group $group_name -group NarrowB_RoB tb_floo_narrow_wide_chimney/i_floo_narrow_wide_chimney_${i}/i_narrow_b_rob/*
     add wave -noupdate -expand -group $group_name -group WideB_RoB tb_floo_narrow_wide_chimney/i_floo_narrow_wide_chimney_${i}/i_wide_b_rob/*
 
-    add wave -noupdate -expand -group $group_name -group NarrowMetaBuffer tb_floo_narrow_wide_chimney/i_floo_narrow_wide_chimney_${i}/i_narrow_meta_buffer/*
+    add wave -noupdate -expand -group $group_name -group NarrowMetaBuffer tb_floo_narrow_wide_chimney/i_floo_narrow_wide_chimney_${i}/gen_narrow_mgr_port/i_narrow_meta_buffer/*
     try {
-        add wave -noupdate -expand -group $group_name -group NarrowMetaBuffer tb_floo_narrow_wide_chimney/i_floo_narrow_wide_chimney_${i}/i_narrow_meta_buffer/gen_atop_support/*
+        add wave -noupdate -expand -group $group_name -group NarrowMetaBuffer tb_floo_narrow_wide_chimney/i_floo_narrow_wide_chimney_${i}/gen_narrow_mgr_port/i_narrow_meta_buffer/gen_atop_support/*
     }
-    add wave -noupdate -expand -group $group_name -group WideMetaBuffer tb_floo_narrow_wide_chimney/i_floo_narrow_wide_chimney_${i}/i_wide_meta_buffer/*
+    add wave -noupdate -expand -group $group_name -group WideMetaBuffer tb_floo_narrow_wide_chimney/i_floo_narrow_wide_chimney_${i}/gen_wide_mgr_port/i_wide_meta_buffer/*
     try {
-        add wave -noupdate -expand -group $group_name -group WideMetaBuffer tb_floo_narrow_wide_chimney/i_floo_narrow_wide_chimney_${i}/i_wide_meta_buffer/gen_atop_support/*
+        add wave -noupdate -expand -group $group_name -group WideMetaBuffer tb_floo_narrow_wide_chimney/i_floo_narrow_wide_chimney_${i}/gen_wide_mgr_port/i_wide_meta_buffer/gen_atop_support/*
     }
 
 }
