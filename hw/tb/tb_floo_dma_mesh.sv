@@ -21,8 +21,8 @@ module tb_floo_dma_mesh;
   localparam int unsigned NumMax = (NumX > NumY) ? NumX : NumY;
 
   localparam int unsigned HBMLatency = 100;
-  localparam int unsigned HBMSize = 32'h10000; // 64KB
-  localparam int unsigned MemSize = HBMSize;
+  localparam axi_narrow_in_addr_t HBMSize = 48'h10000; // 64KB
+  localparam axi_narrow_in_addr_t MemSize = HBMSize;
 
   `ASSERT_INIT(NotEnoughXBits, $clog2(NumX + 2) <= $bits(x_bits_t))
   `ASSERT_INIT(NotEnoughYBits, $clog2(NumY + 2) <= $bits(y_bits_t))
@@ -103,7 +103,7 @@ module tb_floo_dma_mesh;
     .TT           ( TestTime                ),
     .Latency      ( HBMLatency              ),
     .NumChannels  ( 1                       ),
-    .MemSize      ( HBMSize                 ),
+    .AddrWidth    ( AxiWideOutAddrWidth     ),
     .DataWidth    ( AxiWideOutDataWidth     ),
     .UserWidth    ( AxiWideOutUserWidth     ),
     .IdWidth      ( AxiWideOutIdWidth       ),
@@ -126,7 +126,7 @@ module tb_floo_dma_mesh;
     .TT           ( TestTime                  ),
     .Latency      ( HBMLatency                ),
     .NumChannels  ( 1                         ),
-    .MemSize      ( HBMSize                   ),
+    .AddrWidth    ( AxiNarrowOutAddrWidth     ),
     .DataWidth    ( AxiNarrowOutDataWidth     ),
     .UserWidth    ( AxiNarrowOutUserWidth     ),
     .IdWidth      ( AxiNarrowOutIdWidth       ),
