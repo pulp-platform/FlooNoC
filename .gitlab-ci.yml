@@ -9,18 +9,13 @@ variables:
   BENDER: bender
   PYTHON: /home/fischeti/micromamba/envs/floo/bin/python
 
-before_script:
-  - $PYTHON -m venv .venv
-  - source .venv/bin/activate
-  - pip install .
-
 stages:
-  - sources
+  - init
   - build
   - run
 
 collect-bender-sources:
-  stage: sources
+  stage: init
   script:
     - $BENDER checkout
   artifacts:
@@ -28,12 +23,24 @@ collect-bender-sources:
       - .bender/
       - Bender.lock
 
+python-virtualenv:
+  stage: init
+  script:
+    - $PYTHON -m venv .venv
+    - source .venv/bin/activate
+    - pip install .
+  artifacts:
+    paths:
+      - .venv/
+
 compile-vsim:
   stage: build
   script:
+    - source .venv/bin/activate
     - make compile-sim | tee compile.log 2>&1
     - '! grep "Error: " compile.log'
   needs:
+    - python-virtualenv
     - collect-bender-sources
   artifacts:
     paths:
