@@ -42,7 +42,6 @@ VSIM_TB_DUT ?= floo_noc_router_test
 VSIM_FLAGS += -64
 VSIM_FLAGS += -t 1ps
 VSIM_FLAGS += -sv_seed 0
-VSIM_FLAGS += -voptargs=+acc
 
 # Set the job name and directory if specified
 ifdef JOB_NAME
@@ -58,8 +57,9 @@ endif
 
 # Automatically open the waveform if a wave.tcl file is present
 VSIM_FLAGS_GUI += -do "log -r /*"
-ifneq ("$(wildcard test/$(VSIM_TB_DUT).wave.tcl)","")
-    VSIM_FLAGS_GUI += -do "source test/$(VSIM_TB_DUT).wave.tcl"
+VSIM_FLAGS_GUI += -voptargs=+acc
+ifneq ("$(wildcard hw/tb/wave/$(VSIM_TB_DUT).wave.tcl)","")
+    VSIM_FLAGS_GUI += -do "source hw/tb/wave/$(VSIM_TB_DUT).wave.tcl"
 endif
 
 ###########
