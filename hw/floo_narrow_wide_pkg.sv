@@ -98,15 +98,15 @@ package floo_narrow_wide_pkg;
   /////////////////////////
 
   localparam route_algo_e RouteAlgo = XYRouting;
-  localparam int unsigned NumXBits = 2;
-  localparam int unsigned NumYBits = 2;
-  localparam int unsigned XAddrOffset = 12;
-  localparam int unsigned YAddrOffset = 14;
+  localparam int unsigned NumXBits = 4;
+  localparam int unsigned NumYBits = 4;
+  localparam int unsigned XAddrOffset = 32;
+  localparam int unsigned YAddrOffset = 36;
 
 
   typedef logic [3:0] rob_idx_t;
-  typedef logic [1:0] x_bits_t;
-  typedef logic [1:0] y_bits_t;
+  typedef logic [3:0] x_bits_t;
+  typedef logic [3:0] y_bits_t;
   typedef struct packed {
     x_bits_t x;
     y_bits_t y;
