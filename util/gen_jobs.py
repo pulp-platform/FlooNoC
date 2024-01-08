@@ -23,8 +23,8 @@ def clog2(x: int):
 
 def get_xy_base_addr(x: int, y: int):
     """Get the address of a tile in the mesh."""
-    assert x <= NUM_X and y <= NUM_Y
-    return (x + 2 ** clog2(NUM_X + 1) * y) * MEM_SIZE
+    assert x <= NUM_X+1 and y <= NUM_Y+1
+    return (x + 2 ** clog2(NUM_X + 2) * y) * MEM_SIZE
 
 
 def gen_job_str(
