@@ -24,21 +24,6 @@ module floo_axi_chimney
   /// Every atomic transactions needs to have a unique ID
   /// and one ID is reserved for non-atomic transactions
   parameter int unsigned MaxAtomicTxns      = 1,
-  /// Routing Algorithm
-  parameter route_algo_e RouteAlgo          = IdTable,
-  /// Whether to look up the coordinates in a table or
-  /// directly read them from the request address
-  parameter bit UseIdTable                  = 1'b0,
-  /// X Coordinate address offset for XY routing
-  parameter int unsigned XYAddrOffsetX      = 0,
-  /// Y Coordinate address offset for XY routing
-  parameter int unsigned XYAddrOffsetY      = 0,
-  /// ID address offset for ID routing
-  parameter int unsigned IdAddrOffset       = 0,
-  /// Number of Endpoints in the system, only used for Table based routing
-  parameter int unsigned NumIDs             = 0,
-  /// Number of rules in the routing table, only used for Table based routing
-  parameter int unsigned NumRules           = 0,
   /// ID address offset for ID routing
   parameter int unsigned MaxTxns            = 32,
   /// Maximum number of outstanding requests per ID
@@ -51,10 +36,6 @@ module floo_axi_chimney
   parameter bit CutAx                       = 1'b0,
   /// Cut timing paths of incoming responses
   parameter bit CutRsp                      = 1'b1,
-  /// Type of Coordinates/Id
-  parameter type id_t                       = logic,
-  /// Only used for IDRouting
-  parameter type id_rule_t                  = logic,
   /// Type for implementation inputs and outputs
   parameter type         sram_cfg_t         = logic
 ) (
@@ -69,8 +50,6 @@ module floo_axi_chimney
   input  axi_out_rsp_t axi_out_rsp_i,
   /// Coordinates/ID of the current tile
   input  id_t  id_i,
-  /// Routing table
-  input  id_rule_t[NumRules-1:0]  id_map_i,
   /// Output to NoC
   output floo_req_t floo_req_o,
   output floo_rsp_t floo_rsp_o,
@@ -370,20 +349,20 @@ module floo_axi_chimney
   assign addr_to_decode[ArReq] = axi_ar_queue.addr;
 
   floo_route_comp #(
-    .RouteAlgo      ( RouteAlgo     ),
-    .UseIdTable     ( UseIdTable    ),
-    .XYAddrOffsetX  ( XYAddrOffsetX ),
-    .XYAddrOffsetY  ( XYAddrOffsetY ),
-    .IdAddrOffset   ( IdAddrOffset  ),
-    .NumIDs         ( NumIDs        ),
-    .NumRules       ( NumRules      ),
-    .id_t           ( id_t          ),
-    .id_rule_t      ( id_rule_t     ),
-    .addr_t         ( axi_in_addr_t        )
+    .RouteAlgo      ( RouteAlgo       ),
+    .UseIdTable     ( UseIdTable      ),
+    .XYAddrOffsetX  ( XYAddrOffsetX   ),
+    .XYAddrOffsetY  ( XYAddrOffsetY   ),
+    .IdAddrOffset   ( IdAddrOffset    ),
+    .NumIDs         ( AddrMapNumIDs   ),
+    .NumRules       ( AddrMapNumRules ),
+    .id_t           ( id_t            ),
+    .id_rule_t      ( addr_map_rule_t ),
+    .addr_t         ( axi_in_addr_t   )
   ) i_floo_narrow_route_comp [NumAddrDecoders-1:0] (
     .clk_i,
     .rst_ni,
-    .id_map_i,
+    .id_map_i   ( AddrMap         ),
     .addr_i     ( addr_to_decode  ),
     .id_o       ( decoded_id      )
   );
