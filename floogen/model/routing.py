@@ -348,14 +348,16 @@ class Routing(BaseModel):
             case _:
                 pass
 
-        match (self.use_id_table, self.route_algo):
-            case (False, RouteAlgo.XY):
-                string += sv_param_decl("XYAddrOffsetX", self.addr_offset_bits)
-                string += sv_param_decl("XYAddrOffsetY", self.addr_offset_bits + self.num_x_bits)
-            case (False, RouteAlgo.ID):
-                string += sv_param_decl("AddrOffset", self.addr_offset_bits)
-            case _:
-                pass
+        if self.route_algo == RouteAlgo.XY:
+            string += sv_param_decl("XYAddrOffsetX", self.addr_offset_bits)
+            string += sv_param_decl("XYAddrOffsetY", self.addr_offset_bits + self.num_x_bits)
+        else:
+            string += sv_param_decl("XYAddrOffsetX", 0)
+            string += sv_param_decl("XYAddrOffsetY", 0)
+        if self.route_algo == RouteAlgo.ID and not self.use_id_table:
+            string += sv_param_decl("IdAddrOffset", self.addr_offset_bits)
+        else:
+            string += sv_param_decl("IdAddrOffset", 0)
         return string
 
     def render_typedefs(self) -> str:
