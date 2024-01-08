@@ -100,8 +100,8 @@ package floo_narrow_wide_pkg;
   localparam route_algo_e RouteAlgo = XYRouting;
   localparam int unsigned NumXBits = 4;
   localparam int unsigned NumYBits = 4;
-  localparam int unsigned XAddrOffset = 32;
-  localparam int unsigned YAddrOffset = 36;
+  localparam int unsigned XYAddrOffsetX = 32;
+  localparam int unsigned XYAddrOffsetY = 36;
 
 
   typedef logic [3:0] rob_idx_t;

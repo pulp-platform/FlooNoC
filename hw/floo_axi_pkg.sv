@@ -62,8 +62,8 @@ package floo_axi_pkg;
   localparam route_algo_e RouteAlgo = XYRouting;
   localparam int unsigned NumXBits = 2;
   localparam int unsigned NumYBits = 2;
-  localparam int unsigned XAddrOffset = 12;
-  localparam int unsigned YAddrOffset = 14;
+  localparam int unsigned XYAddrOffsetX = 12;
+  localparam int unsigned XYAddrOffsetY = 14;
 
 
   typedef logic [3:0] rob_idx_t;

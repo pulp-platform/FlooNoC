@@ -318,8 +318,8 @@ class Routing(BaseModel):
 
         match (self.use_id_table, self.route_algo):
             case (False, RouteAlgo.XY):
-                string += sv_param_decl("XAddrOffset", self.addr_offset_bits)
-                string += sv_param_decl("YAddrOffset", self.addr_offset_bits + self.num_x_bits)
+                string += sv_param_decl("XYAddrOffsetX", self.addr_offset_bits)
+                string += sv_param_decl("XYAddrOffsetY", self.addr_offset_bits + self.num_x_bits)
             case (False, RouteAlgo.ID):
                 string += sv_param_decl("AddrOffset", self.addr_offset_bits)
             case _:
