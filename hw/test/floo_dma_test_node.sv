@@ -13,7 +13,6 @@
 module floo_dma_test_node  #(
   parameter time         TA                   = 1ns,
   parameter time         TT                   = 9ns,
-  parameter time         TCK                  = 10ns,
   parameter int unsigned BufferDepth          = 16,
   parameter int unsigned NumAxInFlight        = 16,
   parameter int unsigned DataWidth            = 32,

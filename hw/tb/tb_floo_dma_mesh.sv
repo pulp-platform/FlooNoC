@@ -256,7 +256,6 @@ module tb_floo_dma_mesh;
       floo_dma_test_node #(
         .TA             ( ApplTime              ),
         .TT             ( TestTime              ),
-        .TCK            ( CyclTime              ),
         .DataWidth      ( AxiNarrowInDataWidth  ),
         .AddrWidth      ( AxiNarrowInAddrWidth  ),
         .UserWidth      ( AxiNarrowInUserWidth  ),
@@ -283,7 +282,6 @@ module tb_floo_dma_mesh;
       floo_dma_test_node #(
         .TA             ( ApplTime            ),
         .TT             ( TestTime            ),
-        .TCK            ( CyclTime            ),
         .DataWidth      ( AxiWideInDataWidth  ),
         .AddrWidth      ( AxiWideInAddrWidth  ),
         .UserWidth      ( AxiWideInUserWidth  ),
