@@ -98,10 +98,12 @@ package floo_narrow_wide_pkg;
   /////////////////////////
 
   localparam route_algo_e RouteAlgo = XYRouting;
+  localparam bit UseIdTable = 1'b0;
   localparam int unsigned NumXBits = 3;
   localparam int unsigned NumYBits = 3;
   localparam int unsigned XYAddrOffsetX = 16;
   localparam int unsigned XYAddrOffsetY = 19;
+  localparam int unsigned IdAddrOffset = 0;
 
 
   typedef logic [3:0] rob_idx_t;
@@ -125,6 +127,15 @@ package floo_narrow_wide_pkg;
   } hdr_t;
 
 
+
+  /////////////////////
+  //   Address Map   //
+  /////////////////////
+
+  typedef logic addr_map_rule_t;
+  localparam int unsigned AddrMapNumIDs = 0;
+  localparam int unsigned AddrMapNumRules = 0;
+  localparam addr_map_rule_t AddrMap = '0;
 
   ////////////////////////
   //   Flits Typedefs   //

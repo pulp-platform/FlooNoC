@@ -6,26 +6,23 @@
 floo_narrow_wide_chimney  #(
 % if ni.sbr_narrow_port is None:
   .EnNarrowSbrPort(1'b0),
+% else:
+  .EnNarrowSbrPort(1'b1),
 % endif
 % if ni.mgr_narrow_port is None:
   .EnNarrowMgrPort(1'b0),
+% else:
+  .EnNarrowMgrPort(1'b1),
 % endif
 % if ni.sbr_wide_port is None:
   .EnWideSbrPort(1'b0),
+% else:
+  .EnWideSbrPort(1'b1),
 % endif
 % if ni.mgr_wide_port is None:
-  .EnWideMgrPort(1'b0),
-% endif
-  .RouteAlgo(${ni.routing.route_algo.value}),
-% if ni.routing.use_id_table:
-  .id_t(id_t),
-  .id_rule_t(${noc.name}_table_rule_t),
-  .NumIDs(${noc.routing.num_endpoints}),
-  .NumRules(${len(ni.routing.table)})
-% elif ni.routing.route_algo.value == 'XYRouting':
-  .XYAddrOffsetX(${ni.routing.addr_offset_bits}),
-  .XYAddrOffsetY(${ni.routing.addr_offset_bits + ni.routing.num_x_bits}),
-  .id_t(xy_id_t)
+  .EnWideMgrPort(1'b0)
+% else:
+  .EnWideMgrPort(1'b1)
 % endif
 ) ${ni.name} (
   .clk_i,
@@ -59,11 +56,6 @@ floo_narrow_wide_chimney  #(
 % else:
   .axi_wide_out_req_o (    ),
   .axi_wide_out_rsp_i ( '0 ),
-% endif
-% if ni.routing.use_id_table:
-  .id_map_i         ( ${noc.name}_table             ),
-% else:
-  .id_map_i         ( '0                          ),
 % endif
 % if ni.routing.route_algo.value == 'XYRouting':
   .id_i             ( ${actual_xy_id.render()}    ),

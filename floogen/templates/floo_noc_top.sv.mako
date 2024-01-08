@@ -17,14 +17,6 @@ module ${noc.name}_floo_noc
   ${noc.render_ports()}
 );
 
-% if noc.routing.use_id_table:
-  % if noc.routing.route_algo.value == "IdTable":
-  ${noc.routing.table.render(name=noc.name, aw=48)}
-  % elif noc.routing.route_algo.value == "XYRouting":
-  ${noc.routing.table.render(name=noc.name, aw=48, id_offset=noc.routing.id_offset)}
-  % endif
-% endif
-
 ${noc.render_links()}
 ${noc.render_nis()}
 ${noc.render_routers()}

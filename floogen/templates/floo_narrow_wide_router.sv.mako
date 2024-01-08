@@ -1,4 +1,7 @@
-${router.routing.table.render(name=router.name)}
+<% def camelcase(s):
+  return ''.join(x.capitalize() or '_' for x in s.split('_'))
+%>\
+${router.routing.table.render(name=router.name + "_table")}
 
 ${router.incoming[0].req_type} [${len(router.incoming)-1}:0] ${router.name}_req_in;
 ${router.incoming[0].rsp_type} [${len(router.incoming)-1}:0] ${router.name}_rsp_out;
@@ -46,7 +49,7 @@ floo_narrow_wide_router #(
   .rst_ni,
   .test_enable_i,
   .id_i ('0),
-  .id_route_map_i (${f"{router.name}_table"}),
+  .id_route_map_i (${camelcase(router.name + "_table")}),
   .floo_req_i (${router.name}_req_in),
   .floo_rsp_o (${router.name}_rsp_out),
   .floo_req_o (${router.name}_req_out),
