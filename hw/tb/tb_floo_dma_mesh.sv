@@ -177,7 +177,7 @@ module tb_floo_dma_mesh;
     end
     else if (i == East) begin : gen_east_hbm_chimneys
       for (genvar j = 0; j < NumChimneys; j++) begin : gen_hbm_chimney_xy_id
-        assign xy_id_hbm[j] = '{x: NumX, y: j+1};
+        assign xy_id_hbm[j] = '{x: NumX+1, y: j+1};
       end
       assign req_hbm_in  = req_hor_pos[NumX];
       assign rsp_hbm_in  = rsp_hor_pos[NumX];
