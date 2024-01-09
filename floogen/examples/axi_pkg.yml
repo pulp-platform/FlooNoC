@@ -8,9 +8,9 @@ description: "flit configuration for narrow-only AXI4 interfaces"
 routing:
   route_algo: "XY"
   use_id_table: false
-  addr_offset_bits: 12
-  num_x_bits: 2
-  num_y_bits: 2
+  addr_offset_bits: 16
+  num_x_bits: 3
+  num_y_bits: 3
 
 protocols:
   - name: "axi"

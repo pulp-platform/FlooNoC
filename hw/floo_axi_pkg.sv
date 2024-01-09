@@ -61,16 +61,16 @@ package floo_axi_pkg;
 
   localparam route_algo_e RouteAlgo = XYRouting;
   localparam bit UseIdTable = 1'b0;
-  localparam int unsigned NumXBits = 2;
-  localparam int unsigned NumYBits = 2;
-  localparam int unsigned XYAddrOffsetX = 12;
-  localparam int unsigned XYAddrOffsetY = 14;
+  localparam int unsigned NumXBits = 3;
+  localparam int unsigned NumYBits = 3;
+  localparam int unsigned XYAddrOffsetX = 16;
+  localparam int unsigned XYAddrOffsetY = 19;
   localparam int unsigned IdAddrOffset = 0;
 
 
   typedef logic [3:0] rob_idx_t;
-  typedef logic [1:0] x_bits_t;
-  typedef logic [1:0] y_bits_t;
+  typedef logic [2:0] x_bits_t;
+  typedef logic [2:0] y_bits_t;
   typedef struct packed {
     x_bits_t x;
     y_bits_t y;

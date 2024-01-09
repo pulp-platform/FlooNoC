@@ -82,7 +82,7 @@ module tb_floo_rob;
   ////////////////////
 
   id_t [NumDirections-1:0] xy_id;
-  assign xy_id[Eject] = '{x: 2'd1, y: 2'd1};
+  assign xy_id[Eject] = '{x: 3'd1, y: 3'd1};
 
   typedef struct packed {
     int unsigned             idx;
@@ -196,13 +196,13 @@ module tb_floo_rob;
   for (genvar i = North; i <= West; i++) begin : gen_slaves
 
     if (i == North) begin : gen_north
-      assign xy_id[i] = '{x: 2'd1, y: 2'd2};
+      assign xy_id[i] = '{x: 3'd1, y: 3'd2};
     end else if (i == South) begin : gen_south
-      assign xy_id[i] = '{x: 2'd1, y: 2'd0};
+      assign xy_id[i] = '{x: 3'd1, y: 3'd0};
     end else if (i == East) begin : gen_east
-      assign xy_id[i] = '{x: 2'd2, y: 2'd1};
+      assign xy_id[i] = '{x: 3'd2, y: 3'd1};
     end else if (i == West) begin : gen_west
-      assign xy_id[i] = '{x: 2'd0, y: 2'd1};
+      assign xy_id[i] = '{x: 3'd0, y: 3'd1};
     end
 
     floo_axi_chimney #(
