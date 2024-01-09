@@ -14,7 +14,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ### Changed
 
--
 - the exported include folder of the `floo` package is moved to `hw/include`.
 - The `LICENSE` file was updated to reflect that the project uses the `Solderpad Hardware License Version 2.1` for all `hw` files and the `Apache License 2.0` for software related files.
 - The directory was restructured to accomodate the new `floogen` framework. The `src` was renamed to `hw`, which contains only SystemVerilog code. Test modules and testbenches were also moved to `hw/test` and `hw/tb` respectively. The same holds true for wave files, which are now located in `hw/tb/wave`.
