@@ -21,7 +21,7 @@ This repository provides modules for the FlooNoC, a Network-on-Chip (NoC) which 
 [Design Principles](#-design-principles) •
 [Getting started](#-getting-started) •
 [List of IPs](#-list-of-ips) •
-[Generation](#-generation) •
+[Generation](#%EF%B8%8F-generation) •
 [License](#-license)
 
 </div>
