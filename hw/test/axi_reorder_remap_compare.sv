@@ -51,7 +51,7 @@ always_ff @(posedge clk_i) begin : send_ax
   if (mon_mst_req_i.w_valid && mon_mst_rsp_i.w_ready) begin
     if (aw_w_queue_sent.size() == 0) $error("No AW for W");
     w_queue[aw_w_queue_sent[0].id].push_back(mon_mst_req_i.w);
-    if (mon_mst_req_i.w.last) aw_w_queue_sent.pop_front();
+    if (mon_mst_req_i.w.last) void'(aw_w_queue_sent.pop_front());
   end
   if (mon_mst_req_i.ar_valid && mon_mst_rsp_i.ar_ready) begin
     ar_queue_sent[mon_mst_req_i.ar.id].push_back(mon_mst_req_i.ar);
@@ -83,7 +83,7 @@ always_ff @(posedge clk_i) begin : recv_ax
         end
         aw_w_queue_recv.push_back(aw_queue_sent[i][0]);
         // Remove from sent queue
-        aw_queue_sent[i].pop_front();
+        void'(aw_queue_sent[i].pop_front());
         match = 1;
         break;
       end
@@ -101,7 +101,7 @@ always_ff @(posedge clk_i) begin : recv_ax
     slv_w = mon_slv_req_i.w;
     if (mst_w !== slv_w) $error("W does not match");
     // Check if last
-    if (mon_slv_req_i.w.last) aw_w_queue_recv.pop_front();
+    if (mon_slv_req_i.w.last) void'(aw_w_queue_recv.pop_front());
   end
   if (mon_slv_req_i.ar_valid && mon_slv_rsp_i.ar_ready) begin
     automatic ar_chan_t mst_ar, slv_ar;
@@ -118,7 +118,7 @@ always_ff @(posedge clk_i) begin : recv_ax
         // If so, remap ID and push to recv queue
         ar_queue_recv[mon_slv_req_i.ar.id].push_back(ar_queue_sent[i][0]);
         // Remove from sent queue
-        ar_queue_sent[i].pop_front();
+        void'(ar_queue_sent[i].pop_front());
         match = 1;
         break;
       end
@@ -136,7 +136,7 @@ always_ff @(posedge clk_i) begin : send_rsp
     // Enqueue B in queue of original ID
     b_queue[aw_queue_recv[mon_slv_rsp_i.b.id][0].id].push_back(mon_slv_rsp_i.b);
     // Finish AW if last (always the case for B)
-    aw_queue_recv[mon_slv_rsp_i.b.id].pop_front();
+    void'(aw_queue_recv[mon_slv_rsp_i.b.id].pop_front());
   end
   if (mon_slv_rsp_i.r_valid && mon_slv_req_i.r_ready) begin
     // Check if AR
@@ -144,7 +144,7 @@ always_ff @(posedge clk_i) begin : send_rsp
     // Enqueue R in queue of original ID
     r_queue[ar_queue_recv[mon_slv_rsp_i.r.id][0].id].push_back(mon_slv_rsp_i.r);
     // Finish AR
-    if (mon_slv_rsp_i.r.last) ar_queue_recv[mon_slv_rsp_i.r.id].pop_front();
+    if (mon_slv_rsp_i.r.last) void'(ar_queue_recv[mon_slv_rsp_i.r.id].pop_front());
   end
 end
 // verilog_lint: waive-stop always-ff-non-blocking
