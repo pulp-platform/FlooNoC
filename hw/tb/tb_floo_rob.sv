@@ -21,9 +21,6 @@ module tb_floo_rob;
   localparam int unsigned NumReads = 1000;
   localparam int unsigned NumWrites = 1000;
 
-  localparam int unsigned NumX = 4;
-  localparam int unsigned NumY = 4;
-
   localparam int unsigned ReorderBufferSize = 64;
   localparam int unsigned MaxTxns = 32;
   localparam int unsigned MaxTxnsPerId = 32;
@@ -84,9 +81,7 @@ module tb_floo_rob;
   //  Local Master  //
   ////////////////////
 
-  `FLOO_NOC_TYPEDEF_XY_ID_T(xy_id_t, NumX, NumY)
-
-  xy_id_t [NumDirections-1:0] xy_id;
+  id_t [NumDirections-1:0] xy_id;
   assign xy_id[Eject] = '{x: 2'd1, y: 2'd1};
 
   typedef struct packed {
@@ -110,9 +105,9 @@ module tb_floo_rob;
     .AxiIdOutWidth  ( AxiInIdWidth        ),
     .AxiUserWidth   ( AxiInUserWidth      ),
     .mst_req_t      ( axi_in_req_t        ),
-    .mst_rsp_t      ( axi_in_rsp_t       ),
+    .mst_rsp_t      ( axi_in_rsp_t        ),
     .slv_req_t      ( axi_out_req_t       ),
-    .slv_rsp_t      ( axi_out_rsp_t      ),
+    .slv_rsp_t      ( axi_out_rsp_t       ),
     .ApplTime       ( ApplTime            ),
     .TestTime       ( TestTime            ),
     .AxiMaxBurstLen ( 4                   ),
@@ -158,7 +153,7 @@ module tb_floo_rob;
     .flit_t           ( floo_req_generic_flit_t ),
     .ChannelFifoDepth ( 4                       ),
     .RouteAlgo        ( XYRouting               ),
-    .id_t             ( xy_id_t                 )
+    .id_t             ( id_t                    )
   ) i_floo_req_router (
     .clk_i          ( clk                   ),
     .rst_ni         ( rst_n                 ),
@@ -180,7 +175,7 @@ module tb_floo_rob;
     .flit_t           ( floo_rsp_generic_flit_t ),
     .ChannelFifoDepth ( 4                       ),
     .RouteAlgo        ( XYRouting               ),
-    .id_t             ( xy_id_t                 )
+    .id_t             ( id_t                    )
   ) i_floo_rsp_router (
     .clk_i          ( clk                   ),
     .rst_ni         ( rst_n                 ),
