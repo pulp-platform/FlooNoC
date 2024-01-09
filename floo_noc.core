@@ -2,7 +2,7 @@ CAPI=2:
 # Created by bender from the available manifest file.
 
 
-name: '::floo_noc:'
+name: pulp-platform.org::floo_noc:0.3.0
 filesets:
   files_rtl:
     file_type: systemVerilogSource
@@ -32,12 +32,11 @@ filesets:
     - pulp-platform.org::common_cells:1.32.0
     - pulp-platform.org::common_verification:0.2.3
     - pulp-platform.org::axi:0.39.1
-    - ::idma:0.5.1
+    - pulp-platform.org::idma:0.5.1
   test:
     file_type: systemVerilogSource
     files:
     - hw/test/floo_test_pkg.sv
-    - hw/test/axi_channel_compare.sv
     - hw/test/floo_axi_test_node.sv
     - hw/test/floo_axi_rand_slave.sv
     - hw/test/floo_dma_test_node.sv
@@ -54,15 +53,15 @@ filesets:
     - hw/tb/tb_floo_dma_mesh.sv
     - hw/test/include/axi_print_txns.svh:
         is_include_file: true
-        include_path: hw/test/include
+        include_path: hw/test
     - hw/test/include/tb_tasks.svh:
         is_include_file: true
-        include_path: hw/test/include
+        include_path: hw/test
     depend:
     - pulp-platform.org::common_cells:1.32.0
     - pulp-platform.org::common_verification:0.2.3
     - pulp-platform.org::axi:0.39.1
-    - ::idma:0.5.1
+    - pulp-platform.org::idma:0.5.1
   spyglass_or_synthesis:
     file_type: systemVerilogSource
     files:
@@ -76,7 +75,7 @@ filesets:
     - pulp-platform.org::common_cells:1.32.0
     - pulp-platform.org::common_verification:0.2.3
     - pulp-platform.org::axi:0.39.1
-    - ::idma:0.5.1
+    - pulp-platform.org::idma:0.5.1
 targets:
   default:
     filesets:
