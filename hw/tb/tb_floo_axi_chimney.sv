@@ -214,11 +214,13 @@ module tb_floo_axi_chimney;
     .rsp_t      ( axi_in_rsp_t ),
     .AxiIdWidth ( AxiInIdWidth  )
   ) i_axi_bw_monitor (
-    .clk_i        ( clk             ),
-    .en_i         ( rst_n           ),
-    .end_of_sim_i ( &end_of_sim     ),
-    .req_i        ( node_man_req[0] ),
-    .rsp_i        ( node_man_rsp[0] )
+    .clk_i          ( clk             ),
+    .en_i           ( rst_n           ),
+    .end_of_sim_i   ( &end_of_sim     ),
+    .req_i          ( node_man_req[0] ),
+    .rsp_i          ( node_man_rsp[0] ),
+    .ar_in_flight_o (                 ),
+    .aw_in_flight_o (                 )
   );
 
   initial begin
