@@ -144,7 +144,20 @@ This repository includes the following NoC IPs:
 
 ## 🛠️ Generation
 
-FlooNoC comes with a generation framework called `floogen`. It allows to create complex network configurations with a simple configuration file. For instance, the following example shows the configuration for a simple mesh topology with 4x4 routers and 4x4 chimneys with XY-Routing.
+FlooNoC comes with a generation framework called `floogen`. It allows to create complex network configurations with a simple configuration file.
+
+### Capabilities
+
+`floogen` has a graph-based internal representation of the network configuration. This allows to easily add new features and capabilities to the generation framework. The following list shows the a couple of the current capabilities of `floogen`:
+
+- **Validation**: The configuration is validated before the generation to ensure that the configuration is valid. For instance, the configuration is checked for invalid user input, overlapping address ranges
+- **Routing**: XY-Routing and ID-Table routing are supported. `floogen` automatically generates the routing tables for the routers, as well as the address map for the network interfaces.
+- **Package Generation**: `floogen` automatically generates a SystemVerilog package with all the needed types and constants for the network configuration.
+- **Top Module Generation**: `floogen` automatically generates a top module that contains all router and network interfaces. The interfaces of the top module are AXI4 interfaces for all the enpdoints specified in the configuration.
+
+### Example
+
+The following example shows the configuration for a simple mesh topology with 4x4 routers and 4x4 chimneys with XY-Routing.
 
 ```yaml
   name: example_system
@@ -196,15 +209,6 @@ FlooNoC comes with a generation framework called `floogen`. It allows to create 
       - [0, 3]
       bidirectional: true
 ```
-
-### Capabilities
-
-`floogen` has a graph-based internal representation of the network configuration. This allows to easily add new features and capabilities to the generation framework. The following list shows the a couple of the current capabilities of `floogen`:
-
-- **Validation**: The configuration is validated before the generation to ensure that the configuration is valid. For instance, the configuration is checked for invalid user input, overlapping address ranges
-- **Routing**: XY-Routing and ID-Table routing are supported. `floogen` automatically generates the routing tables for the routers, as well as the address map for the network interfaces.
-- **Package Generation**: `floogen` automatically generates a SystemVerilog package with all the needed types and constants for the network configuration.
-- **Top Module Generation**: `floogen` automatically generates a top module that contains all router and network interfaces. The interfaces of the top module are AXI4 interfaces for all the enpdoints specified in the configuration.
 
 ### Usage
 
