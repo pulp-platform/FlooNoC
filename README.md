@@ -128,6 +128,7 @@ This repository includes the following NoC IPs:
 | [floo_cdc](hw/floo_cdc.sv) | A Clock-Domain-Crossing (CDC) module implemented with a gray-counter based FIFO. |  |
 | [floo_wormhole_arbiter](hw/floo_wormhole_arbiter.sv) | A wormhole arbiter |  |
 | [floo_vc_arbiter](hw/floo_vc_arbiter.sv) | A virtual channel arbiter |  |
+| [floo_route_comp](hw/floo_route_comp.sv) | A helper module to compute the packet destination |  |
 | [floo_rob](hw/floo_rob.sv) | A table-based Reorder Buffer |  |
 | [floo_simple_rob](hw/floo_simple_rob.sv) | A simplistic low-complexity Reorder Buffer |  |
 | [floo_rob_wrapper](hw/floo_simple_rob.sv) | A wrapper of all available types of RoBs including RoB-less version |  |
