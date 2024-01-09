@@ -9,7 +9,7 @@
 <img src="docs/img/pulp_logo_icon.svg" alt="Logo" width="100" align="right">
 </a>
 
-This repository provides modules for the FlooNoC, a Network-on-Chip (NoC) which is part of the [PULP (Parallel Ultra-Low Power) Platform](https://pulp-platform.org/). The repository includes Network Interface IPs (named chimneys), Routers and further NoC components to build a complete NoC. FlooNoC mainly supports [AXI4+ATOPs](https://github.com/pulp-platform/axi/tree/master), but can be easily extended to other On-Chip protocols. Arbitrary topologies are supported with several routing algorithms. FlooNoC is designed to be scalable and modular, and can be easily extended with new components. <br><br>
+This repository provides modules for the FlooNoC, a Network-on-Chip (NoC) which is part of the [PULP (Parallel Ultra-Low Power) Platform](https://pulp-platform.org/). The repository includes Network Interface IPs (named chimneys), Routers and further NoC components to build a complete NoC. FlooNoC mainly supports [AXI4+ATOPs](https://github.com/pulp-platform/axi/tree/master), but can be easily extended to other On-Chip protocols. Arbitrary topologies are supported with several routing algorithms. FlooNoC is designed to be scalable and modular, and can be easily extended with new components. Additionally, FlooNoC provides a generation framework for creating customized NoC configurations.
 
 <div align="center">
 
@@ -21,7 +21,7 @@ This repository provides modules for the FlooNoC, a Network-on-Chip (NoC) which 
 [Design Principles](#-design-principles) •
 [Getting started](#-getting-started) •
 [List of IPs](#-list-of-ips) •
-[Configuration](#-configuration) •
+[Generation](#-generation) •
 [License](#-license)
 
 </div>
@@ -142,39 +142,84 @@ This repository includes the following NoC IPs:
 | [floo_dma_test_node](hw/test/floo_dma_test_node.sv) | An endpoint node with a DMA master port and a Simulation Memory Slave port |  |
 | [floo_hbm_model](hw/test/floo_hbm_model.sv) | A very simple model of the HBM memory controller with configurable delay |  |
 
-## 🎛️ Configuration
+## 🛠️ Generation
 
-The data structs for the flits and the links are auto-generated and can be configured in `util/*cfg.hjson`. The size of the links is automatically determined to fit the largest message going over the link into a single flit, in order to avoid any serialization.
+FlooNoC comes with a generation framework called `floogen`. It allows to create complex network configurations with a simple configuration file. For instance, the following example shows the configuration for a simple mesh topology with 4x4 routers and 4x4 chimneys with XY-Routing.
 
-The AXI channels(s) needs to be configured in `util/*cfg.hjson`. The following example shows the configuration for a single AXI channel with 64-bit data width, 32-bit address width, 3-bit ID width, and 1-bit user width (beware that ID width can be different for input and output channels).
+```yaml
+  name: example_system
+  description: "Example of a configuration file"
 
-```
-  axi_channels: [
-    {name: 'axi', direction: 'input', params: {dw: 64, aw: 32, iw: 3, uw: 1 }}
-  ]
-```
-Multiple physical links can be declared and the mapping of the AXI channels to the physical link can be configured in `util/*cfg.json`. The following example shows the configuration for two physical channels, one for requests and one for responses. The mapping of the AXI channels to the physical link is done by specifying the AXI channels in the `map` field.
+  routing:
+    route_algo: "XY"
+    use_id_table: true
 
-```
-  channel_mapping: {
-    req: {axi: ['aw', 'w', 'ar']}
-    rsp: {axi: ['b', 'r']}
-  }
+  protocols:
+    - name: "example_axi"
+      type: "AXI4"
+      direction: "manager"
+      data_width: 64
+      addr_width: 32
+      id_width: 3
+      user_width: 1
+    - name: "example_axi"
+      type: "AXI4"
+      direction: "subordinate"
+      data_width: 64
+      addr_width: 32
+      id_width: 3
+      user_width: 1
+
+  endpoints:
+    - name: "cluster"
+      array: [4, 4]
+      addr_range:
+        base: 0x1000_0000
+        size: 0x0004_0000
+      mgr_port_protocol:
+        - "example_axi"
+      sbr_port_protocol:
+        - "example_axi"
+
+  routers:
+    - name: "router"
+      array: [4, 4]
+
+  connections:
+    - src: "cluster"
+      dst: "router"
+      src_range:
+      - [0, 3]
+      - [0, 3]
+      dst_range:
+      - [0, 3]
+      - [0, 3]
+      bidirectional: true
 ```
 
-FlooNoC does not send any header and tail flits to avoid serilization overhead. Instead additional needed routing information is sent in parallel and needs to be specified in the `routing` field. Examples for the different routing algorithms can be found in `util/*cfg.hjson`. The following example shows the configuration for a XY routing algorithm with 3-bit X and Y coordinates, 36-bit address offset, and 8-bit RoB index.
+### Capabilities
 
-```
-  routing: {
-    route_algo: XYRouting
-    num_x_bits: 3
-    num_y_bits: 3
-    addr_offset_bits: 36
-    rob_idx_bits: 8
-  }
-```
-Finally, the package source files can be generated with:
+`floogen` has a graph-based internal representation of the network configuration. This allows to easily add new features and capabilities to the generation framework. The following list shows the a couple of the current capabilities of `floogen`:
+
+- **Validation**: The configuration is validated before the generation to ensure that the configuration is valid. For instance, the configuration is checked for invalid user input, overlapping address ranges
+- **Routing**: XY-Routing and ID-Table routing are supported. `floogen` automatically generates the routing tables for the routers, as well as the address map for the network interfaces.
+- **Package Generation**: `floogen` automatically generates a SystemVerilog package with all the needed types and constants for the network configuration.
+- **Top Module Generation**: `floogen` automatically generates a top module that contains all router and network interfaces. The interfaces of the top module are AXI4 interfaces for all the enpdoints specified in the configuration.
+
+### Usage
+
+To install `floogen` run the following command:
 
 ```sh
-make sources
+pip install .
 ```
+
+which allows you to use `floogen` with the following command:
+
+```sh
+floogen -c <config_file> -o <output_dir>
+```
+
+### Configuration
+
+The example configuration above shows the basic structure of a configuration file. A more detailed description of the configuration file can be found in the [documentation](docs/floogen.md).
