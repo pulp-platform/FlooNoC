@@ -9,20 +9,20 @@
 <img src="docs/img/pulp_logo_icon.svg" alt="Logo" width="100" align="right">
 </a>
 
-This repository provides modules for the FlooNoC, a Network-on-Chip (NoC) which is part of the [PULP (Parallel Ultra-Low Power) Platform](https://pulp-platform.org/). The repository includes Network Interface IPs (named chimneys), Routers and further NoC components to build a complete NoC. FlooNoC mainly supports [AXI4+ATOPs](https://github.com/pulp-platform/axi/tree/master), but can be easily extended to other On-Chip protocols. Arbitrary topologies are supported with several routing algorithms. FlooNoC is designed to be scalable and modular, and can be easily extended with new components. <br><br>
+This repository provides modules for the FlooNoC, a Network-on-Chip (NoC) which is part of the [PULP (Parallel Ultra-Low Power) Platform](https://pulp-platform.org/). The repository includes Network Interface IPs (named chimneys), Routers and further NoC components to build a complete NoC. FlooNoC mainly supports [AXI4+ATOPs](https://github.com/pulp-platform/axi/tree/master), but can be easily extended to other On-Chip protocols. Arbitrary topologies are supported with several routing algorithms. FlooNoC is designed to be scalable and modular, and can be easily extended with new components. Additionally, FlooNoC provides a generation framework for creating customized NoC configurations.
 
 <div align="center">
 
 [![CI status](https://github.com/pulp-platform/FlooNoC/actions/workflows/gitlab-ci.yml/badge.svg?branch=main)](https://github.com/pulp-platform/FlooNoC/actions/workflows/gitlab-ci.yml?query=branch%3Amain)
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/pulp-platform/FlooNoC?color=blue&label=current&sort=semver)](CHANGELOG.md)
+![License](https://img.shields.io/badge/license-Apache--2.0-green)
 ![License](https://img.shields.io/badge/license-SHL--0.51-green)
 
 [Design Principles](#-design-principles) •
 [Getting started](#-getting-started) •
 [List of IPs](#-list-of-ips) •
-[Configuration](#-configuration) •
+[Generation](#%EF%B8%8F-generation) •
 [License](#-license)
-
 </div>
 
 ## 💡 Design Principles
@@ -42,7 +42,7 @@ The names of the IPs are inspired by the [Harry Potter](https://en.wikipedia.org
 > In use for centuries, the Floo Network, while somewhat uncomfortable, has many advantages. Firstly, unlike broomsticks, the Network can be used without fear of breaking the International Statute of Secrecy. Secondly, unlike Apparition, there is little to no danger of serious injury. Thirdly, it can be used to transport children, the elderly and the infirm."
 
 ## 🔐 License
-Unless specified otherwise in the respective file headers, all code checked into this repository is made available under a permissive license. All hardware sources and tool scripts are licensed under the Solderpad Hardware License 0.51 (see [`LICENSE`](LICENSE))
+All code checked into this repository is made available under a permissive license. All software sources are licensed under the Apache License 2.0 (see [`LICENSE-APACHE`](LICENSE-APACHE)), and all hardware sources in the `hw` folder are licensed under the Solderpad Hardware License 0.51 (see [`LICENSE-SHL`](LICENSE-SHL)).
 
 ## 📚 Publication
 If you use FlooNoC in your research, please cite the following paper:
@@ -68,7 +68,7 @@ If you use FlooNoC in your research, please cite the following paper:
 
 ### Pre-requisites
 
-FlooNoC uses [bender](https://github.com/pulp-platform/bender) to manage its dependencies and to automatically generate compilation scripts. Further `Python >= 3.8` is required with the packages listed in `requirements.txt`.
+FlooNoC uses [bender](https://github.com/pulp-platform/bender) to manage its dependencies and to automatically generate compilation scripts. Further `Python >= 3.10` is required to install the generation framework.
 
 ### Simulation
 Currently, we do not provide any open-source simulation setup. Internally, the FlooNoC was tested using QuestaSim, which can be launched with the following command:
@@ -104,76 +104,126 @@ This repository includes the following NoC IPs:
 ### Routers
 | Name | Description | Doc |
 | --- | --- | --- |
-| [floo_router](src/floo_router.sv) | A simple router with configurable number of ports, physical and virtual channels, and input/output buffers |  |
-| [floo_narrow_wide_router](src/floo_narrow_wide_router.sv) | Wrapper of a multi-link router for narrow and wide links |  |
+| [floo_router](hw/floo_router.sv) | A simple router with configurable number of ports, physical and virtual channels, and input/output buffers |  |
+| [floo_narrow_wide_router](hw/floo_narrow_wide_router.sv) | Wrapper of a multi-link router for narrow and wide links |  |
 
 ### Network Interfaces
 | Name | Description | Doc |
 | --- | --- | --- |
-| [floo_axi_chimney](src/floo_axi_chimney.sv) | A bidirectional network interface for connecting AXI4 Buses to the NoC |  |
-| [floo_narrow_wide_chimney](src/floo_narrow_wide_chimney.sv) | A bidirectional network interface for connecting narrow & wide AXI Buses to the multi-link NoC |  |
+| [floo_axi_chimney](hw/floo_axi_chimney.sv) | A bidirectional network interface for connecting AXI4 Buses to the NoC |  |
+| [floo_narrow_wide_chimney](hw/floo_narrow_wide_chimney.sv) | A bidirectional network interface for connecting narrow & wide AXI Buses to the multi-link NoC |  |
 
 ### Topologies
 | Name | Description | Doc |
 | --- | --- | --- |
-| [floo_mesh](src/floo_mesh.sv) | A mesh topology with configurable number of rows and columns |  |
-| [floo_mesh_ruche](src/floo_mesh_ruche.sv) | A mesh topology with ruche channels and a configurable number of rows and columns |  |
+| [floo_mesh](hw/floo_mesh.sv) | A mesh topology with configurable number of rows and columns |  |
+| [floo_mesh_ruche](hw/floo_mesh_ruche.sv) | A mesh topology with ruche channels and a configurable number of rows and columns |  |
 
 ### Common IPs
 | Name | Description | Doc |
 | --- | --- | --- |
-| [floo_fifo](src/floo_fifo.sv) | A FIFO buffer with configurable depth |  |
-| [floo_cut](src/floo_cut.sv) | Elastic buffers for cuting timing paths |  |
-| [floo_cdc](src/floo_cdc.sv) | A Clock-Domain-Crossing (CDC) module implemented with a gray-counter based FIFO. |  |
-| [floo_wormhole_arbiter](src/floo_wormhole_arbiter.sv) | A wormhole arbiter |  |
-| [floo_vc_arbiter](src/floo_vc_arbiter.sv) | A virtual channel arbiter |  |
-| [floo_rob](src/floo_rob.sv) | A table-based Reorder Buffer |  |
-| [floo_simple_rob](src/floo_simple_rob.sv) | A simplistic low-complexity Reorder Buffer |  |
-| [floo_rob_wrapper](src/floo_simple_rob.sv) | A wrapper of all available types of RoBs including RoB-less version |  |
+| [floo_fifo](hw/floo_fifo.sv) | A FIFO buffer with configurable depth |  |
+| [floo_cut](hw/floo_cut.sv) | Elastic buffers for cuting timing paths |  |
+| [floo_cdc](hw/floo_cdc.sv) | A Clock-Domain-Crossing (CDC) module implemented with a gray-counter based FIFO. |  |
+| [floo_wormhole_arbiter](hw/floo_wormhole_arbiter.sv) | A wormhole arbiter |  |
+| [floo_vc_arbiter](hw/floo_vc_arbiter.sv) | A virtual channel arbiter |  |
+| [floo_route_comp](hw/floo_route_comp.sv) | A helper module to compute the packet destination |  |
+| [floo_rob](hw/floo_rob.sv) | A table-based Reorder Buffer |  |
+| [floo_simple_rob](hw/floo_simple_rob.sv) | A simplistic low-complexity Reorder Buffer |  |
+| [floo_rob_wrapper](hw/floo_simple_rob.sv) | A wrapper of all available types of RoBs including RoB-less version |  |
 
 ### Verification IPs
 | Name | Description | Doc |
 | --- | --- | --- |
-| [axi_bw_monitor](test/axi_bw_monitor.sv) | A AXI4 Bus Monitor for measuring the throughput and latency of the AXI4 Bus |  |
-| [axi_reorder_compare](test/axi_reorder_compare.sv) | A AXI4 Bus Monitor for verifying the order of AXI transactions with the same ID |  |
-| [floo_axi_rand_slave](test/floo_axi_rand_slave.sv) | A AXI4 Bus Multi-Slave generating random AXI respones with configurable response time |  |
-| [floo_axi_test_node](test/floo_axi_test_node.sv) | A AXI4 Bus Master-Slave Node for generating random AXI transactions |  |
-| [floo_dma_test_node](test/floo_dma_test_node.sv) | An endpoint node with a DMA master port and a Simulation Memory Slave port |  |
-| [floo_hbm_model](test/floo_hbm_model.sv) | A very simple model of the HBM memory controller with configurable delay |  |
+| [axi_bw_monitor](hw/test/axi_bw_monitor.sv) | A AXI4 Bus Monitor for measuring the throughput and latency of the AXI4 Bus |  |
+| [axi_reorder_compare](hw/test/axi_reorder_compare.sv) | A AXI4 Bus Monitor for verifying the order of AXI transactions with the same ID |  |
+| [floo_axi_rand_slave](hw/test/floo_axi_rand_slave.sv) | A AXI4 Bus Multi-Slave generating random AXI respones with configurable response time |  |
+| [floo_axi_test_node](hw/test/floo_axi_test_node.sv) | A AXI4 Bus Master-Slave Node for generating random AXI transactions |  |
+| [floo_dma_test_node](hw/test/floo_dma_test_node.sv) | An endpoint node with a DMA master port and a Simulation Memory Slave port |  |
+| [floo_hbm_model](hw/test/floo_hbm_model.sv) | A very simple model of the HBM memory controller with configurable delay |  |
 
-## 🎛️ Configuration
+## 🛠️ Generation
 
-The data structs for the flits and the links are auto-generated and can be configured in `util/*cfg.hjson`. The size of the links is automatically determined to fit the largest message going over the link into a single flit, in order to avoid any serialization.
+FlooNoC comes with a generation framework called `floogen`. It allows to create complex network configurations with a simple configuration file.
 
-The AXI channels(s) needs to be configured in `util/*cfg.hjson`. The following example shows the configuration for a single AXI channel with 64-bit data width, 32-bit address width, 3-bit ID width, and 1-bit user width (beware that ID width can be different for input and output channels).
+### Capabilities
 
+`floogen` has a graph-based internal representation of the network configuration. This allows to easily add new features and capabilities to the generation framework. The following list shows the a couple of the current capabilities of `floogen`:
+
+- **Validation**: The configuration is validated before the generation to ensure that the configuration is valid. For instance, the configuration is checked for invalid user input, overlapping address ranges
+- **Routing**: XY-Routing and ID-Table routing are supported. `floogen` automatically generates the routing tables for the routers, as well as the address map for the network interfaces.
+- **Package Generation**: `floogen` automatically generates a SystemVerilog package with all the needed types and constants for the network configuration.
+- **Top Module Generation**: `floogen` automatically generates a top module that contains all router and network interfaces. The interfaces of the top module are AXI4 interfaces for all the enpdoints specified in the configuration.
+
+### Example
+
+The following example shows the configuration for a simple mesh topology with 4x4 routers and 4x4 chimneys with XY-Routing.
+
+```yaml
+  name: example_system
+  description: "Example of a configuration file"
+
+  routing:
+    route_algo: "XY"
+    use_id_table: true
+
+  protocols:
+    - name: "example_axi"
+      type: "AXI4"
+      direction: "manager"
+      data_width: 64
+      addr_width: 32
+      id_width: 3
+      user_width: 1
+    - name: "example_axi"
+      type: "AXI4"
+      direction: "subordinate"
+      data_width: 64
+      addr_width: 32
+      id_width: 3
+      user_width: 1
+
+  endpoints:
+    - name: "cluster"
+      array: [4, 4]
+      addr_range:
+        base: 0x1000_0000
+        size: 0x0004_0000
+      mgr_port_protocol:
+        - "example_axi"
+      sbr_port_protocol:
+        - "example_axi"
+
+  routers:
+    - name: "router"
+      array: [4, 4]
+
+  connections:
+    - src: "cluster"
+      dst: "router"
+      src_range:
+      - [0, 3]
+      - [0, 3]
+      dst_range:
+      - [0, 3]
+      - [0, 3]
+      bidirectional: true
 ```
-  axi_channels: [
-    {name: 'axi', direction: 'input', params: {dw: 64, aw: 32, iw: 3, uw: 1 }}
-  ]
-```
-Multiple physical links can be declared and the mapping of the AXI channels to the physical link can be configured in `util/*cfg.json`. The following example shows the configuration for two physical channels, one for requests and one for responses. The mapping of the AXI channels to the physical link is done by specifying the AXI channels in the `map` field.
 
-```
-  channel_mapping: {
-    req: {axi: ['aw', 'w', 'ar']}
-    rsp: {axi: ['b', 'r']}
-  }
-```
+### Usage
 
-FlooNoC does not send any header and tail flits to avoid serilization overhead. Instead additional needed routing information is sent in parallel and needs to be specified in the `routing` field. Examples for the different routing algorithms can be found in `util/*cfg.hjson`. The following example shows the configuration for a XY routing algorithm with 3-bit X and Y coordinates, 36-bit address offset, and 8-bit RoB index.
-
-```
-  routing: {
-    route_algo: XYRouting
-    num_x_bits: 3
-    num_y_bits: 3
-    addr_offset_bits: 36
-    rob_idx_bits: 8
-  }
-```
-Finally, the package source files can be generated with:
+To install `floogen` run the following command:
 
 ```sh
-make sources
+pip install .
 ```
+
+which allows you to use `floogen` with the following command:
+
+```sh
+floogen -c <config_file> -o <output_dir>
+```
+
+### Configuration
+
+The example configuration above shows the basic structure of a configuration file. A more detailed description of the configuration file can be found in the [documentation](docs/floogen.md).

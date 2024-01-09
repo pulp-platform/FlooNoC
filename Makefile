@@ -21,7 +21,7 @@ clean: clean-sim clean-spyglass clean-jobs clean-sources
 ############
 
 BENDER     	?= bender
-VSIM       	?= questa-2022.3 vsim
+VSIM       	?= questa-2023.4 vsim
 SPYGLASS   	?= sg_shell
 VERIBLE_FMT	?= verible-verilog-format
 
@@ -42,7 +42,6 @@ VSIM_TB_DUT ?= floo_noc_router_test
 VSIM_FLAGS += -64
 VSIM_FLAGS += -t 1ps
 VSIM_FLAGS += -sv_seed 0
-VSIM_FLAGS += -voptargs=+acc
 
 # Set the job name and directory if specified
 ifdef JOB_NAME
@@ -58,30 +57,38 @@ endif
 
 # Automatically open the waveform if a wave.tcl file is present
 VSIM_FLAGS_GUI += -do "log -r /*"
-ifneq ("$(wildcard test/$(VSIM_TB_DUT).wave.tcl)","")
-    VSIM_FLAGS_GUI += -do "source test/$(VSIM_TB_DUT).wave.tcl"
+VSIM_FLAGS_GUI += -voptargs=+acc
+ifneq ("$(wildcard hw/tb/wave/$(VSIM_TB_DUT).wave.tcl)","")
+    VSIM_FLAGS_GUI += -do "source hw/tb/wave/$(VSIM_TB_DUT).wave.tcl"
 endif
 
-###################
-# Flit Generation #
-###################
+###########
+# FlooGen #
+###########
 
-FLIT_OUT_DIR ?= src
-FLIT_CFG_DIR ?= util
-FLIT_CFG ?= $(shell find $(FLIT_CFG_DIR) -name "*.hjson")
-FLIT_SRC ?= $(patsubst $(FLIT_CFG_DIR)/%_cfg.hjson,$(FLIT_OUT_DIR)/floo_%_pkg.sv,$(FLIT_CFG))
-FLIT_GEN ?= util/flit_gen.py
-FLIT_TPL ?= util/floo_flit_pkg.sv.mako
+FLOOGEN ?= floogen
 
-.PHONY: sources clean-sources
+FLOOGEN_OUT_DIR ?= $(MKFILE_DIR)generated
+FLOOGEN_PKG_OUT_DIR ?= $(MKFILE_DIR)hw
+FLOOGEN_CFG_DIR ?= $(MKFILE_DIR)floogen/examples
+FLOOGEN_TPL_DIR ?= $(MKFILE_DIR)floogen/templates
 
-sources: $(FLIT_SRC)
-$(FLIT_OUT_DIR)/floo_%_pkg.sv: $(FLIT_CFG_DIR)/%_cfg.hjson $(FLIT_GEN) $(FLIT_TPL)
-	$(FLIT_GEN) -c $< > $@
-	$(VERIBLE_FMT) --inplace --try_wrap_long_lines $@
+FLOOGEN_PKG_CFG ?= $(shell find $(FLOOGEN_CFG_DIR) -name "*_pkg.yml")
+FLOOGEN_PKG_SRC ?= $(patsubst $(FLOOGEN_CFG_DIR)/%_pkg.yml,$(FLOOGEN_PKG_OUT_DIR)/floo_%_pkg.sv,$(FLOOGEN_PKG_CFG))
+FLOOGEN_TPL ?= $(shell find $(FLOOGEN_TPL_DIR) -name "*.mako")
+
+.PHONY: install-floogen sources clean-sources
+
+install-floogen:
+	@which $(FLOOGEN) > /dev/null || (echo "Installing floogen..." && pip install .)
+
+sources: install-floogen $(FLOOGEN_PKG_SRC)
+$(FLOOGEN_PKG_OUT_DIR)/floo_%_pkg.sv: $(FLOOGEN_CFG_DIR)/%_pkg.yml $(FLOOGEN_TPL)
+	$(FLOOGEN) -c $< --only-pkg --pkg-outdir $(FLOOGEN_PKG_OUT_DIR) $(FLOOGEN_ARGS)
 
 clean-sources:
-	rm -f $(FLIT_SRC)
+	rm -rf $(FLOOGEN_OUT_DIR)
+	rm -f $(FLOOGEN_PKG_SRC)
 
 ######################
 # Traffic Generation #
@@ -91,12 +98,12 @@ TRAFFIC_GEN ?= util/gen_jobs.py
 TRAFFIC_TB ?= dma_mesh
 TRAFFIC_TYPE ?= random
 TRAFFIC_RW ?= read
-TRAFFIC_OUTDIR ?= test/jobs
+TRAFFIC_OUTDIR ?= hw/test/jobs
 
 .PHONY: jobs clean-jobs
 jobs: $(TRAFFIC_GEN)
 	mkdir -p $(TRAFFIC_OUTDIR)
-	$(TRAFFIC_GEN) --out_dir $(TRAFFIC_OUTDIR) --tb $(TRAFFIC_TB) --type $(TRAFFIC_TYPE) --rw $(TRAFFIC_RW)
+	$(TRAFFIC_GEN) --out_dir $(TRAFFIC_OUTDIR) --tb $(TRAFFIC_TB) --traffic_type $(TRAFFIC_TYPE) --rw $(TRAFFIC_RW)
 
 clean-jobs:
 	rm -rf $(TRAFFIC_OUTDIR)
