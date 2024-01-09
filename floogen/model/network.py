@@ -5,6 +5,7 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
+import pathlib
 from typing import Optional, List, ClassVar
 from importlib import resources
 
@@ -582,10 +583,11 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             name=axi_type, noc=self, link=link_type
         )
 
-    def visualize(self, savefig=True, filename: str = "network.png"):
+    def visualize(self, savefig=True, filename: pathlib.Path = "network.png"):
         """Visualize the network graph."""
-        filtered_nodes = self.get_nodes(filters=[self.is_router_node, self.is_ni_node])
-        filtered_graph = self.graph.subgraph(filtered_nodes)
+        ni_nodes = [name for name, _ in self.graph.get_ni_nodes(with_name=True)]
+        router_nodes = [name for name, _ in self.graph.get_rt_nodes(with_name=True)]
+        filtered_graph = self.graph.subgraph(ni_nodes + router_nodes)
         nx.draw(filtered_graph, with_labels=True)
         if savefig:
             plt.savefig(filename)

@@ -56,14 +56,18 @@ def main():
     args = parse_args()
     network = parse_config(Network, args.config)
 
-    # Visualize the network graph
-    if args.visualize:
-        network.visualize()
 
     if not args.only_pkg:
         network.create_network()
         network.compile_network()
         network.gen_routing_info()
+
+        # Visualize the network graph
+        if args.visualize:
+            if args.outdir:
+                network.visualize(filename=args.outdir / (network.name + ".pdf"))
+            else:
+                network.visualize(savefig=False)
 
         # Generate the network description
         rendered_top = network.render_network()
