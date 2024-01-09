@@ -120,7 +120,6 @@ module tb_floo_axi_chimney;
   floo_axi_chimney #(
     .AtopSupport        ( AtopSupport         ),
     .MaxAtomicTxns      ( 4                   ),
-    .RouteAlgo          ( floo_pkg::IdTable   ),
     .MaxTxns            ( MaxTxns             ),
     .MaxTxnsPerId       ( MaxTxnsPerId        ),
     .ReorderBufferSize  ( ReorderBufferSize   )
@@ -134,7 +133,6 @@ module tb_floo_axi_chimney;
     .axi_out_req_o  ( node_sub_req[0]   ),
     .axi_out_rsp_i  ( node_sub_rsp[0]   ),
     .id_i           ( '0                ),
-    .id_map_i       ( '0                ),
     .floo_req_o     ( chimney_req[0]    ),
     .floo_rsp_o     ( chimney_rsp[0]    ),
     .floo_req_i     ( chimney_req[1]    ),
@@ -144,7 +142,6 @@ module tb_floo_axi_chimney;
   floo_axi_chimney #(
     .AtopSupport        ( AtopSupport         ),
     .MaxAtomicTxns      ( 4                   ),
-    .RouteAlgo          ( floo_pkg::IdTable   ),
     .MaxTxns            ( MaxTxns             ),
     .MaxTxnsPerId       ( MaxTxnsPerId        ),
     .ReorderBufferSize  ( ReorderBufferSize   )
@@ -158,7 +155,6 @@ module tb_floo_axi_chimney;
     .axi_out_req_o  ( node_sub_req[1]       ),
     .axi_out_rsp_i  ( node_sub_rsp[1]       ),
     .id_i           ( '0                    ),
-    .id_map_i       ( '0                    ),
     .floo_req_o     ( chimney_req[1]        ),
     .floo_rsp_o     ( chimney_rsp[1]        ),
     .floo_req_i     ( chimney_req[0]        ),

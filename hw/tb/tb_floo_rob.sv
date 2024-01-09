@@ -132,13 +132,9 @@ module tb_floo_rob;
   );
 
   floo_axi_chimney #(
-    .XYAddrOffsetX      ( 32'd16              ),
-    .XYAddrOffsetY      ( 32'd20              ),
-    .RouteAlgo          ( XYRouting           ),
     .MaxTxns            ( MaxTxns             ),
     .MaxTxnsPerId       ( MaxTxnsPerId        ),
-    .ReorderBufferSize  ( ReorderBufferSize   ),
-    .id_t               ( xy_id_t             )
+    .ReorderBufferSize  ( ReorderBufferSize   )
   ) i_floo_axi_chimney (
     .clk_i          ( clk                       ),
     .rst_ni         ( rst_n                     ),
@@ -215,13 +211,9 @@ module tb_floo_rob;
     end
 
     floo_axi_chimney #(
-      .XYAddrOffsetX      ( 32'd16              ),
-      .XYAddrOffsetY      ( 32'd20              ),
-      .RouteAlgo          ( XYRouting           ),
       .MaxTxns            ( MaxTxns             ),
       .MaxTxnsPerId       ( MaxTxnsPerId        ),
-      .ReorderBufferSize  ( ReorderBufferSize   ),
-      .id_t               ( xy_id_t             )
+      .ReorderBufferSize  ( ReorderBufferSize   )
     ) i_floo_axi_chimney (
       .clk_i          ( clk                   ),
       .rst_ni         ( rst_n                 ),

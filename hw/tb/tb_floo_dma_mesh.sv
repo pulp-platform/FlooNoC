@@ -199,23 +199,18 @@ module tb_floo_dma_mesh;
     end
 
     floo_narrow_wide_chimney #(
-      .RouteAlgo                ( RouteAlgo               ),
-      .XYAddrOffsetX            ( XYAddrOffsetX           ),
-      .XYAddrOffsetY            ( XYAddrOffsetY           ),
       .NarrowMaxTxns            ( NarrowMaxTxns           ),
       .WideMaxTxns              ( WideMaxTxns             ),
       .NarrowReorderBufferSize  ( NarrowReorderBufferSize ),
       .WideReorderBufferSize    ( WideReorderBufferSize   ),
       .CutAx                    ( CutAx                   ),
-      .CutRsp                   ( CutRsp                  ),
-      .id_t                     ( id_t                    )
+      .CutRsp                   ( CutRsp                  )
     ) i_hbm_chimney [NumChimneys-1:0] (
       .clk_i                ( clk               ),
       .rst_ni               ( rst_n             ),
       .sram_cfg_i           ( '0                ),
       .test_enable_i        ( 1'b0              ),
       .id_i                 ( xy_id_hbm         ),
-      .id_map_i             ( '0                ),
       .axi_narrow_in_req_i  ( '0                ),
       .axi_narrow_in_rsp_o  (                   ),
       .axi_narrow_out_req_o ( narrow_hbm_req[i] ),
@@ -336,23 +331,18 @@ module tb_floo_dma_mesh;
         );
 
       floo_narrow_wide_chimney #(
-        .RouteAlgo                ( RouteAlgo               ),
-        .XYAddrOffsetX            ( XYAddrOffsetX           ),
-        .XYAddrOffsetY            ( XYAddrOffsetY           ),
         .NarrowMaxTxns            ( NarrowMaxTxns           ),
         .WideMaxTxns              ( WideMaxTxns             ),
         .NarrowReorderBufferSize  ( NarrowReorderBufferSize ),
         .WideReorderBufferSize    ( WideReorderBufferSize   ),
         .CutAx                    ( CutAx                   ),
-        .CutRsp                   ( CutRsp                  ),
-        .id_t                     ( id_t                    )
+        .CutRsp                   ( CutRsp                  )
       ) i_dma_chimney (
         .clk_i                ( clk                           ),
         .rst_ni               ( rst_n                         ),
         .sram_cfg_i           ( '0                            ),
         .test_enable_i        ( 1'b0                          ),
         .id_i                 ( current_id                    ),
-        .id_map_i             ( '0                            ),
         .axi_narrow_in_req_i  ( narrow_man_req[x][y]          ),
         .axi_narrow_in_rsp_o  ( narrow_man_rsp[x][y]          ),
         .axi_narrow_out_req_o ( narrow_sub_req[x][y]          ),
