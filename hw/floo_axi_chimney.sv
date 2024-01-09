@@ -356,13 +356,13 @@ module floo_axi_chimney
     .IdAddrOffset   ( IdAddrOffset    ),
     .NumIDs         ( AddrMapNumIDs   ),
     .NumRules       ( AddrMapNumRules ),
+    .AddrMap        ( AddrMap         ),
     .id_t           ( id_t            ),
     .id_rule_t      ( addr_map_rule_t ),
     .addr_t         ( axi_in_addr_t   )
   ) i_floo_narrow_route_comp [NumAddrDecoders-1:0] (
     .clk_i,
     .rst_ni,
-    .id_map_i   ( AddrMap         ),
     .addr_i     ( addr_to_decode  ),
     .id_o       ( decoded_id      )
   );

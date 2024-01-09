@@ -29,13 +29,14 @@ module floo_route_comp
   parameter type id_t = logic,
   /// The type of the rules
   parameter type id_rule_t = logic,
+  /// The address map to use for the address decoder
+  parameter id_rule_t [NumRules-1:0] AddrMap = '{default: '0},
   /// The address type
   parameter type addr_t = logic
 ) (
   input  logic  clk_i,
   input  logic  rst_ni,
   input  addr_t addr_i,
-  input  id_rule_t [NumRules-1:0] id_map_i,
   output id_t   id_o
 );
 
@@ -51,7 +52,7 @@ module floo_route_comp
       .idx_t      ( id_t      )
     ) i_addr_dst_decode (
       .addr_i           ( addr_i    ),
-      .addr_map_i       ( id_map_i  ),
+      .addr_map_i       ( AddrMap   ),
       .idx_o            ( id_o      ),
       .dec_valid_o      (           ),
       .dec_error_o      ( dec_error ),
