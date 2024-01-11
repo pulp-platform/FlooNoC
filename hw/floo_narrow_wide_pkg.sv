@@ -133,7 +133,6 @@ package floo_narrow_wide_pkg;
   /////////////////////
 
   typedef logic addr_map_rule_t;
-  localparam int unsigned AddrMapNumIDs = 0;
   localparam int unsigned AddrMapNumRules = 0;
   localparam addr_map_rule_t AddrMap = '0;
 
