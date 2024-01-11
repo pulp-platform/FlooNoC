@@ -48,10 +48,10 @@ module floo_route_comp
 
     addr_decode #(
       .NoIndices  ( MaxPossibleId ),
-      .NoRules    ( NumRules  ),
-      .addr_t     ( addr_t    ),
-      .rule_t     ( id_rule_t ),
-      .idx_t      ( id_t      )
+      .NoRules    ( NumRules      ),
+      .addr_t     ( addr_t        ),
+      .rule_t     ( id_rule_t     ),
+      .idx_t      ( id_t          )
     ) i_addr_dst_decode (
       .addr_i           ( addr_i    ),
       .addr_map_i       ( AddrMap   ),
