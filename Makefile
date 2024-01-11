@@ -77,14 +77,17 @@ FLOOGEN_PKG_CFG ?= $(shell find $(FLOOGEN_CFG_DIR) -name "*_pkg.yml")
 FLOOGEN_PKG_SRC ?= $(patsubst $(FLOOGEN_CFG_DIR)/%_pkg.yml,$(FLOOGEN_PKG_OUT_DIR)/floo_%_pkg.sv,$(FLOOGEN_PKG_CFG))
 FLOOGEN_TPL ?= $(shell find $(FLOOGEN_TPL_DIR) -name "*.mako")
 
-.PHONY: install-floogen sources clean-sources
+.PHONY: install-floogen pkg-sources sources clean-sources
 
 install-floogen:
 	@which $(FLOOGEN) > /dev/null || (echo "Installing floogen..." && pip install .)
 
-sources: install-floogen $(FLOOGEN_PKG_SRC)
+pkg-sources: install-floogen $(FLOOGEN_PKG_SRC)
 $(FLOOGEN_PKG_OUT_DIR)/floo_%_pkg.sv: $(FLOOGEN_CFG_DIR)/%_pkg.yml $(FLOOGEN_TPL)
 	$(FLOOGEN) -c $< --only-pkg --pkg-outdir $(FLOOGEN_PKG_OUT_DIR) $(FLOOGEN_ARGS)
+
+sources: install-floogen
+	$(FLOOGEN) -c $(FLOOGEN_CFG) -o $(FLOOGEN_OUT_DIR) --pkg-outdir $(FLOOGEN_PKG_OUT_DIR) $(FLOOGEN_ARGS)
 
 clean-sources:
 	rm -rf $(FLOOGEN_OUT_DIR)
@@ -114,7 +117,7 @@ clean-jobs:
 
 .PHONY: compile-sim run-sim run-sim-batch clean-sim
 
-scripts/compile_vsim.tcl: Bender.yml sources
+scripts/compile_vsim.tcl: Bender.yml pkg-sources
 	mkdir -p scripts
 	echo 'set ROOT [file normalize [file dirname [info script]]/..]' > scripts/compile_vsim.tcl
 	$(BENDER) script vsim --vlog-arg="$(VLOG_ARGS)" $(BENDER_FLAGS) | grep -v "set ROOT" >> scripts/compile_vsim.tcl
