@@ -41,7 +41,6 @@ package floo_${name}_pkg;
   ${noc.routing.table.render(name="addr_map", aw=noc.routing.addr_width, id_offset=noc.routing.id_offset)}
 % else:
   typedef logic addr_map_rule_t;
-  localparam int unsigned AddrMapNumIDs = 0;
   localparam int unsigned AddrMapNumRules = 0;
   localparam addr_map_rule_t AddrMap = '0;
 % endif
