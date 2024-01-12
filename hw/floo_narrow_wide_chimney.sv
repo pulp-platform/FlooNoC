@@ -96,10 +96,10 @@ module floo_narrow_wide_chimney
 
   floo_req_chan_t [WideAr:NarrowAw] floo_req_arb_in;
   floo_rsp_chan_t [WideB:NarrowB] floo_rsp_arb_in;
-  floo_wide_chan_t [WideR:WideW] floo_wide_arb_in;
+  floo_wide_chan_t [WideR:WideAw] floo_wide_arb_in;
   logic  [WideAr:NarrowAw] floo_req_arb_req_in, floo_req_arb_gnt_out;
   logic  [WideB:NarrowB]   floo_rsp_arb_req_in, floo_rsp_arb_gnt_out;
-  logic  [WideR:WideW]     floo_wide_arb_req_in, floo_wide_arb_gnt_out;
+  logic  [WideR:WideAw]    floo_wide_arb_req_in, floo_wide_arb_gnt_out;
 
   // flit queue
   floo_req_chan_t floo_req_in;
@@ -790,12 +790,12 @@ module floo_narrow_wide_chimney
   assign floo_req_arb_req_in[NarrowW]   = (narrow_aw_w_sel_q == SelW) &&
                                           axi_narrow_req_in.w_valid;
   assign floo_req_arb_req_in[NarrowAr]  = narrow_ar_rob_valid_out;
-  assign floo_req_arb_req_in[WideAw]    = (wide_aw_w_sel_q == SelAw) &&
-                                          wide_aw_rob_valid_out;
   assign floo_req_arb_req_in[WideAr]    = wide_ar_rob_valid_out;
   assign floo_rsp_arb_req_in[NarrowB]   = axi_narrow_meta_buf_rsp_out.b_valid;
   assign floo_rsp_arb_req_in[NarrowR]   = axi_narrow_meta_buf_rsp_out.r_valid;
   assign floo_rsp_arb_req_in[WideB]     = axi_wide_meta_buf_rsp_out.b_valid;
+  assign floo_wide_arb_req_in[WideAw]   = (wide_aw_w_sel_q == SelAw) &&
+                                          wide_aw_rob_valid_out;
   assign floo_wide_arb_req_in[WideW]    = (wide_aw_w_sel_q == SelW) &&
                                           axi_wide_req_in.w_valid;
   assign floo_wide_arb_req_in[WideR]    = axi_wide_meta_buf_rsp_out.r_valid;
@@ -805,7 +805,7 @@ module floo_narrow_wide_chimney
   assign axi_narrow_rsp_out.w_ready = floo_req_arb_gnt_out[NarrowW] &&
                                       (narrow_aw_w_sel_q == SelW);
   assign narrow_ar_rob_ready_in     = floo_req_arb_gnt_out[NarrowAr];
-  assign wide_aw_rob_ready_in       = floo_req_arb_gnt_out[WideAw] &&
+  assign wide_aw_rob_ready_in       = floo_wide_arb_gnt_out[WideAw] &&
                                       (wide_aw_w_sel_q == SelAw);
   assign axi_wide_rsp_out.w_ready   = floo_wide_arb_gnt_out[WideW] &&
                                       (wide_aw_w_sel_q == SelW);
@@ -814,11 +814,11 @@ module floo_narrow_wide_chimney
   assign floo_req_arb_in[NarrowAw].narrow_aw  = floo_narrow_aw;
   assign floo_req_arb_in[NarrowW].narrow_w    = floo_narrow_w;
   assign floo_req_arb_in[NarrowAr].narrow_ar  = floo_narrow_ar;
-  assign floo_req_arb_in[WideAw].wide_aw      = floo_wide_aw;
   assign floo_req_arb_in[WideAr].wide_ar      = floo_wide_ar;
   assign floo_rsp_arb_in[NarrowB].narrow_b    = floo_narrow_b;
   assign floo_rsp_arb_in[NarrowR].narrow_r    = floo_narrow_r;
   assign floo_rsp_arb_in[WideB].wide_b        = floo_wide_b;
+  assign floo_wide_arb_in[WideAw].wide_aw     = floo_wide_aw;
   assign floo_wide_arb_in[WideW].wide_w       = floo_wide_w;
   assign floo_wide_arb_in[WideR].wide_r       = floo_wide_r;
 
@@ -827,7 +827,7 @@ module floo_narrow_wide_chimney
   ///////////////////////
 
   floo_wormhole_arbiter #(
-    .NumRoutes  ( 5                       ),
+    .NumRoutes  ( 4                       ),
     .flit_t     ( floo_req_generic_flit_t )
   ) i_req_wormhole_arbiter (
     .clk_i,
@@ -855,7 +855,7 @@ module floo_narrow_wide_chimney
   );
 
   floo_wormhole_arbiter #(
-    .NumRoutes  ( 2                         ),
+    .NumRoutes  ( 3                         ),
     .flit_t     ( floo_wide_generic_flit_t  )
   ) i_wide_wormhole_arbiter (
     .clk_i,
@@ -888,7 +888,7 @@ module floo_narrow_wide_chimney
   assign axi_narrow_unpack_ar = floo_req_in.narrow_ar.ar;
   assign axi_narrow_unpack_r  = floo_rsp_in.narrow_r.r;
   assign axi_narrow_unpack_b  = floo_rsp_in.narrow_b.b;
-  assign axi_wide_unpack_aw   = floo_req_in.wide_aw.aw;
+  assign axi_wide_unpack_aw   = floo_wide_in.wide_aw.aw;
   assign axi_wide_unpack_w    = floo_wide_in.wide_w.w;
   assign axi_wide_unpack_ar   = floo_req_in.wide_ar.ar;
   assign axi_wide_unpack_r    = floo_wide_in.wide_r.r;
