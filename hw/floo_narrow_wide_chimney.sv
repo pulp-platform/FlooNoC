@@ -651,7 +651,7 @@ module floo_narrow_wide_chimney
     floo_narrow_aw.hdr.rob_idx  = rob_idx_t'(narrow_aw_rob_idx_out);
     floo_narrow_aw.hdr.dst_id   = dst_id[NarrowAw];
     floo_narrow_aw.hdr.src_id   = id_i;
-    floo_narrow_aw.hdr.last     = 1'b1;
+    floo_narrow_aw.hdr.last     = 1'b0;  // AW and W need to be sent together
     floo_narrow_aw.hdr.axi_ch   = NarrowAw;
     floo_narrow_aw.hdr.atop     = axi_narrow_aw_queue.atop != axi_pkg::ATOP_NONE;
     floo_narrow_aw.aw           = axi_narrow_aw_queue;
@@ -699,7 +699,7 @@ module floo_narrow_wide_chimney
     floo_narrow_r.hdr.dst_id  = narrow_ar_out_data_out.src_id;
     floo_narrow_r.hdr.src_id  = id_i;
     floo_narrow_r.hdr.axi_ch  = NarrowR;
-    floo_narrow_r.hdr.last    = axi_narrow_out_rsp_i.r.last;
+    floo_narrow_r.hdr.last    = 1'b1; // There is no reason to do wormhole routing for R bursts
     floo_narrow_r.hdr.atop    = narrow_ar_out_data_out.atop;
     floo_narrow_r.r           = axi_narrow_meta_buf_rsp_out.r;
     floo_narrow_r.r.id        = narrow_ar_out_data_out.id;
@@ -711,7 +711,7 @@ module floo_narrow_wide_chimney
     floo_wide_aw.hdr.rob_idx  = rob_idx_t'(wide_aw_rob_idx_out);
     floo_wide_aw.hdr.dst_id   = dst_id[WideAw];
     floo_wide_aw.hdr.src_id   = id_i;
-    floo_wide_aw.hdr.last     = 1'b1;
+    floo_wide_aw.hdr.last     = 1'b0;  // AW and W need to be sent together
     floo_wide_aw.hdr.axi_ch   = WideAw;
     floo_wide_aw.aw           = axi_wide_aw_queue;
   end
@@ -757,7 +757,7 @@ module floo_narrow_wide_chimney
     floo_wide_r.hdr.dst_id  = wide_ar_out_data_out.src_id;
     floo_wide_r.hdr.src_id  = id_i;
     floo_wide_r.hdr.axi_ch  = WideR;
-    floo_wide_r.hdr.last    = axi_wide_out_rsp_i.r.last;
+    floo_wide_r.hdr.last    = 1'b1; // There is no reason to do wormhole routing for R bursts
     floo_wide_r.r           = axi_wide_meta_buf_rsp_out.r;
     floo_wide_r.r.id        = wide_ar_out_data_out.id;
   end

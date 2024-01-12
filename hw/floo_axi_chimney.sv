@@ -386,7 +386,7 @@ module floo_axi_chimney
     floo_axi_aw.hdr.rob_idx = aw_rob_idx_out;
     floo_axi_aw.hdr.dst_id  = dst_id[AxiAw];
     floo_axi_aw.hdr.src_id  = id_i;
-    floo_axi_aw.hdr.last    = 1'b1;
+    floo_axi_aw.hdr.last    = 1'b0;
     floo_axi_aw.hdr.axi_ch  = AxiAw;
     floo_axi_aw.hdr.atop    = axi_aw_queue.atop != axi_pkg::ATOP_NONE;
     floo_axi_aw.aw          = axi_aw_queue;
@@ -433,7 +433,7 @@ module floo_axi_chimney
     floo_axi_r.hdr.rob_idx  = ar_out_data_out.rob_idx;
     floo_axi_r.hdr.dst_id   = ar_out_data_out.src_id;
     floo_axi_r.hdr.src_id   = id_i;
-    floo_axi_r.hdr.last     = axi_out_rsp_i.r.last;
+    floo_axi_r.hdr.last     = 1'b1; // There is no reason to do wormhole routing for R bursts
     floo_axi_r.hdr.axi_ch   = AxiR;
     floo_axi_r.hdr.atop     = ar_out_data_out.atop;
     floo_axi_r.r            = axi_meta_buf_rsp_out.r;
