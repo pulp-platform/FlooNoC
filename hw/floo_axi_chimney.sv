@@ -13,10 +13,14 @@ module floo_axi_chimney
   import floo_pkg::*;
   import floo_axi_pkg::*;
 #(
+  /// FlooNoC defines subordinate ports as requests that go out
+  /// of the NoC to AXI subordinates (i.e. memories) that return
+  /// a response, and manager ports as requests that come into the
+  /// NoC from AXI managers (i.e. cores)
+  /// Enable the subordinate port of the AXI4 interface
+  parameter bit EnSbrPort                   = 1'b1,
   /// Enable the manager port of the AXI4 interface
   parameter bit EnMgrPort                   = 1'b1,
-  /// Enable the Subordinate port of the AXI4 interface
-  parameter bit EnSbrPort                   = 1'b1,
   /// Atomic operation support
   parameter bit AtopSupport                 = 1'b1,
   /// Maximum number of oustanding Atomic transactions,
@@ -127,7 +131,7 @@ module floo_axi_chimney
   //  Spill registers  //
   ///////////////////////
 
-  if (EnSbrPort) begin : gen_sbr_port
+  if (EnMgrPort) begin : gen_sbr_port
 
     assign axi_req_in = axi_in_req_i;
     assign axi_in_rsp_o = axi_rsp_out;
@@ -521,9 +525,9 @@ module floo_axi_chimney
   assign axi_valid_in[AxiAw] = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiAw);
   assign axi_valid_in[AxiW]  = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiW);
   assign axi_valid_in[AxiAr] = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiAr);
-  assign axi_valid_in[AxiB]  = EnSbrPort && floo_rsp_in_valid &&
+  assign axi_valid_in[AxiB]  = EnMgrPort && floo_rsp_in_valid &&
                                (unpack_rsp_generic.hdr.axi_ch == AxiB);
-  assign axi_valid_in[AxiR]  = EnSbrPort && floo_rsp_in_valid &&
+  assign axi_valid_in[AxiR]  = EnMgrPort && floo_rsp_in_valid &&
                                (unpack_rsp_generic.hdr.axi_ch == AxiR);
 
   assign axi_ready_out[AxiAw] = axi_meta_buf_rsp_out.aw_ready;
@@ -583,7 +587,7 @@ module floo_axi_chimney
     atop: unpack_req_generic.hdr.atop
   };
 
-  if (EnMgrPort) begin : gen_mgr_port
+  if (EnSbrPort) begin : gen_mgr_port
     floo_meta_buffer #(
       .MaxTxns        ( MaxTxns       ),
       .AtopSupport    ( AtopSupport   ),
@@ -634,19 +638,19 @@ module floo_axi_chimney
   `ASSERT_INIT(ToSmallIdWidth, 1 + AtopSupport * MaxAtomicTxns <= 2**AxiOutIdWidth)
 
   // If Network Interface has no subordinate port, make sure that `RoBType` is `NoRoB`
-  `ASSERT_INIT(NoSbrPortRobType, EnSbrPort || (RoBType == NoRoB))
+  `ASSERT_INIT(NoMgrPortRobType, EnMgrPort || (RoBType == NoRoB))
 
-  // Network Interface cannot accept any B and R responses if `EnSbrPort` is not set
-  `ASSERT(NoSbrPortBResponse, EnSbrPort || !(floo_rsp_in_valid &&
+  // Network Interface cannot accept any B and R responses if `EnMgrPort` is not set
+  `ASSERT(NoMgrPortBResponse, EnMgrPort || !(floo_rsp_in_valid &&
                                              (unpack_rsp_generic.hdr.axi_ch == AxiB)))
-  `ASSERT(NoSbrPortRResponse, EnSbrPort || !(floo_rsp_in_valid &&
+  `ASSERT(NoMgrPortRResponse, EnMgrPort || !(floo_rsp_in_valid &&
                                              (unpack_rsp_generic.hdr.axi_ch == AxiR)))
-  // Network Interface cannot accept any AW, AR and W requests if `EnMgrPort` is not set
-  `ASSERT(NoMgrPortAwRequest, EnMgrPort || !(floo_req_in_valid &&
+  // Network Interface cannot accept any AW, AR and W requests if `EnSbrPort` is not set
+  `ASSERT(NoSbrPortAwRequest, EnSbrPort || !(floo_req_in_valid &&
                                              (unpack_req_generic.hdr.axi_ch == AxiAw)))
-  `ASSERT(NoMgrPortArRequest, EnMgrPort || !(floo_req_in_valid &&
+  `ASSERT(NoSbrPortArRequest, EnSbrPort || !(floo_req_in_valid &&
                                              (unpack_req_generic.hdr.axi_ch == AxiAr)))
-  `ASSERT(NoMgrPortWRequest,  EnMgrPort || !(floo_req_in_valid &&
+  `ASSERT(NoSbrPortWRequest,  EnSbrPort || !(floo_req_in_valid &&
                                              (unpack_req_generic.hdr.axi_ch == AxiW)))
 
 endmodule
