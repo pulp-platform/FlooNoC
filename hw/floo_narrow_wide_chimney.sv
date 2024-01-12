@@ -826,46 +826,58 @@ module floo_narrow_wide_chimney
   // FLIT ARBITRATION  //
   ///////////////////////
 
-  floo_wormhole_arbiter #(
-    .NumRoutes  ( 4                       ),
-    .flit_t     ( floo_req_generic_flit_t )
+  rr_arb_tree #(
+    .NumIn      ( 4                       ),
+    .AxiVldRdy  ( 1'b1                    ),
+    .DataType   ( floo_req_generic_flit_t )
   ) i_req_wormhole_arbiter (
     .clk_i,
     .rst_ni,
-    .valid_i  ( floo_req_arb_req_in   ),
+    .flush_i  ( 1'b0                  ),
+    .rr_i     ( '0                    ),
+    .req_i    ( floo_req_arb_req_in   ),
+    .gnt_o    ( floo_req_arb_gnt_out  ),
     .data_i   ( floo_req_arb_in       ),
-    .ready_o  ( floo_req_arb_gnt_out  ),
+    .req_o    ( floo_req_o.valid      ),
+    .gnt_i    ( floo_req_i.ready      ),
     .data_o   ( floo_req_o.req        ),
-    .ready_i  ( floo_req_i.ready      ),
-    .valid_o  ( floo_req_o.valid      )
+    .idx_o    (                       )
   );
 
-  floo_wormhole_arbiter #(
-    .NumRoutes  ( 3                       ),
-    .flit_t     ( floo_rsp_generic_flit_t )
+  rr_arb_tree #(
+    .NumIn      ( 3                       ),
+    .AxiVldRdy  ( 1'b1                    ),
+    .DataType   ( floo_rsp_generic_flit_t )
   ) i_rsp_wormhole_arbiter (
     .clk_i,
     .rst_ni,
-    .valid_i  ( floo_rsp_arb_req_in   ),
+    .flush_i  ( 1'b0                  ),
+    .rr_i     ( '0                    ),
+    .req_i    ( floo_rsp_arb_req_in   ),
+    .gnt_o    ( floo_rsp_arb_gnt_out  ),
     .data_i   ( floo_rsp_arb_in       ),
-    .ready_o  ( floo_rsp_arb_gnt_out  ),
+    .req_o    ( floo_rsp_o.valid      ),
+    .gnt_i    ( floo_rsp_i.ready      ),
     .data_o   ( floo_rsp_o.rsp        ),
-    .ready_i  ( floo_rsp_i.ready      ),
-    .valid_o  ( floo_rsp_o.valid      )
+    .idx_o    (                       )
   );
 
-  floo_wormhole_arbiter #(
-    .NumRoutes  ( 3                         ),
-    .flit_t     ( floo_wide_generic_flit_t  )
+  rr_arb_tree #(
+    .NumIn      ( 3                         ),
+    .AxiVldRdy  ( 1'b1                      ),
+    .DataType   ( floo_wide_generic_flit_t  )
   ) i_wide_wormhole_arbiter (
     .clk_i,
     .rst_ni,
-    .valid_i  ( floo_wide_arb_req_in  ),
+    .flush_i  ( 1'b0                  ),
+    .rr_i     ( '0                    ),
+    .req_i    ( floo_wide_arb_req_in  ),
+    .gnt_o    ( floo_wide_arb_gnt_out ),
     .data_i   ( floo_wide_arb_in      ),
-    .ready_o  ( floo_wide_arb_gnt_out ),
+    .req_o    ( floo_wide_o.valid     ),
+    .gnt_i    ( floo_wide_i.ready     ),
     .data_o   ( floo_wide_o.wide      ),
-    .ready_i  ( floo_wide_i.ready     ),
-    .valid_o  ( floo_wide_o.valid     )
+    .idx_o    (                       )
   );
 
   ////////////////////
