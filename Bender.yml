@@ -15,6 +15,10 @@ dependencies:
   axi: { git: "https://github.com/pulp-platform/axi.git", version: 0.39.3 }
   axi_riscv_atomics: { git: "https://github.com/pulp-platform/axi_riscv_atomics.git", version: 0.8.2 }
 
+plugins:
+  build: scripts/build.sh
+  run: scripts/run.sh
+
 export_include_dirs:
   - hw/include
 
