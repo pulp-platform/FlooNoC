@@ -18,11 +18,11 @@ package floo_narrow_wide_pkg;
     NarrowAw = 0,
     NarrowW = 1,
     NarrowAr = 2,
-    WideAw = 3,
-    WideAr = 4,
-    NarrowB = 5,
-    NarrowR = 6,
-    WideB = 7,
+    WideAr = 3,
+    NarrowB = 4,
+    NarrowR = 5,
+    WideB = 6,
+    WideAw = 7,
     WideW = 8,
     WideR = 9,
     NumAxiChannels = 10
@@ -172,7 +172,7 @@ package floo_narrow_wide_pkg;
   typedef struct packed {
     hdr_t hdr;
     axi_wide_in_aw_chan_t aw;
-    logic [0:0] rsvd;
+    logic [490:0] rsvd;
   } floo_wide_aw_flit_t;
 
   typedef struct packed {
@@ -223,7 +223,6 @@ package floo_narrow_wide_pkg;
     floo_narrow_aw_flit_t narrow_aw;
     floo_narrow_w_flit_t narrow_w;
     floo_narrow_ar_flit_t narrow_ar;
-    floo_wide_aw_flit_t wide_aw;
     floo_wide_ar_flit_t wide_ar;
     floo_req_generic_flit_t generic;
   } floo_req_chan_t;
@@ -236,6 +235,7 @@ package floo_narrow_wide_pkg;
   } floo_rsp_chan_t;
 
   typedef union packed {
+    floo_wide_aw_flit_t wide_aw;
     floo_wide_w_flit_t wide_w;
     floo_wide_r_flit_t wide_r;
     floo_wide_generic_flit_t generic;
