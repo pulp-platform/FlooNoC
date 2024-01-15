@@ -34,9 +34,9 @@ for {set i 0} {$i < 2} {incr i} {
     add wave -noupdate -expand -group $group_name -group Unpacker tb_floo_axi_chimney/i_floo_axi_chimney_${i}/axi_unpack_b
     add wave -noupdate -expand -group $group_name -group Unpacker tb_floo_axi_chimney/i_floo_axi_chimney_${i}/axi_unpack_r
 
-    add wave -noupdate -expand -group $group_name -group MetaBuffer tb_floo_axi_chimney/i_floo_axi_chimney_${i}/i_floo_meta_buffer/*
+    add wave -noupdate -expand -group $group_name -group MetaBuffer tb_floo_axi_chimney/i_floo_axi_chimney_${i}/gen_mgr_port/i_floo_meta_buffer/*
     try {
-        add wave -noupdate -expand -group $group_name -group MetaBuffer tb_floo_axi_chimney/i_floo_axi_chimney_${i}/i_floo_meta_buffer/gen_atop_support/*
+        add wave -noupdate -expand -group $group_name -group MetaBuffer tb_floo_axi_chimney/i_floo_axi_chimney_${i}/gen_mgr_port/i_floo_meta_buffer/gen_atop_support/*
     }
 
     if {$normal_rob} {
