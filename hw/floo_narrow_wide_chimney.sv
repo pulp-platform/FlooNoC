@@ -502,7 +502,7 @@ module floo_narrow_wide_chimney
   rob_idx_t narrow_r_rob_rob_idx;
   assign narrow_r_rob_rob_req = floo_rsp_in.narrow_r.hdr.rob_req;
   assign narrow_r_rob_rob_idx = floo_rsp_in.narrow_r.hdr.rob_idx;
-  assign narrow_r_rob_last = floo_rsp_in.narrow_r.hdr.last;
+  assign narrow_r_rob_last = floo_rsp_in.narrow_r.r.last;
 
   floo_rob_wrapper #(
     .RoBType            ( NarrowRoBType           ),
@@ -546,7 +546,7 @@ module floo_narrow_wide_chimney
   rob_idx_t wide_r_rob_rob_idx;
   assign wide_r_rob_rob_req = floo_wide_in.wide_r.hdr.rob_req;
   assign wide_r_rob_rob_idx = floo_wide_in.wide_r.hdr.rob_idx;
-  assign wide_r_rob_last = floo_wide_in.wide_r.hdr.last;
+  assign wide_r_rob_last = floo_wide_in.wide_r.r.last;
 
   floo_rob_wrapper #(
     .RoBType            ( WideRoBType           ),

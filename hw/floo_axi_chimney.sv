@@ -283,7 +283,7 @@ module floo_axi_chimney
     .rsp_i          ( axi_b_rob_in                  ),
     .rsp_rob_req_i  ( floo_rsp_in.axi_b.hdr.rob_req ),
     .rsp_rob_idx_i  ( floo_rsp_in.axi_b.hdr.rob_idx ),
-    .rsp_last_i     ( floo_rsp_in.axi_b.hdr.last    ),
+    .rsp_last_i     ( 1'b1                          ),
     .rsp_valid_o    ( b_rob_valid_out               ),
     .rsp_ready_i    ( b_rob_ready_in                ),
     .rsp_o          ( axi_b_rob_out                 )
@@ -329,7 +329,7 @@ module floo_axi_chimney
     .rsp_i          ( axi_r_rob_in                  ),
     .rsp_rob_req_i  ( floo_rsp_in.axi_r.hdr.rob_req ),
     .rsp_rob_idx_i  ( floo_rsp_in.axi_r.hdr.rob_idx ),
-    .rsp_last_i     ( floo_rsp_in.axi_r.hdr.last    ),
+    .rsp_last_i     ( floo_rsp_in.axi_r.r.last      ),
     .rsp_valid_o    ( r_rob_valid_out               ),
     .rsp_ready_i    ( r_rob_ready_in                ),
     .rsp_o          ( axi_r_rob_out                 )
