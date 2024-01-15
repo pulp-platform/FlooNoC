@@ -916,8 +916,6 @@ module floo_narrow_wide_chimney
                                   (floo_req_unpack_generic.hdr.axi_ch  == NarrowW);
   assign axi_valid_in[NarrowAr] = floo_req_in_valid &&
                                   (floo_req_unpack_generic.hdr.axi_ch == NarrowAr);
-  assign axi_valid_in[WideAw]   = floo_req_in_valid &&
-                                  (floo_req_unpack_generic.hdr.axi_ch == WideAw);
   assign axi_valid_in[WideAr]   = floo_req_in_valid &&
                                   (floo_req_unpack_generic.hdr.axi_ch == WideAr);
   assign axi_valid_in[NarrowB]  = EnNarrowSbrPort && floo_rsp_in_valid &&
@@ -926,6 +924,8 @@ module floo_narrow_wide_chimney
                                   (floo_rsp_unpack_generic.hdr.axi_ch  == NarrowR);
   assign axi_valid_in[WideB]    = EnWideSbrPort && floo_rsp_in_valid &&
                                   (floo_rsp_unpack_generic.hdr.axi_ch  == WideB);
+  assign axi_valid_in[WideAw]   = floo_wide_in_valid &&
+                                  (floo_wide_unpack_generic.hdr.axi_ch == WideAw);
   assign axi_valid_in[WideW]    = floo_wide_in_valid &&
                                   (floo_wide_unpack_generic.hdr.axi_ch  == WideW);
   assign axi_valid_in[WideR]    = EnWideSbrPort && floo_wide_in_valid &&
