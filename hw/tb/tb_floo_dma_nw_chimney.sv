@@ -72,7 +72,6 @@ module tb_floo_dma_nw_chimney;
   floo_dma_test_node #(
     .TA             ( ApplTime              ),
     .TT             ( TestTime              ),
-    .TCK            ( CyclTime              ),
     .DataWidth      ( AxiNarrowInDataWidth  ),
     .AddrWidth      ( AxiNarrowInAddrWidth  ),
     .UserWidth      ( AxiNarrowInUserWidth  ),
@@ -98,7 +97,6 @@ module tb_floo_dma_nw_chimney;
   floo_dma_test_node #(
     .TA             ( ApplTime            ),
     .TT             ( TestTime            ),
-    .TCK            ( CyclTime            ),
     .DataWidth      ( AxiWideInDataWidth  ),
     .AddrWidth      ( AxiWideInAddrWidth  ),
     .UserWidth      ( AxiWideInUserWidth  ),
@@ -156,7 +154,6 @@ module tb_floo_dma_nw_chimney;
   );
 
   floo_narrow_wide_chimney #(
-    .RouteAlgo                ( floo_pkg::IdTable   ),
     .NarrowMaxTxns            ( MaxTxns             ),
     .NarrowMaxTxnsPerId       ( MaxTxnsPerId        ),
     .NarrowReorderBufferSize  ( ReorderBufferSize   ),
@@ -176,7 +173,6 @@ module tb_floo_dma_nw_chimney;
     .axi_wide_in_rsp_o    ( wide_man_rsp[0]     ),
     .axi_wide_out_req_o   ( wide_sub_req[0]     ),
     .axi_wide_out_rsp_i   ( wide_sub_rsp[0]     ),
-    .xy_id_i              ( '0                  ),
     .id_i                 ( '0                  ),
     .floo_req_o           ( chimney_req[0]      ),
     .floo_rsp_o           ( chimney_rsp[0]      ),
@@ -187,52 +183,51 @@ module tb_floo_dma_nw_chimney;
     );
 
   floo_cut #(
-    .NumChannels  ( 2           ),
-    .NumCuts      ( 32'd7       ), // should simulate a hop with 2 routers
-    .flit_t       ( floo_req_t  )
+    .NumChannels  ( 2               ),
+    .NumCuts      ( 32'd7           ), // should simulate a hop with 2 routers
+    .flit_t       ( floo_req_chan_t )
   ) i_floo_req_cut (
     .clk_i    ( clk                                                   ),
     .rst_ni   ( rst_n                                                 ),
     .valid_i  ( {chimney_req[1].valid, chimney_req[0].valid}          ),
     .ready_o  ( {chimney_req_cut[1].ready, chimney_req_cut[0].ready}  ),
-    .data_i   ( {chimney_req[1], chimney_req[0]}                      ),
+    .data_i   ( {chimney_req[1].req, chimney_req[0].req}              ),
     .valid_o  ( {chimney_req_cut[1].valid, chimney_req_cut[0].valid}  ),
     .ready_i  ( {chimney_req[1].ready, chimney_req[0].ready}          ),
-    .data_o   ( {chimney_req_cut[1], chimney_req_cut[0]}              )
+    .data_o   ( {chimney_req_cut[1].req, chimney_req_cut[0].req}      )
   );
 
   floo_cut #(
-    .NumChannels  ( 2           ),
-    .NumCuts      ( 32'd7       ), // should simulate a hop with 2 routers
-    .flit_t       ( floo_rsp_t  )
+    .NumChannels  ( 2               ),
+    .NumCuts      ( 32'd7           ), // should simulate a hop with 2 routers
+    .flit_t       ( floo_rsp_chan_t )
   ) i_floo_rsp_cut (
     .clk_i    ( clk                                                   ),
     .rst_ni   ( rst_n                                                 ),
     .valid_i  ( {chimney_rsp[1].valid, chimney_rsp[0].valid}          ),
     .ready_o  ( {chimney_rsp_cut[1].ready, chimney_rsp_cut[0].ready}  ),
-    .data_i   ( {chimney_rsp[1], chimney_rsp[0]}                      ),
+    .data_i   ( {chimney_rsp[1].rsp, chimney_rsp[0].rsp}              ),
     .valid_o  ( {chimney_rsp_cut[1].valid, chimney_rsp_cut[0].valid}  ),
     .ready_i  ( {chimney_rsp[1].ready, chimney_rsp[0].ready}          ),
-    .data_o   ( {chimney_rsp_cut[1], chimney_rsp_cut[0]}              )
+    .data_o   ( {chimney_rsp_cut[1].rsp, chimney_rsp_cut[0].rsp}      )
   );
 
   floo_cut #(
-    .NumChannels  ( 2           ),
-    .NumCuts      ( 32'd4       ), // should simulate a hop with 2 routers
-    .flit_t       ( floo_wide_t )
+    .NumChannels  ( 2                 ),
+    .NumCuts      ( 32'd4             ), // should simulate a hop with 2 routers
+    .flit_t       ( floo_wide_chan_t  )
   ) i_floo_wide_cut (
     .clk_i    ( clk                                                     ),
     .rst_ni   ( rst_n                                                   ),
     .valid_i  ( {chimney_wide[1].valid, chimney_wide[0].valid}          ),
     .ready_o  ( {chimney_wide_cut[1].ready, chimney_wide_cut[0].ready}  ),
-    .data_i   ( {chimney_wide[1], chimney_wide[0]}                      ),
+    .data_i   ( {chimney_wide[1].wide, chimney_wide[0].wide}            ),
     .valid_o  ( {chimney_wide_cut[1].valid, chimney_wide_cut[0].valid}  ),
     .ready_i  ( {chimney_wide[1].ready, chimney_wide[0].ready}          ),
-    .data_o   ( {chimney_wide_cut[1], chimney_wide_cut[0]}              )
+    .data_o   ( {chimney_wide_cut[1].wide, chimney_wide_cut[0].wide}    )
   );
 
   floo_narrow_wide_chimney #(
-    .RouteAlgo                ( floo_pkg::IdTable   ),
     .NarrowMaxTxns            ( MaxTxns             ),
     .NarrowMaxTxnsPerId       ( MaxTxnsPerId        ),
     .NarrowReorderBufferSize  ( ReorderBufferSize   ),
@@ -252,7 +247,6 @@ module tb_floo_dma_nw_chimney;
     .axi_wide_in_rsp_o    ( wide_man_rsp[1]     ),
     .axi_wide_out_req_o   ( wide_sub_req[1]     ),
     .axi_wide_out_rsp_i   ( wide_sub_rsp[1]     ),
-    .xy_id_i              ( '0                  ),
     .id_i                 ( '0                  ),
     .floo_req_o           ( chimney_req[1]      ),
     .floo_rsp_o           ( chimney_rsp[1]      ),
@@ -299,7 +293,6 @@ module tb_floo_dma_nw_chimney;
   floo_dma_test_node #(
     .TA             ( ApplTime              ),
     .TT             ( TestTime              ),
-    .TCK            ( CyclTime              ),
     .DataWidth      ( AxiNarrowInDataWidth  ),
     .AddrWidth      ( AxiNarrowInAddrWidth  ),
     .UserWidth      ( AxiNarrowInUserWidth  ),
@@ -325,7 +318,6 @@ module tb_floo_dma_nw_chimney;
   floo_dma_test_node #(
     .TA             ( ApplTime            ),
     .TT             ( TestTime            ),
-    .TCK            ( CyclTime            ),
     .DataWidth      ( AxiWideInDataWidth  ),
     .AddrWidth      ( AxiWideInAddrWidth  ),
     .UserWidth      ( AxiWideInUserWidth  ),
@@ -354,12 +346,14 @@ module tb_floo_dma_nw_chimney;
     .AxiIdWidth ( AxiNarrowInIdWidth  ),
     .Name       ( "narrow 0"          )
     ) i_axi_narrow_bw_monitor_0 (
-      .clk_i        ( clk               ),
-      .en_i         ( rst_n             ),
-      .end_of_sim_i ( &end_of_sim       ),
-      .req_i        ( narrow_man_req[0] ),
-      .rsp_i        ( narrow_man_rsp[0] )
-      );
+      .clk_i          ( clk               ),
+      .en_i           ( rst_n             ),
+      .end_of_sim_i   ( &end_of_sim       ),
+      .req_i          ( narrow_man_req[0] ),
+      .rsp_i          ( narrow_man_rsp[0] ),
+      .ar_in_flight_o (                   ),
+      .aw_in_flight_o (                   )
+    );
 
   axi_bw_monitor #(
     .req_t      ( axi_narrow_in_req_t ),
@@ -367,12 +361,14 @@ module tb_floo_dma_nw_chimney;
     .AxiIdWidth ( AxiNarrowInIdWidth  ),
     .Name       ( "narrow 1"          )
   ) i_axi_narrow_bw_monitor_1 (
-    .clk_i        ( clk               ),
-    .en_i         ( rst_n             ),
-    .end_of_sim_i ( &end_of_sim       ),
-    .req_i        ( narrow_man_req[1] ),
-    .rsp_i        ( narrow_man_rsp[1] )
-  );
+    .clk_i          ( clk               ),
+    .en_i           ( rst_n             ),
+    .end_of_sim_i   ( &end_of_sim       ),
+    .req_i          ( narrow_man_req[1] ),
+    .rsp_i          ( narrow_man_rsp[1] ),
+    .ar_in_flight_o (                   ),
+    .aw_in_flight_o (                   )
+    );
 
   axi_bw_monitor #(
     .req_t      ( axi_wide_in_req_t ),
