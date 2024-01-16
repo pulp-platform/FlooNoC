@@ -69,9 +69,10 @@ module floo_axi_chimney
   logic axi_aw_queue_valid_out, axi_aw_queue_ready_in;
   logic axi_ar_queue_valid_out, axi_ar_queue_ready_in;
 
-  floo_req_chan_t [AxiAw:AxiAr] floo_req_arb_in;
+  // AXI req/rsp arbiter
+  floo_req_chan_t [AxiW:AxiAr] floo_req_arb_in;
   floo_rsp_chan_t [AxiB:AxiR] floo_rsp_arb_in;
-  logic  [AxiAw:AxiAr] floo_req_arb_req_in, floo_req_arb_gnt_out;
+  logic  [AxiW:AxiAr] floo_req_arb_req_in, floo_req_arb_gnt_out;
   logic  [AxiB:AxiR] floo_rsp_arb_req_in, floo_rsp_arb_gnt_out;
 
   // flit queue
@@ -448,20 +449,19 @@ module floo_axi_chimney
 
   `FF(aw_w_sel_q, aw_w_sel_d, SelAw)
 
-  assign floo_req_arb_req_in[AxiAw] = (aw_w_sel_q == SelAw) && (aw_rob_valid_out ||
+  assign floo_req_arb_req_in[AxiW]  = (aw_w_sel_q == SelAw) && (aw_rob_valid_out ||
                                         ((axi_aw_queue.atop != axi_pkg::ATOP_NONE) &&
-                                          axi_aw_queue_valid_out));
-  assign floo_req_arb_req_in[AxiW]  = (aw_w_sel_q == SelW) && axi_req_in.w_valid;
+                                          axi_aw_queue_valid_out)) ||
+                                      (aw_w_sel_q == SelW) && axi_req_in.w_valid;
   assign floo_req_arb_req_in[AxiAr] = ar_rob_valid_out;
   assign floo_rsp_arb_req_in[AxiB]  = axi_meta_buf_rsp_out.b_valid;
   assign floo_rsp_arb_req_in[AxiR]  = axi_meta_buf_rsp_out.r_valid;
 
-  assign aw_rob_ready_in       = floo_req_arb_gnt_out[AxiAw] && (aw_w_sel_q == SelAw);
+  assign aw_rob_ready_in       = floo_req_arb_gnt_out[AxiW] && (aw_w_sel_q == SelAw);
   assign axi_rsp_out.w_ready   = floo_req_arb_gnt_out[AxiW] && (aw_w_sel_q == SelW);
   assign ar_rob_ready_in       = floo_req_arb_gnt_out[AxiAr];
 
-  assign floo_req_arb_in[AxiAw]  = floo_axi_aw;
-  assign floo_req_arb_in[AxiW]   = floo_axi_w;
+  assign floo_req_arb_in[AxiW]   = (aw_w_sel_q == SelAw)? floo_axi_aw : floo_axi_w;
   assign floo_req_arb_in[AxiAr]  = floo_axi_ar;
   assign floo_rsp_arb_in[AxiB]   = floo_axi_b;
   assign floo_rsp_arb_in[AxiR]   = floo_axi_r;
@@ -471,7 +471,7 @@ module floo_axi_chimney
   ///////////////////////
 
   floo_wormhole_arbiter #(
-    .NumRoutes  ( 3                       ),
+    .NumRoutes  ( 2                       ),
     .flit_t     ( floo_req_generic_flit_t )
   ) i_req_wormhole_arbiter (
     .clk_i    ( clk_i                 ),

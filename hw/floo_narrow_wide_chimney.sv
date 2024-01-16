@@ -783,43 +783,47 @@ module floo_narrow_wide_chimney
   `FF(narrow_aw_w_sel_q, narrow_aw_w_sel_d, SelAw)
   `FF(wide_aw_w_sel_q, wide_aw_w_sel_d, SelAw)
 
-  assign floo_req_arb_req_in[NarrowAw]  = (narrow_aw_w_sel_q == SelAw) &&
+  assign floo_req_arb_req_in[NarrowW]  = (narrow_aw_w_sel_q == SelAw) &&
                                           (narrow_aw_rob_valid_out ||
                                           ((axi_narrow_aw_queue.atop != axi_pkg::ATOP_NONE) &&
-                                          axi_narrow_aw_queue_valid_out));
-  assign floo_req_arb_req_in[NarrowW]   = (narrow_aw_w_sel_q == SelW) &&
+                                          axi_narrow_aw_queue_valid_out)) ||
+                                          (narrow_aw_w_sel_q == SelW) &&
                                           axi_narrow_req_in.w_valid;
+  assign floo_req_arb_req_in[NarrowAw] = 1'b0; // AW and W need to be sent together
   assign floo_req_arb_req_in[NarrowAr]  = narrow_ar_rob_valid_out;
   assign floo_req_arb_req_in[WideAr]    = wide_ar_rob_valid_out;
   assign floo_rsp_arb_req_in[NarrowB]   = axi_narrow_meta_buf_rsp_out.b_valid;
   assign floo_rsp_arb_req_in[NarrowR]   = axi_narrow_meta_buf_rsp_out.r_valid;
   assign floo_rsp_arb_req_in[WideB]     = axi_wide_meta_buf_rsp_out.b_valid;
-  assign floo_wide_arb_req_in[WideAw]   = (wide_aw_w_sel_q == SelAw) &&
-                                          wide_aw_rob_valid_out;
-  assign floo_wide_arb_req_in[WideW]    = (wide_aw_w_sel_q == SelW) &&
+  assign floo_wide_arb_req_in[WideW]    = (wide_aw_w_sel_q == SelAw) &&
+                                          wide_aw_rob_valid_out ||
+                                          (wide_aw_w_sel_q == SelW) &&
                                           axi_wide_req_in.w_valid;
+  assign floo_wide_arb_req_in[WideAw]   = 1'b0; // AW and W need to be sent together
   assign floo_wide_arb_req_in[WideR]    = axi_wide_meta_buf_rsp_out.r_valid;
 
-  assign narrow_aw_rob_ready_in     = floo_req_arb_gnt_out[NarrowAw] &&
+  assign narrow_aw_rob_ready_in     = floo_req_arb_gnt_out[NarrowW] &&
                                       (narrow_aw_w_sel_q == SelAw);
   assign axi_narrow_rsp_out.w_ready = floo_req_arb_gnt_out[NarrowW] &&
                                       (narrow_aw_w_sel_q == SelW);
   assign narrow_ar_rob_ready_in     = floo_req_arb_gnt_out[NarrowAr];
-  assign wide_aw_rob_ready_in       = floo_wide_arb_gnt_out[WideAw] &&
+  assign wide_aw_rob_ready_in       = floo_wide_arb_gnt_out[WideW] &&
                                       (wide_aw_w_sel_q == SelAw);
   assign axi_wide_rsp_out.w_ready   = floo_wide_arb_gnt_out[WideW] &&
                                       (wide_aw_w_sel_q == SelW);
   assign wide_ar_rob_ready_in       = floo_req_arb_gnt_out[WideAr];
 
-  assign floo_req_arb_in[NarrowAw].narrow_aw  = floo_narrow_aw;
-  assign floo_req_arb_in[NarrowW].narrow_w    = floo_narrow_w;
+  assign floo_req_arb_in[NarrowAw]            = '0;
+  assign floo_req_arb_in[NarrowW]             = (narrow_aw_w_sel_q == SelAw)?
+                                                floo_narrow_aw : floo_narrow_w;
   assign floo_req_arb_in[NarrowAr].narrow_ar  = floo_narrow_ar;
   assign floo_req_arb_in[WideAr].wide_ar      = floo_wide_ar;
   assign floo_rsp_arb_in[NarrowB].narrow_b    = floo_narrow_b;
   assign floo_rsp_arb_in[NarrowR].narrow_r    = floo_narrow_r;
   assign floo_rsp_arb_in[WideB].wide_b        = floo_wide_b;
-  assign floo_wide_arb_in[WideAw].wide_aw     = floo_wide_aw;
-  assign floo_wide_arb_in[WideW].wide_w       = floo_wide_w;
+  assign floo_wide_arb_in[WideAw]             = '0;
+  assign floo_wide_arb_in[WideW]              = (wide_aw_w_sel_q == SelAw)?
+                                                floo_wide_aw : floo_wide_w;
   assign floo_wide_arb_in[WideR].wide_r       = floo_wide_r;
 
   ///////////////////////
