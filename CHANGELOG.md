@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ### Fixed
 
+- Output directory passed to `floogen` is now relative to the current working directory instead of the installation folder of `floogen`.
 - Write ordering in the narrow-wide version was incorrect. Sending `AW` and `W` beats over different channels would have allowed to arrive them out of order, if multiple managers are sending write requests to the same subordinate, which could result in interleaving of the data. This is now fixed by sending `AW` and `W` beats over the same wide channel. The `AW` and `W` beats are coupled together and wormhole routing prevents interleaving of the data.
 
 ## [0.3.0] - 2024-01-09
