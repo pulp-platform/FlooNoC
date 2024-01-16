@@ -46,15 +46,13 @@ jobs:
     - name: Install floogen
       run: |
         python -m pip install .
+    - name: Install Verible
+      uses: chipsalliance/verible-actions-common/install-verible@main
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
     - name: Generate NoCs
       run: |
-        floogen -c floogen/examples/${{ matrix.examples }}.yml -o generated --no-format
-    - name: Format generated NoCs
-      uses: chipsalliance/verible-formatter-action@main
-      with:
-        files:
-          ./generated/${{ matrix.examples }}_floo_noc.sv
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        floogen -c floogen/examples/${{ matrix.examples }}.yml -o generated
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:

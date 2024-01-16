@@ -5,8 +5,9 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
+import os
 import argparse
-import pathlib
+from pathlib import Path
 
 from floogen.config_parser import parse_config
 from floogen.model.network import Network
@@ -17,28 +18,24 @@ def parse_args():
     """Parse the command line arguments."""
     parser = argparse.ArgumentParser(description="FlooGen: A Network-on-Chip Generator")
     parser.add_argument(
-        "-c", "--config", type=pathlib.Path, required=True, help="Path to the configuration file."
+        "-c", "--config", type=Path, required=True, help="Path to the configuration file."
     )
     parser.add_argument(
         "-o",
         "--outdir",
-        type=pathlib.Path,
+        type=Path,
         required=False,
         help="Path to the output directory of the generated output.",
     )
     parser.add_argument(
         "--pkg-outdir",
         dest="pkg_outdir",
-        type=pathlib.Path,
+        type=Path,
         required=False,
-        default=pathlib.Path(__file__).parent.parent / "hw",
         help="Path to the output directory of the generated output.",
     )
     parser.add_argument(
-        "--only-pkg",
-        dest="only_pkg",
-        action="store_true",
-        help="Only generate the package file."
+        "--only-pkg", dest="only_pkg", action="store_true", help="Only generate the package file."
     )
     parser.add_argument(
         "--no-format",
@@ -51,11 +48,26 @@ def parse_args():
     return args
 
 
-def main():
+def main(): # pylint: disable=too-many-branches
     """Generates the network."""
     args = parse_args()
     network = parse_config(Network, args.config)
 
+    if args.outdir:
+        outdir = Path(os.getcwd(), args.outdir)
+    else:
+        # default output directory
+        outdir = Path(os.getcwd(), "generated")
+
+    if args.pkg_outdir:
+        pkg_outdir = Path(os.getcwd(), args.pkg_outdir)
+    else:
+        # default output directory
+        pkg_outdir = Path(os.getcwd(), "hw")
+        if not pkg_outdir.exists():
+            raise FileNotFoundError(
+                f"Was not able to find the directory to store the package file: {pkg_outdir}"
+            )
 
     if not args.only_pkg:
         network.create_network()
@@ -64,8 +76,8 @@ def main():
 
         # Visualize the network graph
         if args.visualize:
-            if args.outdir:
-                network.visualize(filename=args.outdir / (network.name + ".pdf"))
+            if outdir:
+                network.visualize(filename=outdir / (network.name + ".pdf"))
             else:
                 network.visualize(savefig=False)
 
@@ -74,9 +86,9 @@ def main():
         if not args.no_format:
             rendered_top = verible_format(rendered_top)
         # Write the network description to file or print it to stdout
-        if args.outdir:
-            args.outdir.mkdir(parents=True, exist_ok=True)
-            top_file_name = args.outdir / (network.name + "_floo_noc.sv")
+        if outdir:
+            outdir.mkdir(parents=True, exist_ok=True)
+            top_file_name = outdir / (network.name + "_floo_noc.sv")
             with open(top_file_name, "w+", encoding="utf-8") as top_file:
                 top_file.write(rendered_top)
         else:
@@ -86,8 +98,8 @@ def main():
     if not args.no_format:
         rendered_pkg = verible_format(rendered_pkg)
         # Write the link configuration to file or print it to stdout
-        if args.pkg_outdir:
-            cfg_file_name = args.pkg_outdir / (f"floo_{axi_type}_pkg.sv")
+        if pkg_outdir:
+            cfg_file_name = pkg_outdir / (f"floo_{axi_type}_pkg.sv")
             with open(cfg_file_name, "w+", encoding="utf-8") as cfg_file:
                 cfg_file.write(rendered_pkg)
         else:
