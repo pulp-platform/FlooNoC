@@ -998,29 +998,29 @@ module floo_narrow_wide_chimney
 
   assign narrow_aw_out_data_in = '{
     id: axi_narrow_unpack_aw.id,
-    rob_req: floo_req_unpack_generic.hdr.rob_req,
-    rob_idx: floo_req_unpack_generic.hdr.rob_idx,
-    src_id: floo_req_unpack_generic.hdr.src_id,
-    atop: floo_req_unpack_generic.hdr.atop
+    rob_req: floo_req_in.narrow_aw.hdr.rob_req,
+    rob_idx: floo_req_in.narrow_aw.hdr.rob_idx,
+    src_id: floo_req_in.narrow_aw.hdr.src_id,
+    atop: floo_req_in.narrow_aw.hdr.atop
   };
   assign narrow_ar_out_data_in = '{
     id: (is_atop && atop_has_r_rsp)? axi_narrow_unpack_aw.id : axi_narrow_unpack_ar.id,
-    rob_req: floo_req_unpack_generic.hdr.rob_req,
-    rob_idx: floo_req_unpack_generic.hdr.rob_idx,
-    src_id: floo_req_unpack_generic.hdr.src_id,
-    atop: floo_req_unpack_generic.hdr.atop
+    rob_req: floo_req_in.narrow_ar.hdr.rob_req,
+    rob_idx: floo_req_in.narrow_ar.hdr.rob_idx,
+    src_id: floo_req_in.narrow_ar.hdr.src_id,
+    atop: floo_req_in.narrow_ar.hdr.atop
   };
   assign wide_aw_out_data_in = '{
     id: axi_wide_unpack_aw.id,
-    rob_req: floo_req_unpack_generic.hdr.rob_req,
-    rob_idx: floo_req_unpack_generic.hdr.rob_idx,
-    src_id: floo_req_unpack_generic.hdr.src_id
+    rob_req: floo_wide_in.wide_aw.hdr.rob_req,
+    rob_idx: floo_wide_in.wide_aw.hdr.rob_idx,
+    src_id: floo_wide_in.wide_aw.hdr.src_id
   };
   assign wide_ar_out_data_in = '{
     id: axi_wide_unpack_ar.id,
-    rob_req: floo_req_unpack_generic.hdr.rob_req,
-    rob_idx: floo_req_unpack_generic.hdr.rob_idx,
-    src_id: floo_req_unpack_generic.hdr.src_id
+    rob_req: floo_req_in.wide_ar.hdr.rob_req,
+    rob_idx: floo_req_in.wide_ar.hdr.rob_idx,
+    src_id: floo_req_in.wide_ar.hdr.src_id
   };
 
   if (EnNarrowMgrPort) begin : gen_narrow_mgr_port
