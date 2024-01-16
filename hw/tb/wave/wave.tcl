@@ -1,3 +1,7 @@
+# Copyright 2024 ETH Zurich and University of Bologna.
+# Solderpad Hardware License, Version 0.51, see LICENSE for details.
+# SPDX-License-Identifier: SHL-0.51
+
 proc floo_wave_init {} {
     onerror {resume}
     quietly WaveActivateNextPane {} 0
