@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- Wormhole routing for bursts was removed for some channels in the chimney since it is generally not necessary if the header information is sent in parallel to the payload.
+
+### Fixed
+
+- Write ordering in the narrow-wide version was incorrect. Sending `AW` and `W` beats over different channels would have allowed to arrive them out of order, if multiple managers are sending write requests to the same subordinate, which could result in interleaving of the data. This is now fixed by sending `AW` and `W` beats over the same wide channel. The `AW` and `W` beats are coupled together and wormhole routing prevents interleaving of the data.
+
 ## [0.3.0] - 2024-01-09
 
 ### Added

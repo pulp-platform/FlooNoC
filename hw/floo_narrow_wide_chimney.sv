@@ -96,10 +96,10 @@ module floo_narrow_wide_chimney
 
   floo_req_chan_t [WideAr:NarrowAw] floo_req_arb_in;
   floo_rsp_chan_t [WideB:NarrowB] floo_rsp_arb_in;
-  floo_wide_chan_t [WideR:WideW] floo_wide_arb_in;
+  floo_wide_chan_t [WideR:WideAw] floo_wide_arb_in;
   logic  [WideAr:NarrowAw] floo_req_arb_req_in, floo_req_arb_gnt_out;
   logic  [WideB:NarrowB]   floo_rsp_arb_req_in, floo_rsp_arb_gnt_out;
-  logic  [WideR:WideW]     floo_wide_arb_req_in, floo_wide_arb_gnt_out;
+  logic  [WideR:WideAw]    floo_wide_arb_req_in, floo_wide_arb_gnt_out;
 
   // flit queue
   floo_req_chan_t floo_req_in;
@@ -502,7 +502,7 @@ module floo_narrow_wide_chimney
   rob_idx_t narrow_r_rob_rob_idx;
   assign narrow_r_rob_rob_req = floo_rsp_in.narrow_r.hdr.rob_req;
   assign narrow_r_rob_rob_idx = floo_rsp_in.narrow_r.hdr.rob_idx;
-  assign narrow_r_rob_last = floo_rsp_in.narrow_r.hdr.last;
+  assign narrow_r_rob_last = floo_rsp_in.narrow_r.r.last;
 
   floo_rob_wrapper #(
     .RoBType            ( NarrowRoBType           ),
@@ -546,7 +546,7 @@ module floo_narrow_wide_chimney
   rob_idx_t wide_r_rob_rob_idx;
   assign wide_r_rob_rob_req = floo_wide_in.wide_r.hdr.rob_req;
   assign wide_r_rob_rob_idx = floo_wide_in.wide_r.hdr.rob_idx;
-  assign wide_r_rob_last = floo_wide_in.wide_r.hdr.last;
+  assign wide_r_rob_last = floo_wide_in.wide_r.r.last;
 
   floo_rob_wrapper #(
     .RoBType            ( WideRoBType           ),
@@ -651,7 +651,7 @@ module floo_narrow_wide_chimney
     floo_narrow_aw.hdr.rob_idx  = rob_idx_t'(narrow_aw_rob_idx_out);
     floo_narrow_aw.hdr.dst_id   = dst_id[NarrowAw];
     floo_narrow_aw.hdr.src_id   = id_i;
-    floo_narrow_aw.hdr.last     = 1'b1;
+    floo_narrow_aw.hdr.last     = 1'b0;  // AW and W need to be sent together
     floo_narrow_aw.hdr.axi_ch   = NarrowAw;
     floo_narrow_aw.hdr.atop     = axi_narrow_aw_queue.atop != axi_pkg::ATOP_NONE;
     floo_narrow_aw.aw           = axi_narrow_aw_queue;
@@ -699,7 +699,7 @@ module floo_narrow_wide_chimney
     floo_narrow_r.hdr.dst_id  = narrow_ar_out_data_out.src_id;
     floo_narrow_r.hdr.src_id  = id_i;
     floo_narrow_r.hdr.axi_ch  = NarrowR;
-    floo_narrow_r.hdr.last    = axi_narrow_out_rsp_i.r.last;
+    floo_narrow_r.hdr.last    = 1'b1; // There is no reason to do wormhole routing for R bursts
     floo_narrow_r.hdr.atop    = narrow_ar_out_data_out.atop;
     floo_narrow_r.r           = axi_narrow_meta_buf_rsp_out.r;
     floo_narrow_r.r.id        = narrow_ar_out_data_out.id;
@@ -711,7 +711,7 @@ module floo_narrow_wide_chimney
     floo_wide_aw.hdr.rob_idx  = rob_idx_t'(wide_aw_rob_idx_out);
     floo_wide_aw.hdr.dst_id   = dst_id[WideAw];
     floo_wide_aw.hdr.src_id   = id_i;
-    floo_wide_aw.hdr.last     = 1'b1;
+    floo_wide_aw.hdr.last     = 1'b0;  // AW and W need to be sent together
     floo_wide_aw.hdr.axi_ch   = WideAw;
     floo_wide_aw.aw           = axi_wide_aw_queue;
   end
@@ -757,7 +757,7 @@ module floo_narrow_wide_chimney
     floo_wide_r.hdr.dst_id  = wide_ar_out_data_out.src_id;
     floo_wide_r.hdr.src_id  = id_i;
     floo_wide_r.hdr.axi_ch  = WideR;
-    floo_wide_r.hdr.last    = axi_wide_out_rsp_i.r.last;
+    floo_wide_r.hdr.last    = 1'b1; // There is no reason to do wormhole routing for R bursts
     floo_wide_r.r           = axi_wide_meta_buf_rsp_out.r;
     floo_wide_r.r.id        = wide_ar_out_data_out.id;
   end
@@ -783,43 +783,47 @@ module floo_narrow_wide_chimney
   `FF(narrow_aw_w_sel_q, narrow_aw_w_sel_d, SelAw)
   `FF(wide_aw_w_sel_q, wide_aw_w_sel_d, SelAw)
 
-  assign floo_req_arb_req_in[NarrowAw]  = (narrow_aw_w_sel_q == SelAw) &&
+  assign floo_req_arb_req_in[NarrowW]  = (narrow_aw_w_sel_q == SelAw) &&
                                           (narrow_aw_rob_valid_out ||
                                           ((axi_narrow_aw_queue.atop != axi_pkg::ATOP_NONE) &&
-                                          axi_narrow_aw_queue_valid_out));
-  assign floo_req_arb_req_in[NarrowW]   = (narrow_aw_w_sel_q == SelW) &&
+                                          axi_narrow_aw_queue_valid_out)) ||
+                                          (narrow_aw_w_sel_q == SelW) &&
                                           axi_narrow_req_in.w_valid;
+  assign floo_req_arb_req_in[NarrowAw] = 1'b0; // AW and W need to be sent together
   assign floo_req_arb_req_in[NarrowAr]  = narrow_ar_rob_valid_out;
-  assign floo_req_arb_req_in[WideAw]    = (wide_aw_w_sel_q == SelAw) &&
-                                          wide_aw_rob_valid_out;
   assign floo_req_arb_req_in[WideAr]    = wide_ar_rob_valid_out;
   assign floo_rsp_arb_req_in[NarrowB]   = axi_narrow_meta_buf_rsp_out.b_valid;
   assign floo_rsp_arb_req_in[NarrowR]   = axi_narrow_meta_buf_rsp_out.r_valid;
   assign floo_rsp_arb_req_in[WideB]     = axi_wide_meta_buf_rsp_out.b_valid;
-  assign floo_wide_arb_req_in[WideW]    = (wide_aw_w_sel_q == SelW) &&
+  assign floo_wide_arb_req_in[WideW]    = (wide_aw_w_sel_q == SelAw) &&
+                                          wide_aw_rob_valid_out ||
+                                          (wide_aw_w_sel_q == SelW) &&
                                           axi_wide_req_in.w_valid;
+  assign floo_wide_arb_req_in[WideAw]   = 1'b0; // AW and W need to be sent together
   assign floo_wide_arb_req_in[WideR]    = axi_wide_meta_buf_rsp_out.r_valid;
 
-  assign narrow_aw_rob_ready_in     = floo_req_arb_gnt_out[NarrowAw] &&
+  assign narrow_aw_rob_ready_in     = floo_req_arb_gnt_out[NarrowW] &&
                                       (narrow_aw_w_sel_q == SelAw);
   assign axi_narrow_rsp_out.w_ready = floo_req_arb_gnt_out[NarrowW] &&
                                       (narrow_aw_w_sel_q == SelW);
   assign narrow_ar_rob_ready_in     = floo_req_arb_gnt_out[NarrowAr];
-  assign wide_aw_rob_ready_in       = floo_req_arb_gnt_out[WideAw] &&
+  assign wide_aw_rob_ready_in       = floo_wide_arb_gnt_out[WideW] &&
                                       (wide_aw_w_sel_q == SelAw);
   assign axi_wide_rsp_out.w_ready   = floo_wide_arb_gnt_out[WideW] &&
                                       (wide_aw_w_sel_q == SelW);
   assign wide_ar_rob_ready_in       = floo_req_arb_gnt_out[WideAr];
 
-  assign floo_req_arb_in[NarrowAw].narrow_aw  = floo_narrow_aw;
-  assign floo_req_arb_in[NarrowW].narrow_w    = floo_narrow_w;
+  assign floo_req_arb_in[NarrowAw]            = '0;
+  assign floo_req_arb_in[NarrowW]             = (narrow_aw_w_sel_q == SelAw)?
+                                                floo_narrow_aw : floo_narrow_w;
   assign floo_req_arb_in[NarrowAr].narrow_ar  = floo_narrow_ar;
-  assign floo_req_arb_in[WideAw].wide_aw      = floo_wide_aw;
   assign floo_req_arb_in[WideAr].wide_ar      = floo_wide_ar;
   assign floo_rsp_arb_in[NarrowB].narrow_b    = floo_narrow_b;
   assign floo_rsp_arb_in[NarrowR].narrow_r    = floo_narrow_r;
   assign floo_rsp_arb_in[WideB].wide_b        = floo_wide_b;
-  assign floo_wide_arb_in[WideW].wide_w       = floo_wide_w;
+  assign floo_wide_arb_in[WideAw]             = '0;
+  assign floo_wide_arb_in[WideW]              = (wide_aw_w_sel_q == SelAw)?
+                                                floo_wide_aw : floo_wide_w;
   assign floo_wide_arb_in[WideR].wide_r       = floo_wide_r;
 
   ///////////////////////
@@ -827,7 +831,7 @@ module floo_narrow_wide_chimney
   ///////////////////////
 
   floo_wormhole_arbiter #(
-    .NumRoutes  ( 5                       ),
+    .NumRoutes  ( 4                       ),
     .flit_t     ( floo_req_generic_flit_t )
   ) i_req_wormhole_arbiter (
     .clk_i,
@@ -855,7 +859,7 @@ module floo_narrow_wide_chimney
   );
 
   floo_wormhole_arbiter #(
-    .NumRoutes  ( 2                         ),
+    .NumRoutes  ( 3                         ),
     .flit_t     ( floo_wide_generic_flit_t  )
   ) i_wide_wormhole_arbiter (
     .clk_i,
@@ -888,7 +892,7 @@ module floo_narrow_wide_chimney
   assign axi_narrow_unpack_ar = floo_req_in.narrow_ar.ar;
   assign axi_narrow_unpack_r  = floo_rsp_in.narrow_r.r;
   assign axi_narrow_unpack_b  = floo_rsp_in.narrow_b.b;
-  assign axi_wide_unpack_aw   = floo_req_in.wide_aw.aw;
+  assign axi_wide_unpack_aw   = floo_wide_in.wide_aw.aw;
   assign axi_wide_unpack_w    = floo_wide_in.wide_w.w;
   assign axi_wide_unpack_ar   = floo_req_in.wide_ar.ar;
   assign axi_wide_unpack_r    = floo_wide_in.wide_r.r;
@@ -904,8 +908,6 @@ module floo_narrow_wide_chimney
                                   (floo_req_unpack_generic.hdr.axi_ch  == NarrowW);
   assign axi_valid_in[NarrowAr] = floo_req_in_valid &&
                                   (floo_req_unpack_generic.hdr.axi_ch == NarrowAr);
-  assign axi_valid_in[WideAw]   = floo_req_in_valid &&
-                                  (floo_req_unpack_generic.hdr.axi_ch == WideAw);
   assign axi_valid_in[WideAr]   = floo_req_in_valid &&
                                   (floo_req_unpack_generic.hdr.axi_ch == WideAr);
   assign axi_valid_in[NarrowB]  = EnNarrowSbrPort && floo_rsp_in_valid &&
@@ -914,6 +916,8 @@ module floo_narrow_wide_chimney
                                   (floo_rsp_unpack_generic.hdr.axi_ch  == NarrowR);
   assign axi_valid_in[WideB]    = EnWideSbrPort && floo_rsp_in_valid &&
                                   (floo_rsp_unpack_generic.hdr.axi_ch  == WideB);
+  assign axi_valid_in[WideAw]   = floo_wide_in_valid &&
+                                  (floo_wide_unpack_generic.hdr.axi_ch == WideAw);
   assign axi_valid_in[WideW]    = floo_wide_in_valid &&
                                   (floo_wide_unpack_generic.hdr.axi_ch  == WideW);
   assign axi_valid_in[WideR]    = EnWideSbrPort && floo_wide_in_valid &&
@@ -994,29 +998,29 @@ module floo_narrow_wide_chimney
 
   assign narrow_aw_out_data_in = '{
     id: axi_narrow_unpack_aw.id,
-    rob_req: floo_req_unpack_generic.hdr.rob_req,
-    rob_idx: floo_req_unpack_generic.hdr.rob_idx,
-    src_id: floo_req_unpack_generic.hdr.src_id,
-    atop: floo_req_unpack_generic.hdr.atop
+    rob_req: floo_req_in.narrow_aw.hdr.rob_req,
+    rob_idx: floo_req_in.narrow_aw.hdr.rob_idx,
+    src_id: floo_req_in.narrow_aw.hdr.src_id,
+    atop: floo_req_in.narrow_aw.hdr.atop
   };
   assign narrow_ar_out_data_in = '{
     id: (is_atop && atop_has_r_rsp)? axi_narrow_unpack_aw.id : axi_narrow_unpack_ar.id,
-    rob_req: floo_req_unpack_generic.hdr.rob_req,
-    rob_idx: floo_req_unpack_generic.hdr.rob_idx,
-    src_id: floo_req_unpack_generic.hdr.src_id,
-    atop: floo_req_unpack_generic.hdr.atop
+    rob_req: floo_req_in.narrow_ar.hdr.rob_req,
+    rob_idx: floo_req_in.narrow_ar.hdr.rob_idx,
+    src_id: floo_req_in.narrow_ar.hdr.src_id,
+    atop: floo_req_in.narrow_ar.hdr.atop
   };
   assign wide_aw_out_data_in = '{
     id: axi_wide_unpack_aw.id,
-    rob_req: floo_req_unpack_generic.hdr.rob_req,
-    rob_idx: floo_req_unpack_generic.hdr.rob_idx,
-    src_id: floo_req_unpack_generic.hdr.src_id
+    rob_req: floo_wide_in.wide_aw.hdr.rob_req,
+    rob_idx: floo_wide_in.wide_aw.hdr.rob_idx,
+    src_id: floo_wide_in.wide_aw.hdr.src_id
   };
   assign wide_ar_out_data_in = '{
     id: axi_wide_unpack_ar.id,
-    rob_req: floo_req_unpack_generic.hdr.rob_req,
-    rob_idx: floo_req_unpack_generic.hdr.rob_idx,
-    src_id: floo_req_unpack_generic.hdr.src_id
+    rob_req: floo_req_in.wide_ar.hdr.rob_req,
+    rob_idx: floo_req_in.wide_ar.hdr.rob_idx,
+    src_id: floo_req_in.wide_ar.hdr.src_id
   };
 
   if (EnNarrowMgrPort) begin : gen_narrow_mgr_port

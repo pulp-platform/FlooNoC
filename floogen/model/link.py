@@ -148,9 +148,9 @@ class NarrowWideLink(Link):
     """Link class to describe a NarrowWidelink."""
 
     channel_mapping: ClassVar[Dict] = {
-        "req": {"narrow": ["aw", "w", "ar"], "wide": ["aw", "ar"]},
+        "req": {"narrow": ["aw", "w", "ar"], "wide": ["ar"]},
         "rsp": {"narrow": ["b", "r"], "wide": ["b"]},
-        "wide": {"wide": ["w", "r"]},
+        "wide": {"wide": ["aw", "w", "r"]},
     }
 
     req_type: ClassVar[str] = "floo_req_t"
