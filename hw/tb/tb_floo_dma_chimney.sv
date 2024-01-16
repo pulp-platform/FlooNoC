@@ -63,7 +63,6 @@ module tb_floo_dma_chimney;
   floo_dma_test_node #(
     .TA           ( ApplTime        ),
     .TT           ( TestTime        ),
-    .TCK          ( CyclTime        ),
     .DataWidth    ( AxiInDataWidth  ),
     .AddrWidth    ( AxiInAddrWidth  ),
     .UserWidth    ( AxiInUserWidth  ),
