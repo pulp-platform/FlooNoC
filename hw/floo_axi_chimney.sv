@@ -470,40 +470,32 @@ module floo_axi_chimney
   // FLIT ARBITRATION  //
   ///////////////////////
 
-  rr_arb_tree #(
-    .NumIn      ( 3                       ),
-    .AxiVldRdy  ( 1'b1                    ),
-    .DataType   ( floo_req_generic_flit_t )
+  floo_wormhole_arbiter #(
+    .NumRoutes  ( 3                       ),
+    .flit_t     ( floo_req_generic_flit_t )
   ) i_req_wormhole_arbiter (
-    .clk_i,
-    .rst_ni,
-    .flush_i  ( 1'b0                  ),
-    .rr_i     ( '0                    ),
-    .req_i    ( floo_req_arb_req_in   ),
-    .gnt_o    ( floo_req_arb_gnt_out  ),
+    .clk_i    ( clk_i                 ),
+    .rst_ni   ( rst_ni                ),
+    .valid_i  ( floo_req_arb_req_in   ),
     .data_i   ( floo_req_arb_in       ),
-    .req_o    ( floo_req_o.valid      ),
-    .gnt_i    ( floo_req_i.ready      ),
+    .ready_o  ( floo_req_arb_gnt_out  ),
     .data_o   ( floo_req_o.req        ),
-    .idx_o    (                       )
+    .ready_i  ( floo_req_i.ready      ),
+    .valid_o  ( floo_req_o.valid      )
   );
 
-  rr_arb_tree #(
-    .NumIn      ( 2                       ),
-    .AxiVldRdy  ( 1'b1                    ),
-    .DataType   ( floo_rsp_generic_flit_t )
+  floo_wormhole_arbiter #(
+    .NumRoutes  ( 2                       ),
+    .flit_t     ( floo_rsp_generic_flit_t )
   ) i_rsp_wormhole_arbiter (
-    .clk_i,
-    .rst_ni,
-    .flush_i  ( 1'b0                  ),
-    .rr_i     ( '0                    ),
-    .req_i    ( floo_rsp_arb_req_in   ),
-    .gnt_o    ( floo_rsp_arb_gnt_out  ),
+    .clk_i    ( clk_i                 ),
+    .rst_ni   ( rst_ni                ),
+    .valid_i  ( floo_rsp_arb_req_in   ),
     .data_i   ( floo_rsp_arb_in       ),
-    .req_o    ( floo_rsp_o.valid      ),
-    .gnt_i    ( floo_rsp_i.ready      ),
+    .ready_o  ( floo_rsp_arb_gnt_out  ),
     .data_o   ( floo_rsp_o.rsp        ),
-    .idx_o    (                       )
+    .ready_i  ( floo_rsp_i.ready      ),
+    .valid_o  ( floo_rsp_o.valid      )
   );
 
   ////////////////////
