@@ -29,7 +29,7 @@ jobs:
         uses: pulp-platform/pulp-actions/bender-install@v2
       - name: Make clean sources
         run: |
-          make clean sources FLOOGEN_ARGS="--no-format"
+          make clean pkg-sources FLOOGEN_ARGS="--no-format"
       - name: Format with verible
         uses: chipsalliance/verible-formatter-action@main
         with:
@@ -59,7 +59,7 @@ jobs:
         uses: pulp-platform/pulp-actions/bender-install@v2
       - name: Make clean sources
         run: |
-          make -B sources FLOOGEN_ARGS="--no-format"
+          make -B pkg-sources FLOOGEN_ARGS="--no-format"
       - name: Format with verible
         uses: chipsalliance/verible-formatter-action@main
         with:

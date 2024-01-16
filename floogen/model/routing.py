@@ -286,7 +286,6 @@ class RoutingTable(BaseModel):
         }
         string += sv_struct_typedef(f"{name}_rule_t", rule_type_dict)
         # size and numbers of rules (of the table)
-        string += sv_param_decl(f"{snake_to_camel(name)}NumIDs", len(rules))
         string += sv_param_decl(f"{snake_to_camel(name)}NumRules", len(rules)) + "\n"
         rules_str = ""
         if not rules:

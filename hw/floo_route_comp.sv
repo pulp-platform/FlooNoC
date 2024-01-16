@@ -21,8 +21,6 @@ module floo_route_comp
   parameter int unsigned XYAddrOffsetY = 0,
   /// The offset bit to read the ID from
   parameter int unsigned IdAddrOffset = 0,
-  /// The number of possible endpoints
-  parameter int unsigned NumIDs = 0,
   /// The number of possible rules
   parameter int unsigned NumRules = 0,
   /// The type of the coordinates or IDs
@@ -44,12 +42,16 @@ module floo_route_comp
   begin : gen_table_routing
     logic dec_error;
 
+    // This is simply to pass the assertions in addr_decode
+    // It is not used otherwise, since we specify `idx_t`
+    localparam int unsigned MaxPossibleId = 1 << $bits(id_o);
+
     addr_decode #(
-      .NoIndices  ( NumIDs    ),
-      .NoRules    ( NumRules  ),
-      .addr_t     ( addr_t    ),
-      .rule_t     ( id_rule_t ),
-      .idx_t      ( id_t      )
+      .NoIndices  ( MaxPossibleId ),
+      .NoRules    ( NumRules      ),
+      .addr_t     ( addr_t        ),
+      .rule_t     ( id_rule_t     ),
+      .idx_t      ( id_t          )
     ) i_addr_dst_decode (
       .addr_i           ( addr_i    ),
       .addr_map_i       ( AddrMap   ),

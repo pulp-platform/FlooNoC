@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ## Unreleased
 
+### Added
+
+- `floo_narrow_wide_join` which joins a narrow and a wide AXI bus
+
 ### Changed
 
 - Wormhole routing for bursts was removed for some channels in the chimney since it is generally not necessary if the header information is sent in parallel to the payload.

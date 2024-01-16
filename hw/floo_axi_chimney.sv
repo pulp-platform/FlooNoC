@@ -355,7 +355,6 @@ module floo_axi_chimney
     .XYAddrOffsetX  ( XYAddrOffsetX   ),
     .XYAddrOffsetY  ( XYAddrOffsetY   ),
     .IdAddrOffset   ( IdAddrOffset    ),
-    .NumIDs         ( AddrMapNumIDs   ),
     .NumRules       ( AddrMapNumRules ),
     .AddrMap        ( AddrMap         ),
     .id_t           ( id_t            ),
