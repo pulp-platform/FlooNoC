@@ -12,9 +12,7 @@ module floo_synth_router
   input  logic   clk_i,
   input  logic   rst_ni,
   input  logic   test_enable_i,
-
-  input  id_t xy_id_i,
-
+  input  id_t id_i,
   input  floo_req_t [NumRoutes-1:0] req_i,
   input  floo_rsp_t [NumRoutes-1:0] rsp_i,
   output  floo_req_t [NumRoutes-1:0] req_o,
@@ -57,7 +55,7 @@ module floo_synth_router
     .clk_i,
     .rst_ni,
     .test_enable_i,
-    .xy_id_i,
+    .xy_id_i(id_i),
     .id_route_map_i ('0             ),
     .valid_i        ( req_valid_in  ),
     .ready_o        ( req_ready_out ),
@@ -76,13 +74,13 @@ module floo_synth_router
     .ChannelFifoDepth ( ChannelFifoDepth        ),
     .RouteAlgo        ( XYRouting               ),
     .IdWidth          ( 4                       ),
-    .id_t             ( xy_id_t                 ),
+    .id_t             ( id_t                    ),
     .NumAddrRules     ( 1                       )
   ) i_rsp_floo_router (
     .clk_i,
     .rst_ni,
     .test_enable_i,
-    .xy_id_i,
+    .xy_id_i(id_i),
     .id_route_map_i ('0             ),
     .valid_i        ( rsp_valid_in  ),
     .ready_o        ( rsp_ready_out ),
