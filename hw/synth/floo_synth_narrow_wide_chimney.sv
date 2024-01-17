@@ -9,17 +9,18 @@ module floo_synth_narrow_wide_chimney
   import floo_narrow_wide_pkg::*;
   import floo_test_pkg::*;
 (
-  input  logic          clk_i,
-  input  logic          rst_ni,
-  input  axi_narrow_in_req_t   axi_narrow_in_req_i,
+  input  logic clk_i,
+  input  logic rst_ni,
+  input  logic test_enable_i,
+  input  axi_narrow_in_req_t  axi_narrow_in_req_i,
   output axi_narrow_in_rsp_t  axi_narrow_in_rsp_o,
-  output axi_narrow_out_req_t   axi_narrow_out_req_o,
-  input  axi_narrow_out_rsp_t  axi_narrow_out_rsp_i,
-  input  axi_wide_in_req_t     axi_wide_in_req_i,
+  output axi_narrow_out_req_t axi_narrow_out_req_o,
+  input  axi_narrow_out_rsp_t axi_narrow_out_rsp_i,
+  input  axi_wide_in_req_t    axi_wide_in_req_i,
   output axi_wide_in_rsp_t    axi_wide_in_rsp_o,
-  output axi_wide_out_req_t     axi_wide_out_req_o,
-  input  axi_wide_out_rsp_t    axi_wide_out_rsp_i,
-  input  xy_id_t        id_i,
+  output axi_wide_out_req_t   axi_wide_out_req_o,
+  input  axi_wide_out_rsp_t   axi_wide_out_rsp_i,
+  input  id_t id_i,
   output floo_req_t  floo_req_o,
   output floo_rsp_t  floo_rsp_o,
   input  floo_req_t  floo_req_i,
@@ -39,9 +40,6 @@ module floo_synth_narrow_wide_chimney
 `endif
 
 floo_narrow_wide_chimney #(
-  .RouteAlgo                ( floo_pkg::XYRouting     ),
-  .XYAddrOffsetX            ( 32'd16                  ),
-  .XYAddrOffsetY            ( 32'd20                  ),
   .NarrowMaxTxns            ( NarrowMaxTxnsPerId      ),
   .WideMaxTxns              ( WideMaxTxnsPerId        ),
   .NarrowMaxTxnsPerId       ( NarrowMaxTxnsPerId      ),
@@ -52,15 +50,13 @@ floo_narrow_wide_chimney #(
   .WideReorderBufferSize    ( WideReorderBufferSize   ),
   .CutAx                    ( CutAx                   ),
   .CutRsp                   ( CutRsp                  ),
-  .id_t                     ( xy_id_t                 ),
   .sram_cfg_t               ( sram_cfg_t              )
 ) i_floo_narrow_wide_chimney (
   .clk_i,
   .rst_ni,
-  .test_enable_i(1'b0),
+  .test_enable_i(test_enable_i),
   .sram_cfg_i('0),
   .id_i,
-  .id_map_i ('0),
   .axi_narrow_in_req_i,
   .axi_narrow_in_rsp_o,
   .axi_narrow_out_req_o,

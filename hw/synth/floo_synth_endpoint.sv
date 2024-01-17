@@ -9,14 +9,14 @@ module floo_synth_endpoint
   import floo_axi_pkg::*;
   import floo_test_pkg::*;
 (
-  input  logic      clk_i,
-  input  logic      rst_ni,
-  input  logic      test_enable_i,
+  input  logic clk_i,
+  input  logic rst_ni,
+  input  logic test_enable_i,
   input  axi_in_req_t  axi_in_req_i,
   output axi_in_rsp_t  axi_in_rsp_o,
   output axi_out_req_t axi_out_req_o,
   input  axi_out_rsp_t axi_out_rsp_i,
-  input  xy_id_t    xy_id_i,
+  input  id_t xy_id_i,
   output floo_req_t [NumRoutes-1:1] floo_req_o,
   output floo_rsp_t [NumRoutes-1:1] floo_rsp_o,
   input  floo_req_t [NumRoutes-1:1] floo_req_i,
@@ -49,12 +49,8 @@ module floo_synth_endpoint
   end
 
   floo_axi_chimney #(
-    .RouteAlgo          ( floo_pkg::XYRouting ),
-    .XYAddrOffsetX      ( 32'd16              ),
-    .XYAddrOffsetY      ( 32'd20              ),
     .MaxTxnsPerId       ( MaxTxnsPerId        ),
     .ReorderBufferSize  ( ReorderBufferSize   ),
-    .id_t               ( xy_id_t             ),
     .CutAx              ( CutAx               ),
     .CutRsp             ( CutRsp              )
   ) i_floo_axi_chimney (
@@ -81,7 +77,7 @@ module floo_synth_endpoint
     .ChannelFifoDepth ( ChannelFifoDepth        ),
     .RouteAlgo        ( XYRouting               ),
     .IdWidth          ( 4                       ),
-    .id_t             ( xy_id_t                 ),
+    .id_t             ( id_t                    ),
     .NumAddrRules     ( 1                       )
   ) i_req_floo_router (
     .clk_i,
@@ -105,7 +101,7 @@ module floo_synth_endpoint
     .ChannelFifoDepth ( ChannelFifoDepth        ),
     .RouteAlgo        ( XYRouting               ),
     .IdWidth          ( 4                       ),
-    .id_t             ( xy_id_t                 ),
+    .id_t             ( id_t                    ),
     .NumAddrRules     ( 1                       )
   ) i_rsp_floo_router (
     .clk_i,
