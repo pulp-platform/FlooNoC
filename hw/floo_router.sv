@@ -230,4 +230,15 @@ module floo_router import floo_pkg::*; #(
     end
   end
 
+  // If XYRouting optimization is enabled, assert that not Y->X routing occurs
+  if ((RouteAlgo == XYRouting) && XYRouteOpt) begin : gen_xy_opt_assert
+    for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt
+      `ASSERT(XYDirectionNotAllowed,
+          !(in_valid[South][v] && route_mask[South][v][East]) &&
+          !(in_valid[South][v] && route_mask[South][v][West]) &&
+          !(in_valid[North][v] && route_mask[North][v][East]) &&
+          !(in_valid[North][v] && route_mask[North][v][West]))
+    end
+  end
+
 endmodule
