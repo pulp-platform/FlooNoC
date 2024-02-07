@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added assertions to XY routers with routing optimization enabled to catch packets that want to Y->X which is illegal in XY routing.
+
+### Changed
+
+- The parameters `EnMgrPort` and `EnSbrPort` are swapped in the chimneys to be more consistent. FlooNoC defines subordinate ports as requests that go out of the NoC to AXI subordinates (i.e. memories) that return a response, and manager ports as requests that come into the NoC from AXI managers (i.e. cores).
+- The `floo_narrow_wide_join` now uses `axi_riscv_atomics` to filter out atomic operations. The `atop_filter` are still there but are disabled by default.
+
+### Fixed
+
+- Synthesis wrappers now use the more generic `id_t` instead of the deprecated `xy_id_t` type as a parameter.
+- The specified ID offset is now also rendered for routers in `floogen`.
+- Fixed a template rendering issue where XY routers could not be rendered when the first direction (`EJECT`) was not defined.
+
+### Removed
+
+- Removed `floo_synth_mesh`, `floo_synth_mesh_ruche` & `floo_synth_router_simple` synthesis wrappers, since they are not used anymore.
+
 ## [0.3.1] - 2024-01-16
 
 ### Added

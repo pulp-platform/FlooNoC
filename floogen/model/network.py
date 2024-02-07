@@ -513,6 +513,8 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         self.routing.id_offset = Coord(x=min_x, y=min_y)
         for ni in self.graph.get_ni_nodes():
             ni.routing = self.routing.model_copy()
+        for rt in self.graph.get_rt_nodes():
+            rt.id = rt.id - self.routing.id_offset
 
     def gen_address_table(self):
         """Generate the address table for the network."""

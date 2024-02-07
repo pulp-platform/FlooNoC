@@ -13,14 +13,18 @@ module floo_narrow_wide_chimney
   import floo_pkg::*;
   import floo_narrow_wide_pkg::*;
 #(
+  /// FlooNoC defines subordinate ports as requests that go out
+  /// of the NoC to AXI subordinates (i.e. memories) that return
+  /// a response, and manager ports as requests that come into the
+  /// NoC from AXI managers (i.e. cores)
+  /// Enable the subordinate port of the Narrow AXI4 interface
+  parameter bit EnNarrowSbrPort                  = 1'b1,
   /// Enable the manager port of the Narrow AXI4 interface
   parameter bit EnNarrowMgrPort                  = 1'b1,
-  /// Enable the Subordinate port of the Narrow AXI4 interface
-  parameter bit EnNarrowSbrPort                  = 1'b1,
+  /// Enable the subordinate port of the Wide AXI4 interface
+  parameter bit EnWideSbrPort                    = 1'b1,
   /// Enable the manager port of the Wide AXI4 interface
   parameter bit EnWideMgrPort                    = 1'b1,
-  /// Enable the Subordinate port of the Wide AXI4 interface
-  parameter bit EnWideSbrPort                    = 1'b1,
   /// Atomic operation support, currently only implemented for
   /// the narrow network!
   parameter bit AtopSupport                      = 1'b1,
@@ -179,7 +183,7 @@ module floo_narrow_wide_chimney
   //  Spill registers  //
   ///////////////////////
 
-  if (EnNarrowSbrPort) begin : gen_narrow_sbr_port
+  if (EnNarrowMgrPort) begin : gen_narrow_sbr_port
 
     assign axi_narrow_req_in = axi_narrow_in_req_i;
     assign axi_narrow_in_rsp_o = axi_narrow_rsp_out;
@@ -240,7 +244,7 @@ module floo_narrow_wide_chimney
     assign axi_narrow_ar_queue_valid_out = 1'b0;
   end
 
-  if (EnWideSbrPort) begin : gen_wide_sbr_port
+  if (EnWideMgrPort) begin : gen_wide_sbr_port
 
     assign axi_wide_req_in = axi_wide_in_req_i;
     assign axi_wide_in_rsp_o = axi_wide_rsp_out;
@@ -909,17 +913,17 @@ module floo_narrow_wide_chimney
                                   (floo_req_unpack_generic.hdr.axi_ch == NarrowAr);
   assign axi_valid_in[WideAr]   = floo_req_in_valid &&
                                   (floo_req_unpack_generic.hdr.axi_ch == WideAr);
-  assign axi_valid_in[NarrowB]  = EnNarrowSbrPort && floo_rsp_in_valid &&
+  assign axi_valid_in[NarrowB]  = EnNarrowMgrPort && floo_rsp_in_valid &&
                                   (floo_rsp_unpack_generic.hdr.axi_ch  == NarrowB);
-  assign axi_valid_in[NarrowR]  = EnNarrowSbrPort && floo_rsp_in_valid &&
+  assign axi_valid_in[NarrowR]  = EnNarrowMgrPort && floo_rsp_in_valid &&
                                   (floo_rsp_unpack_generic.hdr.axi_ch  == NarrowR);
-  assign axi_valid_in[WideB]    = EnWideSbrPort && floo_rsp_in_valid &&
+  assign axi_valid_in[WideB]    = EnWideMgrPort && floo_rsp_in_valid &&
                                   (floo_rsp_unpack_generic.hdr.axi_ch  == WideB);
   assign axi_valid_in[WideAw]   = floo_wide_in_valid &&
                                   (floo_wide_unpack_generic.hdr.axi_ch == WideAw);
   assign axi_valid_in[WideW]    = floo_wide_in_valid &&
                                   (floo_wide_unpack_generic.hdr.axi_ch  == WideW);
-  assign axi_valid_in[WideR]    = EnWideSbrPort && floo_wide_in_valid &&
+  assign axi_valid_in[WideR]    = EnWideMgrPort && floo_wide_in_valid &&
                                   (floo_wide_unpack_generic.hdr.axi_ch  == WideR);
 
   assign axi_ready_out[NarrowAw]  = axi_narrow_meta_buf_rsp_out.aw_ready;
@@ -1022,7 +1026,7 @@ module floo_narrow_wide_chimney
     src_id: floo_req_in.wide_ar.hdr.src_id
   };
 
-  if (EnNarrowMgrPort) begin : gen_narrow_mgr_port
+  if (EnNarrowSbrPort) begin : gen_narrow_mgr_port
     floo_meta_buffer #(
       .MaxTxns        ( NarrowMaxTxns       ),
       .AtopSupport    ( AtopSupport         ),
@@ -1063,7 +1067,7 @@ module floo_narrow_wide_chimney
     assign narrow_aw_out_data_out = '0;
   end
 
-  if (EnWideMgrPort) begin : gen_wide_mgr_port
+  if (EnWideSbrPort) begin : gen_wide_mgr_port
     floo_meta_buffer #(
       .MaxTxns        ( WideMaxTxns       ),
       .AtopSupport    ( 1'b1              ),
@@ -1118,8 +1122,8 @@ module floo_narrow_wide_chimney
   `ASSERT_INIT(ToSmallIdWidth, 1 + AtopSupport * MaxAtomicTxns <= 2**AxiNarrowOutIdWidth)
 
   // If Network Interface has no subordinate port, make sure that `RoBType` is `NoRoB`
-  `ASSERT_INIT(NoNarrowSbrPortRobType, EnNarrowSbrPort || (NarrowRoBType == NoRoB))
-  `ASSERT_INIT(NoWideSbrPortRobType, EnWideSbrPort || (WideRoBType == NoRoB))
+  `ASSERT_INIT(NoNarrowMgrPortRobType, EnNarrowMgrPort || (NarrowRoBType == NoRoB))
+  `ASSERT_INIT(NoWideMgrPortRobType, EnWideMgrPort || (WideRoBType == NoRoB))
 
   // Check that all addresses have the same width
   `ASSERT_INIT(SameAddrWidth1, AxiNarrowInAddrWidth == AxiNarrowOutAddrWidth)
@@ -1140,27 +1144,27 @@ module floo_narrow_wide_chimney
   `ASSERT(WideStableValid, floo_wide_i.valid &&
                            !floo_wide_o.ready |=> floo_wide_i.valid)
 
-  // Network Interface cannot accept any B and R responses if `En*SbrPort` are not set
-  `ASSERT(NoNarrowSbrPortBResponse, EnNarrowSbrPort || !(floo_rsp_in_valid &&
+  // Network Interface cannot accept any B and R responses if `En*MgrPort` are not set
+  `ASSERT(NoNarrowMgrPortBResponse, EnNarrowMgrPort || !(floo_rsp_in_valid &&
                            (floo_rsp_unpack_generic.hdr.axi_ch == NarrowB)))
-  `ASSERT(NoNarrowSbrPortRResponse, EnNarrowSbrPort || !(floo_rsp_in_valid &&
+  `ASSERT(NoNarrowMgrPortRResponse, EnNarrowMgrPort || !(floo_rsp_in_valid &&
                            (floo_rsp_unpack_generic.hdr.axi_ch == NarrowR)))
-  `ASSERT(NoWideSbrPortBResponse, EnWideSbrPort || !(floo_rsp_in_valid &&
+  `ASSERT(NoWideMgrPortBResponse, EnWideMgrPort || !(floo_rsp_in_valid &&
                            (floo_rsp_unpack_generic.hdr.axi_ch == WideB)))
-  `ASSERT(NoWideSbrPortRResponse, EnWideSbrPort || !(floo_wide_in_valid &&
+  `ASSERT(NoWideMgrPortRResponse, EnWideMgrPort || !(floo_wide_in_valid &&
                            (floo_wide_unpack_generic.hdr.axi_ch == WideR)))
-  // Network Interface cannot accept any AW, AR and W requests if `En*MgrPort` is not set
-  `ASSERT(NoNarrowMgrPortAwRequest, EnNarrowMgrPort || !(floo_req_in_valid &&
+  // Network Interface cannot accept any AW, AR and W requests if `En*SbrPort` is not set
+  `ASSERT(NoNarrowSbrPortAwRequest, EnNarrowSbrPort || !(floo_req_in_valid &&
                            (floo_req_unpack_generic.hdr.axi_ch == NarrowAw)))
-  `ASSERT(NoNarrowMgrPortArRequest, EnNarrowMgrPort || !(floo_req_in_valid &&
+  `ASSERT(NoNarrowSbrPortArRequest, EnNarrowSbrPort || !(floo_req_in_valid &&
                            (floo_req_unpack_generic.hdr.axi_ch == NarrowAr)))
-  `ASSERT(NoNarrowMgrPortWRequest,  EnNarrowMgrPort || !(floo_req_in_valid &&
+  `ASSERT(NoNarrowSbrPortWRequest,  EnNarrowSbrPort || !(floo_req_in_valid &&
                            (floo_req_unpack_generic.hdr.axi_ch == NarrowW)))
-  `ASSERT(NoWideMgrPortAwRequest, EnWideMgrPort || !(floo_req_in_valid &&
+  `ASSERT(NoWideSbrPortAwRequest, EnWideSbrPort || !(floo_req_in_valid &&
                            (floo_req_unpack_generic.hdr.axi_ch == WideAw)))
-  `ASSERT(NoWideMgrPortArRequest, EnWideMgrPort || !(floo_req_in_valid &&
+  `ASSERT(NoWideSbrPortArRequest, EnWideSbrPort || !(floo_req_in_valid &&
                            (floo_req_unpack_generic.hdr.axi_ch == WideAr)))
-  `ASSERT(NoWideMgrPortWRequest,  EnWideMgrPort || !(floo_wide_in_valid &&
+  `ASSERT(NoWideSbrPortWRequest,  EnWideSbrPort || !(floo_wide_in_valid &&
                            (floo_wide_unpack_generic.hdr.axi_ch == WideW)))
 
 endmodule

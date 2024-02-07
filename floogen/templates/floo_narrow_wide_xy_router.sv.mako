@@ -1,13 +1,16 @@
 <% def camelcase(s):
      return ''.join(x.capitalize() or '_' for x in s.split('_'))
 %>\
+<% req_type = next(d for d in router.incoming._asdict().values() if d is not None).req_type %>\
+<% rsp_type = next(d for d in router.incoming._asdict().values() if d is not None).rsp_type %>\
+<% wide_type = next(d for d in router.incoming._asdict().values() if d is not None).wide_type %>\
 
-${router.incoming[0].req_type} [NumDirections-1:0] ${router.name}_req_in;
-${router.incoming[0].rsp_type} [NumDirections-1:0] ${router.name}_rsp_out;
-${router.outgoing[0].req_type} [NumDirections-1:0] ${router.name}_req_out;
-${router.outgoing[0].rsp_type} [NumDirections-1:0] ${router.name}_rsp_in;
-${router.incoming[0].wide_type} [NumDirections-1:0] ${router.name}_wide_in;
-${router.outgoing[0].wide_type} [NumDirections-1:0] ${router.name}_wide_out;
+${req_type} [NumDirections-1:0] ${router.name}_req_in;
+${rsp_type} [NumDirections-1:0] ${router.name}_rsp_out;
+${req_type} [NumDirections-1:0] ${router.name}_req_out;
+${rsp_type} [NumDirections-1:0] ${router.name}_rsp_in;
+${wide_type} [NumDirections-1:0] ${router.name}_wide_in;
+${wide_type} [NumDirections-1:0] ${router.name}_wide_out;
 
 % for dir, link in router.incoming._asdict().items():
   assign ${router.name}_req_in[${camelcase(dir)}] = ${"'0" if link is None else link.req_name()};
