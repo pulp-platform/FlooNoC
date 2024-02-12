@@ -54,7 +54,11 @@ module floo_narrow_wide_chimney
   /// Cut timing paths of incoming responses from the NoC
   parameter bit CutRsp                           = 1'b1,
   /// Type for implementation inputs and outputs
-  parameter type sram_cfg_t                      = logic
+  parameter type sram_cfg_t                      = logic,
+  /// Number of rules in the address map
+  parameter int unsigned NumRules                = 0,
+  /// Type of rules in the map
+  parameter type rule_t                          = logic
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -70,7 +74,9 @@ module floo_narrow_wide_chimney
   output axi_wide_out_req_t axi_wide_out_req_o,
   input  axi_wide_out_rsp_t axi_wide_out_rsp_i,
   /// Coordinates/ID of the current tile
-  input  id_t       id_i,
+  input  id_t id_i,
+  /// Address or Route map for the current tile
+  input  rule_t [NumRules-1:0] map_i,
   /// Output to NoC
   output floo_req_t   floo_req_o,
   output floo_rsp_t   floo_rsp_o,
@@ -617,15 +623,15 @@ module floo_narrow_wide_chimney
     .XYAddrOffsetX  ( XYAddrOffsetX   ),
     .XYAddrOffsetY  ( XYAddrOffsetY   ),
     .IdAddrOffset   ( IdAddrOffset    ),
-    .NumRules       ( AddrMapNumRules ),
-    .AddrMap        ( AddrMap         ),
+    .NumRules       ( NumRules        ),
     .id_t           ( id_t            ),
-    .id_rule_t      ( addr_map_rule_t ),
+    .rule_t         ( rule_t          ),
     .addr_t         ( addr_t          )
   ) i_floo_narrow_route_comp [NumAddrDecoders-1:0] (
     .clk_i,
     .rst_ni,
     .addr_i     ( addr_to_decode  ),
+    .map_i      ( map_i           ),
     .id_o       ( decoded_id      )
   );
 

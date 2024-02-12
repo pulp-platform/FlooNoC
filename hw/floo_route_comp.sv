@@ -26,20 +26,21 @@ module floo_route_comp
   /// The type of the coordinates or IDs
   parameter type id_t = logic,
   /// The type of the rules
-  parameter type id_rule_t = logic,
-  /// The address map to use for the address decoder
-  parameter id_rule_t [NumRules-1:0] AddrMap = '{default: '0},
+  parameter type rule_t = logic,
   /// The address type
   parameter type addr_t = logic
 ) (
   input  logic  clk_i,
   input  logic  rst_ni,
   input  addr_t addr_i,
+  input  rule_t [NumRules-1:0] map_i,
   output id_t   id_o
 );
 
-  if (UseIdTable && ((RouteAlgo == IdTable) || (RouteAlgo == XYRouting)))
-  begin : gen_table_routing
+  if (UseIdTable &&
+     ((RouteAlgo == IdTable) ||
+      (RouteAlgo == XYRouting) ||
+      (RouteAlgo == SourceRouting))) begin : gen_table_routing
     logic dec_error;
 
     // This is simply to pass the assertions in addr_decode
@@ -50,11 +51,11 @@ module floo_route_comp
       .NoIndices  ( MaxPossibleId ),
       .NoRules    ( NumRules      ),
       .addr_t     ( addr_t        ),
-      .rule_t     ( id_rule_t     ),
+      .rule_t     ( rule_t        ),
       .idx_t      ( id_t          )
     ) i_addr_dst_decode (
       .addr_i           ( addr_i    ),
-      .addr_map_i       ( AddrMap   ),
+      .addr_map_i       ( map_i     ),
       .idx_o            ( id_o      ),
       .dec_valid_o      (           ),
       .dec_error_o      ( dec_error ),
