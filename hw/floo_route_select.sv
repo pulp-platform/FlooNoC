@@ -17,8 +17,9 @@ module floo_route_select import floo_pkg::*;
   /// Used for ID-based routing
   parameter int unsigned NumAddrRules  = 0,
   parameter type         addr_rule_t   = logic,
-  parameter type         id_t          = logic[IdWidth-1:0]
-  // parameter int unsigned RouteSelWidth = $clog2(NumRoutes)
+  parameter type         id_t          = logic[IdWidth-1:0],
+  /// Used for source-based routing
+  parameter int unsigned RouteSelWidth = $clog2(NumRoutes)
 ) (
   input  logic                         clk_i,
   input  logic                         rst_ni,
@@ -79,12 +80,14 @@ module floo_route_select import floo_pkg::*;
       route_sel[out_id] = 1'b1;
     end
 
-  end else if (RouteAlgo == Consumption) begin : gen_consumption
+  end else if (RouteAlgo == SourceRouting) begin : gen_consumption
     // Routing based on a consumable header in the flit
-
-    // TODO MICHAERO: gen Consumption route_sel_o
-    // TODO MICHEARO: gen channel_o consumption
-    $fatal(1, "unimplemented");
+    always_comb begin : proc_route_sel
+      route_sel = '0;
+      route_sel[channel_i.hdr.dst_id[RouteSelWidth-1:0]] = 1'b1;
+      channel_o = channel_i;
+      channel_o.hdr.dst_id = channel_i.hdr.dst_id >> RouteSelWidth;
+    end
 
   end else if (RouteAlgo == XYRouting) begin : gen_xy_routing
     // Routing based on simple XY routing
