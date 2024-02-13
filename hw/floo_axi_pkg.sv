@@ -14,7 +14,7 @@ package floo_axi_pkg;
   //   AXI Parameters   //
   ////////////////////////
 
-  typedef enum {
+  typedef enum logic [2:0] {
     AxiAw = 0,
     AxiW = 1,
     AxiAr = 2,

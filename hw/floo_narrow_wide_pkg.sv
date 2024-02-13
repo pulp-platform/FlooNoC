@@ -14,7 +14,7 @@ package floo_narrow_wide_pkg;
   //   AXI Parameters   //
   ////////////////////////
 
-  typedef enum {
+  typedef enum logic [3:0] {
     NarrowAw = 0,
     NarrowW = 1,
     NarrowAr = 2,
