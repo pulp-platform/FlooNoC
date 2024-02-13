@@ -23,24 +23,31 @@ module floo_route_comp
   parameter int unsigned IdAddrOffset = 0,
   /// The number of possible rules
   parameter int unsigned NumRules = 0,
-  /// The type of the coordinates or IDs
-  parameter type id_t = logic,
+  /// The type of the coordinates or IDs used to index the routing table, addr_map
+  parameter type id_in_t = logic,
+  /// The type of the coordinates, IDs or routes returned by the routing table
+  parameter type id_out_t = logic,
   /// The type of the rules
-  parameter type rule_t = logic,
-  /// The address type
-  parameter type addr_t = logic
+  parameter type rule_t = logic
 ) (
   input  logic  clk_i,
   input  logic  rst_ni,
-  input  addr_t addr_i,
+  input  id_in_t id_i,
   input  rule_t [NumRules-1:0] map_i,
-  output id_t   id_o
+  output id_out_t   id_o
 );
 
+  // Use an address decoder to map the address to a destination ID.
+  // The `rule_t` struct has to have the fields `idx`, `start_addr` and `end_addr`.
+  // `SourceRouting` is a special case, where the the `idx` is the actual (pre-computed) route.
+  // Further, the `rule_t` requires an additional field `id`, which can be used for the return route.
+  // The reason for that is that a request destination is given by a physical address, while the
+  // response destination is given by the ID of the source.
   if (UseIdTable &&
-     ((RouteAlgo == IdTable) ||
-      (RouteAlgo == XYRouting) ||
-      (RouteAlgo == SourceRouting))) begin : gen_table_routing
+    ((RouteAlgo == IdTable) ||
+     (RouteAlgo == XYRouting) ||
+     (RouteAlgo == SourceRouting)))
+  begin : gen_table_routing
     logic dec_error;
 
     // This is simply to pass the assertions in addr_decode
@@ -50,9 +57,9 @@ module floo_route_comp
     addr_decode #(
       .NoIndices  ( MaxPossibleId ),
       .NoRules    ( NumRules      ),
-      .addr_t     ( addr_t        ),
+      .addr_t     ( id_in_t       ),
       .rule_t     ( rule_t        ),
-      .idx_t      ( id_t          )
+      .idx_t      ( id_out_t      )
     ) i_addr_dst_decode (
       .addr_i           ( addr_i    ),
       .addr_map_i       ( map_i     ),
@@ -64,11 +71,24 @@ module floo_route_comp
     );
 
     `ASSERT(DecodeError, !dec_error)
+  end else if (RouteAlgo == SourceRouting) begin : gen_source_routing
+    logic dec_error;
+    always_comb begin
+      dec_error = 1'b1;
+      for (int unsigned i = 0; i < NumRules; i++) begin
+        if (id_i == map_i[i].id) begin
+          dec_error = 1'b0;
+          id_o = map_i[i].idx;
+          break;
+        end
+      end
+    end
+    `ASSERT(DecodeError, !dec_error)
   end else if (RouteAlgo == XYRouting) begin : gen_xy_bits_routing
-    assign id_o.x = addr_i[XYAddrOffsetX +: $bits(id_o.x)];
-    assign id_o.y = addr_i[XYAddrOffsetY +: $bits(id_o.y)];
+    assign id_o.x = id_i[XYAddrOffsetX +: $bits(id_o.x)];
+    assign id_o.y = id_i[XYAddrOffsetY +: $bits(id_o.y)];
   end else if (RouteAlgo == IdTable) begin : gen_id_bits_routing
-    assign id_o = addr_i[IdAddrOffset +: $bits(id_o)];
+    assign id_o = id_i[IdAddrOffset +: $bits(id_o)];
   end else begin : gen_error
     $fatal(1, "Routing algorithm not implemented");
   end
