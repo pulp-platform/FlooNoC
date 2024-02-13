@@ -58,7 +58,7 @@ module floo_axi_chimney
   input  axi_out_rsp_t axi_out_rsp_i,
   /// Coordinates/ID of the current tile
   input  id_t id_i,
-  /// Address or Route map for the current tile
+  /// Address map and/or routing table for the current tile
   input  rule_t [NumRules-1:0] map_i,
   /// Output to NoC
   output floo_req_t floo_req_o,
@@ -350,14 +350,7 @@ module floo_axi_chimney
   //   ROUTING   //
   /////////////////
 
-  typedef enum logic [1:0] {AwReq, ArReq, NumAddrDecoders} axi_req_ch_e;
-
   id_t axi_aw_id_q;
-
-  axi_in_addr_t [NumAddrDecoders-1:0] addr_to_decode;
-  id_t [NumAddrDecoders-1:0] decoded_id;
-  assign addr_to_decode[AwReq] = axi_aw_queue.addr;
-  assign addr_to_decode[ArReq] = axi_ar_queue.addr;
 
   floo_route_comp #(
     .RouteAlgo      ( RouteAlgo       ),
@@ -366,22 +359,36 @@ module floo_axi_chimney
     .XYAddrOffsetY  ( XYAddrOffsetY   ),
     .IdAddrOffset   ( IdAddrOffset    ),
     .NumRules       ( NumRules        ),
-    .id_t           ( id_t            ),
+    .id_in_t        ( axi_in_addr_t   ),
     .rule_t         ( rule_t          ),
-    .addr_t         ( axi_in_addr_t   )
-  ) i_floo_narrow_route_comp [NumAddrDecoders-1:0] (
+    .id_out_t       ( id_out_t        )
+  ) i_floo_narrow_route_comp [3:0] (
     .clk_i,
     .rst_ni,
-    .addr_i     ( addr_to_decode  ),
-    .map_i      ( map_i           ),
-    .id_o       ( decoded_id      )
+    .map_i,
+    .id_i   ( {axi_aw_queue.addr, axi_ar_queue.addr}  ),
+    .id_o   ( {dst_id[AxiAw], dst_id[AxiAr]}          )
   );
-
-  assign dst_id[AxiAw] = decoded_id[AwReq];
+  if (RouteAlgo == SourceRouting) begin : gen_src_routing_route
+    floo_route_comp #(
+      .RouteAlgo  ( RouteAlgo   ),
+      .UseIdTable ( 1'b0        ),
+      .NumRules   ( NumRules    ),
+      .id_in_t    ( id_t        ),
+      .rule_t     ( rule_t      ),
+      .id_out_t   ( id_out_t    )
+    ) i_floo_rsp_route_comp [3:0] (
+      .clk_i,
+      .rst_ni,
+      .map_i,
+      .id_i ( {aw_out_data_out.src_id, ar_out_data_out.src_id}  ),
+      .id_o ( {dst_id[AxiB], dst_id[AxiR]}                      )
+    );
+  end else begin
+    assign dst_id[AxiB] = aw_out_data_out.src_id;
+    assign dst_id[AxiR] = ar_out_data_out.src_id;
+  end
   assign dst_id[AxiW]  = axi_aw_id_q;
-  assign dst_id[AxiAr] = decoded_id[ArReq];
-  assign dst_id[AxiB]  = aw_out_data_out.src_id;
-  assign dst_id[AxiR]  = ar_out_data_out.src_id;
   `FFL(axi_aw_id_q, dst_id[AxiAw], axi_aw_queue_valid_out &&
                                    axi_aw_queue_ready_in, '0)
 
@@ -428,7 +435,7 @@ module floo_axi_chimney
     floo_axi_b              = '0;
     floo_axi_b.hdr.rob_req  = aw_out_data_out.rob_req;
     floo_axi_b.hdr.rob_idx  = aw_out_data_out.rob_idx;
-    floo_axi_b.hdr.dst_id   = aw_out_data_out.src_id;
+    floo_axi_b.hdr.dst_id   = dst_id[AxiB];
     floo_axi_b.hdr.src_id   = id_i;
     floo_axi_b.hdr.last     = 1'b1;
     floo_axi_b.hdr.axi_ch   = AxiB;
@@ -441,7 +448,7 @@ module floo_axi_chimney
     floo_axi_r              = '0;
     floo_axi_r.hdr.rob_req  = ar_out_data_out.rob_req;
     floo_axi_r.hdr.rob_idx  = ar_out_data_out.rob_idx;
-    floo_axi_r.hdr.dst_id   = ar_out_data_out.src_id;
+    floo_axi_r.hdr.dst_id   = dst_id[AxiR];
     floo_axi_r.hdr.src_id   = id_i;
     floo_axi_r.hdr.last     = 1'b1; // There is no reason to do wormhole routing for R bursts
     floo_axi_r.hdr.axi_ch   = AxiR;
