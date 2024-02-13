@@ -76,6 +76,7 @@ package floo_axi_pkg;
     y_bits_t y;
   } id_t;
 
+  typedef id_t id_out_t;
 
 
   typedef struct packed {

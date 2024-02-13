@@ -27,6 +27,7 @@ class RouteAlgo(Enum):
     XY = "XYRouting"
     YX = "YXRouting"
     ID = "IdTable"
+    SRC = "SourceRouting"
 
     def __str__(self):
         return f"{self.name}"
@@ -376,6 +377,11 @@ class Routing(BaseModel):
                 string += sv_typedef("id_t", array_size=self.num_id_bits)
             case _:
                 pass
+        match self.route_algo:
+            case RouteAlgo.SRC:
+                string += sv_typedef("id_out_t", dtype="logic")
+            case _:
+                string += sv_typedef("id_out_t", dtype="id_t")
         return string
 
     def render_flit_header(self) -> str:
