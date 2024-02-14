@@ -367,16 +367,13 @@ class RouteMap(BaseModel):
         # Validate the routing table
         self.model_validate(self)
 
-    def render(self, **kwargs):
+    def render(self, aw=None):
         """Render the SystemVerilog routing table."""
         string = ""
         rules = self.rules.copy()
-        if "id_offset" in kwargs and kwargs["id_offset"] is not None:
-            for rule in rules:
-                rule.dest -= kwargs["id_offset"]
         # typedef of the address rule
         string += sv_param_decl(f"{snake_to_camel(self.name)}NumRules", len(rules)) + "\n"
-        addr_type = f"logic [{kwargs["aw"]-1}:0]" if "aw" in kwargs else "id_t"
+        addr_type = f"logic [{aw-1}:0]" if aw is not None else "id_t"
         rule_type_dict = {}
         rule_type_dict = {"idx": "id_t", "start_addr": addr_type, "end_addr": addr_type}
         string += sv_struct_typedef(self.rule_type(), rule_type_dict)
@@ -389,7 +386,7 @@ class RouteMap(BaseModel):
             )
             return string
         for i, rule in enumerate(rules):
-            rules_str += f"{rule.render(**kwargs)}"
+            rules_str += f"{rule.render(aw)}"
             rules_str += ',' if i != len(rules) - 1 else ' '
             if rule.desc is not None:
                 rules_str += f"// {rule.desc}\n"

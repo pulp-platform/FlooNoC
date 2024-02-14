@@ -76,7 +76,7 @@ def test_routing_table_len():
     """Test the length of a RoutingTable object."""
     rule1 = RouteMapRule(addr_range=AddrRange(start=0, end=10), dest=SimpleId(id=1))
     rule2 = RouteMapRule(addr_range=AddrRange(start=11, end=20), dest=SimpleId(id=2))
-    routing_table = RouteMap(rules=[rule1, rule2])
+    routing_table = RouteMap(name="test_map", rules=[rule1, rule2])
     assert len(routing_table) == 2
 
 
@@ -85,7 +85,7 @@ def test_check_no_overlapping_ranges():
     rule1 = RouteMapRule(addr_range=AddrRange(start=0, end=10), dest=SimpleId(id=1))
     rule2 = RouteMapRule(addr_range=AddrRange(start=5, end=15), dest=SimpleId(id=2))
     with pytest.raises(ValueError):
-        RouteMap(rules=[rule1, rule2])
+        RouteMap(name="test_map", rules=[rule1, rule2])
 
 
 def test_trim():
@@ -94,7 +94,7 @@ def test_trim():
     rule2 = RouteMapRule(addr_range=AddrRange(start=10, end=20), dest=SimpleId(id=1))
     rule3 = RouteMapRule(addr_range=AddrRange(start=20, end=30), dest=SimpleId(id=2))
     rule4 = RouteMapRule(addr_range=AddrRange(start=31, end=40), dest=SimpleId(id=2))
-    routing_table = RouteMap(rules=[rule1, rule2, rule3, rule4])
+    routing_table = RouteMap(name="test_map", rules=[rule1, rule2, rule3, rule4])
     routing_table.trim()
     expected_rules = [
         RouteMapRule(addr_range=AddrRange(start=0, end=20), dest=SimpleId(id=1)),
