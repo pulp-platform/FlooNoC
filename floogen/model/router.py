@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from pydantic import BaseModel, field_validator
 from mako.lookup import Template
 
-from floogen.model.routing import Routing, Id, Coord
+from floogen.model.routing import RouteMap, Id, Coord, RouteAlgo
 from floogen.model.link import Link, XYLinks
 
 
@@ -50,7 +50,8 @@ class Router(BaseModel, ABC):
     incoming: List[Link]
     outgoing: List[Link]
     degree: int
-    routing: Routing
+    route_algo: RouteAlgo
+    table: Optional[RouteMap] = None
 
     @abstractmethod
     def render(self):
@@ -64,6 +65,7 @@ class XYRouter(BaseModel, ABC):
     incoming: XYLinks
     outgoing: XYLinks
     degree: int = 5  # XY router always has 5 links
+    route_algo: RouteAlgo = RouteAlgo.XY
     id: Coord
 
     @abstractmethod

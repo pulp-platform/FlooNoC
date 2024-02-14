@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from mako.lookup import Template
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
-from floogen.model.routing import Routing, RouteAlgo, RoutingRule, RoutingTable
+from floogen.model.routing import Routing, RouteAlgo, RouteMapRule, RouteRule, RouteMap, RouteTable
 from floogen.model.routing import Coord, SimpleId, AddrRange
 from floogen.model.graph import Graph
 from floogen.model.endpoint import EndpointDesc, Endpoint
@@ -293,7 +293,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     if node.id_offset is not None:
                         node_id += node.id_offset
                     self.graph.nodes[node_name]["id"] = node_id
-            case RouteAlgo.ID:
+            case RouteAlgo.ID | RouteAlgo.SRC:
                 for ep_name, ep in self.graph.get_ep_nodes(with_name=True):
                     node_id = SimpleId(id=self.graph.create_unique_ep_id(ep_name))
                     if ep.id_offset is not None:
@@ -348,13 +348,13 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     }
                     self.graph.set_node_obj(rt_name, NarrowWideXYRouter(**router_dict))
 
-                case RouteAlgo.ID:
+                case RouteAlgo.ID | RouteAlgo.SRC:
                     router_dict = {
                         "name": rt_name,
                         "incoming": self.graph.get_edges_to(rt_name),
                         "outgoing": self.graph.get_edges_from(rt_name),
                         "degree": len(set(self.graph.neighbors(rt_name))),
-                        "routing": self.routing.model_copy(),
+                        "route_algo": self.routing.route_algo,
                     }
                     self.graph.set_node_obj(rt_name, NarrowWideRouter(**router_dict))
 
@@ -464,39 +464,44 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             self.graph.set_node_obj(ni_name, NarrowWideAxiNI(**ni_dict))
 
     def gen_routing_info(self):
-        """Generate the routing table for the network."""
+        """Wrapper function to generate all the routing info for the network,
+        for a specific routing algorithm."""
         self.routing.num_endpoints = len(self.graph.get_ni_nodes())
         self.routing.num_id_bits = clog2(len(self.graph.get_ni_nodes()))
         match self.routing.route_algo:
             case RouteAlgo.XY:
-                self.gen_xy_routing_info()
+                for info, value in self.gen_xy_routing_info().items():
+                    setattr(self.routing, info, value)
             case RouteAlgo.ID:
-                self.gen_routing_tables()
+                self.gen_router_tables()
+            case RouteAlgo.SRC:
+                self.gen_routes()
             case _:
-                raise NotImplementedError("Only XY and IdTable routing is supported yet")
+                raise NotImplementedError(
+                    f"Routing algorithm {self.routing.route_algo} is not supported yet"
+                )
+        self.routing.sam = self.gen_sam()
+        # Provide the routing info to the network interfaces
+        for ni in self.graph.get_ni_nodes():
+            ni.routing = self.routing
 
-        if self.routing.use_id_table:
-            self.gen_address_table()
-
-    def gen_routing_tables(self):
+    def gen_router_tables(self):
         """Generate the routing table for the network."""
-        for router in self.graph.get_rt_nodes():
+        for rt in self.graph.get_rt_nodes():
             routing_table = []
             ni_sbr_nodes = [ni for ni in self.graph.get_ni_nodes() if ni.is_sbr()]
             for ni in ni_sbr_nodes:
-                shortest_path = nx.shortest_path(self.graph, router.name, ni.name)
-                out_edge = (router.name, shortest_path[1])
+                shortest_path = nx.shortest_path(self.graph, rt.name, ni.name)
+                out_edge = (rt.name, shortest_path[1])
                 out_link = self.graph.get_edge_obj(out_edge)
-                out_idx = router.outgoing.index(out_link)
+                out_idx = rt.outgoing.index(out_link)
                 dest = SimpleId(id=out_idx)
                 addr_range = AddrRange(start=ni.id.id, size=1)
-                routing_table.append(RoutingRule(dest=dest, addr_range=addr_range))
+                routing_table.append(RouteMapRule(dest=dest, addr_range=addr_range, desc=ni.name))
 
             # Add routing table to the router
-            routing_table = RoutingTable(rules=routing_table)
-            routing_table.trim()
-            router.routing = self.routing.model_copy()
-            router.routing.table = routing_table
+            rt.table = RouteMap(name=rt.name + "_map", rules=routing_table)
+            rt.table.trim()
 
     def gen_xy_routing_info(self):
         """Generate the XY routing info for the network."""
@@ -507,27 +512,57 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         max_x = max(ni.id.x for ni in ni_nodes)
         max_y = max(ni.id.y for ni in ni_nodes)
         max_address = max(ni.addr_range.end for ni in ni_sbr_nodes)
-        self.routing.num_x_bits = clog2(max_x - min_x)
-        self.routing.num_y_bits = clog2(max_y - min_y)
-        self.routing.addr_offset_bits = clog2(max_address)
-        self.routing.id_offset = Coord(x=min_x, y=min_y)
-        for ni in self.graph.get_ni_nodes():
-            ni.routing = self.routing.model_copy()
-        for rt in self.graph.get_rt_nodes():
-            rt.id = rt.id - self.routing.id_offset
+        xy_routing_info = {}
+        xy_routing_info["num_x_bits"] = clog2(max_x - min_x)
+        xy_routing_info["num_y_bits"] = clog2(max_y - min_y)
+        xy_routing_info["addr_offset_bits"] = clog2(max_address)
+        xy_routing_info["id_offset"] = Coord(x=min_x, y=min_y)
+        return xy_routing_info
 
-    def gen_address_table(self):
-        """Generate the address table for the network."""
+    def gen_routes(self):
+        """Generates the routes for source-based routing."""
+        self.routing.num_route_bits = 0
+        for ni_src in self.graph.get_ni_nodes():
+            routes = []
+            for ni_dst in self.graph.get_ni_nodes():
+                # Skip if source and destination are the same
+                # and for manager-manager and subordinate-subordinate
+                # connections
+                if (
+                    ni_src.name == ni_dst.name
+                    or (ni_src.is_only_mgr() and ni_dst.is_only_mgr())
+                    or (ni_src.is_only_sbr() and ni_dst.is_only_sbr())
+                ):
+                    continue
+                route = nx.shortest_path(self.graph, ni_src.name, ni_dst.name)
+                max_route_bits = 0
+                port_lst = []
+                for i in range(1, len(route) - 1):
+                    out_edge = (route[i], route[i + 1])
+                    out_link = self.graph.get_edge_obj(out_edge)
+                    rt = self.graph.get_node_obj(route[i])
+                    out_port = rt.outgoing.index(out_link)
+                    num_port_bits = clog2(len(rt.outgoing))
+                    port_lst.append((out_port, num_port_bits))
+                    max_route_bits += num_port_bits
+                rule = RouteRule(route=port_lst, id=ni_dst.id, desc=f"-> {ni_dst.name}")
+                routes.append(rule)
+                self.routing.num_route_bits = max(self.routing.num_route_bits, max_route_bits)
+            ni_src.table = RouteTable(name=ni_src.name + "_table", routes=routes)
+
+    def gen_sam(self):
+        """Generate the system address map, which is used by the network interfaces
+        to determine the destination of a packet based on the address."""
         addr_table = []
         ni_sbr_nodes = [ni for ni in self.graph.get_ni_nodes() if ni.is_sbr()]
         for ni in ni_sbr_nodes:
             dest = ni.id
+            if self.routing.id_offset is not None:
+                dest += self.id_offset
             addr_range = ni.addr_range
-            addr_rule = RoutingRule(dest=dest, addr_range=addr_range)
+            addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, desc=ni.name)
             addr_table.append(addr_rule)
-        self.routing.table = RoutingTable(rules=addr_table)
-        for ni in self.graph.get_ni_nodes():
-            ni.routing.table = self.routing.table.model_copy()
+        return RouteMap(name="sam", rules=addr_table)
 
     def render_ports(self):
         """Render the ports in the generated code."""
@@ -581,9 +616,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         else:
             axi_type, link_type = "axi", NarrowLink
 
-        return axi_type, self.tpl_pkg.render(
-            name=axi_type, noc=self, link=link_type
-        )
+        return axi_type, self.tpl_pkg.render(name=axi_type, noc=self, link=link_type)
 
     def visualize(self, savefig=True, filename: pathlib.Path = "network.png"):
         """Visualize the network graph."""

@@ -6,7 +6,7 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 from enum import Enum
-from typing import Optional, List
+from typing import Optional, Union, List, Tuple
 from abc import ABC, abstractmethod
 
 from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator
@@ -197,13 +197,14 @@ class AddrRange(BaseModel):
         return self
 
 
-class RoutingRule(BaseModel):
+class RouteMapRule(BaseModel):
     """Routing rule class."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     dest: Id
     addr_range: AddrRange
+    desc: Optional[str] = None
 
     def __str__(self):
         return f"{self.addr_range} -> {self.dest}"
@@ -226,16 +227,100 @@ class RoutingRule(BaseModel):
         )
 
 
-class RoutingTable(BaseModel):
-    """Routing table class."""
+class RouteRule(BaseModel):
+    """Routing rule class."""
 
-    rules: List[RoutingRule]
+    route: Optional[List[Tuple[int, int]]]
+    id: Id
+    desc: Optional[str] = None
+
+    def render(self, num_route_bits):
+        """Render the SystemVerilog route."""
+        route_str = ""
+        route_bits_used = 0
+        split_route = False
+        if self.route is None:
+            if split_route:
+                return f"{num_route_bits}'d?"
+            return f"{num_route_bits}'b{'?' * num_route_bits}"
+        for port, num_bits in self.route:
+            if split_route:
+                route_str = f"{num_bits}'d{port}, " + route_str
+            else:
+                route_str = f"{port:0{num_bits}b}" + route_str
+            route_bits_used += num_bits
+        if route_bits_used > num_route_bits:
+            raise ValueError("Not enough bits to encode the route")
+        if route_bits_used < num_route_bits:
+            if split_route:
+                return f"{num_route_bits-route_bits_used}'d0, " + route_str[:-2]
+            return f"{num_route_bits}'b{'0' * (num_route_bits-route_bits_used)}" + route_str
+        if split_route:
+            return route_str[:-2]
+        return f"{num_route_bits}'b" + route_str
+
+
+class RouteTable(BaseModel):
+    """Route Table class, which can hold the route entries to each destination"""
+
+    name: str
+    routes: List[RouteRule]
+
+    def __len__(self):
+        return len(self.routes)
+
+    @model_validator(mode="after")
+    def sort_and_pad(self):
+        """Sort by destination and fill in missing entries."""
+        self.routes = sorted(self.routes, key=lambda x: x.id)
+        for i, route in enumerate(self.routes):
+            if i != route.id.id:
+                self.routes.insert(i, RouteRule(route=None, id=SimpleId(id=i)))
+        return self.routes
+
+    def render(self, num_route_bits):
+        """Render the SystemVerilog route table."""
+        string = ""
+        rules_str = ""
+        if not self.routes:
+            string += sv_param_decl(
+                f"{snake_to_camel(self.name)}",
+                value="'{default: 0}",
+                dtype="route_t",
+            )
+            return string
+        string += sv_param_decl(f"{snake_to_camel(self.name)}NumRoutes", len(self.routes)) + "\n"
+        for i, rule in enumerate(self.routes):
+            rules_str += f"{rule.render(num_route_bits)}"
+            rules_str += ',' if i != len(self.routes) - 1 else ' '
+            if rule.desc is not None:
+                rules_str += f"// {rule.desc}"
+            rules_str += "\n"
+        string += sv_param_decl(
+            f"{snake_to_camel(self.name)}",
+            value="'{\n" + rules_str + "\n}",
+            dtype="route_t",
+            array_size=f"{snake_to_camel(self.name)}NumRoutes-1"
+        )
+        return string
+
+
+class RouteMap(BaseModel):
+    """Route Map class, which can represent the system address map (SAM),
+    or a routing table of a router."""
+
+    name: str
+    rules: List[RouteMapRule]
 
     def __str__(self):
         return f"{self.rules}"
 
     def __len__(self):
         return len(self.rules)
+
+    def rule_type(self):
+        """Return the type of the rules."""
+        return self.name + "_rule_t"
 
     @model_validator(mode="after")
     def check_no_overlapping_ranges(self):
@@ -282,39 +367,37 @@ class RoutingTable(BaseModel):
         # Validate the routing table
         self.model_validate(self)
 
-    def render(self, name, aw=None, id_offset=None):
+    def render(self, **kwargs):
         """Render the SystemVerilog routing table."""
         string = ""
         rules = self.rules.copy()
-        if id_offset is not None:
+        if "id_offset" in kwargs and kwargs["id_offset"] is not None:
             for rule in rules:
-                rule.dest -= id_offset
+                rule.dest -= kwargs["id_offset"]
         # typedef of the address rule
-        addr_type = f"logic [{aw-1}:0]" if aw is not None else "id_t"
-        rule_type_dict = {
-            "idx": "id_t",
-            "start_addr": addr_type,
-            "end_addr": addr_type,
-        }
-        string += sv_struct_typedef(f"{name}_rule_t", rule_type_dict)
-        # size and numbers of rules (of the table)
-        string += sv_param_decl(f"{snake_to_camel(name)}NumRules", len(rules)) + "\n"
+        string += sv_param_decl(f"{snake_to_camel(self.name)}NumRules", len(rules)) + "\n"
+        addr_type = f"logic [{kwargs["aw"]-1}:0]" if "aw" in kwargs else "id_t"
+        rule_type_dict = {}
+        rule_type_dict = {"idx": "id_t", "start_addr": addr_type, "end_addr": addr_type}
+        string += sv_struct_typedef(self.rule_type(), rule_type_dict)
         rules_str = ""
         if not rules:
             string += sv_param_decl(
-                f"{snake_to_camel(name)}",
+                f"{snake_to_camel(self.name)}",
                 value="'{default: 0}",
-                dtype=f"{name}_rule_t",
+                dtype=self.rule_type(),
             )
             return string
-        for rule in rules:
-            rules_str += f"{rule.render(aw)},\n"
-        rules_str = rules_str[:-2]
+        for i, rule in enumerate(rules):
+            rules_str += f"{rule.render(**kwargs)}"
+            rules_str += ',' if i != len(rules) - 1 else ' '
+            if rule.desc is not None:
+                rules_str += f"// {rule.desc}\n"
         string += sv_param_decl(
-            f"{snake_to_camel(name)}",
+            f"{snake_to_camel(self.name)}",
             value="'{\n" + rules_str + "\n}",
-            dtype=f"{name}_rule_t",
-            array_size=len(rules),
+            dtype=self.rule_type(),
+            array_size=f"{snake_to_camel(self.name)}NumRules-1"
         )
         return string
 
@@ -331,13 +414,15 @@ class Routing(BaseModel):
 
     route_algo: RouteAlgo
     use_id_table: bool = True
-    table: Optional[RoutingTable] = None
+    sam: Optional[RouteMap] = None
+    table: Optional[RouteMap] = None
     addr_offset_bits: Optional[int] = None
     id_offset: Optional[Id] = None
     num_endpoints: Optional[int] = None
     num_id_bits: Optional[int] = None
     num_x_bits: Optional[int] = None
     num_y_bits: Optional[int] = None
+    num_route_bits: Optional[int] = None
     addr_width: Optional[int] = None
     rob_idx_bits: int = 4
 
@@ -384,15 +469,20 @@ class Routing(BaseModel):
                 string += sv_typedef("x_bits_t", array_size=self.num_x_bits)
                 string += sv_typedef("y_bits_t", array_size=self.num_y_bits)
                 string += sv_struct_typedef("id_t", {"x": "x_bits_t", "y": "y_bits_t"})
+                string += sv_typedef("route_t", "logic")
             case RouteAlgo.ID:
                 string += sv_typedef("id_t", array_size=self.num_id_bits)
+                string += sv_typedef("route_t", "logic")
+            case RouteAlgo.SRC:
+                string += sv_typedef("id_t", array_size=self.num_id_bits)
+                string += sv_typedef("route_t", array_size=self.num_route_bits)
             case _:
                 pass
         match self.route_algo:
             case RouteAlgo.SRC:
-                string += sv_typedef("id_out_t", dtype="logic")
+                string += sv_typedef("dst_t", dtype="route_t")
             case _:
-                string += sv_typedef("id_out_t", dtype="id_t")
+                string += sv_typedef("dst_t", dtype="id_t")
         return string
 
     def render_flit_header(self) -> str:
@@ -400,7 +490,7 @@ class Routing(BaseModel):
         header_fields = {
             "rob_req": "logic",
             "rob_idx": "rob_idx_t",
-            "dst_id": "id_t",
+            "dst_id": "dst_t",
             "src_id": "id_t",
             "last": "logic",
             "atop": "logic",
