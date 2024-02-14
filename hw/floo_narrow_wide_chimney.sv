@@ -657,9 +657,9 @@ module floo_narrow_wide_chimney
     assign dst_id = route_out;
   end else begin
     assign dst_id[NarrowAw] = id_out[NarrowAw];
-    assign dst_id[NarrowW]  = id_out[NarrowW];
     assign dst_id[NarrowAr] = id_out[NarrowAr];
-    assign dst_id[NarrowB]  = id_out[NarrowB];
+    assign dst_id[WideAw]   = id_out[WideAw];
+    assign dst_id[WideAr]   = id_out[WideAr];
     assign dst_id[NarrowB]  = narrow_aw_out_data_out.src_id;
     assign dst_id[NarrowR]  = narrow_ar_out_data_out.src_id;
     assign dst_id[WideB]    = wide_aw_out_data_out.src_id;

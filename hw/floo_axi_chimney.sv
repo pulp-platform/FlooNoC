@@ -400,7 +400,7 @@ module floo_axi_chimney
     assign dst_id[AxiAr]  = id_out[AxiAr];
     assign dst_id[AxiB]   = aw_out_data_out.src_id;
     assign dst_id[AxiR]   = ar_out_data_out.src_id;
-    assign dst_id[AxiAw]  = id_out[AxiAw];
+    assign dst_id[AxiW]   = axi_aw_id_q;
   end
   `FFL(axi_aw_id_q, dst_id[AxiAw], axi_aw_queue_valid_out &&
                                    axi_aw_queue_ready_in, '0)
