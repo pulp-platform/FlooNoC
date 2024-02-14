@@ -96,7 +96,7 @@ package floo_axi_pkg;
   //   Address Map   //
   /////////////////////
 
-  localparam int unsigned SamNumRules = 0;
+  localparam int unsigned SamNumRules = 1;
   typedef logic sam_rule_t;
   localparam sam_rule_t Sam = '0;
 
