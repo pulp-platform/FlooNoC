@@ -61,6 +61,14 @@ class EndpointDesc(BaseModel):
         """Return true if the endpoint is a manager."""
         return self.mgr_port_protocol is not None
 
+    def is_only_sbr(self) -> bool:
+        """Return true if the endpoint is only a subordinate."""
+        return self.is_sbr() and not self.is_mgr()
+
+    def is_only_mgr(self) -> bool:
+        """Return true if the endpoint is only a manager."""
+        return self.is_mgr() and not self.is_sbr()
+
     def get_ni_name(self, name: str) -> str:
         """Return the name of the NI."""
         return name.replace(self.name, f"{self.name}_ni")

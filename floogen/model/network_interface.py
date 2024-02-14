@@ -36,6 +36,14 @@ class NetworkInterface(BaseModel):
         """Return true if the network interface is a manager."""
         return self.endpoint.is_mgr()
 
+    def is_only_sbr(self) -> bool:
+        """Return true if the network interface is only a subordinate."""
+        return self.endpoint.is_sbr() and not self.endpoint.is_mgr()
+
+    def is_only_mgr(self) -> bool:
+        """Return true if the network interface is only a manager."""
+        return self.endpoint.is_mgr() and not self.endpoint.is_sbr()
+
 
 class NarrowWideAxiNI(NetworkInterface):
     """ " NarrowWideNI class to describe a narrow-wide network interface."""
