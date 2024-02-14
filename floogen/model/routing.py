@@ -80,6 +80,10 @@ class SimpleId(Id):
         """Subtract the ID."""
         return self.id - other.id
 
+    def __lt__(self, other):
+        """Less than comparison."""
+        return self.id < other.id
+
     @field_validator("id")
     @classmethod
     def validate_id(cls, v):
@@ -109,6 +113,13 @@ class Coord(Id):
 
     def __sub__(self, other):
         return Coord(x=self.x - other.x, y=self.y - other.y)
+
+    def __lt__(self, other):
+        if self.y < other.y:
+            return True
+        if self.y == other.y:
+            return self.x < other.x
+        return False
 
     def render(self, as_index=False):
         """Render the SystemVerilog coordinate."""
