@@ -6,7 +6,7 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 from enum import Enum
-from typing import Optional, Union, List, Tuple
+from typing import Optional, List, Tuple
 from abc import ABC, abstractmethod
 
 from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator
