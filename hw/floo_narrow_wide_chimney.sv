@@ -629,7 +629,7 @@ module floo_narrow_wide_chimney
     .id_o     ({id_out[NarrowAw], id_out[NarrowAr],id_out[WideAw], id_out[WideAr]}              )
   );
 
-  if (RouteAlgo == SourceRouting) begin : gen_src_routing_route
+  if (RouteAlgo == SourceRouting) begin : gen_route_field
     floo_route_comp #(
       .RouteAlgo    ( RouteAlgo   ),
       .UseIdTable   ( 1'b0        ),
@@ -655,7 +655,7 @@ module floo_narrow_wide_chimney
     assign route_out[NarrowW] = narrow_aw_id_q;
     assign route_out[WideW]   = wide_aw_id_q;
     assign dst_id = route_out;
-  end else begin
+  end else begin : gen_dst_field
     assign dst_id[NarrowAw] = id_out[NarrowAw];
     assign dst_id[NarrowAr] = id_out[NarrowAr];
     assign dst_id[WideAw]   = id_out[WideAw];

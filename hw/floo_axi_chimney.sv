@@ -373,7 +373,7 @@ module floo_axi_chimney
     .route_o    ( {route_out[AxiAw], route_out[AxiAr]}    ),
     .id_o       ( {id_out[AxiAw], id_out[AxiAr]}          )
   );
-  if (RouteAlgo == SourceRouting) begin : gen_src_routing_route
+  if (RouteAlgo == SourceRouting) begin : gen_route_field
     floo_route_comp #(
       .RouteAlgo    ( RouteAlgo     ),
       .UseIdTable   ( 1'b0          ),
@@ -395,7 +395,7 @@ module floo_axi_chimney
     );
     assign route_out[AxiW] = axi_aw_id_q;
     assign dst_id = route_out;
-  end else begin
+  end else begin : gen_dst_field
     assign dst_id[AxiAw]  = id_out[AxiAw];
     assign dst_id[AxiAr]  = id_out[AxiAr];
     assign dst_id[AxiB]   = aw_out_data_out.src_id;
