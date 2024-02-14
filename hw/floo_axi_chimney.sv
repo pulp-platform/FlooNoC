@@ -43,9 +43,7 @@ module floo_axi_chimney
   /// Type for implementation inputs and outputs
   parameter type sram_cfg_t                 = logic,
   /// Number of rules in the address map
-  parameter int unsigned NumRules           = 0,
-  /// Type of rules in the map
-  parameter type rule_t                     = logic
+  parameter int unsigned NumRoutes          = 0
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -58,8 +56,8 @@ module floo_axi_chimney
   input  axi_out_rsp_t axi_out_rsp_i,
   /// Coordinates/ID of the current tile
   input  id_t id_i,
-  /// Address map and/or routing table for the current tile
-  input  rule_t [NumRules-1:0] map_i,
+  /// Routing table for the current tile
+  input  route_t [NumRoutes-1:0] route_table_i,
   /// Output to NoC
   output floo_req_t floo_req_o,
   output floo_rsp_t floo_rsp_o,
@@ -128,7 +126,10 @@ module floo_axi_chimney
   } id_out_buf_t;
 
   // Routing
-  id_t [NumAxiChannels-1:0] dst_id;
+  dst_t [NumAxiChannels-1:0] dst_id;
+  dst_t axi_aw_id_q;
+  route_t [NumAxiChannels-1:0] route_out;
+  id_t [NumAxiChannels-1:0] id_out;
 
   id_out_buf_t aw_out_data_in, aw_out_data_out;
   id_out_buf_t ar_out_data_in, ar_out_data_out;
@@ -284,7 +285,7 @@ module floo_axi_chimney
     .ax_ready_o     ( aw_rob_ready_out              ),
     .ax_len_i       ( axi_aw_queue.len              ),
     .ax_id_i        ( axi_aw_queue.id               ),
-    .ax_dest_i      ( dst_id[AxiAw]                 ),
+    .ax_dest_i      ( id_out[AxiAw]                 ),
     .ax_valid_o     ( aw_rob_valid_out              ),
     .ax_ready_i     ( aw_rob_ready_in               ),
     .ax_rob_req_o   ( aw_rob_req_out                ),
@@ -330,7 +331,7 @@ module floo_axi_chimney
     .ax_ready_o     ( axi_ar_queue_ready_in         ),
     .ax_len_i       ( axi_ar_queue.len              ),
     .ax_id_i        ( axi_ar_queue.id               ),
-    .ax_dest_i      ( dst_id[AxiAr]                 ),
+    .ax_dest_i      ( id_out[AxiAr]                 ),
     .ax_valid_o     ( ar_rob_valid_out              ),
     .ax_ready_i     ( ar_rob_ready_in               ),
     .ax_rob_req_o   ( ar_rob_req_out                ),
@@ -350,48 +351,59 @@ module floo_axi_chimney
   //   ROUTING   //
   /////////////////
 
-  id_t axi_aw_id_q;
-
   floo_route_comp #(
     .RouteAlgo      ( RouteAlgo       ),
     .UseIdTable     ( UseIdTable      ),
     .XYAddrOffsetX  ( XYAddrOffsetX   ),
     .XYAddrOffsetY  ( XYAddrOffsetY   ),
     .IdAddrOffset   ( IdAddrOffset    ),
-    .NumRules       ( NumRules        ),
-    .id_in_t        ( axi_in_addr_t   ),
-    .rule_t         ( rule_t          ),
-    .id_out_t       ( id_out_t        )
-  ) i_floo_narrow_route_comp [3:0] (
+    .NumAddrRules   ( SamNumRules     ),
+    .NumRoutes      ( NumRoutes       ),
+    .id_t           ( id_t            ),
+    .addr_t         ( axi_in_addr_t   ),
+    .addr_rule_t    ( sam_rule_t      ),
+    .route_t        ( route_t         )
+  ) i_floo_narrow_route_comp [1:0] (
     .clk_i,
     .rst_ni,
-    .map_i,
-    .id_i   ( {axi_aw_queue.addr, axi_ar_queue.addr}  ),
-    .id_o   ( {dst_id[AxiAw], dst_id[AxiAr]}          )
+    .route_table_i,
+    .addr_map_i ( Sam                                     ),
+    .id_i       ( '0                                      ),
+    .addr_i     ( {axi_aw_queue.addr, axi_ar_queue.addr}  ),
+    .route_o    ( {route_out[AxiAw], route_out[AxiAr]}    ),
+    .id_o       ( {id_out[AxiAw], id_out[AxiAr]}          )
   );
   if (RouteAlgo == SourceRouting) begin : gen_src_routing_route
     floo_route_comp #(
-      .RouteAlgo  ( RouteAlgo   ),
-      .UseIdTable ( 1'b0        ),
-      .NumRules   ( NumRules    ),
-      .id_in_t    ( id_t        ),
-      .rule_t     ( rule_t      ),
-      .id_out_t   ( id_out_t    )
-    ) i_floo_rsp_route_comp [3:0] (
+      .RouteAlgo    ( RouteAlgo     ),
+      .UseIdTable   ( 1'b0          ),
+      .NumAddrRules ( SamNumRules   ),
+      .NumRoutes    ( NumRoutes     ),
+      .id_t         ( id_t          ),
+      .addr_t       ( axi_in_addr_t ),
+      .addr_rule_t  ( sam_rule_t    ),
+      .route_t      ( route_t       )
+    ) i_floo_rsp_route_comp [1:0] (
       .clk_i,
       .rst_ni,
-      .map_i,
-      .id_i ( {aw_out_data_out.src_id, ar_out_data_out.src_id}  ),
-      .id_o ( {dst_id[AxiB], dst_id[AxiR]}                      )
+      .route_table_i,
+      .addr_i     ( '0                                              ),
+      .addr_map_i ( '0                                              ),
+      .id_i       ({aw_out_data_out.src_id, ar_out_data_out.src_id} ),
+      .route_o    ({route_out[AxiB], route_out[AxiR]}               ),
+      .id_o       ({id_out[AxiB], id_out[AxiR]}                     )
     );
+    assign route_out[AxiW] = axi_aw_id_q;
+    assign dst_id = route_out;
   end else begin
-    assign dst_id[AxiB] = aw_out_data_out.src_id;
-    assign dst_id[AxiR] = ar_out_data_out.src_id;
+    assign dst_id[AxiAw]  = id_out[AxiAw];
+    assign dst_id[AxiAr]  = id_out[AxiAr];
+    assign dst_id[AxiB]   = aw_out_data_out.src_id;
+    assign dst_id[AxiR]   = ar_out_data_out.src_id;
+    assign dst_id[AxiAw]  = id_out[AxiAw];
   end
-  assign dst_id[AxiW]  = axi_aw_id_q;
   `FFL(axi_aw_id_q, dst_id[AxiAw], axi_aw_queue_valid_out &&
                                    axi_aw_queue_ready_in, '0)
-
 
   ///////////////////
   // FLIT PACKING  //
