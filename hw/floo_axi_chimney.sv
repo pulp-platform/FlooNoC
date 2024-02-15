@@ -363,7 +363,7 @@ module floo_axi_chimney
     .addr_t         ( axi_in_addr_t   ),
     .addr_rule_t    ( sam_rule_t      ),
     .route_t        ( route_t         )
-  ) i_floo_narrow_route_comp [1:0] (
+  ) i_floo_req_route_comp [1:0] (
     .clk_i,
     .rst_ni,
     .route_table_i,
