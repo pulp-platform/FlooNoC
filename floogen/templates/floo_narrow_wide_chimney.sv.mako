@@ -65,10 +65,13 @@ floo_narrow_wide_chimney  #(
 % endif
 % if ni.routing.route_algo.value == 'XYRouting':
   .id_i             ( ${actual_xy_id.render()}    ),
-  .map_i            ( '0                          ),
 % else:
   .id_i             ( ${ni.id.render()} ),
-  .map_i            ( ${snake_to_camel(ni.table.name)}  ),
+% endif
+% if ni.routing.route_algo.value == 'SourceRouting':
+  .route_table_i    ( ${snake_to_camel(ni.table.name)}  ),
+% else:
+  .route_table_i    ( '0                          ),
 % endif
   .floo_req_o       ( ${ni.mgr_link.req_name()}   ),
   .floo_rsp_i       ( ${ni.mgr_link.rsp_name()}   ),
