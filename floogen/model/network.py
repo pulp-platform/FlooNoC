@@ -513,8 +513,8 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         max_y = max(ni.id.y for ni in ni_nodes)
         max_address = max(ni.addr_range.end for ni in ni_sbr_nodes)
         xy_routing_info = {}
-        xy_routing_info["num_x_bits"] = clog2(max_x - min_x)
-        xy_routing_info["num_y_bits"] = clog2(max_y - min_y)
+        xy_routing_info["num_x_bits"] = clog2(max_x - min_x + 1)
+        xy_routing_info["num_y_bits"] = clog2(max_y - min_y + 1)
         xy_routing_info["addr_offset_bits"] = clog2(max_address)
         xy_routing_info["id_offset"] = Coord(x=min_x, y=min_y)
         return xy_routing_info
