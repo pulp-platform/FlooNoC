@@ -276,7 +276,7 @@ class RouteTable(BaseModel):
         for i, route in enumerate(self.routes):
             if i != route.id.id:
                 self.routes.insert(i, RouteRule(route=None, id=SimpleId(id=i)))
-        return self.routes
+        return self.routes.reverse()
 
     def render(self, num_route_bits):
         """Render the SystemVerilog route table."""
