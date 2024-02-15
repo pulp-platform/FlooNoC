@@ -79,10 +79,10 @@ module floo_route_comp
 
     `ASSERT(DecodeError, !dec_error)
   end else if (RouteAlgo == XYRouting) begin : gen_xy_bits_routing
-    assign id_o.x = id_i[XYAddrOffsetX +: $bits(id_o.x)];
-    assign id_o.y = id_i[XYAddrOffsetY +: $bits(id_o.y)];
+    assign id_o.x = addr_i[XYAddrOffsetX +: $bits(id_o.x)];
+    assign id_o.y = addr_i[XYAddrOffsetY +: $bits(id_o.y)];
   end else if (RouteAlgo == IdTable) begin : gen_id_bits_routing
-    assign id_o = id_i[IdAddrOffset +: $bits(id_o)];
+    assign id_o = addr_i[IdAddrOffset +: $bits(id_o)];
   end else if (RouteAlgo == SourceRouting) begin : gen_source_routing
     // Nothing to do here
   end else begin : gen_error
