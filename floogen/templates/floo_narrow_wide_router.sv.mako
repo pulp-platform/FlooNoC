@@ -56,7 +56,7 @@ floo_narrow_wide_router #(
 % if router.route_algo == 'IdTable':
   .id_route_map_i (${camelcase(router.name + "_table")}),
 % else:
-  .id_route_map_i (0),
+  .id_route_map_i ('0),
 % endif
   .floo_req_i (${router.name}_req_in),
   .floo_rsp_o (${router.name}_rsp_out),

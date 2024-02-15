@@ -7,8 +7,7 @@
 
 floo_narrow_wide_chimney  #(
 % if ni.routing.route_algo.value == 'SourceRouting':
-  .NumRules(${len(ni.table)}),
-  .rule_t (route_t),
+  .NumRoutes(${len(ni.table)}),
 % endif
 % if ni.sbr_narrow_port is None:
   .EnNarrowSbrPort(1'b0),
@@ -66,7 +65,7 @@ floo_narrow_wide_chimney  #(
 % if ni.routing.route_algo.value == 'XYRouting':
   .id_i             ( ${actual_xy_id.render()}    ),
 % else:
-  .id_i             ( ${ni.id.render()} ),
+  .id_i             ( id_t'(${ni.id.render()}) ),
 % endif
 % if ni.routing.route_algo.value == 'SourceRouting':
   .route_table_i    ( ${snake_to_camel(ni.table.name)}  ),
