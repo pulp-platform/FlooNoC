@@ -28,7 +28,7 @@ module tb_floo_dma_mesh;
   `ASSERT_INIT(NotEnoughXBits, $clog2(NumX + 2) <= $bits(x_bits_t))
   `ASSERT_INIT(NotEnoughYBits, $clog2(NumY + 2) <= $bits(y_bits_t))
   `ASSERT_INIT(NotEnoughAddrOffset, $clog2(HBMSize) <= XYAddrOffsetX)
-  end else begin
+  end else begin : gen_error
     $fatal(1, "This testbench only supports XYRouting");
   end
 
