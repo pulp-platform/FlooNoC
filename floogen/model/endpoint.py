@@ -131,3 +131,21 @@ class Endpoint(EndpointDesc):
             string += port.declare()
         return string
 
+class SnitchCluster(Endpoint):
+    """Endpoint class to describe an endpoint with adress ranges and configuration parameters."""
+
+    with resources.path("floogen.templates", "floo_snitch_cluster.sv.mako") as _tpl_path:
+        tpl: ClassVar = Template(filename=str(_tpl_path))
+
+    def __init__(self, endpoint: Endpoint):
+        super().__init__(
+            **{
+                field: getattr(endpoint, field)
+                for field in endpoint.model_fields
+                if field not in {"tpl"}
+            }
+        )
+
+    def render(self) -> str:
+        """Render the endpoint."""
+        return self.tpl.render(ep=self)
