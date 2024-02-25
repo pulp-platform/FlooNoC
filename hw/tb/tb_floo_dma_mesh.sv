@@ -24,9 +24,13 @@ module tb_floo_dma_mesh;
   localparam axi_narrow_in_addr_t HBMSize = 48'h10000; // 64KB
   localparam axi_narrow_in_addr_t MemSize = HBMSize;
 
+  if (RouteAlgo == XYRouting) begin : gen_asserts
   `ASSERT_INIT(NotEnoughXBits, $clog2(NumX + 2) <= $bits(x_bits_t))
   `ASSERT_INIT(NotEnoughYBits, $clog2(NumY + 2) <= $bits(y_bits_t))
   `ASSERT_INIT(NotEnoughAddrOffset, $clog2(HBMSize) <= XYAddrOffsetX)
+  end else begin : gen_error
+    $fatal(1, "This testbench only supports XYRouting");
+  end
 
   // Narrow Wide Chimney parameters
   localparam bit CutAx = 1'b1;
@@ -211,6 +215,7 @@ module tb_floo_dma_mesh;
       .sram_cfg_i           ( '0                ),
       .test_enable_i        ( 1'b0              ),
       .id_i                 ( xy_id_hbm         ),
+      .route_table_i        ( '0                ),
       .axi_narrow_in_req_i  ( '0                ),
       .axi_narrow_in_rsp_o  (                   ),
       .axi_narrow_out_req_o ( narrow_hbm_req[i] ),
@@ -343,6 +348,7 @@ module tb_floo_dma_mesh;
         .sram_cfg_i           ( '0                            ),
         .test_enable_i        ( 1'b0                          ),
         .id_i                 ( current_id                    ),
+        .route_table_i        ( '0                            ),
         .axi_narrow_in_req_i  ( narrow_man_req[x][y]          ),
         .axi_narrow_in_rsp_o  ( narrow_man_rsp[x][y]          ),
         .axi_narrow_out_req_o ( narrow_sub_req[x][y]          ),

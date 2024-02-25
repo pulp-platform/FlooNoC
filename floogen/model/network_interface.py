@@ -11,7 +11,7 @@ from importlib import resources
 from pydantic import BaseModel
 from mako.lookup import Template
 
-from floogen.model.routing import Id, AddrRange, Routing
+from floogen.model.routing import Id, AddrRange, Routing, RouteMap
 from floogen.model.protocol import AXI4
 from floogen.model.link import NarrowWideLink
 from floogen.model.endpoint import EndpointDesc
@@ -24,6 +24,7 @@ class NetworkInterface(BaseModel):
     endpoint: EndpointDesc
     description: str = ""
     routing: Routing
+    table: Optional[RouteMap] = None
     id: Optional[Id] = None
     arr_idx: Optional[Id] = None
     addr_range: Optional[AddrRange] = None
@@ -35,6 +36,14 @@ class NetworkInterface(BaseModel):
     def is_mgr(self) -> bool:
         """Return true if the network interface is a manager."""
         return self.endpoint.is_mgr()
+
+    def is_only_sbr(self) -> bool:
+        """Return true if the network interface is only a subordinate."""
+        return self.endpoint.is_sbr() and not self.endpoint.is_mgr()
+
+    def is_only_mgr(self) -> bool:
+        """Return true if the network interface is only a manager."""
+        return self.endpoint.is_mgr() and not self.endpoint.is_sbr()
 
 
 class NarrowWideAxiNI(NetworkInterface):

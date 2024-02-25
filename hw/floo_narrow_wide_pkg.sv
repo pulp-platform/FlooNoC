@@ -14,7 +14,7 @@ package floo_narrow_wide_pkg;
   //   AXI Parameters   //
   ////////////////////////
 
-  typedef enum {
+  typedef enum logic [3:0] {
     NarrowAw = 0,
     NarrowW = 1,
     NarrowAr = 2,
@@ -114,12 +114,14 @@ package floo_narrow_wide_pkg;
     y_bits_t y;
   } id_t;
 
+  typedef logic route_t;
+  typedef id_t dst_t;
 
 
   typedef struct packed {
     logic rob_req;
     rob_idx_t rob_idx;
-    id_t dst_id;
+    dst_t dst_id;
     id_t src_id;
     logic last;
     logic atop;
@@ -132,9 +134,9 @@ package floo_narrow_wide_pkg;
   //   Address Map   //
   /////////////////////
 
-  typedef logic addr_map_rule_t;
-  localparam int unsigned AddrMapNumRules = 0;
-  localparam addr_map_rule_t AddrMap = '0;
+  localparam int unsigned SamNumRules = 1;
+  typedef logic sam_rule_t;
+  localparam sam_rule_t Sam = '0;
 
   ////////////////////////
   //   Flits Typedefs   //

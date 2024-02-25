@@ -6,7 +6,7 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 import pytest
-from floogen.model.routing import AddrRange, RoutingRule, RoutingTable, SimpleId
+from floogen.model.routing import AddrRange, RouteMapRule, RouteMap, SimpleId
 
 
 def test_addr_range_creation1():
@@ -74,31 +74,31 @@ def test_invalid_addr_range():
 
 def test_routing_table_len():
     """Test the length of a RoutingTable object."""
-    rule1 = RoutingRule(addr_range=AddrRange(start=0, end=10), dest=SimpleId(id=1))
-    rule2 = RoutingRule(addr_range=AddrRange(start=11, end=20), dest=SimpleId(id=2))
-    routing_table = RoutingTable(rules=[rule1, rule2])
+    rule1 = RouteMapRule(addr_range=AddrRange(start=0, end=10), dest=SimpleId(id=1))
+    rule2 = RouteMapRule(addr_range=AddrRange(start=11, end=20), dest=SimpleId(id=2))
+    routing_table = RouteMap(name="test_map", rules=[rule1, rule2])
     assert len(routing_table) == 2
 
 
 def test_check_no_overlapping_ranges():
     """Test the check_no_overlapping_ranges method of a RoutingTable object."""
-    rule1 = RoutingRule(addr_range=AddrRange(start=0, end=10), dest=SimpleId(id=1))
-    rule2 = RoutingRule(addr_range=AddrRange(start=5, end=15), dest=SimpleId(id=2))
+    rule1 = RouteMapRule(addr_range=AddrRange(start=0, end=10), dest=SimpleId(id=1))
+    rule2 = RouteMapRule(addr_range=AddrRange(start=5, end=15), dest=SimpleId(id=2))
     with pytest.raises(ValueError):
-        RoutingTable(rules=[rule1, rule2])
+        RouteMap(name="test_map", rules=[rule1, rule2])
 
 
 def test_trim():
     """Test the trim method of a RoutingTable object."""
-    rule1 = RoutingRule(addr_range=AddrRange(start=0, end=10), dest=SimpleId(id=1))
-    rule2 = RoutingRule(addr_range=AddrRange(start=10, end=20), dest=SimpleId(id=1))
-    rule3 = RoutingRule(addr_range=AddrRange(start=20, end=30), dest=SimpleId(id=2))
-    rule4 = RoutingRule(addr_range=AddrRange(start=31, end=40), dest=SimpleId(id=2))
-    routing_table = RoutingTable(rules=[rule1, rule2, rule3, rule4])
+    rule1 = RouteMapRule(addr_range=AddrRange(start=0, end=10), dest=SimpleId(id=1))
+    rule2 = RouteMapRule(addr_range=AddrRange(start=10, end=20), dest=SimpleId(id=1))
+    rule3 = RouteMapRule(addr_range=AddrRange(start=20, end=30), dest=SimpleId(id=2))
+    rule4 = RouteMapRule(addr_range=AddrRange(start=31, end=40), dest=SimpleId(id=2))
+    routing_table = RouteMap(name="test_map", rules=[rule1, rule2, rule3, rule4])
     routing_table.trim()
     expected_rules = [
-        RoutingRule(addr_range=AddrRange(start=0, end=20), dest=SimpleId(id=1)),
-        RoutingRule(addr_range=AddrRange(start=20, end=30), dest=SimpleId(id=2)),
-        RoutingRule(addr_range=AddrRange(start=31, end=40), dest=SimpleId(id=2)),
+        RouteMapRule(addr_range=AddrRange(start=0, end=20), dest=SimpleId(id=1)),
+        RouteMapRule(addr_range=AddrRange(start=20, end=30), dest=SimpleId(id=2)),
+        RouteMapRule(addr_range=AddrRange(start=31, end=40), dest=SimpleId(id=2)),
     ]
     assert routing_table.rules == expected_rules

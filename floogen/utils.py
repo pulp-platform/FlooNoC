@@ -35,9 +35,15 @@ def short_dir(direction: str) -> str:
     """Returns the short direction string."""
     return "in" if direction == "input" else "out"
 
+
 def bool_to_sv(value: bool) -> str:
     """Converts a boolean to a SystemVerilog string."""
     return "1'b1" if value else "1'b0"
+
+
+def int_to_hex(value: int, width: int) -> str:
+    """Converts an integer to a hex string."""
+    return f"{width}'h{value:0{width//4}x}"
 
 
 def sv_param_decl(
@@ -45,14 +51,15 @@ def sv_param_decl(
     value: Union[int, str],
     ptype: str = "localparam",
     dtype: str = "int unsigned",
-    array_size: int = None,
+    array_size: Union[int, str] = None,
 ) -> str:
     """Declare a SystemVerilog parameter."""
     assert ptype in ["localparam", "parameter"]
-    assert array_size is None or isinstance(array_size, int)
     if array_size is None:
         return f"{ptype} {dtype} {name} = {value};\n"
-    return f"{ptype} {dtype}[{array_size-1}:0] {name} = {value};\n"
+    if isinstance(array_size, int):
+        return f"{ptype} {dtype}[{array_size-1}:0] {name} = {value};\n"
+    return f"{ptype} {dtype}[{array_size}:0] {name} = {value};\n"
 
 
 def sv_typedef(name: str, dtype: str = "logic", array_size: int = None) -> str:

@@ -101,7 +101,6 @@ module tb_floo_dma_chimney;
 
   floo_axi_chimney #(
     .AtopSupport        ( 1'b0                ),
-    .RouteAlgo          ( floo_pkg::IdTable   ),
     .MaxTxns            ( MaxTxns             ),
     .MaxTxnsPerId       ( MaxTxnsPerId        ),
     .ReorderBufferSize  ( ReorderBufferSize   )
@@ -114,8 +113,8 @@ module tb_floo_dma_chimney;
     .axi_in_rsp_o   ( node_man_rsp[0]   ),
     .axi_out_req_o  ( node_sub_req[0]   ),
     .axi_out_rsp_i  ( node_sub_rsp[0]   ),
-    .xy_id_i        ( '0                ),
     .id_i           ( '0                ),
+    .route_table_i  ( '0                ),
     .floo_req_o     ( chimney_req[0]    ),
     .floo_rsp_o     ( chimney_rsp[0]    ),
     .floo_req_i     ( chimney_req[1]    ),
@@ -124,7 +123,6 @@ module tb_floo_dma_chimney;
 
   floo_axi_chimney #(
     .AtopSupport        ( 1'b0                ),
-    .RouteAlgo          ( floo_pkg::IdTable   ),
     .MaxTxns            ( MaxTxns             ),
     .MaxTxnsPerId       ( MaxTxnsPerId        ),
     .ReorderBufferSize  ( ReorderBufferSize   )
@@ -137,8 +135,8 @@ module tb_floo_dma_chimney;
     .axi_in_rsp_o   ( node_man_rsp[1] ),
     .axi_out_req_o  ( node_sub_req[1] ),
     .axi_out_rsp_i  ( node_sub_rsp[1] ),
-    .xy_id_i        ( '0              ),
     .id_i           ( '0              ),
+    .route_table_i  ( '0              ),
     .floo_req_o     ( chimney_req[1]  ),
     .floo_rsp_o     ( chimney_rsp[1]  ),
     .floo_req_i     ( chimney_req[0]  ),
@@ -165,7 +163,6 @@ module tb_floo_dma_chimney;
   floo_dma_test_node #(
     .TA           ( ApplTime        ),
     .TT           ( TestTime        ),
-    .TCK          ( CyclTime        ),
     .DataWidth    ( AxiInDataWidth  ),
     .AddrWidth    ( AxiInAddrWidth  ),
     .UserWidth    ( AxiInUserWidth  ),

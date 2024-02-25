@@ -38,11 +38,11 @@ package floo_${name}_pkg;
   /////////////////////
 
 % if noc.routing.use_id_table:
-  ${noc.routing.table.render(name="addr_map", aw=noc.routing.addr_width, id_offset=noc.routing.id_offset)}
+  ${noc.routing.sam.render(aw=noc.routing.addr_width)}
 % else:
-  typedef logic addr_map_rule_t;
-  localparam int unsigned AddrMapNumRules = 0;
-  localparam addr_map_rule_t AddrMap = '0;
+  localparam int unsigned SamNumRules = 1;
+  typedef logic sam_rule_t;
+  localparam sam_rule_t Sam = '0;
 % endif
 
   ////////////////////////

@@ -9,7 +9,7 @@ from typing import ClassVar, List, Union, Dict, Optional, NamedTuple
 from abc import ABC, abstractmethod
 from pydantic import BaseModel
 
-from floogen.utils import snake_to_camel, sv_struct_typedef
+from floogen.utils import snake_to_camel, sv_struct_typedef, clog2
 
 
 class Link(BaseModel, ABC):
@@ -40,14 +40,15 @@ class Link(BaseModel, ABC):
     @classmethod
     def render_enum_decl(cls):
         """Render the enum declaration of the link."""
-        string = "typedef enum {"
         i = 0
+        string = ""
         for _, mapping in cls.channel_mapping.items():
             for ch_type, axi_chs in mapping.items():
                 for axi_ch in axi_chs:
                     name = f"{ch_type}_{axi_ch}"
                     string += f"{snake_to_camel(name)} = {i},\n"
                     i += 1
+        string = f"typedef enum logic [{clog2(i+1)-1}:0]{{" + string
         string += f"NumAxiChannels = {i}\n}} axi_ch_e;\n"
         return string
 

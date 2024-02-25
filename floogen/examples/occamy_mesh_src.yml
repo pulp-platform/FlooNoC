@@ -1,0 +1,122 @@
+# Copyright 2023 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+
+name: occamy_mesh
+description: "Occamy mesh configuration for FlooGen with source-based routing"
+
+routing:
+  route_algo: "SRC"
+  use_id_table: true
+
+protocols:
+  - name: "narrow"
+    type: "AXI4"
+    direction: "manager"
+    data_width: 64
+    addr_width: 48
+    id_width: 4
+    user_width: 1
+  - name: "narrow"
+    type: "AXI4"
+    direction: "subordinate"
+    data_width: 64
+    addr_width: 48
+    id_width: 2
+    user_width: 1
+  - name: "wide"
+    type: "AXI4"
+    direction: "manager"
+    data_width: 512
+    addr_width: 48
+    id_width: 3
+    user_width: 1
+  - name: "wide"
+    type: "AXI4"
+    direction: "subordinate"
+    data_width: 512
+    addr_width: 48
+    id_width: 1
+    user_width: 1
+
+endpoints:
+  - name: "cluster"
+    array: [3, 8]
+    addr_range:
+      base: 0x0000_1000_0000
+      size: 0x0000_0004_0000
+    mgr_port_protocol:
+      - "narrow"
+      - "wide"
+    sbr_port_protocol:
+      - "narrow"
+      - "wide"
+  - name: "hbm"
+    array: [8]
+    addr_range:
+      base: 0x0000_8000_0000
+      size: 0x0000_4000_0000
+    sbr_port_protocol:
+      - "narrow"
+      - "wide"
+  - name: "serial_link"
+    array: [3]
+    addr_range:
+      base: 0x0100_0000_0000
+      size: 0x0010_000_0000
+    mgr_port_protocol:
+      - "narrow"
+      - "wide"
+    sbr_port_protocol:
+      - "narrow"
+      - "wide"
+  - name: "cva6"
+    mgr_port_protocol:
+      - "narrow"
+  - name: "peripherals"
+    addr_range:
+      start: 0x0000_0000_0000
+      end: 0x0000_0fff_ffff
+    mgr_port_protocol:
+      - "narrow"
+    sbr_port_protocol:
+      - "narrow"
+
+routers:
+  - name: "router"
+    array: [3, 8]
+
+connections:
+  - src: "cluster"
+    dst: "router"
+    src_range:
+    - [0, 2]
+    - [0, 7]
+    dst_range:
+    - [0, 2]
+    - [0, 7]
+    bidirectional: true
+  - src: "hbm"
+    dst: "router"
+    src_range:
+    - [0, 7]
+    dst_range:
+    - [0, 0]
+    - [0, 7]
+    bidirectional: true
+  - src: "serial_link"
+    dst: "router"
+    src_range:
+    - [0, 2]
+    dst_range:
+    - [0, 2]
+    - [0, 0]
+    bidirectional: true
+  - src: "cva6"
+    dst: "router"
+    dst_idx: [0, 7]
+    bidirectional: true
+  - src: "peripherals"
+    dst: "router"
+    dst_idx: [1, 7]
+    bidirectional: true

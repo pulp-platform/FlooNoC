@@ -12,7 +12,7 @@ package floo_pkg;
   typedef enum logic[1:0] {
     IdIsPort,
     IdTable,
-    Consumption,
+    SourceRouting,
     XYRouting
   } route_algo_e;
 
