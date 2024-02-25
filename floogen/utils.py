@@ -85,7 +85,7 @@ def verible_format(string: str) -> str:
     """Format the string using verible-verilog-format."""
     if shutil.which("verible-verilog-format") is None:
         raise RuntimeError(
-            "verible-verilog-format not found. Please install it to use the --format option."
+            "verible-verilog-format not found. Please install it or use the --no-format option."
         )
     # Format the output using verible-verilog-format, by piping it into the stdin
     # of the formatter and capturing the stdout
