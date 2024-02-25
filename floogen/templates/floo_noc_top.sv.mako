@@ -18,7 +18,9 @@ module ${noc.name}_floo_noc
 );
 
 ${noc.render_links()}
+${noc.render_prots()}
+${noc.render_eps()}
 ${noc.render_nis()}
-${noc.render_routers()}
+${noc.render_rts()}
 
 endmodule

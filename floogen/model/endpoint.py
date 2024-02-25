@@ -4,8 +4,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
-from typing import Optional, List, Union, Tuple
+from typing import Optional, List, Union, Tuple, ClassVar
+from importlib import resources
+
 from pydantic import BaseModel, field_validator, model_validator
+from mako.lookup import Template
 
 from floogen.model.routing import AddrRange, Id, Coord
 from floogen.model.protocol import Protocols
@@ -21,6 +24,8 @@ class EndpointDesc(BaseModel):
     array: Optional[Union[Tuple[int], Tuple[int, int]]] = None
     addr_range: Optional[AddrRange] = None
     id_offset: Optional[Id] = None
+    is_external: Optional[bool] = True
+    template: Optional[str] = None
     mgr_port_protocol: Optional[List[str]] = None
     sbr_port_protocol: Optional[List[str]] = None
 
@@ -53,6 +58,13 @@ class EndpointDesc(BaseModel):
                 raise ValueError("Endpoint is a Subordinate and requires an address range")
         return self
 
+    @model_validator(mode="after")
+    def check_ext_template(self):
+        """Every internal endpoint requires a template."""
+        if not self.is_external and self.template is None:
+            raise ValueError("Internal endpoints require a template")
+        return self
+
     def is_sbr(self) -> bool:
         """Return true if the endpoint is a subordinate."""
         return self.sbr_port_protocol is not None
@@ -80,6 +92,7 @@ class EndpointDesc(BaseModel):
 class Endpoint(EndpointDesc):
     """Endpoint class to describe an endpoint with adress ranges and configuration parameters."""
 
+    basename: str
     mgr_ports: List[Protocols] = []
     sbr_ports: List[Protocols] = []
 
@@ -90,6 +103,16 @@ class Endpoint(EndpointDesc):
         """Create an endpoint from a description."""
         return cls(**desc.model_dump(), mgr_ports=mgr_ports, sbr_ports=sbr_ports)
 
+    def render(self) -> str:
+        """Render the endpoint."""
+        match self.template:
+            case "snitch_cluster":
+                return SnitchCluster(self).render()
+            case None:
+                raise ValueError("Template not set")
+            case _:
+                raise ValueError(f"Template {self.template} not supported")
+
     def render_ports(self):
         """Render the ports of the endpoint."""
         ports = []
@@ -98,3 +121,13 @@ class Endpoint(EndpointDesc):
         for port in self.sbr_ports:
             ports += port.render_port()
         return ports
+
+    def render_prot_decl(self):
+        """Render the protocol declarations of the endpoint."""
+        string = ""
+        for port in self.mgr_ports:
+            string += port.declare()
+        for port in self.sbr_ports:
+            string += port.declare()
+        return string
+

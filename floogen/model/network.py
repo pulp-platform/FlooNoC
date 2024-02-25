@@ -138,6 +138,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         """Create the endpoints in the network."""
 
         for ep_desc in self.endpoints:
+            edge_subtype = "port" if ep_desc.is_external else "internal"
             # handle single endpoint
             match ep_desc.array:
                 # Single endpoint case
@@ -145,9 +146,19 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     self.graph.add_node(ep_desc.name, obj=ep_desc, type="endpoint")
                     self.graph.add_node(f"{ep_desc.name}_ni", obj=ep_desc, type="network_interface")
                     if ep_desc.is_sbr():
-                        self.graph.add_edge(f"{ep_desc.name}_ni", ep_desc.name, type="protocol")
+                        self.graph.add_edge(
+                            f"{ep_desc.name}_ni",
+                            ep_desc.name,
+                            type="protocol",
+                            subtype=edge_subtype,
+                        )
                     if ep_desc.is_mgr():
-                        self.graph.add_edge(ep_desc.name, f"{ep_desc.name}_ni", type="protocol")
+                        self.graph.add_edge(
+                            ep_desc.name,
+                            f"{ep_desc.name}_ni",
+                            type="protocol",
+                            subtype=edge_subtype,
+                        )
                 # 1D array case
                 case (n,):
                     self.graph.add_nodes_as_array(
@@ -168,10 +179,14 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     ni_nodes = self.graph.get_nodes_from_range(f"{ep_desc.name}_ni", [(0, n - 1)])
                     if ep_desc.is_sbr():
                         for ep_node, ni_node in zip(ep_nodes, ni_nodes):
-                            self.graph.add_edge(ni_node, ep_node, type="protocol")
+                            self.graph.add_edge(
+                                ni_node, ep_node, type="protocol", subtype=edge_subtype
+                            )
                     if ep_desc.is_mgr():
                         for ep_node, ni_node in zip(ep_nodes, ni_nodes):
-                            self.graph.add_edge(ep_node, ni_node, type="protocol")
+                            self.graph.add_edge(
+                                ep_node, ni_node, type="protocol", subtype=edge_subtype
+                            )
                 # 2D array case
                 case (m, n):
                     self.graph.add_nodes_as_array(
@@ -196,10 +211,14 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     )
                     if ep_desc.is_sbr():
                         for ep_node, ni_node in zip(ep_nodes, ni_nodes):
-                            self.graph.add_edge(ni_node, ep_node, type="protocol")
+                            self.graph.add_edge(
+                                ni_node, ep_node, type="protocol", subtype=edge_subtype
+                            )
                     if ep_desc.is_mgr():
                         for ep_node, ni_node in zip(ep_nodes, ni_nodes):
-                            self.graph.add_edge(ep_node, ni_node, type="protocol")
+                            self.graph.add_edge(
+                                ep_node, ni_node, type="protocol", subtype=edge_subtype
+                            )
                 # Invalid case
                 case _:
                     raise ValueError("Invalid endpoint description")
@@ -394,9 +413,9 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     sbr_ports.append(protocol)
                 self.graph.set_edge_obj((prot["source"], prot["dest"]), sbr_ports)
             # Add endpoint object to the node
-            self.graph.set_node_obj(
-                ep_name, Endpoint(mgr_ports=mgr_ports, sbr_ports=sbr_ports, **ep.__dict__)
-            )
+            new_ep_obj = Endpoint(basename=ep.name, mgr_ports=mgr_ports, sbr_ports=sbr_ports, **ep.__dict__)
+            new_ep_obj.name = ep_name
+            self.graph.set_node_obj(ep_name, new_ep_obj)
 
     def compile_nis(self):
         """Compile the endpoints in the network."""
@@ -568,19 +587,20 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         """Render the ports in the generated code."""
         ports, declared_ports = [], []
         for ep in self.graph.get_ep_nodes():
-            if ep.name in declared_ports:
+            if ep.basename in declared_ports or not ep.is_external:
                 continue
             ports += ep.render_ports()
-            declared_ports.append(ep.name)
+            declared_ports.append(ep.basename)
         port_string = ",\n  ".join(ports) + "\n"
         return port_string
 
     def render_prots(self):
         """Render the protocols in the generated code."""
         string = ""
-        for prot_list in self.graph.get_prot_edges():
-            for prot in prot_list:
-                string += prot.declare()
+        for ep in self.graph.get_ep_nodes():
+            if ep.is_external:
+                continue
+            string += ep.render_prot_decl()
         return string
 
     def render_links(self):
@@ -590,11 +610,19 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             string += link.declare()
         return string
 
-    def render_routers(self):
+    def render_rts(self):
         """Render the routers in the generated code."""
         string = ""
         for rt in self.graph.get_rt_nodes():
             string += rt.render()
+        return string
+
+    def render_eps(self):
+        """Render the endpoints in the generated code."""
+        string = ""
+        for ep in self.graph.get_ep_nodes():
+            if not ep.is_external:
+                string += ep.render()
         return string
 
     def render_nis(self):

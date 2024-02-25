@@ -163,14 +163,14 @@ class AXI4Bus(AXI4):
         idx = self._idx_to_sv_idx() if idx else ""
         if port:
             return f"{self.base_name}_req_{self.svdirection[0]}{idx}"
-        return f"{self.source}_to_{self.dest}_req"
+        return f"{self.source}_to_{self.dest}_{self.name}_req"
 
     def rsp_name(self, port=False, idx=False) -> str:
         """Return the response name of the protocol."""
         idx = self._idx_to_sv_idx() if idx else ""
         if port:
             return f"{self.base_name}_rsp_{self._invert_dir()[0]}{idx}"
-        return f"{self.dest}_to_{self.source}_rsp"
+        return f"{self.dest}_to_{self.source}_{self.name}_rsp"
 
     def declare(self) -> str:
         """Declare the protocol."""

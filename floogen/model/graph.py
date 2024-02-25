@@ -75,6 +75,18 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
         """Return whether the node is an endpoint node."""
         return self.nodes[node]["type"] == "endpoint"
 
+    def is_ext_ep_node(self, node):
+        """Return whether the node is an external endpoint node."""
+        if not self.is_ep_node(node):
+            return False
+        return self.get_node_obj(node).external
+
+    def is_int_ep_node(self, node):
+        """Return whether the node is an internal endpoint node."""
+        if not self.is_ep_node(node):
+            return False
+        return not self.get_node_obj(node).external
+
     def is_ni_node(self, node):
         """Return whether the node is an ni node."""
         return self.nodes[node]["type"] == "network_interface"
@@ -86,6 +98,18 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
     def is_link_edge(self, edge):
         """Return whether the edge is a link edge."""
         return self.edges[edge]["type"] == "link"
+
+    def is_ext_prot_edge(self, edge):
+        """Return whether the edge is an external protocol edge."""
+        if not self.is_prot_edge(edge):
+            return False
+        return self.edges[edge]["subtype"] == "port"
+
+    def is_int_prot_edge(self, edge):
+        """Return whether the edge is an internal protocol edge."""
+        if not self.is_prot_edge(edge):
+            return False
+        return self.edges[edge]["subtype"] == "internal"
 
     def get_nodes(self, filters=None, with_name=False):
         """Filter the nodes from the graph."""
@@ -262,3 +286,11 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
     def get_node_id(self, node):
         """Return the node id."""
         return self.nodes[node]["id"]
+
+    def get_ext_prot_edges(self, with_name=False):
+        """Return protocol edges that go out of the NoC top module."""
+        return self.get_edges(filters=[self.is_ext_prot_edge], with_name=with_name)
+
+    def get_int_prot_edges(self, with_name=False):
+        """Return protocol edges that stay inside the NoC top module."""
+        return self.get_edges(filters=[self.is_prot_edge, lambda e: not self.is_ext_prot_edge(e)], with_name=with_name)
