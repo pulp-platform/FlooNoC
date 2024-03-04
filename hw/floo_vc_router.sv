@@ -170,7 +170,7 @@ end
 
 
 // =============
-// 2 local SA for each input in_port
+// 2 local SA for each input port
 // =============
 
 for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
@@ -199,7 +199,7 @@ end
 
 
 // =============
-// 3 global SA for each output in_port
+// 3 global SA for each output port
 // =============
 
 /*
