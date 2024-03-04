@@ -25,6 +25,17 @@ package floo_pkg;
     NumDirections
   } route_direction_e;
 
+  typedef enum logic[2:0] {
+    N = 3'd0,
+    E = 3'd1,
+    S = 3'd2,
+    W = 3'd3,
+    L0 = 3'd4,
+    L1 = 3'd5,
+    L2 = 3'd6,
+    L3 = 3'd7
+  } route_dir_e;  // i see that this is nasty, but i cannot work with eject (local) being 0, since there might be more than one local port
+
   typedef enum  {
     RucheNorth = 'd5,
     RucheEast  = 'd6,
