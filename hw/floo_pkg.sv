@@ -34,7 +34,7 @@ package floo_pkg;
     L1 = 3'd5,
     L2 = 3'd6,
     L3 = 3'd7
-  } route_dir_e;  // i see that this is nasty, but i cannot work with eject (local) being 0, since there might be more than one local port
+  } route_dir_e;  // this is nasty, but there might be more than one local port
 
   typedef enum  {
     RucheNorth = 'd5,

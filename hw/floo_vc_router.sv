@@ -95,7 +95,7 @@ logic           [NumPorts-1:0][NumVCWidth-1:0]  sa_local_vc_id;
 // 1 input ports
 // =============
 
-for (genvar i = 0; i < NumPorts; i++) begin
+for (genvar i = 0; i < NumPorts; i++) begin : gen_input_ports
   floo_input_port #(
     .flit_t,
     .flit_payload_t,
