@@ -6,12 +6,15 @@
 
 
 module floo_input_port #(
+module floo_input_port #(
   parameter type flit_t = logic,
   parameter int HdrLength = $bits(hdr_t),
   parameter int DataLength = $bits(flit_t) - HdrLength,
   parameter type flit_payload_t = logic[DataLength-1:0],
   parameter int NumVC = 4,
   parameter int NumVCWidth = 2,
+  parameter int VCDepth  = 3
+) (
   parameter int VCDepth  = 3
 ) (
   input  logic clk_i,
@@ -32,6 +35,7 @@ module floo_input_port #(
 
   // input pop flit ctrl fifo (comes from ST stage)
   input logic                           read_enable_st_stage_i,
+  input logic [NumVCWidth-1:0]          read_vc_id_st_stage_i
   input logic [NumVCWidth-1:0]          read_vc_id_st_stage_i
 );
 

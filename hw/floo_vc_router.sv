@@ -10,6 +10,7 @@
 // Lukas Berner <bernerl@student.ethz.ch>
 
 // a router with virtual channels in the design of "Simple virtual channel allocation for high throughput and high frequency on-chip routers"
+// a router with virtual channels in the design of "Simple virtual channel allocation for high throughput and high frequency on-chip routers"
 // using the FVADA VC selection algorithm also described in that paper
 module floo_vc_router #(
   parameter int           NumPorts                    = 5, // phys channels are always in and output
@@ -24,6 +25,9 @@ module floo_vc_router #(
   parameter int           NumVCWidthToOut[NumPorts]   = {2,2,2,2,2},
   parameter int           NumVCWidthToOutMax          = 2,
 
+  parameter int           NumInputSaGlobal [NumPorts-1] =
+    {3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 4+NumLocalPorts-1},
+    // to dir N,E,S,W,L0(,L1,L2,L3)
   parameter int           NumInputSaGlobal [NumPorts-1] =
     {3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 4+NumLocalPorts-1},
     // to dir N,E,S,W,L0(,L1,L2,L3)
@@ -42,6 +46,7 @@ module floo_vc_router #(
   parameter type          id_t                        = logic[IdWidth-1:0],
   /// Used for ID-based routing
   parameter int unsigned  NumAddrRules                = 0,
+  parameter type          addr_rule_t                 = logic
   parameter type          addr_rule_t                 = logic
 ) (
   input  logic                                        clk_i,
@@ -62,6 +67,7 @@ module floo_vc_router #(
   output  logic  [NumPorts-1:0]                       data_v_o,
   output  flit_t [NumPorts-1:0]                       data_o
 );
+
 
 /*
 Structure:
@@ -87,7 +93,9 @@ hdr_t           [NumPorts-1:0][NumVCMax-1:0]    vc_ctrl_head;
 flit_payload_t  [NumPorts-1:0][NumVCMax-1:0]    vc_data_head;
 
 logic           [NumPorts-1:0]                  read_enable_sa_stage;
+logic           [NumPorts-1:0]                  read_enable_sa_stage;
 logic           [NumPorts-1:0][NumVCWidth-1:0]  read_vc_id_sa_stage;
+logic           [NumPorts-1:0]                  read_enable_st_stage;
 logic           [NumPorts-1:0]                  read_enable_st_stage;
 logic           [NumPorts-1:0][NumVCWidth-1:0]  read_vc_id_st_stage;
 
@@ -113,6 +121,7 @@ logic           [NumPorts-1:0]                  vc_assignment_v;
 
 
 
+
 // =============
 // 1 input ports
 // =============
@@ -129,6 +138,8 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_input_ports
   ) i_input_port (
     // input from other router or local port
     .credit_v_o                     (credit_v_o           [in_port]),
+    .credit_id_o                    (credit_id_o          [in_port]),
+    .data_v_i                       (data_v_i             [in_port]),
     .credit_id_o                    (credit_id_o          [in_port]),
     .data_v_i                       (data_v_i             [in_port]),
     .data_i                         (data_i               [in_port]),
@@ -157,6 +168,7 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_input_ports
 end
 
 
+
 // =============
 // 2 local SA for each input in_port
 // =============
@@ -170,6 +182,8 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
     .vc_ctrl_head_v_i               (vc_ctrl_head_v          [in_port]),
     .vc_ctrl_head_i                 (vc_ctrl_head            [in_port]),
 
+    // chosen output: all 0 if none
+    .sa_local_output_dir_oh_o       (sa_local_output_dir_oh  [in_port]),
     // chosen output: all 0 if none
     .sa_local_output_dir_oh_o       (sa_local_output_dir_oh  [in_port]),
     .sa_local_v_o                   (sa_local_v              [in_port]), // 1 if any was chosen
