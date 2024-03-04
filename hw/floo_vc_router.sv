@@ -76,7 +76,7 @@ Structure:
 // 0 defines
 // =============
 
-
+// These arrays are too large: in these dimensions where there are fewer vc, the highest indexes are never accessed, so the synthesizer should remove them
 logic           [NumPorts-1:0][NumVCMax-1:0]    vc_ctrl_head_v;
 hdr_t           [NumPorts-1:0][NumVCMax-1:0]    vc_ctrl_head;
 flit_payload_t  [NumPorts-1:0][NumVCMax-1:0]    vc_data_head;
@@ -115,6 +115,7 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_input_ports
     .flit_t,
     .flit_payload_t,
     .NumVC                          (NumVC[in_port]),
+    .NumVCMax                       (NumVCMax),
     .NumVCWidth,
     .VCDepth                        (VCDepth),
   ) i_input_port (
@@ -132,12 +133,12 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_input_ports
     .vc_data_head_o                 (vc_data_head         [in_port]),
 
     // pop flit ctrl fifo (comes from SA stage)
-    .inport_read_enable_sa_stage_i  (read_enable_sa_stage [in_port]),
-    .inport_read_vc_id_sa_stage_i   (sa_local_vc_id       [in_port]),
+    .read_enable_sa_stage_i         (read_enable_sa_stage [in_port]),
+    .read_vc_id_sa_stage_i          (sa_local_vc_id       [in_port]),
 
     // pop flit data fifo (comes from ST stage)
-    .inport_read_enable_st_stage_i  (read_enable_st_stage [in_port]),
-    .inport_read_vc_id_st_stage_i   (read_vc_id_st_stage  [in_port]),
+    .read_enable_st_stage_i         (read_enable_st_stage [in_port]),
+    .read_vc_id_st_stage_i          (read_vc_id_st_stage  [in_port]),
 
     .clk_i,
     .rst_ni
@@ -177,15 +178,45 @@ end
 // =============
 
 /*
-Issue: sa global would benefit from only using as many inputs as needed
-if (RouteAlgo == XYRouting) begin : gen_reduce_sa_global_input_size_if_xyrouting
 
-  end -> will do optimizations in seperate commit
+sa_local_vc_id is in the same space as vc_data/ctrl_head -> 0th is 0th vc, doesnt need to be dir N
+sa_local_output_dir_oh is in route_dir_e space           -> 0th is towards (route_dir_e) 0
+  -> cannot take each bit for each input in xyRouting
+
+generally: we are not allowed to give the results from sa_local to the sa_global of the same port
+
+
+Issue: sa global would benefit from only using as many inputs as needed
 
 */
 for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_transform_sa_results
-  assign sa_local_vc_id_per_output[out_port] = sa_local_vc_id[NumPorts-1:0][out_port];
-  assign sa_local_v_per_output[out_port]     = sa_local_v[NumPorts-1:0][out_port];
+  if (RouteAlgo == XYRouting) begin : gen_reduce_sa_global_input_size_if_xyrouting
+    // only transpose until i figure this out
+    for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_red_sa_results_in_port
+      if(in_port != out_port) begin : gen_red_sa_results_in_port_ne_out_port
+        genvar sa_global_input_index;
+        assign sa_global_input_index = in_port < out_port ? in_port : inport - 1;
+        assign sa_local_vc_id_per_output[out_port][sa_global_input_index]
+                = sa_local_vc_id[in_port][out_port];
+        assign sa_local_v_per_output[out_port][sa_global_input_index]
+                = sa_local_v[in_port][out_port];
+      end
+    end
+
+  end
+  // if not XY Routing: just transpose the matrix and leave out this dim
+  else begin : gen_transpose_sa_results
+    for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_transp_sa_results_in_port
+      if(in_port != out_port) begin : gen_transp_sa_results_in_port_ne_out_port
+        genvar sa_global_input_index;
+        assign sa_global_input_index = in_port < out_port ? in_port : inport - 1;
+        assign sa_local_vc_id_per_output[out_port][sa_global_input_index]
+                = sa_local_vc_id[in_port][out_port];
+        assign sa_local_v_per_output[out_port][sa_global_input_index]
+                = sa_local_v[in_port][out_port];
+      end
+    end
+  end
 end
 
 for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_sa_global
