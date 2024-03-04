@@ -49,7 +49,7 @@ always_comb begin
 end
 
 // data fifo -> hdr is always before payload in flits
-for(genvar v_chan = 0; v_chan < NumVC; v_chan++) begin: gen_data_fifo
+for(genvar v_chan = 0; v_chan < NumVC; v_chan++) begin: gen_data_fifos
   stream_fifo_optimal_wrap #(
     .Depth  (VCDepth),
     .type_t (flit_payload_t)
@@ -69,7 +69,7 @@ for(genvar v_chan = 0; v_chan < NumVC; v_chan++) begin: gen_data_fifo
 end
 
 // ctrl fifo -> hdr is always before payload in flits
-for(genvar v_chan = 0; v_chan < NumVC; v_chan++) begin: gen_ctrl_fifo
+for(genvar v_chan = 0; v_chan < NumVC; v_chan++) begin: gen_ctrl_fifos
   stream_fifo_optimal_wrap #(
       .Depth  (VCDepth),
       .type_t (hdr_t)

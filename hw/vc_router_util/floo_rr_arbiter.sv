@@ -17,7 +17,6 @@ module floo_rr_arbiter #(
 ); 
   genvar i, j;
   if(NumInputs == 1) begin: 
-  
     assign grant_o     = req_i;
     assign grant_id_o = 0;
   end else begin: 
@@ -44,15 +43,15 @@ module floo_rr_arbiter #(
     assign dereordered_selected_req = right_rotate_helper[NumInputs*2-1-:NumInputs];
 
     //extract id from onehot: create id mask
-    for(i = 0; i < NumInputsWidth; i++) begin
-      for(j = 0; j < NumInputs; j++) begin 
+    for(i = 0; i < NumInputsWidth; i++) begin : gen_id_mask_NumInputsWidth
+      for(j = 0; j < NumInputs; j++) begin : gen_id_mask_NumInputs
         assign id_mask[i][j] = (j/(2**i)) % 2;
       end
     end
     //mask looks like this: N_Input = 3: (0,0) is first bit
     // 0 0 0  // 1 0 0  // 0 1 0  // 1 1 0  // 0 0 1  // 1 0 1  // 0 1 1  // 1 1 1  
     // use mask to get req_id
-    for(i = 0; i < NumInputsWidth; i++) begin
+    for(i = 0; i < NumInputsWidth; i++) begin : gen_get_selected_req_id
       assign selected_req_id[i] = |(dereordered_selected_req & id_mask[i]);
     end
 
