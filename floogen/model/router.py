@@ -7,7 +7,7 @@
 
 
 from typing import Optional, List, ClassVar, Tuple, Union
-from importlib import resources
+from importlib.resources import files, as_file
 from abc import ABC, abstractmethod
 
 from pydantic import BaseModel, field_validator
@@ -15,6 +15,7 @@ from mako.lookup import Template
 
 from floogen.model.routing import RouteMap, Id, Coord, RouteAlgo
 from floogen.model.link import Link, XYLinks
+import floogen.templates
 
 
 class RouterDesc(BaseModel):
@@ -76,7 +77,9 @@ class XYRouter(BaseModel, ABC):
 class NarrowWideRouter(Router):
     """Router class to describe a narrow-wide router"""
 
-    with resources.path("floogen.templates", "floo_narrow_wide_router.sv.mako") as _tpl_path:
+    with as_file(
+        files(floogen.templates).joinpath("floo_narrow_wide_router.sv.mako")
+    ) as _tpl_path:
         _tpl: ClassVar = Template(filename=str(_tpl_path))
 
     def render(self):
@@ -87,7 +90,9 @@ class NarrowWideRouter(Router):
 class NarrowWideXYRouter(XYRouter):
     """Router class to describe a narrow-wide router"""
 
-    with resources.path("floogen.templates", "floo_narrow_wide_xy_router.sv.mako") as _tpl_path:
+    with as_file(
+        files(floogen.templates).joinpath("floo_narrow_wide_xy_router.sv.mako")
+    ) as _tpl_path:
         _tpl: ClassVar = Template(filename=str(_tpl_path))
 
     def render(self):

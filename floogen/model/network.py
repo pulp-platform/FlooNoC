@@ -7,7 +7,7 @@
 
 import pathlib
 from typing import Optional, List, ClassVar
-from importlib import resources
+from importlib.resources import files, as_file
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -24,6 +24,7 @@ from floogen.model.link import NarrowWideLink, XYLinks, NarrowLink
 from floogen.model.network_interface import NarrowWideAxiNI
 from floogen.model.protocol import AXI4, AXI4Bus
 from floogen.utils import clog2
+import floogen.templates
 
 
 class Network(BaseModel):  # pylint: disable=too-many-public-methods
@@ -33,10 +34,10 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    with resources.path("floogen.templates", "floo_noc_top.sv.mako") as _tpl_path:
+    with as_file(files(floogen.templates).joinpath("floo_noc_top.sv.mako")) as _tpl_path:
         tpl: ClassVar = Template(filename=str(_tpl_path))
 
-    with resources.path("floogen.templates", "floo_flit_pkg.sv.mako") as _tpl_path:
+    with as_file(files(floogen.templates).joinpath("floo_flit_pkg.sv.mako")) as _tpl_path:
         tpl_pkg: ClassVar = Template(filename=str(_tpl_path))
 
     name: str
