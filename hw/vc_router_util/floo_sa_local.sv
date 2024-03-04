@@ -9,11 +9,7 @@ module floo_sa_local #(
   parameter int NumVC = 4,
   parameter int NumVCWidth = NumVC > 1 ? $clog2(NumVC) : 1,
   parameter int NumPorts = 5
-  parameter int NumVC = 4,
-  parameter int NumVCWidth = NumVC > 1 ? $clog2(NumVC) : 1,
-  parameter int NumPorts = 5
-)
-(
+) (
   input  logic      [NumVC-1:0]         vc_ctrl_head_v_i,
   input  hdr_t      [NumVC-1:0]         vc_ctrl_head_i,
 
