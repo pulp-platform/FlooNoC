@@ -25,7 +25,7 @@ import rvh_noc_pkg::*;
   input  logic  [NumVirtChannels-1:0]   data_v_i, 
   input  flit_t [NumPorts-1:0]          data_i,
 
-  output logic  [NumVC-1:0]             vc_ctrl_head_vld_o,
+  output logic  [NumVC-1:0]             vc_ctrl_head_v_o,
   output hdr_t  [NumVC-1:0]             vc_ctrl_head_o,
   output flit_payload_t [NumVC-1:0]     vc_data_head_o,
 
@@ -83,7 +83,7 @@ for(genvar v_chan = 0; v_chan < NumVC; v_chan++) begin: gen_ctrl_fifos
       .valid_i    (data_v_i         [v_chan]),
       .ready_o    (),
       .data_o     (vc_ctrl_head_o   [v_chan]),
-      .valid_o    (),
+      .valid_o    (vc_ctrl_head_v_o [v_chan]),
       .ready_i    (remove_ctrl_head [v_chan])
     );
 end
