@@ -23,9 +23,6 @@ module floo_vc_router #(
   parameter int           NumInputSaGlobal [NumPorts-1] =
     {3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 4+NumLocalPorts-1},
     // to dir N,E,S,W,L0(,L1,L2,L3)
-  parameter int           NumInputSaGlobal [NumPorts-1] =
-    {3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 4+NumLocalPorts-1},
-    // to dir N,E,S,W,L0(,L1,L2,L3)
 
   parameter int           VCDepth                     = 2,
   parameter type          flit_t                      = logic,
@@ -41,7 +38,6 @@ module floo_vc_router #(
   parameter type          id_t                        = logic[IdWidth-1:0],
   /// Used for ID-based routing
   parameter int unsigned  NumAddrRules                = 0,
-  parameter type          addr_rule_t                 = logic
   parameter type          addr_rule_t                 = logic
 ) (
   input  logic                                        clk_i,
@@ -62,7 +58,6 @@ module floo_vc_router #(
   output  logic  [NumPorts-1:0]                       data_v_o,
   output  flit_t [NumPorts-1:0]                       data_o
 );
-
 
 /*
 Structure:
@@ -88,9 +83,7 @@ hdr_t           [NumPorts-1:0][NumVCMax-1:0]    vc_ctrl_head;
 flit_payload_t  [NumPorts-1:0][NumVCMax-1:0]    vc_data_head;
 
 logic           [NumPorts-1:0]                  read_enable_sa_stage;
-logic           [NumPorts-1:0]                  read_enable_sa_stage;
 logic           [NumPorts-1:0][NumVCWidth-1:0]  read_vc_id_sa_stage;
-logic           [NumPorts-1:0]                  read_enable_st_stage;
 logic           [NumPorts-1:0]                  read_enable_st_stage;
 logic           [NumPorts-1:0][NumVCWidth-1:0]  read_vc_id_st_stage;
 
@@ -154,6 +147,7 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_input_ports
   );
 end
 
+
 // =============
 // 2 local SA for each input in_port
 // =============
@@ -167,7 +161,8 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
     .vc_ctrl_head_v_i               (vc_ctrl_head_v          [in_port]),
     .vc_ctrl_head_i                 (vc_ctrl_head            [in_port]),
 
-    .sa_local_output_dir_oh_o       (sa_local_output_dir_oh  [in_port]), // chosen output: all 0 if none
+    // chosen output: all 0 if none
+    .sa_local_output_dir_oh_o       (sa_local_output_dir_oh  [in_port]),
     .sa_local_v_o                   (sa_local_v              [in_port]), // 1 if any was chosen
     .sa_local_vc_id_o               (sa_local_vc_id          [in_port]), // chosen id
     .sa_local_vc_id_oh_o            (sa_local_vc_id_oh       [in_port]), // chosen id onehot encoded
