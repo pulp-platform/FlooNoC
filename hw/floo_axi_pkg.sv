@@ -85,6 +85,8 @@ package floo_axi_pkg;
     rob_idx_t rob_idx;
     dst_t dst_id;
     id_t src_id;
+    route_dir_e lookahead;
+    logic [2:0] vc_id; // logic behind value: = dir if input dir is higher than dir, = dir-1 else
     logic last;
     logic atop;
     axi_ch_e axi_ch;
