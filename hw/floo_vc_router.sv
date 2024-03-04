@@ -50,7 +50,7 @@ module floo_vc_router #(
   input  id_t                                         xy_id_i,        // if unused assign to '0
   input  addr_rule_t [NumAddrRules-1:0]               id_route_map_i, // if unused assign to '0
 
-  // contents from input port
+  // contents from input in_port
   output logic  [NumPorts-1:0]                        credit_v_o,
   output logic  [NumPorts-1:0][NumVCWidth-1:0]        credit_id_o,
   input  logic  [NumPorts-1:0]                        data_v_i,
@@ -66,10 +66,10 @@ module floo_vc_router #(
 /*
 Structure:
 1 input ports
-2 local SA for each input port
-3 global SA for each output port
+2 local SA for each input in_port
+3 global SA for each output in_port
 4 look-ahead routing (runs parallel to global SA)
-5 output port vc credit counters
+5 output in_port vc credit counters
 6 vc selection (runs parallel to sa local/global)
 7 vc assignment (runs after sa global)
 8 map input VCs to output VCs
@@ -94,6 +94,8 @@ logic           [NumPorts-1:0][NumVCWidth-1:0]  read_vc_id_st_stage;
 
 logic           [NumPorts-1:0]                  sa_local_v;
 logic           [NumPorts-1:0][NumPorts-1:0]    sa_local_output_dir_oh;
+logic           [NumPorts-1:0]                  sa_local_v;
+logic           [NumPorts-1:0][NumPorts-1:0]    sa_local_output_dir_oh;
 logic           [NumPorts-1:0][NumVCWidth-1:0]  sa_local_vc_id;
 logic           [NumPorts-1:0][NumVCMax-1:0]    sa_local_vc_id_oh;
 
@@ -116,6 +118,7 @@ logic           [NumPorts-1:0]                  vc_assignment_v;
 // =============
 
 for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_input_ports
+for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_input_ports
   floo_input_port #(
     .flit_t,
     .flit_payload_t,
@@ -133,8 +136,11 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_input_ports
     // output head flit ctrl info to SA & RC unit
     .vc_ctrl_head_v_o               (vc_ctrl_head_v       [in_port]),
     .vc_ctrl_head_o                 (vc_ctrl_head         [in_port]),
+    .vc_ctrl_head_v_o               (vc_ctrl_head_v       [in_port]),
+    .vc_ctrl_head_o                 (vc_ctrl_head         [in_port]),
 
     // output data to switch traversal
+    .vc_data_head_o                 (vc_data_head         [in_port]),
     .vc_data_head_o                 (vc_data_head         [in_port]),
 
     // pop flit ctrl fifo (comes from SA stage)
@@ -152,7 +158,7 @@ end
 
 
 // =============
-// 2 local SA for each input port
+// 2 local SA for each input in_port
 // =============
 
 for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
@@ -179,7 +185,7 @@ end
 
 
 // =============
-// 3 global SA for each output port
+// 3 global SA for each output in_port
 // =============
 
 /*
@@ -256,7 +262,7 @@ end
 
 
 // =============
-// 5 output port vc credit counters
+// 5 output in_port vc credit counters
 // =============
 
 
