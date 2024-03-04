@@ -29,9 +29,7 @@ module floo_sa_local #(
 // pick a valid vc via rr arbitration
 floo_rr_arbiter #(
   .NumInputs  (NumVC),
-)
-i_sa_local_rr_arbiter
-(
+) i_sa_local_rr_arbiter (
   .req_i            (vc_ctrl_head_v_i ),
   .update_i         (update_rr_arb),
   .grant_o          (sa_local_vc_id_oh_o),
@@ -49,7 +47,7 @@ always_comb begin
 end
 
 /*
-// Other way of setting correct bit: 
+// Other way of setting correct bit:
 // might be faster since output_dir_per_vc can be calculated before rr arbitration is done
 
 logic     [NumVC-1:0][NumPorts-1:0]           output_dir_per_vc;
