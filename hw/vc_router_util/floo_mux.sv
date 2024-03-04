@@ -5,12 +5,10 @@
 // Lukas Berner <bernerl@student.ethz.ch>
 
 // a simple one-hot encoded multiplexer
-module floo_mux
-#(
+module floo_mux #(
   parameter int unsigned NumInputs = 2,
   parameter int unsigned DataWidth = 1
-)
-(
+) (
   input logic[NumInputs-1:0] sel_i,
   input logic[NumInputs-1:0][DataWidth-1:0] data_i,
   output logic[DataWidth-1:0] data_o

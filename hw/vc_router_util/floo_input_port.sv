@@ -5,24 +5,21 @@
 // Lukas Berner <bernerl@student.ethz.ch>
 
 
-module input_port
-import rvh_noc_pkg::*;
-#(
+module floo_input_port #(
   parameter type flit_t = logic,
   parameter int HdrLength = $bits(hdr_t),
   parameter int DataLength = $bits(flit_t) - HdrLength,
   parameter type flit_payload_t = logic[DataLength-1:0],
   parameter int NumVC = 4,
   parameter int NumVCWidth = 2,
-  parameter int VCDepth  = 3,
-)
-(
+  parameter int VCDepth  = 3
+) (
   input  logic clk_i,
   input  logic rst_ni,
   // input from other router or local port
   output logic                          credit_v_o,
-  output logic  [NumVCWidth-1:0]        credit_id_o, 
-  input  logic  [NumVirtChannels-1:0]   data_v_i, 
+  output logic  [NumVCWidth-1:0]        credit_id_o,
+  input  logic  [NumVirtChannels-1:0]   data_v_i,
   input  flit_t [NumPorts-1:0]          data_i,
 
   output logic  [NumVC-1:0]             vc_ctrl_head_v_o,
@@ -35,7 +32,7 @@ import rvh_noc_pkg::*;
 
   // input pop flit ctrl fifo (comes from ST stage)
   input logic                           read_enable_st_stage_i,
-  input logic [NumVCWidth-1:0]          read_vc_id_st_stage_i,
+  input logic [NumVCWidth-1:0]          read_vc_id_st_stage_i
 );
 
 // when to remove from fifo
