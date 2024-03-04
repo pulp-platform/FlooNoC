@@ -89,7 +89,14 @@ logic           [NumPorts-1:0][NumVCWidth-1:0]  sa_local_vc_id;
 logic           [NumPorts-1:0][NumVCMax-1:0]    sa_local_vc_id_oh;
 
 
-logic           [NumPorts-1:0][NumVCWidth-1:0]  sa_local_vc_id;
+logic           [NumPorts-1:0][NumPorts-1:0]    sa_local_v_per_output;
+logic           [NumPorts-1:0][NumPorts-1:0]    sa_local_vc_id_per_output;
+
+logic           [NumPorts-1:0]                  sa_global_v;
+logic           [NumPorts-1:0][NumPorts-1:0]    sa_global_input_dir_oh;
+logic           [NumPorts-1:0][NumVCWidth-1:0]  sa_global_input_vc_id;
+
+logic           [NumPorts-1:0]                  vc_assignment_v;
 
 
 
@@ -135,7 +142,7 @@ end
 
 
 // =============
-// 2 local SA for each input in_port
+// 2 local SA for each input port
 // =============
 
 for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
@@ -162,8 +169,43 @@ end
 
 
 // =============
-// 3 global SA for each output in_port
+// 3 global SA for each output port
 // =============
+
+/*
+Issue: sa global would benefit from only using as many inputs as needed
+if (RouteAlgo == XYRouting) begin : gen_reduce_sa_global_input_size_if_xyrouting
+
+  end -> will do optimizations in seperate commit
+
+*/
+for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_transform_sa_results
+  assign sa_local_vc_id_per_output[out_port] = sa_local_vc_id[NumPorts-1:0][out_port];
+  assign sa_local_v_per_output[out_port]     = sa_local_v[NumPorts-1:0][out_port];
+end
+
+for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_sa_global
+
+  floo_sa_global #(
+  .NumInputs                        (NumInputSaGlobal[out_port]),
+  .NumVCWidth,
+  .NumPorts
+  ) i_sa_global (
+  // for each input: is their sa local in that dir valid
+  .sa_local_v_i                     (sa_local_v_per_output[out_port]),
+  .sa_local_vc_id_i                 (sa_local_vc_id_per_output[out_port]),
+
+  .sa_global_v_o                    (sa_global_v[out_port]),
+  .sa_global_input_dir_oh_o         (sa_global_input_dir_oh[out_port]),
+  .sa_global_input_vc_id_o          (sa_global_input_vc_id[out_port]),
+
+  // update arbiter if the vc assignment was successful
+  .update_rr_arb_i                  (vc_assignment_v[out_port]),
+
+  .clk_i,
+  .rst_ni
+);
+end
 
 
 
