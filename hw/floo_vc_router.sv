@@ -55,7 +55,7 @@ module floo_vc_router #(
   input  id_t                                         xy_id_i,        // if unused assign to '0
   input  addr_rule_t [NumAddrRules-1:0]               id_route_map_i, // if unused assign to '0
 
-  // contents from input in_port
+  // contents from input port
   output logic  [NumPorts-1:0]                        credit_v_o,
   output logic  [NumPorts-1:0][NumVCWidth-1:0]        credit_id_o,
   input  logic  [NumPorts-1:0]                        data_v_i,
@@ -72,10 +72,10 @@ module floo_vc_router #(
 /*
 Structure:
 1 input ports
-2 local SA for each input in_port
-3 global SA for each output in_port
+2 local SA for each input port
+3 global SA for each output port
 4 look-ahead routing (runs parallel to global SA)
-5 output in_port vc credit counters
+5 output port vc credit counters
 6 vc selection (runs parallel to sa local/global)
 7 vc assignment (runs after sa global)
 8 map input VCs to output VCs
@@ -276,7 +276,7 @@ end
 
 
 // =============
-// 5 output in_port vc credit counters
+// 5 output port vc credit counters
 // =============
 
 
