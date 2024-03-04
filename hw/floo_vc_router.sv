@@ -9,11 +9,15 @@
 module floo_vc_router #(
   parameter int           NumPorts                    = 5, // phys channels are always in and output
   parameter int           NumLocalPorts               = NumPorts - 4,
-  parameter int           NumVC [NumPorts-1]        =
+  parameter int           NumVC [NumPorts-1]          =
             {1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 4+NumLocalPorts-1},
             // Num VC from dir N,E,S,W,L0(,L1,L2,L3): 1313 for XY routing
   parameter int           NumVCMax                    = NumPorts - 1,
+  // NumVCWidth: needs to be 3 in routers with more than 1 local ports
   parameter int           NumVCWidth                  = 2,
+  // set this to 3 towards routers with more than 1 local ports: towards N,E,S,W,L0(,L1,L2,L3)
+  parameter int           NumVCWidthToOut[NumPorts]   = {2,2,2,2,2},
+  parameter int           NumVCWidthToOutMax          = 2,
 
   parameter int           NumInputSaGlobal [NumPorts-1] =
     {3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 4+NumLocalPorts-1},
@@ -41,26 +45,26 @@ module floo_vc_router #(
   input  id_t                                         xy_id_i,        // if unused assign to '0
   input  addr_rule_t [NumAddrRules-1:0]               id_route_map_i, // if unused assign to '0
 
-  // contents from input in_port
+  // contents from input port
   output logic  [NumPorts-1:0]                        credit_v_o,
   output logic  [NumPorts-1:0][NumVCWidth-1:0]        credit_id_o,
-  input  logic  [NumPorts-1:0][NumVCMax-1:0]          data_v_i,
+  input  logic  [NumPorts-1:0]                        data_v_i,
   input  flit_t [NumPorts-1:0]                        data_i,
 
-  // contents from output in_port
-  output logic  [NumPorts-1:0]                        credit_v_i,
-  output logic  [NumPorts-1:0][NumVCWidth-1:0]        credit_id_i,
-  input  logic  [NumPorts-1:0][NumVCMax-1:0]          data_v_o,
-  input  flit_t [NumPorts-1:0]                        data_o
+  // contents from output port
+  input logic  [NumPorts-1:0]                         credit_v_i,
+  input logic  [NumPorts-1:0][NumVCWidth-1:0]         credit_id_i,
+  output  logic  [NumPorts-1:0]                       data_v_o,
+  output  flit_t [NumPorts-1:0]                       data_o
 );
 
 /*
 Structure:
 1 input ports
-2 local SA for each input in_port
-3 global SA for each output in_port
+2 local SA for each input port
+3 global SA for each output port
 4 look-ahead routing (runs parallel to global SA)
-5 output in_port vc credit counters
+5 output port vc credit counters
 6 vc selection (runs parallel to sa local/global)
 7 vc assignment (runs after sa global)
 8 map input VCs to output VCs
@@ -114,7 +118,7 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_input_ports
     .NumVCWidth,
     .VCDepth                        (VCDepth),
   ) i_input_port (
-    // input from other router or local in_port
+    // input from other router or local port
     .credit_v_o                     (credit_v_o           [in_port]),
     .credit_id_o                    (credit_id_o          [in_port]),
     .data_v_i                       (data_v_i             [in_port]),
@@ -216,7 +220,7 @@ end
 
 
 // =============
-// 5 output in_port vc credit counters
+// 5 output port vc credit counters
 // =============
 
 
