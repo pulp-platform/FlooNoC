@@ -3,6 +3,11 @@
 // SPDX-License-Identifier: SHL-0.51
 //
 // Lukas Berner <bernerl@student.ethz.ch>
+// Copyright 2024 ETH Zurich and University of Bologna.
+// Solderpad Hardware License, Version 0.51, see LICENSE for details.
+// SPDX-License-Identifier: SHL-0.51
+//
+// Lukas Berner <bernerl@student.ethz.ch>
 
 // one hot & id encoded round robin arbiter
 module floo_rr_arbiter #(
@@ -70,9 +75,21 @@ module floo_rr_arbiter #(
         end
       end
     end
+    always_ff @(posedge clk or negedge rst_n) begin
+      if (~rstn) begin
+        round_ptr_q <= '0;
+      end else begin
+        if (update_i) begin
+          round_ptr_q <= round_ptr_d;
+        end
+      end
+    end
 
     assign grant_o     = dereordered_selected_req;
     assign grant_id_o  = selected_req_id;
+    assign grant_o     = dereordered_selected_req;
+    assign grant_id_o  = selected_req_id;
 
+  end
   end
 endmodule

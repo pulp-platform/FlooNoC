@@ -3,6 +3,11 @@
 // SPDX-License-Identifier: SHL-0.51
 //
 // Lukas Berner <bernerl@student.ethz.ch>
+// Copyright 2024 ETH Zurich and University of Bologna.
+// Solderpad Hardware License, Version 0.51, see LICENSE for details.
+// SPDX-License-Identifier: SHL-0.51
+//
+// Lukas Berner <bernerl@student.ethz.ch>
 
 // a simple one-hot encoded multiplexer
 module floo_mux #(
@@ -14,6 +19,8 @@ module floo_mux #(
   output logic[DataWidth-1:0] data_o
 );
 
+  logic[DataWidth-1:0][NumInputs-1:0] transposed_data;
+  logic[DataWidth-1:0][NumInputs-1:0] select_mat;
   logic[DataWidth-1:0][NumInputs-1:0] transposed_data;
   logic[DataWidth-1:0][NumInputs-1:0] select_mat;
 
