@@ -6,7 +6,7 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 from typing import Optional, ClassVar
-from importlib import resources
+from importlib.resources import files, as_file
 
 from pydantic import BaseModel
 from mako.lookup import Template
@@ -15,6 +15,7 @@ from floogen.model.routing import Id, AddrRange, Routing, RouteMap
 from floogen.model.protocol import AXI4
 from floogen.model.link import NarrowWideLink
 from floogen.model.endpoint import EndpointDesc
+import floogen.templates
 
 
 class NetworkInterface(BaseModel):
@@ -49,7 +50,9 @@ class NetworkInterface(BaseModel):
 class NarrowWideAxiNI(NetworkInterface):
     """ " NarrowWideNI class to describe a narrow-wide network interface."""
 
-    with resources.path("floogen.templates", "floo_narrow_wide_chimney.sv.mako") as _tpl_path:
+    with as_file(
+        files(floogen.templates).joinpath("floo_narrow_wide_chimney.sv.mako")
+    ) as _tpl_path:
         tpl: ClassVar = Template(filename=str(_tpl_path))
 
     mgr_narrow_port: Optional[AXI4] = None
