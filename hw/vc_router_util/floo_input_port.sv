@@ -19,8 +19,8 @@ module floo_input_port #(
   // input from other router or local port
   output logic                          credit_v_o,
   output logic  [NumVCWidth-1:0]        credit_id_o,
-  input  logic  [NumVirtChannels-1:0]   data_v_i,
-  input  flit_t [NumPorts-1:0]          data_i,
+  input  logic                          data_v_i,
+  input  flit_t                         data_i,
 
   output logic  [NumVC-1:0]             vc_ctrl_head_v_o,
   output hdr_t  [NumVC-1:0]             vc_ctrl_head_o,
@@ -34,6 +34,16 @@ module floo_input_port #(
   input logic                           read_enable_st_stage_i,
   input logic [NumVCWidth-1:0]          read_vc_id_st_stage_i
 );
+
+logic [NumVC-1:0] data_v_i_oh;
+
+// where to add data
+always_comb begin
+  data_v_i_oh = '0;
+  if(data_v_i) begin
+    data_v_i_oh[data_i.hdr.vc_id[NumVCWidth-1:0]] = 1'b1;
+  end
+end
 
 // when to remove from fifo
 always_comb begin
@@ -57,7 +67,7 @@ for(genvar v_chan = 0; v_chan < NumVC; v_chan++) begin: gen_data_fifos
     .flush_i    ('0),
     .usage_o    (),
     .data_i     (data_i           [DataLength-1:0]),
-    .valid_i    (data_v_i         [v_chan]),
+    .valid_i    (data_v_i_oh      [v_chan]),
     .ready_o    (),
     .data_o     (vc_data_head_o   [v_chan]),
     .valid_o    (),
@@ -77,7 +87,7 @@ for(genvar v_chan = 0; v_chan < NumVC; v_chan++) begin: gen_ctrl_fifos
       .flush_i    ('0),
       .usage_o    (),
       .data_i     (data_i           [DataLength+HdrLength-1:DataLength]),
-      .valid_i    (data_v_i         [v_chan]),
+      .valid_i    (data_v_i_oh      [v_chan]),
       .ready_o    (),
       .data_o     (vc_ctrl_head_o   [v_chan]),
       .valid_o    (vc_ctrl_head_v_o [v_chan]),
