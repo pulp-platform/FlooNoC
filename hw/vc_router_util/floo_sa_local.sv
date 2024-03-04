@@ -6,9 +6,9 @@
 
 // sa local: choose a valid vc via rr arbitration
 module floo_sa_local #(
-  parameter NumVC = 4,
-  parameter NumVCWidth = NumVC > 1 ? $clog2(NumVC) : 1,
-  parameter NumPorts = 5
+  parameter int NumVC = 4,
+  parameter int NumVCWidth = NumVC > 1 ? $clog2(NumVC) : 1,
+  parameter int NumPorts = 5
 )
 (
   input  logic      [NumVC-1:0]         vc_ctrl_head_v_i,
@@ -33,7 +33,7 @@ floo_rr_arbiter #(
 i_sa_local_rr_arbiter
 (
   .req_i            (vc_ctrl_head_v_i ),
-  .update_i         (update_rr_arb), 
+  .update_i         (update_rr_arb),
   .grant_o          (sa_local_vc_id_oh_o),
   .grant_id_o       (sa_local_vc_id_o),
   .rst_ni,
@@ -48,7 +48,7 @@ always_comb begin
   sa_local_output_dir_oh_o[vc_ctrl_head_i[sa_local_vc_id_o].lookahead] = sa_local_v_o;
 end
 
-/* 
+/*
 // Other way of setting correct bit: 
 // might be faster since output_dir_per_vc can be calculated before rr arbitration is done
 
@@ -59,9 +59,9 @@ for(genvar i = 0; i < NumPorts; i++) begin
                                           output_dir_per_vc[sa_local_vc_id_o][i];
 end
 
-for(genvar i = 0; i < NumVC; i++) begin: 
-  for(genvar j = 0; j < NumPorts; j++) begin: 
-    assign output_dir_per_vc[i][j] = 
+for(genvar i = 0; i < NumVC; i++) begin:
+  for(genvar j = 0; j < NumPorts; j++) begin:
+    assign output_dir_per_vc[i][j] =
                                 vc_ctrl_head_i[i].lookahead == j[$bits(route_dir_e)-1:0];
   end
 end
