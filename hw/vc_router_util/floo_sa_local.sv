@@ -31,7 +31,7 @@ floo_rr_arbiter #(
   .NumInputs  (NumVC),
 ) i_sa_local_rr_arbiter (
   .req_i            (vc_ctrl_head_v_i ),
-  .update_i         (update_rr_arb),
+  .update_i         (update_rr_arb_i),
   .grant_o          (sa_local_vc_id_oh_o),
   .grant_id_o       (sa_local_vc_id_o),
   .rst_ni,
