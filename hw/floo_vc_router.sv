@@ -121,8 +121,7 @@ logic           [NumPorts-1:0]                  vc_assignment_v;
 // 1 input ports
 // =============
 
-for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_input_ports
-for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_input_ports
+for (genvar i = 0; i < NumPorts; i++) begin : gen_input_ports
   floo_input_port #(
     .flit_t,
     .flit_payload_t,
