@@ -59,9 +59,6 @@ end
 for(genvar i = 0; i < NumVC; i++) begin:
   for(genvar j = 0; j < NumPorts; j++) begin:
     assign output_dir_per_vc[i][j] =
-for(genvar i = 0; i < NumVC; i++) begin:
-  for(genvar j = 0; j < NumPorts; j++) begin:
-    assign output_dir_per_vc[i][j] =
                                 vc_ctrl_head_i[i].lookahead == j[$bits(route_dir_e)-1:0];
   end
 end
