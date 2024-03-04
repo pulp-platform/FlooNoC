@@ -19,14 +19,14 @@ module floo_mux
   logic[DataWidth-1:0][NumInputs-1:0] transposed_data;
   logic[DataWidth-1:0][NumInputs-1:0] select_mat;
 
-  for(genvar i = 0 ; i < DataWidth; i++) begin
-    for(genvar j = 0 ; j < NumInputs; j++) begin
+  for(genvar i = 0 ; i < DataWidth; i++) begin : gen_transpose_DataWidth
+    for(genvar j = 0 ; j < NumInputs; j++) begin : gen_transpose_NumInputs
       assign transposed_data[i][j] = data_i[j][i];
     end
   end
 
-  for(genvar i = 0; i < DataWidth; i++) begin
+  for(genvar i = 0; i < DataWidth; i++) begin : gen_select_data
     assign data_o[i] = |(transposed_data[i] & sel_i);
   end
 
-endmodule 
+endmodule
