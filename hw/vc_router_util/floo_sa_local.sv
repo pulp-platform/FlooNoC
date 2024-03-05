@@ -13,10 +13,12 @@ module floo_sa_local #(
   input  logic      [NumVC-1:0]         vc_ctrl_head_v_i,
   input  hdr_t      [NumVC-1:0]         vc_ctrl_head_i,
 
-  output logic      [NumPorts-1:0]      sa_local_output_dir_oh_o, //chosen output: all 0 if none
   output logic                          sa_local_v_o,
   output logic      [NumVCWidth-1:0]    sa_local_vc_id_o, // chosen id
   output logic      [NumVC-1:0]         sa_local_vc_id_oh_o,
+  output hdr_t                          sa_local_sel_ctrl_head_o,
+
+  output logic      [NumPorts-1:0]      sa_local_output_dir_oh_o, //chosen output: all 0 if none
 
   // when to update rr arbiter
   input logic                           update_rr_arb_i,
@@ -27,7 +29,7 @@ module floo_sa_local #(
 
 // pick a valid vc via rr arbitration
 floo_rr_arbiter #(
-  .NumInputs  (NumVC),
+  .NumInputs        (NumVC),
 ) i_sa_local_rr_arbiter (
   .req_i            (vc_ctrl_head_v_i ),
   .update_i         (update_rr_arb_i),
@@ -38,6 +40,15 @@ floo_rr_arbiter #(
 );
 
 assign sa_local_v_o   = |vc_ctrl_head_v_i; //if any vc is valid, a vc will be chosen
+
+floo_mux #(
+  .NumInputs        (NumVC),
+  .DataWidth        (HdrLength)
+) i_floo_mux_select_head (
+  .sel_i            (sa_local_vc_id_oh_o),
+  .data_i           (vc_ctrl_head_i),
+  .data_o           (sa_local_sel_ctrl_head_o)
+);
 
 // set bit corresponding to correct direction in sa_local_output_dir_oh_o to 1 if a vc was chosen
 always_comb begin
