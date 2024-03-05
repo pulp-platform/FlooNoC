@@ -193,15 +193,19 @@ Issue: sa global would benefit from only using as many inputs as needed
 */
 for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_transform_sa_results
   if (RouteAlgo == XYRouting) begin : gen_reduce_sa_global_input_size_if_xyrouting
-    // only transpose until i figure this out
-    for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_red_sa_results_in_port
-      if(in_port != out_port) begin : gen_red_sa_results_in_port_ne_out_port
-        genvar sa_global_input_index;
-        assign sa_global_input_index = in_port < out_port ? in_port : inport - 1;
+    genvar sa_global_input_index;
+    assign sa_global_input_index = 0;
+    // to N/S has inputs S/N,E,W,L, to E/W has inputs W/E,L
+    for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_red_sa_glb_xyrouting_in_port
+      if(!(in_port == out_port ||
+        (out_port == route_dir_e.E && (in_port == route_dir_e.S || in_port == route_dir_e.N)) ||
+        (out_port == route_dir_e.W && (in_port == route_dir_e.S || in_port == route_dir_e.N))
+          )) begin : gen_reduce_sa_global_xyrouting_include_input
         assign sa_local_vc_id_per_output[out_port][sa_global_input_index]
                 = sa_local_vc_id[in_port][out_port];
         assign sa_local_v_per_output[out_port][sa_global_input_index]
                 = sa_local_v[in_port][out_port];
+        assign sa_global_input_index = sa_global_input_index ++;
       end
     end
 
