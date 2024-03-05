@@ -258,12 +258,21 @@ end
 // =============
 
 for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
-  floo_look_ahead_routing #( )
-  i_floo_look_ahead_routing (
-    .vc_ctrl_head_vld_i     (sa_local_v                     [in_port]),
+  floo_look_ahead_routing #(
+    .NumRoutes(NumPorts),
+    .flit_t,
+    .RouteAlgo,
+    .IdWidth,
+    .id_t,
+    .NumAddrRules,
+    .addr_rule_t
+  ) i_floo_look_ahead_routing (
     .vc_ctrl_head_i         (sa_local_sel_ctrl_head         [in_port]),
     .look_ahead_routing_o   (look_ahead_routing             [in_port]),
-    .xy_id_i
+    .id_route_map_i,
+    .xy_id_i,
+    .clk_i,
+    .rst_ni
   );
 end
 
