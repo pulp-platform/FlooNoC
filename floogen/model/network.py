@@ -427,9 +427,9 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     ni_dict["addr_range"] = ep_desc.addr_range.model_copy().set_idx(node_idx)
 
                 # 2D array case
-                case (m, _):
+                case (_, n):
                     x, y = self.graph.get_node_arr_idx(ni_name)
-                    idx = y * m + x
+                    idx = x * n + y
                     ni_dict["arr_idx"] = Coord(x=x, y=y)
                     ni_dict["addr_range"] = ep_desc.addr_range.model_copy().set_idx(idx)
 
