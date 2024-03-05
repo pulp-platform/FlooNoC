@@ -92,7 +92,7 @@ logic           [NumPorts-1:0]                  sa_local_v;
 logic           [NumPorts-1:0][NumPorts-1:0]    sa_local_output_dir_oh;
 logic           [NumPorts-1:0][NumVCWidth-1:0]  sa_local_vc_id;
 logic           [NumPorts-1:0][NumVCMax-1:0]    sa_local_vc_id_oh;
-
+hdr_t           [NumPorts-1:0]                  sa_local_sel_ctrl_head;
 
 logic           [NumPorts-1:0][NumPorts-1:0]    sa_local_v_per_output;
 logic           [NumPorts-1:0][NumPorts-1:0]    sa_local_vc_id_per_output;
@@ -100,6 +100,8 @@ logic           [NumPorts-1:0][NumPorts-1:0]    sa_local_vc_id_per_output;
 logic           [NumPorts-1:0]                  sa_global_v;
 logic           [NumPorts-1:0][NumPorts-1:0]    sa_global_input_dir_oh;
 logic           [NumPorts-1:0][NumVCWidth-1:0]  sa_global_input_vc_id;
+
+route_dir_e     [NumPorts-1:0]                  look_ahead_routing;
 
 logic           [NumPorts-1:0]                  vc_assignment_v;
 
@@ -154,21 +156,23 @@ end
 
 for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
   floo_sa_local #(
-    .NumVC                          (NumVC[in_port]),
+    .NumVC                          (NumVC                  [in_port]),
     .NumVCWidth,
     .NumPorts
   ) i_sa_local (
-    .vc_ctrl_head_v_i               (vc_ctrl_head_v          [in_port]),
-    .vc_ctrl_head_i                 (vc_ctrl_head            [in_port]),
+    .vc_ctrl_head_v_i               (vc_ctrl_head_v         [in_port]),
+    .vc_ctrl_head_i                 (vc_ctrl_head           [in_port]),
+
+    .sa_local_v_o                   (sa_local_v             [in_port]), // 1 if any was chosen
+    .sa_local_vc_id_o               (sa_local_vc_id         [in_port]), // chosen id
+    .sa_local_vc_id_oh_o            (sa_local_vc_id_oh      [in_port]), // chosen id onehot encoded
+    .sa_local_sel_ctrl_head_o       (sa_local_sel_ctrl_head [in_port]),
 
     // chosen output: all 0 if none
-    .sa_local_output_dir_oh_o       (sa_local_output_dir_oh  [in_port]),
-    .sa_local_v_o                   (sa_local_v              [in_port]), // 1 if any was chosen
-    .sa_local_vc_id_o               (sa_local_vc_id          [in_port]), // chosen id
-    .sa_local_vc_id_oh_o            (sa_local_vc_id_oh       [in_port]), // chosen id onehot encoded
+    .sa_local_output_dir_oh_o       (sa_local_output_dir_oh [in_port]),
 
     // when to update rr arbiter
-    .update_rr_arb_i                (read_enable_sa_stage    [in_port]),
+    .update_rr_arb_i                (read_enable_sa_stage   [in_port]),
     .clk_i,
     .rst_ni
   );
@@ -228,20 +232,20 @@ end
 for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_sa_global
 
   floo_sa_global #(
-  .NumInputs                        (NumInputSaGlobal[out_port]),
+  .NumInputs                        (NumInputSaGlobal       [out_port]),
   .NumVCWidth,
   .NumPorts
   ) i_sa_global (
   // for each input: is their sa local in that dir valid
-  .sa_local_v_i                     (sa_local_v_per_output[out_port]),
+  .sa_local_v_i                     (sa_local_v_per_output  [out_port]),
   .sa_local_vc_id_i                 (sa_local_vc_id_per_output[out_port]),
 
-  .sa_global_v_o                    (sa_global_v[out_port]),
-  .sa_global_input_dir_oh_o         (sa_global_input_dir_oh[out_port]),
-  .sa_global_input_vc_id_o          (sa_global_input_vc_id[out_port]),
+  .sa_global_v_o                    (sa_global_v            [out_port]),
+  .sa_global_input_dir_oh_o         (sa_global_input_dir_oh [out_port]),
+  .sa_global_input_vc_id_o          (sa_global_input_vc_id  [out_port]),
 
   // update arbiter if the vc assignment was successful
-  .update_rr_arb_i                  (vc_assignment_v[out_port]),
+  .update_rr_arb_i                  (vc_assignment_v        [out_port]),
 
   .clk_i,
   .rst_ni
@@ -249,11 +253,19 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_sa_global
 end
 
 
-
 // =============
 // 4 look-ahead routing (runs parallel to global SA)
 // =============
 
+for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
+  floo_look_ahead_routing #( )
+  i_floo_look_ahead_routing (
+    .vc_ctrl_head_vld_i     (sa_local_v                     [in_port]),
+    .vc_ctrl_head_i         (sa_local_sel_ctrl_head         [in_port]),
+    .look_ahead_routing_o   (look_ahead_routing             [in_port]),
+    .xy_id_i
+  );
+end
 
 
 // =============
