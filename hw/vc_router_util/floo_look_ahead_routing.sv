@@ -42,24 +42,25 @@ module floo_look_ahead_routing #(
     xy_id_nxt.x = xy_id_i.x;
     xy_id_nxt.y = xy_id_i.y;
     unique case(vc_ctrl_head_i.look_ahead_routing)
-      N: begin
-        xy_id_nxt.y += 1;
+      North: begin
+        xy_id_nxt.y = xy_id_i.y + 1;
       end
-      S: begin
-        xy_id_nxt.y -= 1;
+      South: begin
+        xy_id_nxt.y = xy_id_i.y - 1;
       end
-      E: begin
-        xy_id_nxt.x += 1;
+      East: begin
+        xy_id_nxt.x = xy_id_i.x + 1;
       end
-      W: begin
-        xy_id_nxt.x -= 1;
+      West: begin
+        xy_id_nxt.x = xy_id_i.x - 1;
       end
       default: begin
       end
     endcase
   end
 
-  assign helper_flit.hdr.dst_id = vc_ctrl_head.dst_id;
+  assign helper_flit.hdr.dst_id = vc_ctrl_head_i.dst_id;
+  assign helper_flit.hdr.dst_port_id= vc_ctrl_head_i.dst_port_id;
 
   floo_route_select #(
     .NumRoutes    (NumOutput),
@@ -69,6 +70,9 @@ module floo_look_ahead_routing #(
     .IdWidth,
     .id_t,
     .NumAddrRules,
+    .ReturnIndex  (1),
+    .ReturnOneHot (0),
+    .UsePortId    (1),
     .addr_rule_t
     ) i_route_select (
     .clk_i,
@@ -81,26 +85,9 @@ module floo_look_ahead_routing #(
     .valid_i        ('0),
     .ready_i        ('0),
     .channel_o      (), // we dont even know if this route is taken, cant change anything in header
-    .route_sel_o    (look_ahead_routing_oh)
+    .route_sel_o    (),
+    .route_sel_id_o (look_ahead_routing_id_o)
   );
-
-  //extract id from onehot: create id mask
-  for(i = 0; i < RouteDirWidth; i++) begin : gen_id_mask_RouteDirWidth
-    for(j = 0; j < NumRoutes; j++) begin : gen_id_mask_NumRoutes
-      assign id_mask[i][j] = (j/(2**i)) % 2;
-    end
-  end
-  //mask looks like this: NumRoutes = 3: (0,0) is first bit
-  // 0 0 0  // 1 0 0  // 0 1 0  // 1 1 0  // 0 0 1  // 1 0 1  // 0 1 1  // 1 1 1
-
-  // use mask to get lookahead id
-  for(i = 0; i < RouteDirWidth; i++) begin : gen_get_lookahead_id
-    assign look_ahead_routing_o[i] = |(look_ahead_routing_oh & id_mask[i]);
-  end
-
-
-
-
 
 
 endmodule
