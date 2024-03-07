@@ -62,7 +62,7 @@ module floo_route_select import floo_pkg::*;
     // Routing based on an ID table passed into the router (TBD parameter or signal)
     // Assumes an ID field present in the flit_t
 
-    typedef logic [RouteSelWidth-1:0] id_table_result;
+    logic [RouteSelWidth-1:0] id_table_result;
     assign channel_o = channel_i;
 
     addr_decode #(
