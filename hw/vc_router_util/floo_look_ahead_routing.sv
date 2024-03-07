@@ -9,13 +9,13 @@ module floo_look_ahead_routing #(
   parameter int           NumRoutes         = 0,
   parameter route_algo_e  RouteAlgo         = IdTable,
   parameter int           IdWidth           = 0,
-  parameter int           RouteDirWidth     = $bits(route_dir_e),
+  parameter int           RouteDirWidth     = $bits(route_direction_e),
   parameter type          id_t              = logic[IdWidth-1:0],
   parameter int           NumAddrRules      = 0,
   parameter type          addr_rule_t       = logic
 )(
   input   hdr_t                               vc_ctrl_head_i,
-  output  route_dir_e                         look_ahead_routing_o,
+  output  route_direction_e                         look_ahead_routing_o,
 
   input   addr_rule_t [NumAddrRules-1:0]      id_route_map_i,
 
