@@ -10,26 +10,27 @@
 module floo_vc_router #(
   parameter int           NumPorts                    = 5, // phys channels are always in and output
   parameter int           NumLocalPorts               = NumPorts - 4,
-  parameter int           NumVC [NumPorts-1]          =
+  parameter int           NumVC           [NumPorts]  =
             {1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 4+NumLocalPorts-1},
             // Num VC from dir N,E,S,W,L0(,L1,L2,L3): 1313 for XY routing
   parameter int           NumVCMax                    = NumPorts - 1,
   // NumVCWidth: needs to be 3 in routers with more than 1 local ports
   parameter int           NumVCWidth                  = 2,
   // set this to 3 towards routers with more than 1 local ports: towards N,E,S,W,L0(,L1,L2,L3)
-  parameter int           NumVCWidthToOut[NumPorts]   = {2,2,2,2,2},
+  parameter int           NumVCToOut      [NumPorts]  = {2,4,2,4,4},
+  parameter int           NumVCWidthToOut [NumPorts]  = {2,2,2,2,2},
   parameter int           NumVCWidthToOutMax          = 2,
 
-  parameter int           NumInputSaGlobal [NumPorts-1] =
+  parameter int           NumInputSaGlobal[NumPorts]  =
     {3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 4+NumLocalPorts-1},
     // to dir N,E,S,W,L0(,L1,L2,L3)
 
   parameter int           VCDepth                     = 2,
+  parameter int           VCDepthWidth                = $clog2(VCDepth+1),
   parameter type          flit_t                      = logic,
   parameter int           HdrLength                   = $bits(hdr_t),
   parameter int           DataLength                  = $bits(flit_t) - HdrLength,
   parameter type          flit_payload_t              = logic[DataLength-1:0],
-  // added fields to hdr: route_dir_e lookahead; logic [2:0] vc_id;
 
   // Route Algorithm stuff
   parameter route_algo_e  RouteAlgo                   = IdTable,
@@ -47,16 +48,16 @@ module floo_vc_router #(
   input  addr_rule_t [NumAddrRules-1:0]               id_route_map_i, // if unused assign to '0
 
   // contents from input port
-  output logic  [NumPorts-1:0]                        credit_v_o,
-  output logic  [NumPorts-1:0][NumVCWidth-1:0]        credit_id_o,
-  input  logic  [NumPorts-1:0]                        data_v_i,
-  input  flit_t [NumPorts-1:0]                        data_i,
+  output logic    [NumPorts-1:0]                      credit_v_o,
+  output logic    [NumPorts-1:0][NumVCWidth-1:0]      credit_id_o,
+  input  logic    [NumPorts-1:0]                      data_v_i,
+  input  flit_t   [NumPorts-1:0]                      data_i,
 
   // contents from output port
-  input logic  [NumPorts-1:0]                         credit_v_i,
-  input logic  [NumPorts-1:0][NumVCWidth-1:0]         credit_id_i,
-  output  logic  [NumPorts-1:0]                       data_v_o,
-  output  flit_t [NumPorts-1:0]                       data_o
+  input logic     [NumPorts-1:0]                      credit_v_i,
+  input logic     [NumPorts-1:0][NumVCWidth-1:0]      credit_id_i,
+  output  logic   [NumPorts-1:0]                      data_v_o,
+  output  flit_t  [NumPorts-1:0]                      data_o
 );
 
 /*
@@ -78,32 +79,37 @@ Structure:
 // =============
 
 // These arrays are too large: in these dimensions where there are fewer vc, the highest indexes are never accessed, so the synthesizer should remove them
-logic           [NumPorts-1:0][NumVCMax-1:0]    vc_ctrl_head_v;
-hdr_t           [NumPorts-1:0][NumVCMax-1:0]    vc_ctrl_head;
-flit_payload_t  [NumPorts-1:0][NumVCMax-1:0]    vc_data_head;
+logic           [NumPorts-1:0][NumVCMax-1:0]      vc_ctrl_head_v;
+hdr_t           [NumPorts-1:0][NumVCMax-1:0]      vc_ctrl_head;
+flit_payload_t  [NumPorts-1:0][NumVCMax-1:0]      vc_data_head;
 
-logic           [NumPorts-1:0]                  read_enable_sa_stage;
-logic           [NumPorts-1:0][NumVCWidth-1:0]  read_vc_id_sa_stage;
-logic           [NumPorts-1:0]                  read_enable_st_stage;
-logic           [NumPorts-1:0][NumVCWidth-1:0]  read_vc_id_st_stage;
+logic           [NumPorts-1:0]                    read_enable_sa_stage;
+logic           [NumPorts-1:0][NumVCWidth-1:0]    read_vc_id_sa_stage;
+logic           [NumPorts-1:0]                    read_enable_st_stage;
+logic           [NumPorts-1:0][NumVCWidth-1:0]    read_vc_id_st_stage;
 
 
-logic           [NumPorts-1:0]                  sa_local_v;
-logic           [NumPorts-1:0][NumPorts-1:0]    sa_local_output_dir_oh;
-logic           [NumPorts-1:0][NumVCWidth-1:0]  sa_local_vc_id;
-logic           [NumPorts-1:0][NumVCMax-1:0]    sa_local_vc_id_oh;
-hdr_t           [NumPorts-1:0]                  sa_local_sel_ctrl_head;
+logic           [NumPorts-1:0]                    sa_local_v;
+logic           [NumPorts-1:0][NumPorts-1:0]      sa_local_output_dir_oh;
+logic           [NumPorts-1:0][NumVCWidth-1:0]    sa_local_vc_id;
+logic           [NumPorts-1:0][NumVCMax-1:0]      sa_local_vc_id_oh;
+hdr_t           [NumPorts-1:0]                    sa_local_sel_ctrl_head;
 
-logic           [NumPorts-1:0][NumPorts-1:0]    sa_local_v_per_output;
-logic           [NumPorts-1:0][NumPorts-1:0]    sa_local_vc_id_per_output;
+logic           [NumPorts-1:0][NumPorts-1:0]      sa_local_v_per_output;
+logic           [NumPorts-1:0][NumPorts-1:0]      sa_local_vc_id_per_output;
 
-logic           [NumPorts-1:0]                  sa_global_v;
-logic           [NumPorts-1:0][NumPorts-1:0]    sa_global_input_dir_oh;
-logic           [NumPorts-1:0][NumVCWidth-1:0]  sa_global_input_vc_id;
+logic           [NumPorts-1:0]                    sa_global_v;
+logic           [NumPorts-1:0][NumPorts-1:0]      sa_global_input_dir_oh;
+logic           [NumPorts-1:0][NumVCWidth-1:0]    sa_global_input_vc_id;
 
-route_dir_e     [NumPorts-1:0]                  look_ahead_routing;
+route_direction_e     [NumPorts-1:0]                    look_ahead_routing;
 
-logic           [NumPorts-1:0]                  vc_assignment_v;
+logic           [NumPorts-1:0][VCDepthWidth-1:0]  credit_counter;
+logic           [NumPorts-1:0]                    credit_consume_v;
+logic           [NumPorts-1:0][NumVCWidth-1:0]    credit_consume_id;
+
+
+logic           [NumPorts-1:0]                    vc_assignment_v;
 
 
 
@@ -186,7 +192,7 @@ end
 /*
 
 sa_local_vc_id is in the same space as vc_data/ctrl_head -> 0th is 0th vc, doesnt need to be dir N
-sa_local_output_dir_oh is in route_dir_e space           -> 0th is towards (route_dir_e) 0
+sa_local_output_dir_oh is in route_direction_e space           -> 0th is towards (route_direction_e) 0
   -> cannot take each bit for each input in xyRouting
 
 generally: we are not allowed to give the results from sa_local to the sa_global of the same port
@@ -202,8 +208,8 @@ always_comb begin
       // to N/S has inputs S/N,E,W,L, to E/W has inputs W/E,L
       for (int in_port = 0; in_port < NumPorts; in_port++) begin : gen_red_sa_glb_xyrouting_in_port
         if(!(in_port == out_port ||
-          (out_port == route_dir_e.E && (in_port == route_dir_e.S || in_port == route_dir_e.N)) ||
-          (out_port == route_dir_e.W && (in_port == route_dir_e.S || in_port == route_dir_e.N))
+          (out_port == East && (in_port == South || in_port == North)) ||
+          (out_port == West && (in_port == South || in_port == North))
             )) begin : gen_reduce_sa_global_xyrouting_include_input
             sa_local_vc_id_per_output[out_port][sa_global_input_index]
                   = sa_local_vc_id[in_port][out_port];
@@ -230,7 +236,6 @@ always_comb begin
 end
 
 for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_sa_global
-
   floo_sa_global #(
   .NumInputs                        (NumInputSaGlobal       [out_port]),
   .NumVCWidth,
@@ -267,8 +272,8 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
     .NumAddrRules,
     .addr_rule_t
   ) i_floo_look_ahead_routing (
-    .vc_ctrl_head_i         (sa_local_sel_ctrl_head         [in_port]),
-    .look_ahead_routing_o   (look_ahead_routing             [in_port]),
+    .vc_ctrl_head_i                 (sa_local_sel_ctrl_head [in_port]),
+    .look_ahead_routing_o           (look_ahead_routing     [in_port]),
     .id_route_map_i,
     .xy_id_i,
     .clk_i,
@@ -281,6 +286,22 @@ end
 // 5 output port vc credit counters
 // =============
 
+for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_credit_counters
+  floo_credit_counter
+  #(
+    .NumVC                          (NumVCToOut             [out_port]),
+    .VCDepth
+  )
+  i_floo_credit_counter (
+    .credit_v_i                     (credit_v_i             [out_port]),
+    .credit_id_i                    (credit_id_i            [out_port]),
+    .consume_credit_v_i             (credit_consume_v       [out_port]),
+    .consume_credit_id_i            (credit_consume_id      [out_port]),
+    .credit_counter_o               (credit_counter         [out_port]),
+    .clk_i,
+    .rst_ni
+  );
+end
 
 
 // =============
