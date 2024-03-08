@@ -17,6 +17,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - System address map was renamed from `AddrMap` to `Sam`.
 - The destination field in the flit header have a new type `dst_t` which is either set to `route_t` for the new source-based routing algorithm, and `id_t` for all the other routing algorithms.
 
+### Fixed
+
+- The generation of the unique ID has been changed resp. aligned for 2D meshes to increment Y-first and X-second. This way the address range and ID increment are consistent with each other.
+
 ## [0.4.0] - 2024-02-07
 
 ### Added
