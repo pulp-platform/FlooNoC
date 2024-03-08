@@ -20,8 +20,6 @@ module floo_route_select import floo_pkg::*;
   parameter type         id_t          = logic[IdWidth-1:0],
   parameter bit          ReturnOneHot  = 1,
   parameter bit          ReturnIndex   = 0,
-  // several output ports possible?
-  parameter bit          UsePortId     = 0,
   /// Used for source-based routing
   parameter int unsigned RouteSelWidth = $clog2(NumRoutes)
 ) (
@@ -83,20 +81,11 @@ module floo_route_select import floo_pkg::*;
 
     // One-hot encoding of the decoded route
     always_comb begin : proc_route_sel
-      if(UsePortId) begin
-        if(id_table_result >= Eject) begin
-          route_sel_id = id_table_result + channel_i.hdr.dst_port_id;
-        end
-        else begin
-          route_sel_id = id_table_result;
-        end
-      end
-      else begin
+      if(ReturnIndex)
         route_sel_id = id_table_result;
-      end
       if(ReturnOneHot) begin
         route_sel = '0;
-        route_sel[route_sel_id] = 1'b1;
+        route_sel[id_table_result] = 1'b1;
       end
     end
 
@@ -133,8 +122,7 @@ module floo_route_select import floo_pkg::*;
     always_comb begin : proc_route_sel
       route_sel_id = East;
       if (id_in == xy_id_i) begin
-        if(UsePortId) route_sel_id = Eject + channel_i.hdr.dst_port_id;
-        else          route_sel_id = Eject;
+        route_sel_id = Eject;
       end else if (id_in.x == xy_id_i.x) begin
         if (id_in.y < xy_id_i.y) begin
           route_sel_id = South;

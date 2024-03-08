@@ -15,7 +15,7 @@ module floo_look_ahead_routing #(
   parameter type          addr_rule_t       = logic
 )(
   input   hdr_t                               vc_ctrl_head_i,
-  output  route_direction_e                         look_ahead_routing_o,
+  output  route_direction_e                   look_ahead_routing_o,
 
   input   addr_rule_t [NumAddrRules-1:0]      id_route_map_i,
 
@@ -29,7 +29,7 @@ module floo_look_ahead_routing #(
   } empty_flit_t;
   empty_flit_t helper_flit_in; // the synthesizer should not synthesize the unused fields
   id_t xy_id_nxt;
-  logic [NumRoutes-1:0] look_ahead_routing_oh;
+  route_direction_e route_select_result;
   logic [RouteDirWidth-1:0][NumRoutes-1:0] id_mask;
 
 
@@ -60,7 +60,6 @@ module floo_look_ahead_routing #(
   end
 
   assign helper_flit.hdr.dst_id = vc_ctrl_head_i.dst_id;
-  assign helper_flit.hdr.dst_port_id= vc_ctrl_head_i.dst_port_id;
 
   floo_route_select #(
     .NumRoutes    (NumOutput),
@@ -72,7 +71,6 @@ module floo_look_ahead_routing #(
     .NumAddrRules,
     .ReturnIndex  (1),
     .ReturnOneHot (0),
-    .UsePortId    (1),
     .addr_rule_t
     ) i_route_select (
     .clk_i,
@@ -86,8 +84,14 @@ module floo_look_ahead_routing #(
     .ready_i        ('0),
     .channel_o      (), // we dont even know if this route is taken, cant change anything in header
     .route_sel_o    (),
-    .route_sel_id_o (look_ahead_routing_id_o)
+    .route_sel_id_o (route_select_result)
   );
 
+  always_comb begin
+    if(route_select_result >= Eject)
+      look_ahead_routing_o = route_select_result + vc_ctrl_head_i.hdr.dst_port_id;
+    else
+      look_ahead_routing_o = route_select_result;
+  end
 
 endmodule
