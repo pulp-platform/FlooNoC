@@ -28,11 +28,11 @@ module floo_input_port #(
 
   // input pop flit ctrl fifo (comes from SA stage)
   input logic                           read_enable_sa_stage_i,
-  input logic [NumVC-1:0]          read_vc_id_oh_sa_stage_i,
+  input logic [NumVC-1:0]               read_vc_id_oh_sa_stage_i,
 
   // input pop flit ctrl fifo (comes from ST stage)
   input logic                           read_enable_st_stage_i,
-  input logic [NumVC-1:0]          read_vc_id_oh_st_stage_i
+  input logic [NumVC-1:0]               read_vc_id_oh_st_stage_i
 );
 
 logic [NumVC-1:0] data_v_i_oh;
