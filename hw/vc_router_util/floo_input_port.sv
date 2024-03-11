@@ -28,11 +28,11 @@ module floo_input_port #(
 
   // input pop flit ctrl fifo (comes from SA stage)
   input logic                           read_enable_sa_stage_i,
-  input logic [NumVCWidth-1:0]          read_vc_id_sa_stage_i,
+  input logic [NumVCWidth-1:0]          read_vc_id_oh_sa_stage_i,
 
   // input pop flit ctrl fifo (comes from ST stage)
   input logic                           read_enable_st_stage_i,
-  input logic [NumVCWidth-1:0]          read_vc_id_st_stage_i
+  input logic [NumVCWidth-1:0]          read_vc_id_oh_st_stage_i
 );
 
 logic [NumVC-1:0] data_v_i_oh;
@@ -93,7 +93,20 @@ for(genvar v_chan = 0; v_chan < NumVC; v_chan++) begin: gen_ctrl_fifos
 end
 
 assign credit_v_o   = read_enable_st_stage_i; //could also be from sa stage
-assign credit_id_o  = read_vc_id_st_stage_i;
+logic [NumVCWidth-1:0][NumVC-1:0] id_mask;
+
+//extract credit_id from onehot: create id mask
+for(i = 0; i < NumVCWidth; i++) begin : gen_id_mask_NumVCWidth
+  for(j = 0; j < NumVC; j++) begin : gen_id_mask_NumVC
+    assign id_mask[i][j] = (j/(2**i)) % 2;
+  end
+end
+//mask looks like this: N_Input = 3: (0,0) is first bit
+// 0 0 0  // 1 0 0  // 0 1 0  // 1 1 0  // 0 0 1  // 1 0 1  // 0 1 1  // 1 1 1
+// use mask to get credit_id
+for(i = 0; i < NumVCWidth; i++) begin : gen_get_credit_id
+  assign credit_id_o[i] = |(read_vc_id_st_stage_i & id_mask[i]);
+end
 
 
 endmodule
