@@ -12,7 +12,7 @@ module floo_vc_selection #(
   parameter int VCDepthWidth  = $clog2(VCDepth+1)
 ) (
   input logic   [NumVC-1:0][VCDepthWidth-1:0]   credit_counter_i,
-  input logic   [NumVC-1:0]                     vc_selection_v_o, //for each dir, found a vc?
+  output logic  [NumVC-1:0]                     vc_selection_v_o, //for each dir, found a vc?
   output logic  [NumVC-1:0][NumVCWidth-1:0]     vc_selection_id_o //for each dir, which vc assigned?
 );
 
