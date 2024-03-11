@@ -9,8 +9,6 @@ module floo_vc_assignment #(
   parameter int NumVC         = 4,    // = possible number of next hop directions
   parameter int NumVCWidth    = NumVC > 1 ? $clog2(NumVC) : 1,
   parameter int NumInputs     = 4,
-  parameter int VCDepth       = 2,
-  parameter int VCDepthWidth  = $clog2(VCDepth+1),
   parameter route_algo_e RouteAlgo = XYRouting,
   parameter int OutputId      = 0
 ) (
