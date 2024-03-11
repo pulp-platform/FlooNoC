@@ -70,12 +70,12 @@ case (OutputId)
       if(sa_global_v_i) begin
         unique case(look_ahead_routing_sel)
           North: begin
-            vc_assignment_v  = vc_selection_v_i[0];
-            vc_assignment_id = vc_selection_id_i[0];
+            vc_assignment_v_o  = vc_selection_v_i[0];
+            vc_assignment_id_o = vc_selection_id_i[0];
           end
           default: begin
-            vc_assignment_v  = vc_selection_v_i[look_ahead_routing_sel - Eject + 1];
-            vc_assignment_id = vc_selection_id_i[look_ahead_routing_sel - Eject + 1];
+            vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 1];
+            vc_assignment_id_o = vc_selection_id_i[look_ahead_routing_sel - Eject + 1];
           end
         endcase
       end
@@ -89,20 +89,20 @@ case (OutputId)
       if(sa_global_v_i) begin
         unique case(look_ahead_routing_sel)
           North: begin
-            vc_assignment_v  = vc_selection_v_i[0];
-            vc_assignment_id = vc_selection_id_i[0];
+            vc_assignment_v_o  = vc_selection_v_i[0];
+            vc_assignment_id_o = vc_selection_id_i[0];
           end
           East: begin
-            vc_assignment_v  = vc_selection_v_i[1];
-            vc_assignment_id = vc_selection_id_i[1];
+            vc_assignment_v_o  = vc_selection_v_i[1];
+            vc_assignment_id_o = vc_selection_id_i[1];
           end
           South: begin
-            vc_assignment_v  = vc_selection_v_i[2];
-            vc_assignment_id = vc_selection_id_i[2];
+            vc_assignment_v_o  = vc_selection_v_i[2];
+            vc_assignment_id_o = vc_selection_id_i[2];
           end
           default: begin
-            vc_assignment_v  = vc_selection_v_i[look_ahead_routing_sel - Eject + 3];
-            vc_assignment_id = vc_selection_id_i[look_ahead_routing_sel - Eject + 3];
+            vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 3];
+            vc_assignment_id_o = vc_selection_id_i[look_ahead_routing_sel - Eject + 3];
           end
         endcase
       end
@@ -116,12 +116,12 @@ case (OutputId)
       if(sa_global_v_i) begin
         unique case(look_ahead_routing_sel)
           South: begin
-            vc_assignment_v  = vc_selection_v_i[0];
-            vc_assignment_id = vc_selection_id_i[0];
+            vc_assignment_v_o  = vc_selection_v_i[0];
+            vc_assignment_id_o = vc_selection_id_i[0];
           end
           default: begin
-            vc_assignment_v  = vc_selection_v_i[look_ahead_routing_sel - Eject + 1];
-            vc_assignment_id = vc_selection_id_i[look_ahead_routing_sel - Eject + 1];
+            vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 1];
+            vc_assignment_id_o = vc_selection_id_i[look_ahead_routing_sel - Eject + 1];
           end
         endcase
       end
@@ -135,20 +135,20 @@ case (OutputId)
       if(sa_global_v_i) begin
         unique case(look_ahead_routing_sel)
           North: begin
-            vc_assignment_v  = vc_selection_v_i[0];
-            vc_assignment_id = vc_selection_id_i[0];
+            vc_assignment_v_o  = vc_selection_v_i[0];
+            vc_assignment_id_o = vc_selection_id_i[0];
           end
           South: begin
-            vc_assignment_v  = vc_selection_v_i[1];
-            vc_assignment_id = vc_selection_id_i[1];
+            vc_assignment_v_o  = vc_selection_v_i[1];
+            vc_assignment_id_o = vc_selection_id_i[1];
           end
           West: begin
-            vc_assignment_v  = vc_selection_v_i[2];
-            vc_assignment_id = vc_selection_id_i[2];
+            vc_assignment_v_o  = vc_selection_v_i[2];
+            vc_assignment_id_o = vc_selection_id_i[2];
           end
           default: begin
-            vc_assignment_v  = vc_selection_v_i[look_ahead_routing_sel - Eject + 3];
-            vc_assignment_id = vc_selection_id_i[look_ahead_routing_sel - Eject + 3];
+            vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 3];
+            vc_assignment_id_o = vc_selection_id_i[look_ahead_routing_sel - Eject + 3];
           end
         endcase
       end
