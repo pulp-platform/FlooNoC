@@ -102,9 +102,9 @@ logic           [NumPorts-1:0]                    sa_global_v;
 logic           [NumPorts-1:0][NumPorts-1:0]      sa_global_input_dir_oh;
 logic           [NumPorts-1:0][NumVCWidth-1:0]    sa_global_input_vc_id;
 
-route_direction_e     [NumPorts-1:0]                    look_ahead_routing;
+route_direction_e     [NumPorts-1:0]              look_ahead_routing;
 
-logic           [NumPorts-1:0][VCDepthWidth-1:0]  credit_counter;
+logic           [NumPorts-1:0][NumVC-1:0][VCDepthWidth-1:0]  credit_counter;
 logic           [NumPorts-1:0]                    credit_consume_v;
 logic           [NumPorts-1:0][NumVCWidth-1:0]    credit_consume_id;
 
