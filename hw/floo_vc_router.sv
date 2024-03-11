@@ -345,7 +345,6 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_vc_assign
   #(
     .NumVC                          (NumVCToOut             [out_port]),
     .NumInputs                      (NumInputSaGlobal       [out_port]),
-    .VCDepth,
     .RouteAlgo,
     .OutputId                       (out_port)
   )
