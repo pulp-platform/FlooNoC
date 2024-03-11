@@ -17,8 +17,8 @@ module floo_vc_router #(
   // NumVCWidth: needs to be 3 in routers with more than 1 local ports
   parameter int           NumVCWidth                  = 2,
   // set this to 3 towards routers with more than 1 local ports: towards N,E,S,W,L0(,L1,L2,L3)
-  parameter int           NumVCToOut      [NumPorts]  = {2,4,2,4,4},
-  parameter int           NumVCWidthToOut [NumPorts]  = {2,2,2,2,2},
+  parameter int           NumVCToOut      [NumPorts]  = {2,4,2,4,1},
+  parameter int           NumVCWidthToOut [NumPorts]  = {2,2,2,2,1},
   parameter int           NumVCWidthToOutMax          = 2,
 
   parameter int           NumInputSaGlobal[NumPorts]  =
@@ -104,11 +104,12 @@ logic           [NumPorts-1:0][NumVCWidth-1:0]    sa_global_input_vc_id;
 
 route_direction_e     [NumPorts-1:0]              look_ahead_routing;
 
-logic           [NumPorts-1:0][NumVC-1:0][VCDepthWidth-1:0]  credit_counter;
+logic           [NumPorts-1:0][NumVC-1:0][VCDepthWidth-1:0] credit_counter;
 logic           [NumPorts-1:0]                    credit_consume_v;
 logic           [NumPorts-1:0][NumVCWidth-1:0]    credit_consume_id;
 
-
+logic           [NumPorts-1:0][NumVC-1:0]         vc_selection_v;
+logic           [NumPorts-1:0][NumVC-1:0][NumVCWidth-1:0]   vc_selection_id;
 logic           [NumPorts-1:0]                    vc_assignment_v;
 
 
@@ -308,6 +309,18 @@ end
 // 6 vc selection (runs parallel to sa local/global)
 // =============
 
+for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_vc_selection
+  floo_vc_selection
+  #(
+    .NumVC                          (NumVCToOut             [out_port]),
+    .VCDepth
+  )
+  i_floo_vc_selection (
+    .credit_counter_i               (credit_counter         [out_port]),
+    .vc_selection_v_o               (vc_selection_v_o       [out_port]),
+    .vc_selection_id_o              (vc_selection_id        [out_port])
+  );
+end
 
 
 // =============
