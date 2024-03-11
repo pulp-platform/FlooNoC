@@ -4,6 +4,7 @@
 //
 // Lukas Berner <bernerl@student.ethz.ch>
 
+`include "common_cells/registers.svh"
 
 // a router with virtual channels in the design of "Simple virtual channel allocation for high throughput and high frequency on-chip routers"
 // using the FVADA VC selection algorithm also described in that paper
@@ -84,10 +85,9 @@ hdr_t           [NumPorts-1:0][NumVCMax-1:0]                        vc_ctrl_head
 flit_payload_t  [NumPorts-1:0][NumVCMax-1:0]                        vc_data_head;
 
 logic           [NumPorts-1:0]                                      read_enable_sa_stage;
-logic           [NumPorts-1:0][NumVCWidth-1:0]                      read_vc_id_sa_stage;
+logic           [NumPorts-1:0][NumVC-1:0]                           read_vc_id_oh_sa_stage;
 logic           [NumPorts-1:0]                                      read_enable_st_stage;
-logic           [NumPorts-1:0][NumVCWidth-1:0]                      read_vc_id_st_stage;
-
+logic           [NumPorts-1:0][NumVC-1:0]                           read_vc_id_oh_st_stage;
 
 logic           [NumPorts-1:0]                                      sa_local_v;
 logic           [NumPorts-1:0][NumPorts-1:0]                        sa_local_output_dir_oh;
@@ -106,74 +106,15 @@ route_direction_e [NumPorts-1:0]                                    look_ahead_r
 route_direction_e [NumPorts-1:0][NumPorts-1:0]                      look_ahead_routing_per_output;
 route_direction_e [NumPorts-1:0]                                    look_ahead_routing_sel;
 
-logic           [NumPorts-1:0][NumVC-1:0][VCDepthWidth-1:0]         credit_counter;
-logic           [NumPorts-1:0]                                      credit_consume_v;
-logic           [NumPorts-1:0][NumVCWidthToOutMax-1:0]              credit_consume_id;
+logic           [NumPorts-1:0][NumVCWidthToOutMax-1:0][VCDepthWidth-1:0] credit_counter;
 
 logic           [NumPorts-1:0][NumVC-1:0]                           vc_selection_v;
 logic           [NumPorts-1:0][NumVC-1:0][NumVCWidthToOutMax-1:0]   vc_selection_id;
 logic           [NumPorts-1:0]                                      vc_assignment_v;
 logic           [NumPorts-1:0][NumVCWidthToOutMax-1:0]              vc_assignment_id;
 
-
-/*
-Map between per input to per output space:
-
-sa_local_vc_id is in the same space as vc_data/ctrl_head -> 0th is 0th vc, doesnt need to be dir N
-sa_local_output_dir_oh is in out_port space              -> 0th is towards (route_direction_e) 0th output
-
-input space:
-sa_local_vc_id
-sa_local_output_dir_oh
-look_ahead_routing
-
-output space:
-sa_local_vc_id_per_output
-sa_local_v_per_output
-look_ahead_routing_per_output
-*/
-
-always_comb begin
-  for (int out_port = 0; out_port < NumPorts; out_port++) begin : gen_transform_sa_results
-    if (RouteAlgo == XYRouting) begin : gen_reduce_sa_global_input_size_if_xyrouting
-      int sa_global_input_index = in_port < out_port ? in_port : inport - 1;
-      // to N/S has inputs S/N,E,W,L, to E/W has inputs W/E,L
-      for (int in_port = 0; in_port < NumPorts; in_port++) begin : gen_red_sa_glb_xyrouting_in_port
-        if(!(in_port == out_port ||
-          (out_port == East && (in_port == South || in_port == North)) ||
-          (out_port == West && (in_port == South || in_port == North))
-            )) begin : gen_reduce_sa_global_xyrouting_include_input
-            sa_local_vc_id_per_output[out_port][sa_global_input_index]
-                  = sa_local_vc_id[in_port];
-            sa_local_v_per_output[out_port][sa_global_input_index]
-                  = sa_local_output_dir_oh[in_port][out_port];
-            look_ahead_routing_per_output[out_port][sa_global_input_index]
-                  = look_ahead_routing[in_port];
-            look_ahead_dir_id_per_output[out_port][sa_global_input_index]
-                  = look_ahead_dir_id[in_port];
-            sa_global_input_index = sa_global_input_index ++;
-        end
-      end
-    end
-    // if not XY Routing: just transpose the matrix and leave out this dim
-    else begin : gen_transpose_sa_results
-      for (int in_port = 0; in_port < NumPorts; in_port++) begin : gen_transp_sa_results_in_port
-        if(in_port != out_port) begin : gen_transp_sa_results_in_port_ne_out_port
-          int sa_global_input_index = in_port < out_port ? in_port : inport - 1;
-            sa_local_vc_id_per_output[out_port][sa_global_input_index]
-                  = sa_local_vc_id[in_port];
-            sa_local_v_per_output[out_port][sa_global_input_index]
-                  = sa_local_output_dir_oh[in_port][out_port];
-            look_ahead_routing_per_output[out_port][sa_global_input_index]
-                  = look_ahead_routing[in_port];
-            look_ahead_dir_id_per_output[out_port][sa_global_input_index]
-                  = look_ahead_dir_id[in_port];
-        end
-      end
-    end
-  end
-end
-
+logic           [NumPorts-1:0][NumPorts-1:0]                       inport_id_oh_per_output_sa_stage;
+logic           [NumPorts-1:0][NumPorts-1:0]                       inport_id_oh_per_output_st_stage;
 
 
 // =============
@@ -204,11 +145,11 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_input_ports
 
     // pop flit ctrl fifo (comes from SA stage)
     .read_enable_sa_stage_i         (read_enable_sa_stage [in_port]),
-    .read_vc_id_sa_stage_i          (sa_local_vc_id       [in_port]),
+    .read_vc_id_oh_sa_stage_i       (sa_local_vc_id_oh    [in_port]),
 
     // pop flit data fifo (comes from ST stage)
     .read_enable_st_stage_i         (read_enable_st_stage [in_port]),
-    .read_vc_id_st_stage_i          (read_vc_id_st_stage  [in_port]),
+    .read_vc_id_oh_st_stage_i       (read_vc_id_oh_st_stage[in_port]),
 
     .clk_i,
     .rst_ni
@@ -309,8 +250,8 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_credit_co
   i_floo_credit_counter (
     .credit_v_i                     (credit_v_i             [out_port]),
     .credit_id_i                    (credit_id_i            [out_port]),
-    .consume_credit_v_i             (credit_consume_v       [out_port]),
-    .consume_credit_id_i            (credit_consume_id      [out_port]),
+    .consume_credit_v_i             (vc_assignment_v        [out_port]),
+    .consume_credit_id_i            (vc_assignment_id       [out_port]),
     .credit_counter_o               (credit_counter         [out_port]),
     .clk_i,
     .rst_ni
@@ -365,13 +306,98 @@ end
 // 8 map input VCs to output VCs
 // =============
 
+/*
+Map between per input to per output space:
+
+sa_local_vc_id is in the same space as vc_data/ctrl_head -> 0th is 0th vc, doesnt need to be dir N
+sa_local_output_dir_oh is in out_port space              -> 0th is towards (route_direction_e) 0th output
+
+input space:
+sa_local_vc_id
+sa_local_output_dir_oh
+look_ahead_routing
+
+inport_id_oh_per_output_sa_stage
+
+output space:
+sa_local_vc_id_per_output
+sa_local_v_per_output
+look_ahead_routing_per_output
+
+sa_global_input_dir_oh
+*/
+
+always_comb begin
+  sa_local_vc_id_per_output        = '0;
+  sa_local_v_per_output            = '0;
+  look_ahead_routing_per_output    = '0;
+  look_ahead_dir_id_per_output     = '0;
+  inport_id_oh_per_output_sa_stage = '0;
+  for (int out_port = 0; out_port < NumPorts; out_port++) begin : gen_transform_sa_results
+    if (RouteAlgo == XYRouting) begin : gen_reduce_sa_global_input_size_if_xyrouting
+      int per_output_index = 0;
+      // to N/S has inputs S/N,E,W,L, to E/W has inputs W/E,L
+      for (int in_port = 0; in_port < NumPorts; in_port++) begin : gen_red_sa_glb_xyrouting_in_port
+        if(!(in_port == out_port ||
+          (out_port == East && (in_port == South || in_port == North)) ||
+          (out_port == West && (in_port == South || in_port == North))
+            )) begin : gen_reduce_sa_global_xyrouting_include_input
+            sa_local_vc_id_per_output[out_port][per_output_index]
+                  = sa_local_vc_id[in_port];
+            sa_local_v_per_output[out_port][per_output_index]
+                  = sa_local_output_dir_oh[in_port][out_port];
+            look_ahead_routing_per_output[out_port][per_output_index]
+                  = look_ahead_routing[in_port];
+            look_ahead_dir_id_per_output[out_port][per_output_index]
+                  = look_ahead_dir_id[in_port];
+
+            inport_id_oh_per_output_sa_stage[out_port][in_port]
+                  = sa_global_input_dir_oh[out_port][per_output_index];
+
+            per_output_index = per_output_index ++;
+        end
+      end
+    end
+    // if not XY Routing: just transpose the matrix and leave out this dim
+    else begin : gen_transpose_sa_results
+      for (int in_port = 0; in_port < NumPorts; in_port++) begin : gen_transp_sa_results_in_port
+        if(in_port != out_port) begin : gen_transp_sa_results_in_port_ne_out_port
+          int per_output_index = in_port < out_port ? in_port : inport - 1;
+            sa_local_vc_id_per_output[out_port][per_output_index]
+                  = sa_local_vc_id[in_port];
+            sa_local_v_per_output[out_port][per_output_index]
+                  = sa_local_output_dir_oh[in_port][out_port];
+            look_ahead_routing_per_output[out_port][per_output_index]
+                  = look_ahead_routing[in_port];
+            look_ahead_dir_id_per_output[out_port][per_output_index]
+                  = look_ahead_dir_id[in_port];
+            inport_id_oh_per_output_sa_stage[out_port][in_port]
+                  = sa_global_input_dir_oh[out_port][per_output_index];
+        end
+      end
+    end
+  end
+end
+
+for(genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_inport_read_enable
+  assign read_enable_sa_stage[in_port] =
+      |(inport_id_oh_per_output_sa_stage[NumPorts-1:0][i] & vc_assignment_v);
+  assign read_vc_id_oh_sa_stage[in_port] = sa_local_vc_id_oh;
+end
+
 
 
 // =============
 // 9 SA to ST stage reg
 // =============
 
+`FF(read_enable_st_stage, read_enable_sa_stage, '0)
+`FF(read_vc_id_oh_st_stage, read_vc_id_oh_sa_stage, '0)
 
+`FF(data_v_o, vc_assignment_v, '0)
+`FF(inport_id_oh_per_output_st_stage, inport_id_oh_per_output_sa_stage, '0)
+`FF(data_o.hdr.vc_id, vc_assignment_id, '0)
+`FF(data_o.hdr.lookahead, look_ahead_routing_sel, '0)
 
 // =============
 // 10 ST
