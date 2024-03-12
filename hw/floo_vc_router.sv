@@ -426,12 +426,21 @@ end
 // 10 ST
 // =============
 
-
-
-
-
-
-
+floo_vc_router_switch
+#(
+  .NumPorts,
+  .NumVC,
+  .NumVCMax,
+  .flit_t,
+  .flit_payload_t,
+  .RouteAlgo
+) i_floo_vc_router_switch (
+  .vc_data_head_i                   (vc_data_head),
+  .ctrl_head_per_inport_i           (selected_ctrl_head_st_stage),
+  .read_vc_id_oh_i                  (read_vc_id_oh_st_stage),
+  .inport_id_oh_per_output_i        (inport_id_oh_per_output_st_stage),
+  .data_o
+);
 
 
 endmodule
