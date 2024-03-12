@@ -36,11 +36,11 @@ class RouteAlgo(Enum):
 class XYDirections(Enum):
     """XY directions enum."""
 
-    EJECT = "Eject"
     NORTH = "North"
     EAST = "East"
     SOUTH = "South"
     WEST = "West"
+    EJECT = "Eject"
 
     def __str__(self):
         return self.name
