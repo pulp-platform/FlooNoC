@@ -22,7 +22,7 @@ module floo_vc_router_switch #(
   output flit_t         [NumPorts-1:0]                  data_o
 );
 
-flit_payload_t [NumPorts-1:0] sel_data_head_per_inport;
+flit_payload_t [NumPorts-1:0] data_head_per_inport;
 
 // select data head per inport
 
@@ -33,12 +33,47 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_select_data_
   ) i_floo_mux_select_data_head (
     .sel_i            (read_vc_id_oh_i          [in_port]),
     .data_i           (vc_data_head_i           [in_port]),
-    .data_o           (sel_data_head_per_inport [in_port])
+    .data_o           (data_head_per_inport [in_port])
   );
 end
 
+`define ASSIGN_IN_OUT_PORT(in_port, out_port)                                               \
+  assign data_o[out_port][DataLength-1:0] = data_head_per_inport[in_port];                  \
+  assign data_o[out_port].hdr.rob_req     = ctrl_head_per_inport_i[in_port].rob_req;        \
+  assign data_o[out_port].hdr.rob_idx     = ctrl_head_per_inport_i[in_port].rob_idx;        \
+  assign data_o[out_port].hdr.dst_id      = ctrl_head_per_inport_i[in_port].dst_id;         \
+  assign data_o[out_port].hdr.dst_port_id = ctrl_head_per_inport_i[in_port].dst_port_id;    \
+  assign data_o[out_port].hdr.src_id      = ctrl_head_per_inport_i[in_port].src_id;         \
+  assign data_o[out_port].hdr.last        = ctrl_head_per_inport_i[in_port].last;           \
+  assign data_o[out_port].hdr.atop        = ctrl_head_per_inport_i[in_port].atop;           \
+  assign data_o[out_port].hdr.axi_ch      = ctrl_head_per_inport_i[in_port].axi_ch;
 
-
-
+if(RouteAlgo != XYRouting) begin : gen_switch_not_XY_routing_optimized
+  for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_nXYopt_out
+    for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_nXYopt_in
+      // dont need to check bits on diagonal
+      if(out_port != in_port) begin : gen_nXYopt_out_neq_in
+        if(inport_id_oh_per_output_i[out_port][in_port]) begin : gen_nXYopt_found_match
+          `ASSIGN_IN_OUT_PORT(in_port, out_port)
+        end
+      end
+    end
+  end
+end else begin : gen_switch_XY_routing_optimized
+  // if XY routing is used, not each bit of inport_id_oh_per_output_i needs to be checked
+  for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_XYopt_out
+    for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_XYopt_in
+      // N -> S,L, E->N,S,W,L, S->N,L, W->N,E,S,L
+      if(!(in_port == out_port ||
+          (out_port == East && (in_port == South || in_port == North)) ||
+          (out_port == West && (in_port == South || in_port == North))
+            )) begin : gen_XYopt_possible_connection
+        if(inport_id_oh_per_output_i[out_port][in_port]) begin : gen_nXYopt_found_match
+          `ASSIGN_IN_OUT_PORT(in_port, out_port)
+        end
+      end
+    end
+  end
+end
 
 endmodule
