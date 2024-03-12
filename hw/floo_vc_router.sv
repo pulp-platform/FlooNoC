@@ -19,6 +19,7 @@ module floo_vc_router #(
   parameter int           NumVCWidth                  = 2,
   // set this to 3 towards routers with more than 1 local ports: towards N,E,S,W,L0(,L1,L2,L3)
   parameter int           NumVCToOut      [NumPorts]  = {2,4,2,4,1},
+  parameter int           NumVCToOutMax               = 4,
   parameter int           NumVCWidthToOut [NumPorts]  = {2,2,2,2,1},
   parameter int           NumVCWidthToOutMax          = 2,
 
@@ -85,9 +86,9 @@ hdr_t           [NumPorts-1:0][NumVCMax-1:0]                        vc_ctrl_head
 flit_payload_t  [NumPorts-1:0][NumVCMax-1:0]                        vc_data_head;
 
 logic           [NumPorts-1:0]                                      read_enable_sa_stage;
-logic           [NumPorts-1:0][NumVC-1:0]                           read_vc_id_oh_sa_stage;
+logic           [NumPorts-1:0][NumVCMax-1:0]                        read_vc_id_oh_sa_stage;
 logic           [NumPorts-1:0]                                      read_enable_st_stage;
-logic           [NumPorts-1:0][NumVC-1:0]                           read_vc_id_oh_st_stage;
+logic           [NumPorts-1:0][NumVCMax-1:0]                        read_vc_id_oh_st_stage;
 
 logic           [NumPorts-1:0]                                      sa_local_v;
 logic           [NumPorts-1:0][NumPorts-1:0]                        sa_local_output_dir_oh;
@@ -106,15 +107,17 @@ route_direction_e [NumPorts-1:0]                                    look_ahead_r
 route_direction_e [NumPorts-1:0][NumPorts-1:0]                      look_ahead_routing_per_output;
 route_direction_e [NumPorts-1:0]                                    look_ahead_routing_sel;
 
-logic           [NumPorts-1:0][NumVCWidthToOutMax-1:0][VCDepthWidth-1:0] credit_counter;
+logic           [NumPorts-1:0][NumVCToOutMax-1:0][VCDepthWidth-1:0] credit_counter;
 
-logic           [NumPorts-1:0][NumVC-1:0]                           vc_selection_v;
-logic           [NumPorts-1:0][NumVC-1:0][NumVCWidthToOutMax-1:0]   vc_selection_id;
+logic           [NumPorts-1:0][NumVCToOutMax-1:0]                        vc_selection_v;
+logic           [NumPorts-1:0][NumVCToOutMax-1:0][NumVCWidthToOutMax-1:0]vc_selection_id;
 logic           [NumPorts-1:0]                                      vc_assignment_v;
 logic           [NumPorts-1:0][NumVCWidthToOutMax-1:0]              vc_assignment_id;
 
 logic           [NumPorts-1:0][NumPorts-1:0]                       inport_id_oh_per_output_sa_stage;
 logic           [NumPorts-1:0][NumPorts-1:0]                       inport_id_oh_per_output_st_stage;
+hdr_t           [NumPorts-1:0]                                      selected_ctrl_head_st_stage;
+
 
 
 // =============
@@ -378,7 +381,7 @@ always_comb begin
     end
   end
 end
-
+// extract information
 for(genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_inport_read_enable
   assign read_enable_sa_stage[in_port] =
       |(inport_id_oh_per_output_sa_stage[NumPorts-1:0][i] & vc_assignment_v);
@@ -393,11 +396,31 @@ end
 
 `FF(read_enable_st_stage, read_enable_sa_stage, '0)
 `FF(read_vc_id_oh_st_stage, read_vc_id_oh_sa_stage, '0)
-
-`FF(data_v_o, vc_assignment_v, '0)
 `FF(inport_id_oh_per_output_st_stage, inport_id_oh_per_output_sa_stage, '0)
-`FF(data_o.hdr.vc_id, vc_assignment_id, '0)
-`FF(data_o.hdr.lookahead, look_ahead_routing_sel, '0)
+`FF(data_v_o, vc_assignment_v, '0)
+
+for (genvar port = 0; port < NumPorts; port++) begin : gen_hdr_ff
+  // per in_port: will be assigned in switch
+  `FF(selected_ctrl_head_st_stage[port].hdr.rob_req,
+           sa_local_sel_ctrl_head[port].rob_req, '0);
+  `FF(selected_ctrl_head_st_stage[port].hdr.rob_idx,
+           sa_local_sel_ctrl_head[port].rob_idx, '0);
+  `FF(selected_ctrl_head_st_stage[port].hdr.dst_id,
+           sa_local_sel_ctrl_head[port].dst_id, '0);
+  `FF(selected_ctrl_head_st_stage[port].hdr.dst_port_id,
+           sa_local_sel_ctrl_head[port].dst_port_id, '0);
+  `FF(selected_ctrl_head_st_stage[port].hdr.src_id,
+           sa_local_sel_ctrl_head[port].src_id, '0);
+  `FF(selected_ctrl_head_st_stage[port].hdr.last,
+           sa_local_sel_ctrl_head[port].last, '0);
+  `FF(selected_ctrl_head_st_stage[port].hdr.atop,
+           sa_local_sel_ctrl_head[port].atop, '0);
+  `FF(selected_ctrl_head_st_stage[port].hdr.axi_ch,
+           sa_local_sel_ctrl_head[port].axi_ch, '0);
+  // already per out_port: assign directly
+  `FF(data_o[port].hdr.vc_id, vc_assignment_id[port], '0)
+  `FF(data_o[port].hdr.lookahead, look_ahead_routing_sel[port], '0)
+end
 
 // =============
 // 10 ST
