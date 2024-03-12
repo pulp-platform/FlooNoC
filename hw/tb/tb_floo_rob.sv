@@ -92,10 +92,10 @@ module tb_floo_rob;
 
   localparam int unsigned NumAddrRegions = 4;
   localparam node_addr_region_t [NumAddrRegions-1:0] AddrRegions = '{
-    '{idx: 0, start_addr: 32'h00210000, end_addr: 32'h0021FFFF},  // North
-    '{idx: 1, start_addr: 32'h00120000, end_addr: 32'h0012FFFF},   // East
-    '{idx: 2, start_addr: 32'h00010000, end_addr: 32'h0001FFFF},  // South
-    '{idx: 3, start_addr: 32'h00100000, end_addr: 32'h0010FFFF}    // West
+    '{idx: North, start_addr: 32'h00210000, end_addr: 32'h0021FFFF},  // North
+    '{idx: East, start_addr: 32'h00120000, end_addr: 32'h0012FFFF},   // East
+    '{idx: South, start_addr: 32'h00010000, end_addr: 32'h0001FFFF},  // South
+    '{idx: West, start_addr: 32'h00100000, end_addr: 32'h0010FFFF}    // West
   };
 
   floo_axi_test_node #(
@@ -270,8 +270,8 @@ module tb_floo_rob;
     .rst_ni         ( rst_n                                     ),
     .mon_mst_req_i  ( node_mst_req                              ),
     .mon_mst_rsp_i  ( node_mst_rsp                              ),
-    .mon_slv_req_i  ( node_slv_req_id_mapped[NumDirections-1:1] ),
-    .mon_slv_rsp_i  ( node_slv_rsp_id_mapped[NumDirections-1:1] ),
+    .mon_slv_req_i  ( node_slv_req_id_mapped[West:North] ),
+    .mon_slv_rsp_i  ( node_slv_rsp_id_mapped[West:North] ),
     .end_of_sim_o   ( end_of_sim[1]                             )
   );
 

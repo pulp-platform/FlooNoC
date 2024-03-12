@@ -55,10 +55,10 @@ module floo_mesh_ruche
       xy_id_t current_id;
       assign current_id = '{x: x, y: y};
 
-      flit_t  [West:Eject][NumPhysChannels-1:0] in_flit;
-      logic   [West:Eject][NumVirtChannels-1:0] in_ready, in_valid;
-      flit_t  [West:Eject][NumPhysChannels-1:0] out_flit;
-      logic   [West:Eject][NumVirtChannels-1:0] out_ready, out_valid;
+      flit_t  [4:0][NumPhysChannels-1:0] in_flit;
+      logic   [4:0][NumVirtChannels-1:0] in_ready, in_valid;
+      flit_t  [4:0][NumPhysChannels-1:0] out_flit;
+      logic   [4:0][NumVirtChannels-1:0] out_ready, out_valid;
 
       flit_t  [RucheWest:RucheNorth][NumPhysChannels-1:0] ruche_in_flit;
       logic   [RucheWest:RucheNorth][NumVirtChannels-1:0] ruche_in_ready, ruche_in_valid;
