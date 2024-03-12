@@ -116,6 +116,7 @@ logic           [NumPorts-1:0][NumVCWidthToOutMax-1:0]              vc_assignmen
 
 logic           [NumPorts-1:0][NumPorts-1:0]                       inport_id_oh_per_output_sa_stage;
 logic           [NumPorts-1:0][NumPorts-1:0]                       inport_id_oh_per_output_st_stage;
+hdr_t           [NumPorts-1:0]                                      selected_ctrl_head_sa_stage;
 hdr_t           [NumPorts-1:0]                                      selected_ctrl_head_st_stage;
 
 
@@ -230,8 +231,9 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
     .NumAddrRules,
     .addr_rule_t
   ) i_floo_look_ahead_routing (
-    .vc_ctrl_head_i                 (sa_local_sel_ctrl_head [in_port]),
-    .look_ahead_routing_o           (look_ahead_routing     [in_port]),
+    .ctrl_head_i                    (sa_local_sel_ctrl_head     [in_port]),
+    .ctrl_head_o                    (selected_ctrl_head_sa_stage[in_port]),
+    .look_ahead_routing_o           (look_ahead_routing         [in_port]),
     .id_route_map_i,
     .xy_id_i,
     .clk_i,
@@ -401,22 +403,22 @@ end
 
 for (genvar port = 0; port < NumPorts; port++) begin : gen_hdr_ff
   // per in_port: will be assigned in switch
-  `FF(selected_ctrl_head_st_stage[port].hdr.rob_req,
-           sa_local_sel_ctrl_head[port].rob_req, '0);
-  `FF(selected_ctrl_head_st_stage[port].hdr.rob_idx,
-           sa_local_sel_ctrl_head[port].rob_idx, '0);
-  `FF(selected_ctrl_head_st_stage[port].hdr.dst_id,
-           sa_local_sel_ctrl_head[port].dst_id, '0);
-  `FF(selected_ctrl_head_st_stage[port].hdr.dst_port_id,
-           sa_local_sel_ctrl_head[port].dst_port_id, '0);
-  `FF(selected_ctrl_head_st_stage[port].hdr.src_id,
-           sa_local_sel_ctrl_head[port].src_id, '0);
-  `FF(selected_ctrl_head_st_stage[port].hdr.last,
-           sa_local_sel_ctrl_head[port].last, '0);
-  `FF(selected_ctrl_head_st_stage[port].hdr.atop,
-           sa_local_sel_ctrl_head[port].atop, '0);
-  `FF(selected_ctrl_head_st_stage[port].hdr.axi_ch,
-           sa_local_sel_ctrl_head[port].axi_ch, '0);
+  `FF(selected_ctrl_head_st_stage[port].rob_req,
+      selected_ctrl_head_sa_stage[port].rob_req,    '0);
+  `FF(selected_ctrl_head_st_stage[port].rob_idx,
+      selected_ctrl_head_sa_stage[port].rob_idx,    '0);
+  `FF(selected_ctrl_head_st_stage[port].dst_id,
+      selected_ctrl_head_sa_stage[port].dst_id,     '0);
+  `FF(selected_ctrl_head_st_stage[port].dst_port_id,
+      selected_ctrl_head_sa_stage[port].dst_port_id,'0);
+  `FF(selected_ctrl_head_st_stage[port].src_id,
+      selected_ctrl_head_sa_stage[port].src_id,     '0);
+  `FF(selected_ctrl_head_st_stage[port].last,
+      selected_ctrl_head_sa_stage[port].last,       '0);
+  `FF(selected_ctrl_head_st_stage[port].atop,
+      selected_ctrl_head_sa_stage[port].atop,       '0);
+  `FF(selected_ctrl_head_st_stage[port].axi_ch,
+      selected_ctrl_head_sa_stage[port].axi_ch,     '0);
   // already per out_port: assign directly
   `FF(data_o[port].hdr.vc_id, vc_assignment_id[port], '0)
   `FF(data_o[port].hdr.lookahead, look_ahead_routing_sel[port], '0)
