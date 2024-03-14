@@ -8,7 +8,7 @@
 
 // a router with virtual channels in the design of "Simple virtual channel allocation for high throughput and high frequency on-chip routers"
 // using the FVADA VC selection algorithm also described in that paper
-module floo_vc_router #(
+module floo_vc_router import floo_pkg::*; #(
   parameter int           NumPorts                    = 5, // phys channels are always in and output
   parameter int           NumLocalPorts               = NumPorts - 4,
   parameter int           NumVC           [NumPorts]  =
@@ -20,7 +20,6 @@ module floo_vc_router #(
   // set this to 3 towards routers with more than 1 local ports: towards N,E,S,W,L0(,L1,L2,L3)
   parameter int           NumVCToOut      [NumPorts]  = {2,4,2,4,1},
   parameter int           NumVCToOutMax               = 4,
-  parameter int           NumVCWidthToOut [NumPorts]  = {2,2,2,2,1},
   parameter int           NumVCWidthToOutMax          = 2,
 
   parameter int           NumInputSaGlobal[NumPorts]  =
@@ -30,6 +29,7 @@ module floo_vc_router #(
   parameter int           VCDepth                     = 2,
   parameter int           VCDepthWidth                = $clog2(VCDepth+1),
   parameter type          flit_t                      = logic,
+  parameter type          hdr_t                       = logic,
   parameter int           HdrLength                   = $bits(hdr_t),
   parameter int           DataLength                  = $bits(flit_t) - HdrLength,
   parameter type          flit_payload_t              = logic[DataLength-1:0],
@@ -37,7 +37,7 @@ module floo_vc_router #(
   // Route Algorithm stuff
   parameter route_algo_e  RouteAlgo                   = XYRouting,
   /// Used for ID-based and XY routing
-  parameter int unsigned  IdWidth                     = 0,
+  parameter int unsigned  IdWidth                     = 1,
   parameter type          id_t                        = logic[IdWidth-1:0],
   /// Used for ID-based routing
   parameter int unsigned  NumAddrRules                = 0,
@@ -92,7 +92,6 @@ logic           [NumPorts-1:0][NumVCMax-1:0]                        read_vc_id_o
 logic           [NumPorts-1:0]                                      read_enable_st_stage;
 logic           [NumPorts-1:0][NumVCMax-1:0]                        read_vc_id_oh_st_stage;
 
-logic           [NumPorts-1:0]                                      sa_local_v;
 logic           [NumPorts-1:0][NumPorts-1:0]                        sa_local_output_dir_oh;
 logic           [NumPorts-1:0][NumVCWidth-1:0]                      sa_local_vc_id;
 logic           [NumPorts-1:0][NumVCMax-1:0]                        sa_local_vc_id_oh;
@@ -118,12 +117,12 @@ logic           [NumPorts-1:0][NumVCWidthToOutMax-1:0]              vc_assignmen
 
 logic           [NumPorts-1:0]                                      outport_v;
 
-logic           [NumPorts-1:0][NumPorts-1:0]                 inport_id_oh_per_output_sa_stage;
-logic           [NumPorts-1:0][NumPorts-1:0]                 inport_id_oh_per_output_st_stage;
-hdr_t           [NumPorts-1:0]                               sel_ctrl_head_per_input_sa_stage;
-hdr_t           [NumPorts-1:0]                               sel_ctrl_head_per_input_st_stage;
+logic           [NumPorts-1:0][NumPorts-1:0]        inport_id_oh_per_output_sa_stage;
+logic           [NumPorts-1:0][NumPorts-1:0]        inport_id_oh_per_output_sa_stage_transposed;
+logic           [NumPorts-1:0][NumPorts-1:0]        inport_id_oh_per_output_st_stage;
+hdr_t           [NumPorts-1:0]                      sel_ctrl_head_per_input_sa_stage;
+hdr_t           [NumPorts-1:0]                      sel_ctrl_head_per_input_st_stage;
 
-logic           [NumPorts-1:0]                                      last_bits_per_input;
 logic           [NumPorts-1:0][NumPorts-1:0]                        last_bits_per_output;
 logic           [NumPorts-1:0]                                      last_bits_sel;  //1 bit/output
 logic           [NumPorts-1:0]                                      wormhole_detected; //per output
@@ -141,12 +140,12 @@ logic           [NumPorts-1:0]                                      wormhole_cor
 
 for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_input_ports
   floo_input_port #(
-    .flit_t,
-    .flit_payload_t,
+    .flit_t                         (flit_t),
+    .flit_payload_t                 (flit_payload_t),
+    .hdr_t                          (hdr_t),
     .NumVC                          (NumVC[in_port]),
-    .NumVCMax                       (NumVCMax),
-    .NumVCWidth,
-    .VCDepth                        (VCDepth),
+    .NumVCWidth                     (NumVCWidth),
+    .VCDepth                        (VCDepth)
   ) i_input_port (
     // input from other router or local port
     .credit_v_o                     (credit_v_o           [in_port]),
@@ -182,13 +181,13 @@ end
 for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
   floo_sa_local #(
     .NumVC                          (NumVC                  [in_port]),
-    .NumVCWidth,
-    .NumPorts
+    .NumVCWidth                     (NumVCWidth),
+    .NumPorts                       (NumPorts),
+    .hdr_t                          (hdr_t)
   ) i_sa_local (
     .vc_ctrl_head_v_i               (vc_ctrl_head_v         [in_port]),
     .vc_ctrl_head_i                 (vc_ctrl_head           [in_port]),
 
-    .sa_local_v_o                   (sa_local_v             [in_port]), // 1 if any was chosen
     .sa_local_vc_id_o               (sa_local_vc_id         [in_port]), // chosen id
     .sa_local_vc_id_oh_o            (sa_local_vc_id_oh      [in_port]), // chosen id onehot encoded
     .sa_local_sel_ctrl_head_o       (sa_local_sel_ctrl_head [in_port]),
@@ -211,8 +210,8 @@ end
 for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_sa_global
   floo_sa_global #(
   .NumInputs                        (NumInputSaGlobal       [out_port]),
-  .NumVCWidth,
-  .NumPorts
+  .NumVCWidth                         (NumVCWidth),
+  .NumPorts                         (NumPorts)
   ) i_sa_global (
   // for each input: is their sa local in that dir valid
   .sa_local_v_i                     (sa_local_v_per_output  [out_port]),
@@ -236,15 +235,15 @@ end
 // 4 look-ahead routing (runs parallel to global SA)
 // =============
 
-for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
+for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_lookahead_routing
   floo_look_ahead_routing #(
-    .NumRoutes(NumPorts),
-    .flit_t,
-    .RouteAlgo,
-    .IdWidth,
-    .id_t,
-    .NumAddrRules,
-    .addr_rule_t
+    .NumRoutes                      (NumPorts),
+    .hdr_t                          (hdr_t),
+    .RouteAlgo                      (RouteAlgo),
+    .IdWidth                        (IdWidth),
+    .id_t                           (id_t),
+    .NumAddrRules                   (NumAddrRules),
+    .addr_rule_t                    (addr_rule_t)
   ) i_floo_look_ahead_routing (
     .ctrl_head_i                    (sa_local_sel_ctrl_head           [in_port]),
     .ctrl_head_o                    (sel_ctrl_head_per_input_sa_stage [in_port]),
@@ -265,7 +264,7 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_credit_co
   floo_credit_counter
   #(
     .NumVC                          (NumVCToOut             [out_port]),
-    .VCDepth
+    .VCDepth                        (VCDepth)
   )
   i_floo_credit_counter (
     .credit_v_i                     (credit_v_i             [out_port]),
@@ -287,7 +286,7 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_vc_select
   floo_vc_selection
   #(
     .NumVC                          (NumVCToOut             [out_port]),
-    .VCDepth
+    .VCDepth                        (VCDepth)
   )
   i_floo_vc_selection (
     .credit_counter_i               (credit_counter         [out_port]),
@@ -306,7 +305,7 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_vc_assign
   #(
     .NumVC                          (NumVCToOut             [out_port]),
     .NumInputs                      (NumInputSaGlobal       [out_port]),
-    .RouteAlgo,
+    .RouteAlgo                      (RouteAlgo),
     .OutputId                       (out_port)
   )
   i_floo_vc_assignment (
@@ -342,8 +341,8 @@ for(genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_select_las
     .NumInputs(NumInputSaGlobal       [out_port]),
     .DataWidth(1)
   ) i_floo_mux_select_vc_id (
-    .sel_i    (sa_global_input_dir_oh [out_port]),
-    .data_i   (last_bits_per_output   [out_port]),
+    .sel_i    (sa_global_input_dir_oh [out_port][NumInputSaGlobal[out_port]-1:0]),
+    .data_i   (last_bits_per_output   [out_port][NumInputSaGlobal[out_port]-1:0]),
     .data_o   (last_bits_sel          [out_port])
   );
 end
@@ -361,11 +360,18 @@ assign wormhole_detected = ~last_bits_sel & outport_v;
 assign wormhole_v_d = wormhole_detected | (wormhole_v & ~(last_bits_sel & outport_v));
 `FF(wormhole_v, wormhole_v_d, '0)
 
+for(genvar i = 0 ; i < NumPorts; i++) begin : gen_transpose_DataWidth
+  for(genvar j = 0 ; j < NumPorts; j++) begin : gen_transpose_NumInputs
+    assign inport_id_oh_per_output_sa_stage_transposed[i][j] =
+                      inport_id_oh_per_output_sa_stage[j][i];
+  end
+end
+
 // extract information
 for(genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_inport_read_enable
   assign read_enable_sa_stage[in_port] =
-      |(inport_id_oh_per_output_sa_stage[NumPorts-1:0][i] & outport_v);
-  assign read_vc_id_oh_sa_stage[in_port] = sa_local_vc_id_oh;
+      |(inport_id_oh_per_output_sa_stage_transposed[in_port] & outport_v);
+  assign read_vc_id_oh_sa_stage[in_port] = sa_local_vc_id_oh[in_port];
 end
 
 
@@ -400,11 +406,10 @@ always_comb begin
   sa_local_vc_id_per_output        = '0;
   sa_local_v_per_output            = '0;
   look_ahead_routing_per_output    = '0;
-  look_ahead_dir_id_per_output     = '0;
   inport_id_oh_per_output_sa_stage = '0;
   for (int out_port = 0; out_port < NumPorts; out_port++) begin : gen_transform_sa_results
     if (RouteAlgo == XYRouting) begin : gen_reduce_sa_global_input_size_if_xyrouting
-      int per_output_index = 0;
+      automatic int per_output_index = 0;
       // to N/S has inputs S/N,E,W,L, to E/W has inputs W/E,L
       for (int in_port = 0; in_port < NumPorts; in_port++) begin : gen_red_sa_glb_xyrouting_in_port
         if(!(in_port == out_port ||
@@ -417,10 +422,8 @@ always_comb begin
                   = sa_local_output_dir_oh[in_port][out_port];
             look_ahead_routing_per_output[out_port][per_output_index]
                   = look_ahead_routing_per_input[in_port];
-            look_ahead_dir_id_per_output[out_port][per_output_index]
-                  = look_ahead_dir_id[in_port];
             last_bits_per_output[out_port][per_output_index]
-                  = last_bits_per_input[in_port];
+                  = sa_local_sel_ctrl_head[in_port].last;
 
             inport_id_oh_per_output_sa_stage[out_port][in_port]
                   = sa_global_input_dir_oh[out_port][per_output_index];
@@ -433,19 +436,17 @@ always_comb begin
     else begin : gen_transpose_sa_results
       for (int in_port = 0; in_port < NumPorts; in_port++) begin : gen_transp_sa_results_in_port
         if(in_port != out_port) begin : gen_transp_sa_results_in_port_ne_out_port
-          int per_output_index = in_port < out_port ? in_port : inport - 1;
-            sa_local_vc_id_per_output[out_port][per_output_index]
-                  = sa_local_vc_id[in_port];
-            sa_local_v_per_output[out_port][per_output_index]
-                  = sa_local_output_dir_oh[in_port][out_port];
-            look_ahead_routing_per_output[out_port][per_output_index]
-                  = look_ahead_routing_per_input[in_port];
-            look_ahead_dir_id_per_output[out_port][per_output_index]
-                  = look_ahead_dir_id[in_port];
-            inport_id_oh_per_output_sa_stage[out_port][in_port]
-                  = sa_global_input_dir_oh[out_port][per_output_index];
-            last_bits_per_output[out_port][per_output_index]
-                  = last_bits_per_input[in_port];
+          automatic int per_output_index = in_port < out_port ? in_port : in_port - 1;
+          sa_local_vc_id_per_output[out_port][per_output_index]
+                = sa_local_vc_id[in_port];
+          sa_local_v_per_output[out_port][per_output_index]
+                = sa_local_output_dir_oh[in_port][out_port];
+          look_ahead_routing_per_output[out_port][per_output_index]
+                = look_ahead_routing_per_input[in_port];
+          inport_id_oh_per_output_sa_stage[out_port][in_port]
+                = sa_global_input_dir_oh[out_port][per_output_index];
+          last_bits_per_output[out_port][per_output_index]
+                = sa_local_sel_ctrl_head[in_port].last;
         end
       end
     end
@@ -489,14 +490,14 @@ end
 // 11 ST
 // =============
 
-floo_vc_router_switch
-#(
-  .NumPorts,
-  .NumVC,
-  .NumVCMax,
-  .flit_t,
-  .flit_payload_t,
-  .RouteAlgo
+floo_vc_router_switch #(
+  .NumPorts                         (NumPorts),
+  .NumVC                            (NumVC),
+  .NumVCMax                         (NumVCMax),
+  .flit_t                           (flit_t),
+  .flit_payload_t                   (flit_payload_t),
+  .hdr_t                            (hdr_t),
+  .RouteAlgo                        (RouteAlgo)
 ) i_floo_vc_router_switch (
   .vc_data_head_i                   (vc_data_head),
   .ctrl_head_per_inport_i           (sel_ctrl_head_per_input_st_stage),

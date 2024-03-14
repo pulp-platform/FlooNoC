@@ -4,6 +4,7 @@
 //
 // Lukas Berner <bernerl@student.ethz.ch>
 
+`include "common_cells/registers.svh"
 
 module floo_credit_counter #(
   parameter int NumVC         = 4,
@@ -28,15 +29,15 @@ logic [NumVC-1:0][VCDepthWidth-1:0]               credit_counter_d, credit_count
 for (genvar vc = 0; vc < NumVC; vc++) begin : gen_credit_counters
   always_comb begin
     credit_counter_d[vc] = credit_counter_q[vc];
-    if( (credit_v_i[vc] & (credit_id_i[vc] == vc[NumVCWidth-1:0])) &
-       ~(consume_credit_v_i[vc] & (consume_credit_id_i[vc] == vc[NumVCWidth-1:0])))
+    if( (credit_v_i & (credit_id_i[vc] == vc[NumVCWidth-1:0])) &
+       ~(consume_credit_v_i & (consume_credit_id_i[vc] == vc[NumVCWidth-1:0])))
       credit_counter_d[vc] = credit_counter_q[vc] + 1;
-    else if(~(credit_v_i[vc] & (credit_id_i[vc] == vc[NumVCWidth-1:0])) &
-        (consume_credit_v_i[vc] & (consume_credit_id_i[vc] == vc[NumVCWidth-1:0])))
+    else if(~(credit_v_i & (credit_id_i[vc] == vc[NumVCWidth-1:0])) &
+        (consume_credit_v_i & (consume_credit_id_i[vc] == vc[NumVCWidth-1:0])))
       credit_counter_d[vc] = credit_counter_q[vc] - 1;
-  end
+    end
 
-  `FF(credit_counter_q, credit_counter_d, VCDepth[VCDepthWidth-1:0])
+  `FF(credit_counter_q[vc], credit_counter_d[vc], VCDepth[VCDepthWidth-1:0])
 end
 
 assign credit_counter_o = credit_counter_q;

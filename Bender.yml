@@ -35,11 +35,22 @@ sources:
   - hw/floo_rob.sv
   - hw/floo_rob_wrapper.sv
   - hw/floo_meta_buffer.sv
+  - hw/vc_router_util/floo_credit_counter.sv
+  - hw/vc_router_util/floo_input_port.sv
+  - hw/vc_router_util/floo_look_ahead_routing.sv
+  - hw/vc_router_util/floo_mux.sv
+  - hw/vc_router_util/floo_rr_arbiter.sv
+  - hw/vc_router_util/floo_sa_global.sv
+  - hw/vc_router_util/floo_sa_local.sv
+  - hw/vc_router_util/floo_vc_assignment.sv
+  - hw/vc_router_util/floo_vc_router_switch.sv
+  - hw/vc_router_util/floo_vc_selection.sv
   # Level 2
   - hw/floo_narrow_wide_join.sv
   - hw/floo_axi_chimney.sv
   - hw/floo_narrow_wide_chimney.sv
   - hw/floo_router.sv
+  - hw/floo_vc_router.sv
   - hw/floo_narrow_wide_router.sv
 
   - target: test

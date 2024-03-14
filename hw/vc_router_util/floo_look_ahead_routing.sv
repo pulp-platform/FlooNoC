@@ -5,14 +5,15 @@
 // Lukas Berner <bernerl@student.ethz.ch>
 
 // sa local: choose a valid vc via rr arbitration
-module floo_look_ahead_routing #(
+module floo_look_ahead_routing import floo_pkg::*; #(
   parameter int           NumRoutes         = 0,
   parameter route_algo_e  RouteAlgo         = IdTable,
   parameter int           IdWidth           = 0,
   parameter int           RouteDirWidth     = $bits(route_direction_e),
   parameter type          id_t              = logic[IdWidth-1:0],
   parameter int           NumAddrRules      = 0,
-  parameter type          addr_rule_t       = logic
+  parameter type          addr_rule_t       = logic,
+  parameter type          hdr_t             = logic
 )(
   input   hdr_t                               ctrl_head_i,
   output  hdr_t                               ctrl_head_o,
@@ -63,16 +64,14 @@ module floo_look_ahead_routing #(
   assign helper_flit_in.hdr.dst_id = ctrl_head_i.dst_id;
 
   floo_route_select #(
-    .NumRoutes    (NumOutput),
+    .NumRoutes    (NumRoutes),
     .flit_t       (empty_flit_t),
-    .RouteAlgo,
+    .RouteAlgo    (RouteAlgo),
     .LockRouting  (0),  //since used for lookahead, this does not make sence
-    .IdWidth,
-    .id_t,
-    .NumAddrRules,
-    .ReturnIndex  (1),
-    .ReturnOneHot (0),
-    .addr_rule_t
+    .IdWidth      (IdWidth),
+    .id_t         (id_t),
+    .NumAddrRules (NumAddrRules),
+    .addr_rule_t  (addr_rule_t)
     ) i_route_select (
     .clk_i,
     .rst_ni,
