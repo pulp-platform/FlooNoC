@@ -4,14 +4,16 @@
 //
 // Lukas Berner <bernerl@student.ethz.ch>
 
-module floo_vc_router_switch #(
+module floo_vc_router_switch import floo_pkg::*; #(
   parameter int           NumPorts                    = 5,
+  parameter int           NumLocalPorts               = 1,
   parameter int           NumVC           [NumPorts]  =
             {1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 4+NumLocalPorts-1},
             // Num VC from dir N,E,S,W,L0(,L1,L2,L3): 1313 for XY routing
   parameter int           NumVCMax                    = NumPorts - 1,
   parameter type          flit_t                      = logic,
   parameter type          flit_payload_t              = logic,
+  parameter type          hdr_t                       = logic,
   parameter int           DataLength                  = $bits(flit_payload_t),
   parameter route_algo_e  RouteAlgo                   = XYRouting
 ) (
@@ -28,7 +30,7 @@ flit_payload_t [NumPorts-1:0] data_head_per_inport;
 
 for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_select_data_head
   floo_mux #(
-    .NumInputs        (NumVC),
+    .NumInputs        (NumVC[in_port]),
     .DataWidth        (DataLength)
   ) i_floo_mux_select_data_head (
     .sel_i            (read_vc_id_oh_i          [in_port]),
@@ -52,8 +54,10 @@ if(RouteAlgo != XYRouting) begin : gen_switch_not_XY_routing_optimized
     for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_nXYopt_in
       // dont need to check bits on diagonal
       if(out_port != in_port) begin : gen_nXYopt_out_neq_in
-        if(inport_id_oh_per_output_i[out_port][in_port]) begin : gen_nXYopt_found_match
-          `ASSIGN_IN_OUT_PORT(in_port, out_port)
+        always_comb begin
+          if(inport_id_oh_per_output_i[out_port][in_port]) begin : gen_nXYopt_found_match
+            `ASSIGN_IN_OUT_PORT(in_port, out_port)
+          end
         end
       end
     end
@@ -67,8 +71,10 @@ end else begin : gen_switch_XY_routing_optimized
           (out_port == East && (in_port == South || in_port == North)) ||
           (out_port == West && (in_port == South || in_port == North))
             )) begin : gen_XYopt_possible_connection
-        if(inport_id_oh_per_output_i[out_port][in_port]) begin : gen_nXYopt_found_match
-          `ASSIGN_IN_OUT_PORT(in_port, out_port)
+        always_comb begin
+          if(inport_id_oh_per_output_i[out_port][in_port]) begin : gen_nXYopt_found_match
+            `ASSIGN_IN_OUT_PORT(in_port, out_port)
+          end
         end
       end
     end
