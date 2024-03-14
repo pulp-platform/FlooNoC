@@ -4,6 +4,8 @@
 //
 // Lukas Berner <bernerl@student.ethz.ch>
 
+`include "common_cells/registers.svh"
+
 // one hot & id encoded round robin arbiter
 module floo_rr_arbiter #(
   parameter   int NumInputs = 2,
@@ -60,25 +62,7 @@ module floo_rr_arbiter #(
     assign round_ptr_d =  (selected_req_id == '0)          ? NumInputs-1 :
                           (selected_req_id == (NumInputs-1)) ? '0        :
                           (NumInputs-1) - selected_req_id;
-
-    always_ff @(posedge clk or negedge rst_n) begin
-      if (~rstn) begin
-        round_ptr_q <= '0;
-      end else begin
-        if (update_i) begin
-          round_ptr_q <= round_ptr_d;
-        end
-      end
-    end
-    always_ff @(posedge clk or negedge rst_n) begin
-      if (~rstn) begin
-        round_ptr_q <= '0;
-      end else begin
-        if (update_i) begin
-          round_ptr_q <= round_ptr_d;
-        end
-      end
-    end
+    `FFL(round_ptr_q, round_ptr_d, update_i, '0)
 
     assign grant_o     = dereordered_selected_req;
     assign grant_id_o  = selected_req_id;

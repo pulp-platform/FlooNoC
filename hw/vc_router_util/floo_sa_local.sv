@@ -8,12 +8,13 @@
 module floo_sa_local #(
   parameter int NumVC = 4,
   parameter int NumVCWidth = NumVC > 1 ? $clog2(NumVC) : 1,
-  parameter int NumPorts = 5
+  parameter int NumPorts = 5,
+  parameter type hdr_t   = logic,
+  parameter int HdrLength= $bits(hdr_t)
 ) (
   input  logic      [NumVC-1:0]         vc_ctrl_head_v_i,
   input  hdr_t      [NumVC-1:0]         vc_ctrl_head_i,
 
-  output logic                          sa_local_v_o,
   output logic      [NumVCWidth-1:0]    sa_local_vc_id_o, // chosen id
   output logic      [NumVC-1:0]         sa_local_vc_id_oh_o,
   output hdr_t                          sa_local_sel_ctrl_head_o,
@@ -33,7 +34,7 @@ assign update_rr_arb = update_rr_arb_i & sa_local_sel_ctrl_head_o.last;
 
 // pick a valid vc via rr arbitration
 floo_rr_arbiter #(
-  .NumInputs        (NumVC),
+  .NumInputs        (NumVC)
 ) i_sa_local_rr_arbiter (
   .req_i            (vc_ctrl_head_v_i ),
   .update_i         (update_rr_arb),
@@ -43,7 +44,7 @@ floo_rr_arbiter #(
   .clk_i
 );
 
-assign sa_local_v_o   = |vc_ctrl_head_v_i; //if any vc is valid, a vc will be chosen
+logic sa_local_v   = |vc_ctrl_head_v_i; //if any vc is valid, a vc will be chosen
 
 floo_mux #(
   .NumInputs        (NumVC),
@@ -57,7 +58,7 @@ floo_mux #(
 // set bit corresponding to correct direction in sa_local_output_dir_oh_o to 1 if a vc was chosen
 always_comb begin
   sa_local_output_dir_oh_o = '0;
-  sa_local_output_dir_oh_o[vc_ctrl_head_i[sa_local_vc_id_o].lookahead] = sa_local_v_o;
+  sa_local_output_dir_oh_o[vc_ctrl_head_i[sa_local_vc_id_o].lookahead] = sa_local_v;
 end
 
 /*

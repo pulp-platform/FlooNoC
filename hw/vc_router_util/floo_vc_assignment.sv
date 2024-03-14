@@ -5,7 +5,7 @@
 // Lukas Berner <bernerl@student.ethz.ch>
 
 // runs after sa global: assign precalculated vc to selected flow
-module floo_vc_assignment #(
+module floo_vc_assignment import floo_pkg::*;#(
   parameter int NumVC         = 4,    // = possible number of next hop directions
   parameter int NumVCWidth    = NumVC > 1 ? $clog2(NumVC) : 1,
   parameter int NumInputs     = 4,
@@ -26,7 +26,7 @@ module floo_vc_assignment #(
 
 route_direction_e look_ahead_routing_sel;
 floo_mux #(
-  .NumInputs,
+  .NumInputs(NumInputs),
   .DataWidth($bits(route_direction_e))
 ) i_floo_mux_select_vc_id (
   .sel_i    (sa_global_input_dir_oh_i),
@@ -47,7 +47,7 @@ mapping of dir to id is depending on dir
 if(NumVC == 1) begin : gen_only_one_vc
   assign vc_assignment_id_o = vc_selection_id_i;
   assign vc_assignment_v_o  = vc_selection_v_i & sa_global_v_i
-        & (~require_correct_vc_i | (vc_assignment_id_o == vc_selection_v_i & sa_global_v_));
+        & (~require_correct_vc_i | (vc_assignment_id_o == vc_selection_v_i & sa_global_v_i));
 end
 
 if(RouteAlgo != XYRouting) begin : gen_not_xy_routing_optimized
@@ -178,15 +178,6 @@ case (OutputId)
               look_ahead_routing_sel, OutputId);
   end
 endcase
-
 end
-
-
-
-
-
-
-
-
 
 endmodule

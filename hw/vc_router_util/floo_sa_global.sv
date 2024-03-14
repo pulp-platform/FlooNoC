@@ -16,7 +16,7 @@ module floo_sa_global #(
 
   output logic                              sa_global_v_o,
   output logic [NumPorts-1:0]               sa_global_input_dir_oh_o,
-  output logic [VC_ID_NUM_MAX_W-1:0]        sa_global_input_vc_id_o,
+  output logic [NumVCWidth-1:0]             sa_global_input_vc_id_o,
 
   // when to update rr arbiter
   input  logic                              update_rr_arb_i,
@@ -27,11 +27,11 @@ module floo_sa_global #(
 
 // pick a valid vc via rr arbitration
 floo_rr_arbiter #(
-  .NumInputs,
+  .NumInputs        (NumInputs)
 ) i_sa_global_rr_arbiter (
   .req_i            (sa_local_v_i),
   .update_i         (update_rr_arb_i),
-  .grant_o          (sa_global_input_dir_oh_o),
+  .grant_o          (sa_global_input_dir_oh_o[NumInputs-1:0]),
   .grant_id_o       ( ),
   .rst_ni,
   .clk_i
@@ -41,10 +41,10 @@ assign sa_global_v_o = |sa_local_v_i; // any valid input -> a valid output exist
 
 // get id of selected input vc
 floo_mux #(
-  .NumInputs,
+  .NumInputs(NumInputs),
   .DataWidth(NumVCWidth)
 ) i_floo_mux_select_vc_id (
-  .sel_i    (sa_global_input_dir_oh_o),
+  .sel_i    (sa_global_input_dir_oh_o[NumInputs-1:0]),
   .data_i   (sa_local_vc_id_i),
   .data_o   (sa_global_input_vc_id_o)
 );
