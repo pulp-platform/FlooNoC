@@ -69,26 +69,27 @@ package floo_axi_pkg;
 
 
   typedef logic [3:0] rob_idx_t;
+  typedef logic [1:0] port_id_t;
   typedef logic [2:0] x_bits_t;
   typedef logic [2:0] y_bits_t;
   typedef struct packed {
-    x_bits_t x;
-    y_bits_t y;
+    x_bits_t  x;
+    y_bits_t  y;
+    port_id_t port_id;
   } id_t;
 
   typedef logic route_t;
   typedef id_t dst_t;
-  typedef logic[$bits(route_direction_e)-4-1:0] port_id;
+  typedef logic [2:0] vc_id_t;
 
 
   typedef struct packed {
     logic rob_req;
     rob_idx_t rob_idx;
     dst_t dst_id;
-    port_id dst_port_id;
     id_t src_id;
     route_direction_e lookahead;
-    logic [2:0] vc_id; // logic behind value: = dir if input dir is higher than dir, = dir-1 else
+    vc_id_t vc_id;
     logic last;
     logic atop;
     axi_ch_e axi_ch;
