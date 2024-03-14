@@ -17,7 +17,7 @@ module floo_vc_assignment #(
   input route_direction_e [NumInputs-1:0]       look_ahead_routing_i,
   input logic   [NumVC-1:0]                     vc_selection_v_i, //for each dir, found a vc?
   input logic   [NumVC-1:0][NumVCWidth-1:0]     vc_selection_id_i, //for each dir which vc assigned?
-
+  input logic                                   require_correct_vc_i,
 
   output logic                                  vc_assignment_v_o,
   output logic [NumVCWidth-1:0]                 vc_assignment_id_o,
@@ -45,8 +45,9 @@ mapping of dir to id is depending on dir
 
 
 if(NumVC == 1) begin : gen_only_one_vc
-  assign vc_assignment_v_o  = vc_selection_v_i & sa_global_v_i;
   assign vc_assignment_id_o = vc_selection_id_i;
+  assign vc_assignment_v_o  = vc_selection_v_i & sa_global_v_i
+        & (~require_correct_vc_i | (vc_assignment_id_o == vc_selection_v_i & sa_global_v_));
 end
 
 if(RouteAlgo != XYRouting) begin : gen_not_xy_routing_optimized
@@ -57,8 +58,9 @@ if(RouteAlgo != XYRouting) begin : gen_not_xy_routing_optimized
   logic [$bits(route_direction_e)-1:0] preferred_vc_id;
   assign preferred_vc_id = look_ahead_routing_sel > InputIdOnNextRouter ?
                   look_ahead_routing_sel - 3'b001 : look_ahead_routing_sel;
-  assign vc_assignment_v_o  = vc_selection_v_i[preferred_vc_id] & sa_global_v_i;
   assign vc_assignment_id_o = vc_selection_id_i[preferred_vc_id];
+  assign vc_assignment_v_o  = vc_selection_v_i[preferred_vc_id] & sa_global_v_i
+                              & (~require_correct_vc_i | (vc_assignment_id_o == preferred_vc_id));
 end
 
 else begin : gen_xy_routing_optimized
@@ -70,12 +72,15 @@ case (OutputId)
       if(sa_global_v_i) begin
         unique case(look_ahead_routing_sel)
           North: begin
-            vc_assignment_v_o  = vc_selection_v_i[0];
             vc_assignment_id_o = vc_selection_id_i[0];
+            vc_assignment_v_o  = vc_selection_v_i[0]
+                  & (~require_correct_vc_i | (vc_assignment_id_o == 0));
           end
           default: begin
-            vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 1];
             vc_assignment_id_o = vc_selection_id_i[look_ahead_routing_sel - Eject + 1];
+            vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 1]
+                  & (~require_correct_vc_i |
+                        (vc_assignment_id_o == (look_ahead_routing_sel - Eject + 1)));
           end
         endcase
       end
@@ -89,20 +94,25 @@ case (OutputId)
       if(sa_global_v_i) begin
         unique case(look_ahead_routing_sel)
           North: begin
-            vc_assignment_v_o  = vc_selection_v_i[0];
             vc_assignment_id_o = vc_selection_id_i[0];
+            vc_assignment_v_o  = vc_selection_v_i[0]
+                  & (~require_correct_vc_i | (vc_assignment_id_o == 0));
           end
           East: begin
-            vc_assignment_v_o  = vc_selection_v_i[1];
             vc_assignment_id_o = vc_selection_id_i[1];
+            vc_assignment_v_o  = vc_selection_v_i[1]
+                  & (~require_correct_vc_i | (vc_assignment_id_o == 1));
           end
           South: begin
-            vc_assignment_v_o  = vc_selection_v_i[2];
             vc_assignment_id_o = vc_selection_id_i[2];
+            vc_assignment_v_o  = vc_selection_v_i[2]
+                  & (~require_correct_vc_i | (vc_assignment_id_o == 2));
           end
           default: begin
-            vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 3];
             vc_assignment_id_o = vc_selection_id_i[look_ahead_routing_sel - Eject + 3];
+            vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 3]
+                  & (~require_correct_vc_i |
+                        (vc_assignment_id_o == (look_ahead_routing_sel - Eject + 3)));
           end
         endcase
       end
@@ -116,12 +126,15 @@ case (OutputId)
       if(sa_global_v_i) begin
         unique case(look_ahead_routing_sel)
           South: begin
-            vc_assignment_v_o  = vc_selection_v_i[0];
             vc_assignment_id_o = vc_selection_id_i[0];
+            vc_assignment_v_o  = vc_selection_v_i[0]
+                  & (~require_correct_vc_i | (vc_assignment_id_o == 0));
           end
           default: begin
-            vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 1];
             vc_assignment_id_o = vc_selection_id_i[look_ahead_routing_sel - Eject + 1];
+            vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 1]
+                  & (~require_correct_vc_i |
+                        (vc_assignment_id_o == (look_ahead_routing_sel - Eject + 1)));
           end
         endcase
       end
@@ -135,20 +148,25 @@ case (OutputId)
       if(sa_global_v_i) begin
         unique case(look_ahead_routing_sel)
           North: begin
-            vc_assignment_v_o  = vc_selection_v_i[0];
             vc_assignment_id_o = vc_selection_id_i[0];
+            vc_assignment_v_o  = vc_selection_v_i[0]
+                  & (~require_correct_vc_i | (vc_assignment_id_o == 0));
           end
           South: begin
-            vc_assignment_v_o  = vc_selection_v_i[1];
             vc_assignment_id_o = vc_selection_id_i[1];
+            vc_assignment_v_o  = vc_selection_v_i[1]
+                  & (~require_correct_vc_i | (vc_assignment_id_o == 1));
           end
           West: begin
-            vc_assignment_v_o  = vc_selection_v_i[2];
             vc_assignment_id_o = vc_selection_id_i[2];
+            vc_assignment_v_o  = vc_selection_v_i[2]
+                  & (~require_correct_vc_i | (vc_assignment_id_o == 2));
           end
           default: begin
-            vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 3];
             vc_assignment_id_o = vc_selection_id_i[look_ahead_routing_sel - Eject + 3];
+            vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 3]
+                  & (~require_correct_vc_i |
+                        (vc_assignment_id_o == (look_ahead_routing_sel - Eject + 3)));
           end
         endcase
       end

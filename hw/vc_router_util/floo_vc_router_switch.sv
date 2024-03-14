@@ -44,7 +44,6 @@ end
   assign data_o[out_port].hdr.dst_id      = ctrl_head_per_inport_i[in_port].dst_id;         \
   assign data_o[out_port].hdr.dst_port_id = ctrl_head_per_inport_i[in_port].dst_port_id;    \
   assign data_o[out_port].hdr.src_id      = ctrl_head_per_inport_i[in_port].src_id;         \
-  assign data_o[out_port].hdr.last        = ctrl_head_per_inport_i[in_port].last;           \
   assign data_o[out_port].hdr.atop        = ctrl_head_per_inport_i[in_port].atop;           \
   assign data_o[out_port].hdr.axi_ch      = ctrl_head_per_inport_i[in_port].axi_ch;
 
