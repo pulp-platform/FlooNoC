@@ -32,7 +32,6 @@ module floo_look_ahead_routing import floo_pkg::*; #(
   empty_flit_t helper_flit_in; // the synthesizer should not synthesize the unused fields
   empty_flit_t helper_flit_out;
   id_t id_nxt;
-  logic [RouteDirWidth-1:0][NumRoutes-1:0] id_mask;
 
 
   // if(xy_id_i == ctrl_head_i.hdr.dst_id) begin : gen_no_lookahead_towards_local

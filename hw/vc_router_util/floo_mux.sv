@@ -17,7 +17,6 @@ module floo_mux #(
   logic[DataWidth-1:0][NumInputs-1:0] transposed_data;
   logic[DataWidth-1:0][NumInputs-1:0] select_mat;
   logic[DataWidth-1:0][NumInputs-1:0] transposed_data;
-  logic[DataWidth-1:0][NumInputs-1:0] select_mat;
 
   for(genvar i = 0 ; i < DataWidth; i++) begin : gen_transpose_DataWidth
     for(genvar j = 0 ; j < NumInputs; j++) begin : gen_transpose_NumInputs
