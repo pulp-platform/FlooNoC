@@ -422,6 +422,8 @@ class Routing(BaseModel):
     num_route_bits: Optional[int] = None
     addr_width: Optional[int] = None
     rob_idx_bits: int = 4
+    port_id_bits: int = 2
+    num_vc_id_bits: int = 3
 
     @field_validator("route_algo", mode="before")
     @classmethod
@@ -461,11 +463,12 @@ class Routing(BaseModel):
         """Render the SystemVerilog typedefs."""
         string = ""
         string += sv_typedef("rob_idx_t", array_size=self.rob_idx_bits)
+        string += sv_typedef("port_id_t", array_size=self.port_id_bits)
         match self.route_algo:
             case RouteAlgo.XY:
                 string += sv_typedef("x_bits_t", array_size=self.num_x_bits)
                 string += sv_typedef("y_bits_t", array_size=self.num_y_bits)
-                string += sv_struct_typedef("id_t", {"x": "x_bits_t", "y": "y_bits_t"})
+                string += sv_struct_typedef("id_t", {"x": "x_bits_t", "y": "y_bits_t", "port_id": "port_id_t"})
                 string += sv_typedef("route_t", "logic")
             case RouteAlgo.ID:
                 string += sv_typedef("id_t", array_size=self.num_id_bits)
@@ -480,6 +483,7 @@ class Routing(BaseModel):
                 string += sv_typedef("dst_t", dtype="route_t")
             case _:
                 string += sv_typedef("dst_t", dtype="id_t")
+        string += sv_typedef("vc_id_t", array_size=self.num_vc_id_bits)
         return string
 
     def render_flit_header(self) -> str:
@@ -489,6 +493,8 @@ class Routing(BaseModel):
             "rob_idx": "rob_idx_t",
             "dst_id": "dst_t",
             "src_id": "id_t",
+            "lookahead": "route_direction_e",
+            "vc_id": "vc_id_t",
             "last": "logic",
             "atop": "logic",
             "axi_ch": "axi_ch_e",
