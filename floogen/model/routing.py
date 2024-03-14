@@ -468,7 +468,9 @@ class Routing(BaseModel):
             case RouteAlgo.XY:
                 string += sv_typedef("x_bits_t", array_size=self.num_x_bits)
                 string += sv_typedef("y_bits_t", array_size=self.num_y_bits)
-                string += sv_struct_typedef("id_t", {"x": "x_bits_t", "y": "y_bits_t", "port_id": "port_id_t"})
+                string += sv_struct_typedef("id_t", {"x": "x_bits_t",
+                                                     "y": "y_bits_t",
+                                                     "port_id": "port_id_t"})
                 string += sv_typedef("route_t", "logic")
             case RouteAlgo.ID:
                 string += sv_typedef("id_t", array_size=self.num_id_bits)
