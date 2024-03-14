@@ -18,8 +18,6 @@ module floo_route_select import floo_pkg::*;
   parameter int unsigned NumAddrRules  = 0,
   parameter type         addr_rule_t   = logic,
   parameter type         id_t          = logic[IdWidth-1:0],
-  parameter bit          ReturnOneHot  = 1,
-  parameter bit          ReturnIndex   = 0,
   /// Used for source-based routing
   parameter int unsigned RouteSelWidth = $clog2(NumRoutes)
 ) (
@@ -48,12 +46,9 @@ module floo_route_select import floo_pkg::*;
 
     // One-hot encoding of the decoded route
     always_comb begin : proc_route_sel
-      if(ReturnIndex)
-        route_sel_id = channel_i.hdr.dst_id;
-      if(ReturnOneHot) begin
-        route_sel = '0;
-        route_sel[channel_i.hdr.dst_id] = 1'b1;
-      end
+      route_sel_id = channel_i.hdr.dst_id;
+      route_sel = '0;
+      route_sel[channel_i.hdr.dst_id] = 1'b1;
     end
 
   end else if (RouteAlgo == IdTable) begin : gen_id_table
@@ -81,22 +76,17 @@ module floo_route_select import floo_pkg::*;
 
     // One-hot encoding of the decoded route
     always_comb begin : proc_route_sel
-      if(ReturnIndex)
-        route_sel_id = id_table_result;
-      if(ReturnOneHot) begin
-        route_sel = '0;
-        route_sel[id_table_result] = 1'b1;
-      end
+      route_sel_id = id_table_result;
+      route_sel = '0;
+      route_sel[id_table_result] = 1'b1;
     end
 
   end else if (RouteAlgo == SourceRouting) begin : gen_consumption
     // Routing based on a consumable header in the flit
     always_comb begin : proc_route_sel
       route_sel_id = channel_i.hdr.dst_id[RouteSelWidth-1:0];
-      if(ReturnOneHot) begin
-        route_sel = '0;
-        route_sel[route_sel_id] = 1'b1;
-      end
+      route_sel = '0;
+      route_sel[route_sel_id] = 1'b1;
       channel_o = channel_i;
       channel_o.hdr.dst_id = channel_i.hdr.dst_id >> RouteSelWidth;
     end
@@ -121,8 +111,8 @@ module floo_route_select import floo_pkg::*;
 
     always_comb begin : proc_route_sel
       route_sel_id = East;
-      if (id_in == xy_id_i) begin
-        route_sel_id = Eject;
+      if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
+        route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
       end else if (id_in.x == xy_id_i.x) begin
         if (id_in.y < xy_id_i.y) begin
           route_sel_id = South;
@@ -136,10 +126,8 @@ module floo_route_select import floo_pkg::*;
           route_sel_id = East;
         end
       end
-      if(ReturnOneHot) begin
-        route_sel = '0;
-        route_sel[route_sel_id] = 1'b1;
-      end
+      route_sel = '0;
+      route_sel[route_sel_id] = 1'b1;
     end
 
     assign channel_o = channel_i;
@@ -164,34 +152,26 @@ module floo_route_select import floo_pkg::*;
 
     `FF(locked_route_q, locked_route_d, '0)
 
-    if(ReturnOneHot) begin : gen_onehot_lock_routing
-      logic [NumRoutes-1:0] route_sel_q;
-      assign route_sel_o = locked_route_q ? route_sel_q : route_sel;
+    //route_sel
+    logic [NumRoutes-1:0] route_sel_q;
+    assign route_sel_o = locked_route_q ? route_sel_q : route_sel;
+    `FFL(route_sel_q, route_sel, ~locked_route_q, '0)
 
-      always @(posedge clk_i) begin
-        if (ready_i && valid_i && locked_route_q && (route_sel_q != route_sel))
-          $warning("Mismatch in route selection!");
-      end
-      `FFL(route_sel_q, route_sel, ~locked_route_q, '0)
-    end
+    //route_sel_id
+    logic [RouteSelWidth-1:0] route_sel_id_q;
+    assign route_sel_id_o = locked_route_q ? route_sel_id_q : route_sel_id;
+    `FFL(route_sel_id_q, route_sel_id, ~locked_route_q, '0)
 
-    if(ReturnIndex) begin : gen_id_lock_routing
-      logic [RouteSelWidth-1:0] route_sel_id_q;
-      assign route_sel_id_o = locked_route_q ? route_sel_id_q : route_sel_id;
-
-      always @(posedge clk_i) begin
-        if (ready_i && valid_i && locked_route_q && (route_sel_id_q != route_sel_id))
-          $warning("Mismatch in route selection!");
-      end
-      `FFL(route_sel_id_q, route_sel_id, ~locked_route_q, '0)
+    always @(posedge clk_i) begin
+      if (ready_i && valid_i && locked_route_q &&
+              ((route_sel_id_q != route_sel_id) || (route_sel_q != route_sel)))
+        $warning("Mismatch in route selection!");
     end
   end
 
   else begin : gen_no_lock
-    if(ReturnOneHot)
-      assign route_sel_o = route_sel;
-    if(ReturnIndex)
-      assign route_sel_id_o = route_sel_id;
+    assign route_sel_o = route_sel;
+    assign route_sel_id_o = route_sel_id;
   end
 
 endmodule
