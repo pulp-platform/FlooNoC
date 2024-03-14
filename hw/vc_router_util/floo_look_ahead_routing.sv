@@ -30,8 +30,7 @@ module floo_look_ahead_routing #(
   } empty_flit_t;
   empty_flit_t helper_flit_in; // the synthesizer should not synthesize the unused fields
   empty_flit_t helper_flit_out;
-  id_t xy_id_nxt;
-  route_direction_e route_select_result;
+  id_t id_nxt;
   logic [RouteDirWidth-1:0][NumRoutes-1:0] id_mask;
 
 
@@ -41,20 +40,20 @@ module floo_look_ahead_routing #(
 
   // calculate next address:
   always_comb begin : gen_calculate_next_id
-    xy_id_nxt.x = xy_id_i.x;
-    xy_id_nxt.y = xy_id_i.y;
+    id_nxt.x = xy_id_i.x;
+    id_nxt.y = xy_id_i.y;
     unique case(ctrl_head_i.look_ahead_routing)
       North: begin
-        xy_id_nxt.y = xy_id_i.y + 1;
+        id_nxt.y = xy_id_i.y + 1;
       end
       South: begin
-        xy_id_nxt.y = xy_id_i.y - 1;
+        id_nxt.y = xy_id_i.y - 1;
       end
       East: begin
-        xy_id_nxt.x = xy_id_i.x + 1;
+        id_nxt.x = xy_id_i.x + 1;
       end
       West: begin
-        xy_id_nxt.x = xy_id_i.x - 1;
+        id_nxt.x = xy_id_i.x - 1;
       end
       default: begin
       end
@@ -79,14 +78,14 @@ module floo_look_ahead_routing #(
     .rst_ni,
     .test_enable_i  ('0),
 
-    .xy_id_i        (xy_id_nxt),
+    .xy_id_i        (id_nxt),
     .id_route_map_i (id_route_map_i),
     .channel_i      (helper_flit_in),
     .valid_i        ('0),
     .ready_i        ('0),
     .channel_o      (helper_flit_out),
     .route_sel_o    (),
-    .route_sel_id_o (route_select_result)
+    .route_sel_id_o (look_ahead_routing_o)
   );
 
   if(RouteAlgo == SourceRouting) begin : gen_source_routing
@@ -97,12 +96,5 @@ module floo_look_ahead_routing #(
   end
   else
     assign ctrl_head_o = ctrl_head_i;
-
-  always_comb begin
-    if(route_select_result >= Eject)
-      look_ahead_routing_o = route_select_result + ctrl_head_i.hdr.dst_port_id;
-    else
-      look_ahead_routing_o = route_select_result;
-  end
 
 endmodule

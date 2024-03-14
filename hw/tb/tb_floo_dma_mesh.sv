@@ -159,7 +159,7 @@ module tb_floo_dma_mesh;
 
     if (i == North) begin : gen_north_hbm_chimneys
       for (genvar j = 0; j < NumChimneys; j++) begin : gen_hbm_chimney_xy_id
-        assign xy_id_hbm[j] = '{x: j+1, y: NumY+1};
+        assign xy_id_hbm[j] = '{x: j+1, y: NumY+1, port_id: 0};
       end
       assign req_hbm_in  = req_ver_pos[NumY];
       assign rsp_hbm_in  = rsp_ver_pos[NumY];
@@ -170,7 +170,7 @@ module tb_floo_dma_mesh;
     end
     else if (i == South) begin : gen_south_hbm_chimneys
       for (genvar j = 0; j < NumChimneys; j++) begin : gen_hbm_chimney_xy_id
-        assign xy_id_hbm[j] = '{x: j+1, y: 0};
+        assign xy_id_hbm[j] = '{x: j+1, y: 0, port_id: 0};
       end
       assign req_hbm_in  = req_ver_neg[0];
       assign rsp_hbm_in  = rsp_ver_neg[0];
@@ -181,7 +181,7 @@ module tb_floo_dma_mesh;
     end
     else if (i == East) begin : gen_east_hbm_chimneys
       for (genvar j = 0; j < NumChimneys; j++) begin : gen_hbm_chimney_xy_id
-        assign xy_id_hbm[j] = '{x: NumX+1, y: j+1};
+        assign xy_id_hbm[j] = '{x: NumX+1, y: j+1, port_id: 0};
       end
       assign req_hbm_in  = req_hor_pos[NumX];
       assign rsp_hbm_in  = rsp_hor_pos[NumX];
@@ -192,7 +192,7 @@ module tb_floo_dma_mesh;
     end
     else if (i == West) begin : gen_west_hbm_chimneys
       for (genvar j = 0; j < NumChimneys; j++) begin : gen_hbm_chimney_xy_id
-        assign xy_id_hbm[j] = '{x: 0, y: j+1};
+        assign xy_id_hbm[j] = '{x: 0, y: j+1, port_id: 0};
       end
       assign req_hbm_in  = req_hor_neg[0];
       assign rsp_hbm_in  = rsp_hor_neg[0];
@@ -251,7 +251,7 @@ module tb_floo_dma_mesh;
       localparam int unsigned Index = y * NumX + x+1;
       localparam logic [AxiNarrowInAddrWidth-1:0] MemBaseAddr =
           (x+1) << XYAddrOffsetX | (y+1) << XYAddrOffsetY;
-      assign current_id = '{x: x+1, y: y+1};
+      assign current_id = '{x: x+1, y: y+1, port_id: 0};
 
       floo_dma_test_node #(
         .TA             ( ApplTime              ),
