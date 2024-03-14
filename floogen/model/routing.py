@@ -104,33 +104,36 @@ class Coord(Id):
 
     x: int
     y: int
+    port_id: int = 0
 
     def __hash__(self):
-        return hash((self.x, self.y))
+        return hash((self.x, self.y, self.port_id))
 
     def __add__(self, other):
-        return Coord(x=self.x + other.x, y=self.y + other.y)
+        return Coord(x=self.x + other.x, y=self.y + other.y, port_id=self.port_id + other.port_id)
 
     def __sub__(self, other):
-        return Coord(x=self.x - other.x, y=self.y - other.y)
+        return Coord(x=self.x - other.x, y=self.y - other.y, port_id=self.port_id - other.port_id)
 
     def __lt__(self, other):
         if self.y < other.y:
             return True
         if self.y == other.y:
             return self.x < other.x
+        if self.x == other.x:
+            return self.port_id < other.port_id
         return False
 
     def render(self, as_index=False):
         """Render the SystemVerilog coordinate."""
         if not as_index:
-            return f"'{{x: {self.x}, y: {self.y}}}"
+            return f"'{{x: {self.x}, y: {self.y}, port_id: {self.port_id}}}"
         return f"[{self.x}][{self.y}]"
 
     @staticmethod
     def get_dir(node, neighbor) -> XYDirections:
         """Get the direction from node to neighbor."""
-        if node == neighbor:
+        if node.x == neighbor.x and node.y == neighbor.y:
             return XYDirections.EJECT
         if node.x == neighbor.x:
             if node.y > neighbor.y:
