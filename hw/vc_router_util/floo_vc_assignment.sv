@@ -8,6 +8,7 @@
 module floo_vc_assignment import floo_pkg::*;#(
   parameter int NumVC         = 4,    // = possible number of next hop directions
   parameter int NumVCWidth    = NumVC > 1 ? $clog2(NumVC) : 1,
+  parameter int NumVCWidthMax = 2,
   parameter int NumInputs     = 4,
   parameter route_algo_e RouteAlgo = XYRouting,
   parameter int OutputId      = 0
@@ -16,15 +17,27 @@ module floo_vc_assignment import floo_pkg::*;#(
   input logic   [NumInputs-1:0]                 sa_global_input_dir_oh_i,
   input route_direction_e [NumInputs-1:0]       look_ahead_routing_i,
   input logic   [NumVC-1:0]                     vc_selection_v_i, //for each dir, found a vc?
-  input logic   [NumVC-1:0][NumVCWidth-1:0]     vc_selection_id_i, //for each dir which vc assigned?
+  input logic   [NumVC-1:0][NumVCWidthMax-1:0]  vc_selection_id_i, //for each dir which vc assigned?
   input logic                                   require_correct_vc_i,
 
   output logic                                  vc_assignment_v_o,
-  output logic [NumVCWidth-1:0]                 vc_assignment_id_o,
+  output logic [NumVCWidthMax-1:0]              vc_assignment_id_o,
   output route_direction_e                      look_ahead_routing_sel_o
 );
+// handle size differences
+logic [NumVCWidth-1:0]              vc_assignment_id;
+logic [NumVC-1:0][NumVCWidth-1:0]   vc_selection_id;
+if(NumVCWidth == NumVCWidthMax) begin : gen_width_is_max
+  assign vc_selection_id = vc_selection_id_i;
+  assign vc_assignment_id_o = vc_assignment_id;
+end else begin : gen_width_is_not_max
+  for(genvar vc = 0; vc < NumVC; vc++) begin : gen_width_not_max_vc
+    assign vc_selection_id[vc] = vc_selection_id_i[vc][NumVCWidth-1:0];
+  end
+  assign vc_assignment_id_o = {{(NumVCWidthMax-NumVCWidth){1'b0}},vc_assignment_id};
+end
 
-route_direction_e look_ahead_routing_sel;
+logic[$bits(route_direction_e)-1:0] look_ahead_routing_sel;
 floo_mux #(
   .NumInputs(NumInputs),
   .DataWidth($bits(route_direction_e))
@@ -33,7 +46,7 @@ floo_mux #(
   .data_i   (look_ahead_routing_i),
   .data_o   (look_ahead_routing_sel)
 );
-assign look_ahead_routing_sel_o = look_ahead_routing_sel;
+assign look_ahead_routing_sel_o = route_direction_e'(look_ahead_routing_sel);
 
 
 /*
@@ -45,9 +58,9 @@ mapping of dir to id is depending on dir
 
 
 if(NumVC == 1) begin : gen_only_one_vc
-  assign vc_assignment_id_o = vc_selection_id_i;
+  assign vc_assignment_id = vc_selection_id;
   assign vc_assignment_v_o  = vc_selection_v_i & sa_global_v_i
-        & (~require_correct_vc_i | (vc_assignment_id_o == vc_selection_v_i & sa_global_v_i));
+        & (~require_correct_vc_i | (vc_assignment_id == vc_selection_v_i & sa_global_v_i));
 end
 
 else if(RouteAlgo != XYRouting) begin : gen_not_xy_routing_optimized
@@ -58,9 +71,9 @@ else if(RouteAlgo != XYRouting) begin : gen_not_xy_routing_optimized
   logic [$bits(route_direction_e)-1:0] preferred_vc_id;
   assign preferred_vc_id = look_ahead_routing_sel > InputIdOnNextRouter ?
                   look_ahead_routing_sel - 3'b001 : look_ahead_routing_sel;
-  assign vc_assignment_id_o = vc_selection_id_i[preferred_vc_id];
+  assign vc_assignment_id = vc_selection_id[preferred_vc_id];
   assign vc_assignment_v_o  = vc_selection_v_i[preferred_vc_id] & sa_global_v_i
-                              & (~require_correct_vc_i | (vc_assignment_id_o == preferred_vc_id));
+                              & (~require_correct_vc_i | (vc_assignment_id == preferred_vc_id));
 end
 
 else begin : gen_xy_routing_optimized
@@ -68,19 +81,19 @@ case (OutputId)
   North: begin : gen_xy_routing_optimized_to_North
     always_comb begin
       vc_assignment_v_o = '0;
-      vc_assignment_id_o = '0;
+      vc_assignment_id = '0;
       if(sa_global_v_i) begin
         unique case(look_ahead_routing_sel)
           North: begin
-            vc_assignment_id_o = vc_selection_id_i[0];
+            vc_assignment_id = vc_selection_id[0];
             vc_assignment_v_o  = vc_selection_v_i[0]
-                  & (~require_correct_vc_i | (vc_assignment_id_o == 0));
+                  & (~require_correct_vc_i | (vc_assignment_id == 0));
           end
           default: begin
-            vc_assignment_id_o = vc_selection_id_i[look_ahead_routing_sel - Eject + 1];
+            vc_assignment_id = vc_selection_id[look_ahead_routing_sel - Eject + 1];
             vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 1]
                   & (~require_correct_vc_i |
-                        (vc_assignment_id_o == (look_ahead_routing_sel - Eject + 1)));
+                        (vc_assignment_id == (look_ahead_routing_sel - Eject + 1)));
           end
         endcase
       end
@@ -90,29 +103,29 @@ case (OutputId)
   East: begin : gen_xy_routing_optimized_to_East
     always_comb begin
       vc_assignment_v_o = '0;
-      vc_assignment_id_o = '0;
+      vc_assignment_id = '0;
       if(sa_global_v_i) begin
         unique case(look_ahead_routing_sel)
           North: begin
-            vc_assignment_id_o = vc_selection_id_i[0];
+            vc_assignment_id = vc_selection_id[0];
             vc_assignment_v_o  = vc_selection_v_i[0]
-                  & (~require_correct_vc_i | (vc_assignment_id_o == 0));
+                  & (~require_correct_vc_i | (vc_assignment_id == 0));
           end
           East: begin
-            vc_assignment_id_o = vc_selection_id_i[1];
+            vc_assignment_id = vc_selection_id[1];
             vc_assignment_v_o  = vc_selection_v_i[1]
-                  & (~require_correct_vc_i | (vc_assignment_id_o == 1));
+                  & (~require_correct_vc_i | (vc_assignment_id == 1));
           end
           South: begin
-            vc_assignment_id_o = vc_selection_id_i[2];
+            vc_assignment_id = vc_selection_id[2];
             vc_assignment_v_o  = vc_selection_v_i[2]
-                  & (~require_correct_vc_i | (vc_assignment_id_o == 2));
+                  & (~require_correct_vc_i | (vc_assignment_id == 2));
           end
           default: begin
-            vc_assignment_id_o = vc_selection_id_i[look_ahead_routing_sel - Eject + 3];
+            vc_assignment_id = vc_selection_id[look_ahead_routing_sel - Eject + 3];
             vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 3]
                   & (~require_correct_vc_i |
-                        (vc_assignment_id_o == (look_ahead_routing_sel - Eject + 3)));
+                        (vc_assignment_id == (look_ahead_routing_sel - Eject + 3)));
           end
         endcase
       end
@@ -122,19 +135,19 @@ case (OutputId)
   South: begin : gen_xy_routing_optimized_to_South
     always_comb begin
       vc_assignment_v_o = '0;
-      vc_assignment_id_o = '0;
+      vc_assignment_id = '0;
       if(sa_global_v_i) begin
         unique case(look_ahead_routing_sel)
           South: begin
-            vc_assignment_id_o = vc_selection_id_i[0];
+            vc_assignment_id = vc_selection_id[0];
             vc_assignment_v_o  = vc_selection_v_i[0]
-                  & (~require_correct_vc_i | (vc_assignment_id_o == 0));
+                  & (~require_correct_vc_i | (vc_assignment_id == 0));
           end
           default: begin
-            vc_assignment_id_o = vc_selection_id_i[look_ahead_routing_sel - Eject + 1];
+            vc_assignment_id = vc_selection_id[look_ahead_routing_sel - Eject + 1];
             vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 1]
                   & (~require_correct_vc_i |
-                        (vc_assignment_id_o == (look_ahead_routing_sel - Eject + 1)));
+                        (vc_assignment_id == (look_ahead_routing_sel - Eject + 1)));
           end
         endcase
       end
@@ -144,29 +157,29 @@ case (OutputId)
   West: begin : gen_xy_routing_optimized_to_West
     always_comb begin
       vc_assignment_v_o = '0;
-      vc_assignment_id_o = '0;
+      vc_assignment_id = '0;
       if(sa_global_v_i) begin
         unique case(look_ahead_routing_sel)
           North: begin
-            vc_assignment_id_o = vc_selection_id_i[0];
+            vc_assignment_id = vc_selection_id[0];
             vc_assignment_v_o  = vc_selection_v_i[0]
-                  & (~require_correct_vc_i | (vc_assignment_id_o == 0));
+                  & (~require_correct_vc_i | (vc_assignment_id == 0));
           end
           South: begin
-            vc_assignment_id_o = vc_selection_id_i[1];
+            vc_assignment_id = vc_selection_id[1];
             vc_assignment_v_o  = vc_selection_v_i[1]
-                  & (~require_correct_vc_i | (vc_assignment_id_o == 1));
+                  & (~require_correct_vc_i | (vc_assignment_id == 1));
           end
           West: begin
-            vc_assignment_id_o = vc_selection_id_i[2];
+            vc_assignment_id = vc_selection_id[2];
             vc_assignment_v_o  = vc_selection_v_i[2]
-                  & (~require_correct_vc_i | (vc_assignment_id_o == 2));
+                  & (~require_correct_vc_i | (vc_assignment_id == 2));
           end
           default: begin
-            vc_assignment_id_o = vc_selection_id_i[look_ahead_routing_sel - Eject + 3];
+            vc_assignment_id = vc_selection_id[look_ahead_routing_sel - Eject + 3];
             vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 3]
                   & (~require_correct_vc_i |
-                        (vc_assignment_id_o == (look_ahead_routing_sel - Eject + 3)));
+                        (vc_assignment_id == (look_ahead_routing_sel - Eject + 3)));
           end
         endcase
       end

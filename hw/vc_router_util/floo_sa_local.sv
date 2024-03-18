@@ -32,6 +32,7 @@ logic update_rr_arb;
 // wormhole routing: dont update if not last
 assign update_rr_arb = update_rr_arb_i & sa_local_sel_ctrl_head_o.last;
 
+localparam int OptimalWidth = NumVC > 1 ? $clog2(NumVC) : 1;
 // pick a valid vc via rr arbitration
 floo_rr_arbiter #(
   .NumInputs        (NumVC)
@@ -39,10 +40,12 @@ floo_rr_arbiter #(
   .req_i            (vc_ctrl_head_v_i ),
   .update_i         (update_rr_arb),
   .grant_o          (sa_local_vc_id_oh_o),
-  .grant_id_o       (sa_local_vc_id_o),
+  .grant_id_o       (sa_local_vc_id_o[OptimalWidth-1:0]),
   .rst_ni,
   .clk_i
 );
+if(OptimalWidth > NumVCWidth)
+  assign sa_local_vc_id_o[NumVCWidth-1:OptimalWidth] = '0;
 
 logic sa_local_v   = |vc_ctrl_head_v_i; //if any vc is valid, a vc will be chosen
 
