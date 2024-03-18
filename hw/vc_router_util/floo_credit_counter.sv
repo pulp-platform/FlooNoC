@@ -9,14 +9,15 @@
 module floo_credit_counter #(
   parameter int NumVC         = 4,
   parameter int NumVCWidth    = NumVC > 1 ? $clog2(NumVC) : 1,
+  parameter int NumVCWidthMax = 2,
   parameter int VCDepth       = 2,
   parameter int VCDepthWidth  = $clog2(VCDepth+1)
 ) (
   input logic                                     credit_v_i,
-  input logic       [NumVCWidth-1:0]              credit_id_i,
+  input logic       [NumVCWidthMax-1:0]           credit_id_i,
 
   input logic                                     consume_credit_v_i,
-  input logic       [NumVCWidth-1:0]              consume_credit_id_i,
+  input logic       [NumVCWidthMax-1:0]           consume_credit_id_i,
 
   output logic      [NumVC-1:0][VCDepthWidth-1:0] credit_counter_o,
 

@@ -54,7 +54,9 @@ logic [NumPorts-1:0][NumVCWidth-1:0] credit_id_o;
 logic [NumPorts-1:0] data_v_i;
 flit_t [NumPorts-1:0] data_i;
 logic [NumPorts-1:0] credit_v_i;
+assign credit_v_i ='0;
 logic [NumPorts-1:0][NumVCWidth-1:0] credit_id_i;
+assign credit_id_i ='0;
 logic [NumPorts-1:0] data_v_o;
 flit_t [NumPorts-1:0] data_o;
 
@@ -86,7 +88,7 @@ floo_vc_router #(
 
 
 // collects outputs of router on all ports
-task static collect_all_results();
+task automatic collect_all_results();
   @(posedge clk);
   #TestTime;
   for (int port=0; port<NumPorts; port++) begin
@@ -97,11 +99,12 @@ end
 endtask
 
 // apply inputs of all ports during next cycle
-task static apply_all_inputs();
-  @(negedge clk);
+task automatic apply_all_inputs();
+  @(posedge clk);
   #ApplTime;
   for (int port=0; port<NumPorts; port++) begin
-    if (input_queue[port].size() != '0) begin
+    if (input_queue[port].size() != 0) begin
+      $display("Applying input on port %0d", port);
       data_i[port] = input_queue[port].pop_front();
       data_v_i[port] = 1'b1;
     end
@@ -130,16 +133,32 @@ flit_t exp_result;
 
 initial begin : main_test_bench
 @(posedge rst_n)
+fork : start_send_and_recieve_threads
+  begin
+    forever begin
+      apply_all_inputs();
+    end
+  end
+  begin
+    forever begin
+      collect_all_results();
+    end
+  end
+join_none
+
 hdr = '0;
 hdr.src_id = '1;
 hdr.lookahead = South;
 hdr.dst_id = '{x: 3'd1, y: 3'd0, port_id: 2'd0}; //should arrive with lookahead = Eject
 hdr.vc_id = '0;
 hdr.last = 1'b1;
-payload.randomize();
+if(!std::randomize(payload))
+  $fatal(1,"Was not able to randomize data");
 
 
 flit = '{hdr, payload};
+input_queue[0].push_back(flit);
+$display("size of input queue: %0d", input_queue[0].size());
 input_queue[0].push_back(flit);
 flit.hdr.lookahead = Eject;
 flit.hdr.vc_id = 2'd3;
@@ -147,13 +166,12 @@ expected_result_queue[2].push_back(flit); //expect output towards south
 
 
 for(int t = 1; t < 6; t++) begin
-  collect_all_results();
-  $display("t = %d: ", t);
+  @(posedge clk);
+  $display("size of input queue: %0d", input_queue[0].size());
+  $display("t = %0d: ", t);
   for(int port = 0; port < NumPorts; port++) begin
-      $display("Port: %d:", port);
-      if(result_queue[port].size() == 0) begin
-        $display("Still empty");
-      end else begin
+      $display("Port: %0d:", port);
+      if(result_queue[port].size() != 0) begin
         $display("Got Something!!");
         if(expected_result_queue[port].size() == 0)
           $error("Didnt expect anything here");
@@ -162,6 +180,8 @@ for(int t = 1; t < 6; t++) begin
           result = result_queue[port].pop_front();
           if(exp_result != result)
             $error("Results dont match");
+          else
+            $finish;
 
         end
       end
@@ -173,10 +193,6 @@ end
 $stop;
 
 end : main_test_bench
-
-
-
-
 
 
 endmodule

@@ -157,19 +157,19 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_input_ports
     .data_i                         (data_i               [in_port]),
 
     // output head flit ctrl info to SA & RC unit
-    .vc_ctrl_head_v_o               (vc_ctrl_head_v       [in_port]),
-    .vc_ctrl_head_o                 (vc_ctrl_head         [in_port]),
+    .vc_ctrl_head_v_o               (vc_ctrl_head_v       [in_port][NumVC[in_port]-1:0]),
+    .vc_ctrl_head_o                 (vc_ctrl_head         [in_port][NumVC[in_port]-1:0]),
 
     // output data to switch traversal
-    .vc_data_head_o                 (vc_data_head         [in_port]),
+    .vc_data_head_o                 (vc_data_head         [in_port][NumVC[in_port]-1:0]),
 
     // pop flit ctrl fifo (comes from SA stage)
     .read_enable_sa_stage_i         (read_enable_sa_stage [in_port]),
-    .read_vc_id_oh_sa_stage_i       (sa_local_vc_id_oh    [in_port]),
+    .read_vc_id_oh_sa_stage_i       (sa_local_vc_id_oh    [in_port][NumVC[in_port]-1:0]),
 
     // pop flit data fifo (comes from ST stage)
     .read_enable_st_stage_i         (read_enable_st_stage [in_port]),
-    .read_vc_id_oh_st_stage_i       (read_vc_id_oh_st_stage[in_port]),
+    .read_vc_id_oh_st_stage_i       (read_vc_id_oh_st_stage[in_port][NumVC[in_port]-1:0]),
 
     .clk_i,
     .rst_ni
@@ -188,11 +188,11 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
     .NumPorts                       (NumPorts),
     .hdr_t                          (hdr_t)
   ) i_sa_local (
-    .vc_ctrl_head_v_i               (vc_ctrl_head_v         [in_port]),
+    .vc_ctrl_head_v_i               (vc_ctrl_head_v         [in_port][NumVC[in_port]-1:0]),
     .vc_ctrl_head_i                 (vc_ctrl_head           [in_port]),
 
     .sa_local_vc_id_o               (sa_local_vc_id         [in_port]), // chosen id
-    .sa_local_vc_id_oh_o            (sa_local_vc_id_oh      [in_port]), // chosen id onehot encoded
+    .sa_local_vc_id_oh_o            (sa_local_vc_id_oh      [in_port][NumVC[in_port]-1:0]),
     .sa_local_sel_ctrl_head_o       (sa_local_sel_ctrl_head [in_port]),
 
     // chosen output: all 0 if none
@@ -213,12 +213,14 @@ end
 for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_sa_global
   floo_sa_global #(
   .NumInputs                        (NumInputSaGlobal       [out_port]),
-  .NumVCWidth                         (NumVCWidth),
+  .NumVCWidth                       (NumVCWidth),
   .NumPorts                         (NumPorts)
   ) i_sa_global (
   // for each input: is their sa local in that dir valid
-  .sa_local_v_i                     (sa_local_v_per_output  [out_port]),
-  .sa_local_vc_id_i                 (sa_local_vc_id_per_output[out_port]),
+  .sa_local_v_i                     (sa_local_v_per_output  [out_port]
+                                                            [NumInputSaGlobal[out_port]-1:0]),
+  .sa_local_vc_id_i                 (sa_local_vc_id_per_output[out_port]
+                                                            [NumInputSaGlobal[out_port]-1:0]),
 
   .sa_global_v_o                    (sa_global_v            [out_port]),
   .sa_global_input_dir_oh_o         (sa_global_input_dir_oh [out_port]),
@@ -267,6 +269,7 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_credit_co
   floo_credit_counter
   #(
     .NumVC                          (NumVCToOut             [out_port]),
+    .NumVCWidthMax                  (NumVCWidthToOutMax),
     .VCDepth                        (VCDepth)
   )
   i_floo_credit_counter (
@@ -274,7 +277,7 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_credit_co
     .credit_id_i                    (credit_id_i            [out_port]),
     .consume_credit_v_i             (outport_v              [out_port]),
     .consume_credit_id_i            (vc_assignment_id       [out_port]),
-    .credit_counter_o               (credit_counter         [out_port]),
+    .credit_counter_o               (credit_counter         [out_port][NumVCToOut[out_port]-1:0]),
     .clk_i,
     .rst_ni
   );
@@ -289,12 +292,13 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_vc_select
   floo_vc_selection
   #(
     .NumVC                          (NumVCToOut             [out_port]),
+    .NumVCWidthMax                  (NumVCWidthToOutMax),
     .VCDepth                        (VCDepth)
   )
   i_floo_vc_selection (
-    .credit_counter_i               (credit_counter         [out_port]),
-    .vc_selection_v_o               (vc_selection_v         [out_port]),
-    .vc_selection_id_o              (vc_selection_id        [out_port])
+    .credit_counter_i               (credit_counter         [out_port][NumVCToOut[out_port]-1:0]),
+    .vc_selection_v_o               (vc_selection_v         [out_port][NumVCToOut[out_port]-1:0]),
+    .vc_selection_id_o              (vc_selection_id        [out_port][NumVCToOut[out_port]-1:0])
   );
 end
 
@@ -307,16 +311,19 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_vc_assign
   floo_vc_assignment
   #(
     .NumVC                          (NumVCToOut             [out_port]),
+    .NumVCWidthMax                  (NumVCWidthToOutMax),
     .NumInputs                      (NumInputSaGlobal       [out_port]),
     .RouteAlgo                      (RouteAlgo),
     .OutputId                       (out_port)
   )
   i_floo_vc_assignment (
     .sa_global_v_i                  (sa_global_v            [out_port]),
-    .sa_global_input_dir_oh_i       (sa_global_input_dir_oh [out_port]),
-    .look_ahead_routing_i           (look_ahead_routing_per_output[out_port]),
-    .vc_selection_v_i               (vc_selection_v         [out_port]),
-    .vc_selection_id_i              (vc_selection_id        [out_port]),
+    .sa_global_input_dir_oh_i       (sa_global_input_dir_oh [out_port]
+                                                                [NumInputSaGlobal[out_port]-1:0]),
+    .look_ahead_routing_i           (look_ahead_routing_per_output[out_port]
+                                                                [NumInputSaGlobal[out_port]-1:0]),
+    .vc_selection_v_i               (vc_selection_v         [out_port][NumVCToOut[out_port]-1:0]),
+    .vc_selection_id_i              (vc_selection_id        [out_port][NumVCToOut[out_port]-1:0]),
     // make sure correct vc is selected if not last or doing wormhole routing
     .require_correct_vc_i           (~last_bits_sel          [out_port]
                                     | wormhole_v            [out_port]),
