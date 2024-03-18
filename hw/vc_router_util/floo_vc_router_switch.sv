@@ -37,8 +37,8 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_select_data_
     .NumInputs        (NumVC[in_port]),
     .DataWidth        (DataLength)
   ) i_floo_mux_select_data_head (
-    .sel_i            (read_vc_id_oh_i          [in_port]),
-    .data_i           (vc_data_head_i           [in_port]),
+    .sel_i            (read_vc_id_oh_i          [in_port][NumVC[in_port]-1:0]),
+    .data_i           (vc_data_head_i           [in_port][NumVC[in_port]-1:0]),
     .data_o           (data_head_per_inport [in_port])
   );
 end
