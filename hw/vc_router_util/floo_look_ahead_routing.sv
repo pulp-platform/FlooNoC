@@ -42,7 +42,7 @@ module floo_look_ahead_routing import floo_pkg::*; #(
   always_comb begin : gen_calculate_next_id
     id_nxt.x = xy_id_i.x;
     id_nxt.y = xy_id_i.y;
-    unique case(ctrl_head_i.look_ahead_routing)
+    unique case(ctrl_head_i.lookahead)
       North: begin
         id_nxt.y = xy_id_i.y + 1;
       end

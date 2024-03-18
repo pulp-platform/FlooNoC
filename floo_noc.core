@@ -47,6 +47,7 @@ filesets:
     - hw/tb/tb_floo_axi_chimney.sv
     - hw/tb/tb_floo_narrow_wide_chimney.sv
     - hw/tb/tb_floo_router.sv
+    - hw/tb/tb_floo_vc_router.sv
     - hw/tb/tb_floo_rob.sv
     - hw/tb/tb_floo_dma_chimney.sv
     - hw/tb/tb_floo_dma_nw_chimney.sv

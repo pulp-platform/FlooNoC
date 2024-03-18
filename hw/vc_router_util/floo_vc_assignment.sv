@@ -50,7 +50,7 @@ if(NumVC == 1) begin : gen_only_one_vc
         & (~require_correct_vc_i | (vc_assignment_id_o == vc_selection_v_i & sa_global_v_i));
 end
 
-if(RouteAlgo != XYRouting) begin : gen_not_xy_routing_optimized
+else if(RouteAlgo != XYRouting) begin : gen_not_xy_routing_optimized
   // since ports dont have a vc towards their own direction, calculate id
   // N->S,E->W,S->N,W->E,L1->L1,...
   // 0->2,1->3,2->0,3->1, 4-> 4,...
@@ -174,8 +174,8 @@ case (OutputId)
   end
 
   default: begin : gen_xy_routing_optimized_to_Local
-    $warning("Unimplemented!: Towards %d via port %d! Local Ports are assumed to have only one vc!",
-              look_ahead_routing_sel, OutputId);
+    $warning("Unimplemented!: Via port %d! Local Ports are assumed to have only one vc, not %d!",
+              OutputId, NumVC);
   end
 endcase
 end

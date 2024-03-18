@@ -107,6 +107,7 @@ logic           [NumPorts-1:0][NumVCWidth-1:0]                      sa_global_in
 route_direction_e [NumPorts-1:0]                                    look_ahead_routing_per_input;
 route_direction_e [NumPorts-1:0][NumPorts-1:0]                      look_ahead_routing_per_output;
 route_direction_e [NumPorts-1:0]                                    look_ahead_routing_sel;
+route_direction_e [NumPorts-1:0]                                    look_ahead_routing_sel_st_stage;
 
 logic           [NumPorts-1:0][NumVCToOutMax-1:0][VCDepthWidth-1:0] credit_counter;
 
@@ -114,6 +115,7 @@ logic           [NumPorts-1:0][NumVCToOutMax-1:0]                        vc_sele
 logic           [NumPorts-1:0][NumVCToOutMax-1:0][NumVCWidthToOutMax-1:0]vc_selection_id;
 logic           [NumPorts-1:0]                                      vc_assignment_v;
 logic           [NumPorts-1:0][NumVCWidthToOutMax-1:0]              vc_assignment_id;
+logic           [NumPorts-1:0][NumVCWidthToOutMax-1:0]              vc_assignment_id_st_stage;
 
 logic           [NumPorts-1:0]                                      outport_v;
 
@@ -125,6 +127,7 @@ hdr_t           [NumPorts-1:0]                      sel_ctrl_head_per_input_st_s
 
 logic           [NumPorts-1:0][NumPorts-1:0]                        last_bits_per_output;
 logic           [NumPorts-1:0]                                      last_bits_sel;  //1 bit/output
+logic           [NumPorts-1:0]                                      last_bits_sel_st_stage;
 logic           [NumPorts-1:0]                                      wormhole_detected; //per output
 logic           [NumPorts-1:0]                                      wormhole_v; //per_outport
 logic           [NumPorts-1:0]                                      wormhole_v_d;
@@ -472,8 +475,6 @@ for (genvar port = 0; port < NumPorts; port++) begin : gen_hdr_ff
       sel_ctrl_head_per_input_sa_stage[port].rob_idx,    '0);
   `FF(sel_ctrl_head_per_input_st_stage[port].dst_id,
       sel_ctrl_head_per_input_sa_stage[port].dst_id,     '0);
-  `FF(sel_ctrl_head_per_input_st_stage[port].dst_port_id,
-      sel_ctrl_head_per_input_sa_stage[port].dst_port_id,'0);
   `FF(sel_ctrl_head_per_input_st_stage[port].src_id,
       sel_ctrl_head_per_input_sa_stage[port].src_id,     '0);
   `FF(sel_ctrl_head_per_input_st_stage[port].atop,
@@ -481,9 +482,9 @@ for (genvar port = 0; port < NumPorts; port++) begin : gen_hdr_ff
   `FF(sel_ctrl_head_per_input_st_stage[port].axi_ch,
       sel_ctrl_head_per_input_sa_stage[port].axi_ch,     '0);
   // already per out_port: assign directly
-  `FF(data_o[port].hdr.vc_id, vc_assignment_id[port], '0)
-  `FF(data_o[port].hdr.lookahead, look_ahead_routing_sel[port], '0)
-  `FF(data_o[port].hdr.last, last_bits_sel[port], '0)
+  `FF(vc_assignment_id_st_stage[port], vc_assignment_id[port], '0)
+  `FF(look_ahead_routing_sel_st_stage[port], look_ahead_routing_sel[port], North)
+  `FF(last_bits_sel_st_stage[port], last_bits_sel[port], '0)
 end
 
 // =============
@@ -501,6 +502,9 @@ floo_vc_router_switch #(
 ) i_floo_vc_router_switch (
   .vc_data_head_i                   (vc_data_head),
   .ctrl_head_per_inport_i           (sel_ctrl_head_per_input_st_stage),
+  .vc_assignment_id_i               (vc_assignment_id_st_stage),
+  .look_ahead_routing_sel_i         (look_ahead_routing_sel_st_stage),
+  .last_bits_sel_i                  (last_bits_sel_st_stage),
   .read_vc_id_oh_i                  (read_vc_id_oh_st_stage),
   .inport_id_oh_per_output_i        (inport_id_oh_per_output_st_stage),
   .data_o
