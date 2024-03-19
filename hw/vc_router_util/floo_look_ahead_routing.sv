@@ -32,6 +32,7 @@ module floo_look_ahead_routing import floo_pkg::*; #(
   empty_flit_t helper_flit_in; // the synthesizer should not synthesize the unused fields
   empty_flit_t helper_flit_out;
   id_t id_nxt;
+  logic [$bits(route_direction_e)-1:0] route_sel_result;
 
 
   // if(xy_id_i == ctrl_head_i.hdr.dst_id) begin : gen_no_lookahead_towards_local
@@ -83,8 +84,10 @@ module floo_look_ahead_routing import floo_pkg::*; #(
     .ready_i        ('0),
     .channel_o      (helper_flit_out),
     .route_sel_o    (),
-    .route_sel_id_o (look_ahead_routing_o)
+    .route_sel_id_o (route_sel_result)
   );
+
+  assign look_ahead_routing_o = route_direction_e'(route_sel_result);
 
   if(RouteAlgo == SourceRouting) begin : gen_source_routing
     always_comb begin
