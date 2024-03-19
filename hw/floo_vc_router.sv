@@ -189,7 +189,7 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
     .hdr_t                          (hdr_t)
   ) i_sa_local (
     .vc_ctrl_head_v_i               (vc_ctrl_head_v         [in_port][NumVC[in_port]-1:0]),
-    .vc_ctrl_head_i                 (vc_ctrl_head           [in_port]),
+    .vc_ctrl_head_i                 (vc_ctrl_head           [in_port][NumVC[in_port]-1:0]),
 
     .sa_local_vc_id_o               (sa_local_vc_id         [in_port]), // chosen id
     .sa_local_vc_id_oh_o            (sa_local_vc_id_oh      [in_port][NumVC[in_port]-1:0]),
