@@ -193,7 +193,7 @@ expected_result_queue[out_port].push_back(flit);
 randomize_flit();
 flit.hdr.dst_id = '{x: 3'd2, y: 3'd0, port_id: 2'd0}; //should arrive with lookahead = South
 flit.hdr.lookahead = route_direction_e'(out_port);
-flit.hdr.vc_id = 2'b1;
+flit.hdr.vc_id = 2'b01;
 input_queue[in_port].push_back(flit);
 get_preferred_vc(next_in_port, 2, flit.hdr.vc_id);
 expected_result_queue[out_port].push_back(flit);
