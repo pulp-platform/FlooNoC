@@ -412,6 +412,23 @@ last_bits_per_output
 sa_global_input_dir_oh
 */
 
+// initial begin
+//   forever begin
+//     @(posedge clk_i);
+//     #4ns;
+//     $display("sa_local_v_per_output: %b", sa_local_v_per_output);
+//     $display("sa_local_output_dir_oh: %b", sa_local_output_dir_oh);
+//     $display("sa_global_v: %b", sa_global_v);
+//     $display("sa_global_input_dir: %b", sa_global_input_dir_oh);
+//     // $display("look_ahead_routing_per_input: %p", look_ahead_routing_per_input);
+//     // $display("look_ahead_routing_per_output: %p", look_ahead_routing_per_output);
+//     $display("credit_counter: %p", credit_counter);
+//     $display("vc_assignment_v: %b", vc_assignment_v);
+//     $display("sa_global_input_dir_oh: %b", sa_global_input_dir_oh);
+//     $display("inport_id_oh_per_output_sa_stage: %p", inport_id_oh_per_output_sa_stage);
+//   end
+// end
+
 always_comb begin
   sa_local_vc_id_per_output        = '0;
   sa_local_v_per_output            = '0;
@@ -419,13 +436,17 @@ always_comb begin
   inport_id_oh_per_output_sa_stage = '0;
   for (int out_port = 0; out_port < NumPorts; out_port++) begin : gen_transform_sa_results
     if (RouteAlgo == XYRouting) begin : gen_reduce_sa_global_input_size_if_xyrouting
-      automatic int per_output_index = 0;
       // to N/S has inputs S/N,E,W,L, to E/W has inputs W/E,L
       for (int in_port = 0; in_port < NumPorts; in_port++) begin : gen_red_sa_glb_xyrouting_in_port
         if(!(in_port == out_port ||
           (out_port == East && (in_port == South || in_port == North)) ||
           (out_port == West && (in_port == South || in_port == North))
             )) begin : gen_reduce_sa_global_xyrouting_include_input
+            automatic int per_output_index =
+              (out_port >= Eject || out_port == North || out_port == South) ? // from everything
+                        (in_port < out_port ? in_port : in_port - 1) :
+              (out_port == East || in_port >= Eject ? in_port - 3 : 0);
+            // $display("(%0d,%0d, %0d) ",out_port,in_port, per_output_index);
             sa_local_vc_id_per_output[out_port][per_output_index]
                   = sa_local_vc_id[in_port];
             sa_local_v_per_output[out_port][per_output_index]
@@ -437,8 +458,6 @@ always_comb begin
 
             inport_id_oh_per_output_sa_stage[out_port][in_port]
                   = sa_global_input_dir_oh[out_port][per_output_index];
-
-            per_output_index = per_output_index ++;
         end
       end
     end
@@ -486,8 +505,8 @@ for (genvar port = 0; port < NumPorts; port++) begin : gen_hdr_ff
       sel_ctrl_head_per_input_sa_stage[port].src_id,     '0);
   `FF(sel_ctrl_head_per_input_st_stage[port].atop,
       sel_ctrl_head_per_input_sa_stage[port].atop,       '0);
-  `FF(sel_ctrl_head_per_input_st_stage[port].axi_ch,
-      sel_ctrl_head_per_input_sa_stage[port].axi_ch,     '0);
+  `FFNR(sel_ctrl_head_per_input_st_stage[port].axi_ch,
+      sel_ctrl_head_per_input_sa_stage[port].axi_ch, clk_i);
   // already per out_port: assign directly
   `FF(vc_assignment_id_st_stage[port], vc_assignment_id[port], '0)
   `FF(look_ahead_routing_sel_st_stage[port], look_ahead_routing_sel[port], North)

@@ -31,6 +31,7 @@ module floo_sa_local #(
 logic update_rr_arb;
 // wormhole routing: dont update if not last
 assign update_rr_arb = update_rr_arb_i & sa_local_sel_ctrl_head_o.last;
+logic sa_local_v;
 
 localparam int OptimalWidth = NumVC > 1 ? $clog2(NumVC) : 1;
 // pick a valid vc via rr arbitration
@@ -47,21 +48,21 @@ floo_rr_arbiter #(
 if(OptimalWidth > NumVCWidth)
   assign sa_local_vc_id_o[NumVCWidth-1:OptimalWidth] = '0;
 
-logic sa_local_v   = |vc_ctrl_head_v_i; //if any vc is valid, a vc will be chosen
 
-floo_mux #(
-  .NumInputs        (NumVC),
-  .DataWidth        (HdrLength)
-) i_floo_mux_select_head (
-  .sel_i            (sa_local_vc_id_oh_o),
-  .data_i           (vc_ctrl_head_i),
-  .data_o           (sa_local_sel_ctrl_head_o)
-);
+  floo_mux #(
+    .NumInputs        (NumVC),
+    .DataWidth        (HdrLength)
+    ) i_floo_mux_select_head (
+      .sel_i            (sa_local_vc_id_oh_o),
+      .data_i           (vc_ctrl_head_i),
+      .data_o           (sa_local_sel_ctrl_head_o)
+      );
 
 // set bit corresponding to correct direction in sa_local_output_dir_oh_o to 1 if a vc was chosen
 always_comb begin
   sa_local_output_dir_oh_o = '0;
-  sa_local_output_dir_oh_o[vc_ctrl_head_i[sa_local_vc_id_o].lookahead] = sa_local_v;
+  sa_local_v = |vc_ctrl_head_v_i; //if any vc is valid, a vc will be chosen
+  sa_local_output_dir_oh_o[sa_local_sel_ctrl_head_o.lookahead] = sa_local_v;
 end
 
 /*
