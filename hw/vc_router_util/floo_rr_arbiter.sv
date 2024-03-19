@@ -66,9 +66,6 @@ module floo_rr_arbiter #(
 
     assign grant_o     = dereordered_selected_req;
     assign grant_id_o  = selected_req_id;
-    assign grant_o     = dereordered_selected_req;
-    assign grant_id_o  = selected_req_id;
 
-  end
   end
 endmodule
