@@ -14,7 +14,6 @@ module floo_mux #(
   output logic[DataWidth-1:0] data_o
 );
 
-  logic[DataWidth-1:0][NumInputs-1:0] transposed_data;
   logic[DataWidth-1:0][NumInputs-1:0] select_mat;
   logic[DataWidth-1:0][NumInputs-1:0] transposed_data;
 

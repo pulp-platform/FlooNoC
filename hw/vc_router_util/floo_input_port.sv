@@ -52,7 +52,12 @@ end
 always_comb begin
   // remove ctrl at SA stage
   remove_ctrl_head = '0;
-  remove_ctrl_head[inport_read_vc_id_sa_stage_i] = inport_read_enable_sa_stage_i;
+  if(read_enable_sa_stage_i)
+    remove_ctrl_head = read_vc_id_oh_sa_stage_i;
+  // remove data at ST stage
+  remove_data_head = '0;
+  if(read_enable_st_stage_i)
+    remove_data_head = read_vc_id_oh_st_stage_i;
 end
 
 // data fifo -> hdr is always before payload in flits
