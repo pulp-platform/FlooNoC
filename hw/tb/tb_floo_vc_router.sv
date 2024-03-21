@@ -48,6 +48,7 @@ flit_t expected_result_queue [NumPorts][$];
 localparam type credit_id_t = logic[NumVCWidth-1:0];
 credit_id_t received_credits_queue [NumPorts][$];
 credit_id_t expected_credits_queue [NumPorts][$];
+credit_id_t free_credits_queue [NumPorts][$];
 
 
 int automatically_free_credits;
@@ -108,30 +109,28 @@ task automatic collect_all_results();
   for (int port=0; port<NumPorts; port++) begin
     if (data_v_o[port]) begin
       result_queue[port].push_back(data_o[port]);
-      if(automatically_free_credits) begin
-        free_credit_async(port, data_o[port].hdr.vc_id);
-      end
+      if(automatically_free_credits)
+        free_credits_queue[port].push_back(data_o[port].hdr.vc_id);
     end
-    if (credit_v_o[port]) begin
+    if (credit_v_o[port])
       received_credits_queue[port].push_back(credit_id_o[port]);
-    end
   end
   if(any_credit_v != any_output_v)
     $error("A output was valid but no credit was freed");
 endtask
 
-// send free credit msg (async)
-task automatic free_credit_async(int unsigned port, int unsigned vc_id);
-  fork
-    begin
-      credit_v_i[port] = 1'b1;
-      credit_id_i[port] = vc_id[NumVCWidth-1:0];
-      @(posedge clk);
-      #ApplTime;
-      credit_v_i[port] = '0;
-      credit_id_i[port] = '0;
+// send available free credit msg
+task automatic free_credits();
+    @(posedge clk);
+    #ApplTime;
+    for (int port=0; port<NumPorts; port++) begin
+      if(free_credits_queue[port].size() > 0) begin
+        credit_v_i[port] = 1'b1;
+        credit_id_i[port] = free_credits_queue[port].pop_front();
+      end else begin
+        credit_v_i[port] = '0;
+      end
     end
-  join_none
 endtask
 
 task automatic check_received_results(int unsigned num_cycles);
@@ -235,8 +234,10 @@ task automatic get_direction_from_vc(int unsigned next_in_port, vc_id_t vc_id,
                               output route_direction_e direction);
   if(next_in_port == North || next_in_port == South)
     direction = vc_id == 0 ? route_direction_e'((next_in_port + 2) % 4) : Eject;
+  else if(next_in_port >= Eject)
+    direction = route_direction_e'(next_in_port);
   else
-    direction = route_direction_e'(vc_id >= next_in_port ? vc_id - 1 : vc_id);
+    direction = route_direction_e'(vc_id >= next_in_port ? vc_id + 1 : vc_id);
 endtask
 
 task automatic get_dst_id(route_direction_e direction, route_direction_e lookahead,
@@ -248,15 +249,15 @@ task automatic get_dst_id(route_direction_e direction, route_direction_e lookahe
       else dst_id = '{x: 3'd2, y: 3'd3, port_id: lookahead - Eject};
     end
     East:
-      dst_id = '{x: 3'd3 + lookahead == East,
-      y: 3'd2 + lookahead == North - lookahead == South,
+      dst_id = '{x: 3'd3 + (lookahead == East),
+      y: 3'd2 + (lookahead == North) - (lookahead == South),
       port_id: lookahead >= Eject ? lookahead - Eject : 2'd0};
     South:
       if(lookahead == South) dst_id = '{x: 3'd2, y: 3'd0, port_id: 2'd0};
       else dst_id = '{x: 3'd2, y: 3'd1, port_id: lookahead - Eject};
     West:
-      dst_id = '{x: 3'd1 - lookahead == West,
-      y: 3'd2 + lookahead == North - lookahead == South,
+      dst_id = '{x: 3'd1 - (lookahead == West),
+      y: 3'd2 + (lookahead == North) - (lookahead == South),
       port_id: lookahead >= Eject ? lookahead - Eject : 2'd0};
     default: //Eject
       dst_id = '{x: 3'd2, y: 3'd2, port_id: direction - Eject};
@@ -290,25 +291,28 @@ if(in_port==out_port||((in_port==North||in_port==South)&&(out_port==East||out_po
 flit = '0;
 flit.hdr.last = 1'b1;
 num_vc_in = (in_port == North || in_port == South) ? 2 : 4;
-next_in_port = (out_port + 2) % 4; // out->next_in: 0->2, 1->3, 2->0, 3->1
-num_vc_out = (next_in_port == North || next_in_port == South) ? 2 : 4;
-//one observation: in xy routing, there are always >= input vc than "output vc"
-for(vc_id_t vc_in = 0; vc_in < num_vc_in; vc_in ++) begin
-  for(vc_id_t vc_out = 0; vc_out < num_vc_out; vc_out ++) begin
-    get_direction_from_vc(next_in_port, vc_out, expected_lookahead);
-    //input
-    randomize_flit();
-    flit.hdr.lookahead = route_direction_e'(out_port);
-    get_dst_id(route_direction_e'(out_port), expected_lookahead, flit.hdr.dst_id);
-    $display("%0d:%0d->%0d:%0d, expected_lookahead: %p, dst_id: %p",
-      in_port, vc_in, out_port, vc_out, expected_lookahead, flit.hdr.dst_id);
-    flit.hdr.vc_id = vc_in;
-    input_queue[in_port].push_back(flit);
-    expected_credits_queue[in_port].push_back(vc_in);
-    //expected output:
-    flit.hdr.lookahead = expected_lookahead;
-    flit.hdr.vc_id = vc_out;
-    expected_result_queue[out_port].push_back(flit);
+next_in_port = out_port >= Eject ? out_port : (out_port + 2) % 4; // out->n_in:0->2,1->3,2->0,3->1
+num_vc_out = (next_in_port == North || next_in_port == South) ? 2 :
+              next_in_port >= Eject ? 1 : 4;
+// Explanation for batching: sending more than 2 directly consecutive messages to the same vc does not work due to buffer size
+for(vc_id_t vc_out_batch = 0; vc_out_batch < num_vc_out; vc_out_batch += 2) begin
+  for(vc_id_t vc_in = 0; vc_in < num_vc_in; vc_in ++) begin
+    for(vc_id_t vc_out = vc_out_batch; vc_out < vc_out_batch+2 && vc_out<num_vc_out; vc_out++) begin
+      get_direction_from_vc(next_in_port, vc_out, expected_lookahead);
+      //input
+      randomize_flit();
+      flit.hdr.lookahead = route_direction_e'(out_port);
+      get_dst_id(route_direction_e'(out_port), expected_lookahead, flit.hdr.dst_id);
+      $display("%0d:%0d->%0d:%0d, expected_lookahead: %p, dst_id: %p",
+        in_port, vc_in, out_port, vc_out, expected_lookahead, flit.hdr.dst_id);
+      flit.hdr.vc_id = vc_in;
+      input_queue[in_port].push_back(flit);
+      expected_credits_queue[in_port].push_back(vc_in);
+      //expected output:
+      flit.hdr.lookahead = expected_lookahead;
+      flit.hdr.vc_id = vc_out;
+      expected_result_queue[out_port].push_back(flit);
+    end
   end
 end
 
@@ -341,25 +345,18 @@ credit_v_i ='0;
 credit_id_i ='0;
 automatically_free_credits = 1;
 fork : start_send_and_recieve_threads
-  begin
-    forever begin
+  forever
       apply_all_inputs();
-    end
-  end begin
-    forever begin
+  forever
       collect_all_results();
-    end
-  end
+  forever
+      free_credits();
 join_none
 
-for(int in_port = 0; in_port < NumPorts; in_port++) begin
-  for(int out_port = 0; out_port < NumPorts; out_port++) begin
-    if((out_port == 0 || out_port== 2) && in_port!=out_port &&
-        !((in_port==North||in_port==South)&&(out_port==East||out_port==West)))
+for(int in_port = 0; in_port < NumPorts; in_port++)
+  for(int out_port = 0; out_port < NumPorts; out_port++)
+    if(in_port!=out_port && !((in_port==North||in_port==South)&&(out_port==East||out_port==West)))
       test_connection(in_port, out_port);
-  end
-end
-
 
 
 $finish;
