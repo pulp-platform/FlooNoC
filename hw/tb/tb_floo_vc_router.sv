@@ -45,25 +45,34 @@ clk_rst_gen #(
 flit_t input_queue  [NumPorts][$];
 flit_t result_queue [NumPorts][$];
 flit_t expected_result_queue [NumPorts][$];
+localparam type credit_id_t = logic[NumVCWidth-1:0];
+credit_id_t received_credits_queue [NumPorts][$];
+credit_id_t expected_credits_queue [NumPorts][$];
+
 
 int automatically_free_credits;
 
 flit_t flit;
 flit_t random_flit;
 int next_in_port;
+int any_credit_v, any_output_v;
 
 flit_t result;
 flit_t exp_result;
+credit_id_t result_credit;
+credit_id_t exp_credit;
 
 
 id_t xy_id = '{x: 3'd2, y: 3'd2, port_id: 2'd0};
 logic [NumPorts-1:0] credit_v_o;
+assign any_credit_v = |credit_v_o;
 logic [NumPorts-1:0][NumVCWidth-1:0] credit_id_o;
 logic [NumPorts-1:0] data_v_i;
 flit_t [NumPorts-1:0] data_i;
 logic [NumPorts-1:0] credit_v_i;
 logic [NumPorts-1:0][NumVCWidth-1:0] credit_id_i;
 logic [NumPorts-1:0] data_v_o;
+assign any_output_v = |data_v_o;
 flit_t [NumPorts-1:0] data_o;
 
 // DUT
@@ -104,7 +113,12 @@ task automatic collect_all_results();
         free_credit_async(port, data_o[port].hdr.vc_id);
       end
     end
+    if (credit_v_o[port]) begin
+      received_credits_queue[port].push_back(credit_id_o[port]);
+    end
   end
+  if(any_credit_v != any_output_v)
+    $error("A output was valid but no credit was freed");
 endtask
 
 // apply inputs of all ports during next cycle
@@ -166,6 +180,72 @@ task automatic randomize_flit();
   flit.hdr.rob_req = random_flit.hdr.rob_req;
 endtask
 
+task automatic check_received_results(int unsigned num_cycles);
+  for(int t = 1; t < num_cycles; t++) begin
+    @(posedge clk);
+    $display("t = %0d: ", t);
+    for(int port = 0; port < NumPorts; port++) begin
+        if(result_queue[port].size() != 0) begin
+          $display("Got Something on port %0d", port);
+          result = result_queue[port].pop_front();
+          if(expected_result_queue[port].size() == 0) begin
+            $error("Didnt expect anything here");
+            $display("Unexpected flit hdr: %p", result.hdr);
+          end else begin
+            exp_result = expected_result_queue[port].pop_front();
+            if(exp_result != result) begin
+              $error("Results dont match");
+              $display(exp_result.rsvd == result.rsvd ? "Data was correct": "Data was incorrect");
+              if(exp_result.hdr != result.hdr) begin
+                $display("Expected hdr: %p", exp_result.hdr);
+                $display("Result hdr  : %p", result.hdr);
+              end else $display("Hdr were correct");
+            end else $display("Got correct result!");
+          end
+        end
+    end
+    $display(" ");
+  end
+endtask
+
+task automatic check_received_credits();
+  for(int port = 0; port < NumPorts; port++) begin
+      while(received_credits_queue[port].size() != 0) begin
+        result_credit = received_credits_queue[port].pop_front();
+        if(expected_credits_queue[port].size() == 0) begin
+          $error("On port %0d: got credit %0d but did not expect one",
+                port, result_credit);
+        end else begin
+          exp_credit = expected_credits_queue[port].pop_front();
+          if(exp_credit != result_credit) begin
+            $error("On port %0d: got credit %0d, but expected %0d",
+                port, result_credit, exp_credit);
+          end else
+            $display("On port %0d: got correct credit", port);
+        end
+      end
+      while(expected_credits_queue[port].size() != 0) begin
+        $error("On port %0d: did not receive credit %0d",
+                port, expected_credits_queue[port].pop_front());
+      end
+  end
+  $display(" ");
+endtask
+
+
+task automatic check_exp_queue_empty();
+  for(int port = 0; port < NumPorts; port++) begin
+    if(expected_result_queue[port].size() != 0) begin
+      $error("Port %0d was still expecting results:", port);
+      for(; 0 < expected_result_queue[port].size();) begin
+        exp_result = expected_result_queue[port].pop_front();
+        $display("Expected hdr: %p", exp_result.hdr);
+      end
+    end
+  end
+endtask
+
+
 task automatic test_connection(int unsigned in_port, int unsigned out_port);
 /*
 test if all input vc are able to connect to out port and send free credit messages
@@ -185,53 +265,25 @@ randomize_flit();
 flit.hdr.dst_id = '{x: 3'd2, y: 3'd1, port_id: 2'd0}; //should arrive with lookahead = Eject
 flit.hdr.vc_id = '0;
 input_queue[in_port].push_back(flit);
+expected_credits_queue[in_port].push_back(flit.hdr.vc_id);
 //expected output:
 flit.hdr.lookahead = Eject;
 get_preferred_vc(next_in_port, 4, flit.hdr.vc_id);
 expected_result_queue[out_port].push_back(flit);
+
 
 randomize_flit();
 flit.hdr.dst_id = '{x: 3'd2, y: 3'd0, port_id: 2'd0}; //should arrive with lookahead = South
 flit.hdr.lookahead = route_direction_e'(out_port);
 flit.hdr.vc_id = 2'b01;
 input_queue[in_port].push_back(flit);
+expected_credits_queue[in_port].push_back(flit.hdr.vc_id);
 get_preferred_vc(next_in_port, 2, flit.hdr.vc_id);
 expected_result_queue[out_port].push_back(flit);
 
-for(int t = 1; t < 10; t++) begin
-  @(posedge clk);
-  $display("t = %0d: ", t);
-  for(int port = 0; port < NumPorts; port++) begin
-      if(result_queue[port].size() != 0) begin
-        $display("Got Something on port %0d", port);
-        result = result_queue[port].pop_front();
-        if(expected_result_queue[port].size() == 0) begin
-          $error("Didnt expect anything here");
-          $display("Unexpected flit hdr: %p", result.hdr);
-        end else begin
-          exp_result = expected_result_queue[port].pop_front();
-          if(exp_result != result) begin
-            $error("Results dont match");
-            $display(exp_result.rsvd == result.rsvd ? "Data was correct": "Data was incorrect");
-            if(exp_result.hdr != result.hdr) begin
-              $display("Expected hdr: %p", exp_result.hdr);
-              $display("Result hdr  : %p", result.hdr);
-            end else $display("Hdr were correct");
-          end else $display("Got correct result!");
-        end
-      end
-  end
-  $display(" ");
-end
-for(int port = 0; port < NumPorts; port++) begin
-  if(expected_result_queue[port].size() != 0) begin
-    $display("Port %0d was still expecting results:", port);
-    for(; 0 < expected_result_queue[port].size();) begin
-      exp_result = expected_result_queue[port].pop_front();
-      $display("Expected hdr: %p", exp_result.hdr);
-    end
-  end
-end
+check_received_results(6);
+check_received_credits();
+check_exp_queue_empty();
 
 
 endtask
