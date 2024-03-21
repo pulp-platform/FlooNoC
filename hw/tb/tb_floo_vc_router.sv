@@ -31,6 +31,7 @@ localparam int           DataLength                   = $bits(flit_t) - HdrLengt
 localparam type          flit_payload_t               = logic[DataLength-1:0];
 localparam int           NumVCWidth                   = 2;
 localparam int           NumPorts                     = 5;
+localparam int           Debug                        = 0;
 
 logic clk, rst_n;
 
@@ -51,8 +52,8 @@ credit_id_t expected_credits_queue [NumPorts][$];
 credit_id_t free_credits_queue [NumPorts][$];
 
 
-int automatically_free_credits;
-
+int automatically_free_credits = 1;
+int collect_received_credits = 1;
 flit_t flit;
 flit_t random_flit;
 int any_credit_v, any_output_v;
@@ -69,8 +70,8 @@ assign any_credit_v = |credit_v_o;
 logic [NumPorts-1:0][NumVCWidth-1:0] credit_id_o;
 logic [NumPorts-1:0] data_v_i;
 flit_t [NumPorts-1:0] data_i;
-logic [NumPorts-1:0] credit_v_i;
-logic [NumPorts-1:0][NumVCWidth-1:0] credit_id_i;
+logic [NumPorts-1:0] credit_v_i = '0;
+logic [NumPorts-1:0][NumVCWidth-1:0] credit_id_i = '0;
 logic [NumPorts-1:0] data_v_o;
 assign any_output_v = |data_v_o;
 flit_t [NumPorts-1:0] data_o;
@@ -109,10 +110,9 @@ task automatic collect_all_results();
   for (int port=0; port<NumPorts; port++) begin
     if (data_v_o[port]) begin
       result_queue[port].push_back(data_o[port]);
-      if(automatically_free_credits)
-        free_credits_queue[port].push_back(data_o[port].hdr.vc_id);
+      free_credits_queue[port].push_back(data_o[port].hdr.vc_id);
     end
-    if (credit_v_o[port])
+    if (credit_v_o[port] && collect_received_credits)
       received_credits_queue[port].push_back(credit_id_o[port]);
   end
   if(any_credit_v != any_output_v)
@@ -123,23 +123,25 @@ endtask
 task automatic free_credits();
     @(posedge clk);
     #ApplTime;
-    for (int port=0; port<NumPorts; port++) begin
-      if(free_credits_queue[port].size() > 0) begin
-        credit_v_i[port] = 1'b1;
-        credit_id_i[port] = free_credits_queue[port].pop_front();
-      end else begin
-        credit_v_i[port] = '0;
+    if(automatically_free_credits)
+      for (int port=0; port<NumPorts; port++) begin
+        if(free_credits_queue[port].size() > 0) begin
+          credit_v_i[port] = 1'b1;
+          credit_id_i[port] = free_credits_queue[port].pop_front();
+        end else begin
+          credit_v_i[port] = '0;
+        end
       end
-    end
+    else credit_v_i = '0;
 endtask
 
 task automatic check_received_results(int unsigned num_cycles);
   for(int t = 1; t < num_cycles; t++) begin
     @(posedge clk);
-    $display("t = %0d: ", t);
+    if(Debug) $display("t = %0d: ", t);
     for(int port = 0; port < NumPorts; port++) begin
         if(result_queue[port].size() != 0) begin
-          $display("Got Something on port %0d", port);
+          if(Debug) $display("Got Something on port %0d", port);
           result = result_queue[port].pop_front();
           if(expected_result_queue[port].size() == 0) begin
             $error("Didnt expect anything here");
@@ -153,11 +155,11 @@ task automatic check_received_results(int unsigned num_cycles);
                 $display("Expected hdr: %p", exp_result.hdr);
                 $display("Result hdr  : %p", result.hdr);
               end else $display("Hdr were correct");
-            end else $display("Got correct result!");
+            end else if(Debug) $display("Got correct result!");
           end
         end
     end
-    $display(" ");
+    if(Debug) $display(" ");
   end
 endtask
 
@@ -173,8 +175,7 @@ task automatic check_received_credits();
           if(exp_credit != result_credit) begin
             $error("On port %0d: got credit %0d, but expected %0d",
                 port, result_credit, exp_credit);
-          end else
-            $display("On port %0d: got correct credit", port);
+          end else if(Debug) $display("On port %0d: got correct credit", port);
         end
       end
       while(expected_credits_queue[port].size() != 0) begin
@@ -182,7 +183,7 @@ task automatic check_received_credits();
                 port, expected_credits_queue[port].pop_front());
       end
   end
-  $display(" ");
+  if(Debug) $display(" ");
 endtask
 
 
@@ -204,19 +205,12 @@ task automatic apply_all_inputs();
   #ApplTime;
   for (int port=0; port<NumPorts; port++) begin
     if (input_queue[port].size() != 0) begin
-      $display("Applying input on port %0d", port);
+      if(Debug) $display("Applying input on port %0d", port);
       data_i[port] = input_queue[port].pop_front();
       data_v_i[port] = 1'b1;
     end
+    else data_v_i[port] = 1'b0;
   end
-  fork begin
-    @(posedge clk)
-    #ApplTime;
-    for (int port=0; port<NumPorts; port++) begin
-      if (input_queue[port].size() == 0)
-        data_v_i[port] = 1'b0;
-    end
-  end join_none
 endtask
 
 // set vc_id to the preferred vc: in, out port are of receiving (next) router
@@ -276,7 +270,7 @@ task automatic randomize_flit();
   flit.hdr.rob_req = random_flit.hdr.rob_req;
 endtask
 
-int next_in_port, num_vc_in, num_vc_out;
+int next_in_port, num_vc_in, num_vc_out, vc_out_helper;
 route_direction_e expected_lookahead;
 
 task automatic test_connection(int unsigned in_port, int unsigned out_port);
@@ -294,6 +288,7 @@ num_vc_in = (in_port == North || in_port == South) ? 2 : 4;
 next_in_port = out_port >= Eject ? out_port : (out_port + 2) % 4; // out->n_in:0->2,1->3,2->0,3->1
 num_vc_out = (next_in_port == North || next_in_port == South) ? 2 :
               next_in_port >= Eject ? 1 : 4;
+// Test connectivity
 // Explanation for batching: sending more than 2 directly consecutive messages to the same vc does not work due to buffer size
 for(vc_id_t vc_out_batch = 0; vc_out_batch < num_vc_out; vc_out_batch += 2) begin
   for(vc_id_t vc_in = 0; vc_in < num_vc_in; vc_in ++) begin
@@ -303,8 +298,8 @@ for(vc_id_t vc_out_batch = 0; vc_out_batch < num_vc_out; vc_out_batch += 2) begi
       randomize_flit();
       flit.hdr.lookahead = route_direction_e'(out_port);
       get_dst_id(route_direction_e'(out_port), expected_lookahead, flit.hdr.dst_id);
-      $display("%0d:%0d->%0d:%0d, expected_lookahead: %p, dst_id: %p",
-        in_port, vc_in, out_port, vc_out, expected_lookahead, flit.hdr.dst_id);
+      if(Debug) $display("%0d:%0d->%0d:%0d, expected_lookahead: %p, dst_id: %p",
+         in_port, vc_in, out_port, vc_out, expected_lookahead, flit.hdr.dst_id);
       flit.hdr.vc_id = vc_in;
       input_queue[in_port].push_back(flit);
       expected_credits_queue[in_port].push_back(vc_in);
@@ -315,10 +310,47 @@ for(vc_id_t vc_out_batch = 0; vc_out_batch < num_vc_out; vc_out_batch += 2) begi
     end
   end
 end
-
 check_received_results(num_vc_in * num_vc_out + 4);
 check_received_credits();
 check_exp_queue_empty();
+
+// Test FVADA: pick correct vc if space, if not pick other vc (numerically decreasing) if no other, dont send
+// connectivity is granted now -> fill up using first two input vc (since these are always given)
+#(2*CyclTime)
+collect_received_credits = 0; // dont care
+for(vc_id_t vc_out = 0; vc_out<num_vc_out; vc_out++) begin // test each vc_out
+  automatically_free_credits = 0; // dont send free credits messages anymore (still collect them)
+  get_direction_from_vc(next_in_port, vc_out, expected_lookahead);
+  get_dst_id(route_direction_e'(out_port), expected_lookahead, flit.hdr.dst_id);
+  for(int i = 0; i < 2* num_vc_out+4; i++) begin //use up all credits and then use up input buffers
+    //input
+    randomize_flit();
+    flit.hdr.lookahead = route_direction_e'(out_port);
+    flit.hdr.vc_id = (i)%2;
+    input_queue[in_port].push_back(flit);
+    if(Debug) $display("%0d:%0d->%0d:%0d, expected_lookahead: %p, dst_id: %p",
+            in_port, flit.hdr.vc_id, out_port, vc_out, expected_lookahead, flit.hdr.dst_id);
+
+    //expected output:
+    flit.hdr.lookahead = expected_lookahead;
+    // golden model of FVADA: ex 1 with 4 vc: 11,33,22,00,11,33
+    vc_out_helper = num_vc_out -2 -((i%(2*num_vc_out)-2) >> 1);
+    if(i % (2* num_vc_out) < 2) flit.hdr.vc_id = vc_out;
+    else flit.hdr.vc_id = vc_out_helper < vc_out ? vc_out_helper: vc_out_helper + 1;
+    expected_result_queue[out_port].push_back(flit);
+  end
+  check_received_results(2* num_vc_out+8);
+  // at that point, all credits should be used up and still 4 flits should be in the buffer of the router
+  if(expected_result_queue[out_port].size() != 4)
+    $error("Expected 4 flits to be stored in buffers, but was %0d",
+              expected_result_queue[out_port].size());
+  automatically_free_credits = 1;
+  check_received_results(2* num_vc_out+8); // need that long in order to free all credits
+  check_exp_queue_empty(); // now all flits arrived
+end
+
+automatically_free_credits = 1;
+collect_received_credits = 1;
 
 endtask
 
@@ -340,10 +372,6 @@ endtask
 
 initial begin : main_test_bench
 @(posedge rst_n)
-// initialize variables
-credit_v_i ='0;
-credit_id_i ='0;
-automatically_free_credits = 1;
 fork : start_send_and_recieve_threads
   forever
       apply_all_inputs();
@@ -357,7 +385,6 @@ for(int in_port = 0; in_port < NumPorts; in_port++)
   for(int out_port = 0; out_port < NumPorts; out_port++)
     if(in_port!=out_port && !((in_port==North||in_port==South)&&(out_port==East||out_port==West)))
       test_connection(in_port, out_port);
-
 
 $finish;
 
