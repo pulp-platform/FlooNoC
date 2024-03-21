@@ -47,6 +47,7 @@ run-vsim:
     matrix:
       - VSIM_TB_DUT:
         - tb_floo_router
+        - tb_floo_vc_router
         - tb_floo_axi_chimney
         - tb_floo_narrow_wide_chimney
         - tb_floo_rob
