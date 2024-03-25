@@ -59,8 +59,7 @@ mapping of dir to id is depending on dir
 
 if(NumVC == 1) begin : gen_only_one_vc
   assign vc_assignment_id = vc_selection_id;
-  assign vc_assignment_v_o  = vc_selection_v_i & sa_global_v_i
-        & (~require_correct_vc_i | (vc_assignment_id == vc_selection_v_i & sa_global_v_i));
+  assign vc_assignment_v_o  = vc_selection_v_i & sa_global_v_i;
 end
 
 else if(RouteAlgo != XYRouting) begin : gen_not_xy_routing_optimized

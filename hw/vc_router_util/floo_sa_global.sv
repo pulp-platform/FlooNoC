@@ -6,14 +6,15 @@
 
 // sa local: choose a valid vc via rr arbitration
 module floo_sa_global #(
-  parameter int NumInputs = 4,
-  parameter int NumPorts = 5
+  parameter int NumInputs = 4
 ) (
   // for each input: is their sa local in that dir valid
-  input  logic [NumInputs-1:0]                  sa_local_v_i,
+  input  logic [NumInputs-1:0]              sa_local_v_i,
+  input  logic [NumInputs-1:0]              wormhole_sa_global_input_dir_oh_i,
+  input  logic                              wormhole_v_i,
 
   output logic                              sa_global_v_o,
-  output logic [NumPorts-1:0]               sa_global_input_dir_oh_o,
+  output logic [NumInputs-1:0]              sa_global_input_dir_oh_o,
 
   // when to update rr arbiter
   input  logic                              update_rr_arb_i,
@@ -22,18 +23,28 @@ module floo_sa_global #(
   input  logic                              rst_ni
 );
 
+logic [NumInputs-1:0]               arb_input_dir_oh;
+
 // pick a valid vc via rr arbitration
 floo_rr_arbiter #(
   .NumInputs        (NumInputs)
 ) i_sa_global_rr_arbiter (
   .req_i            (sa_local_v_i),
   .update_i         (update_rr_arb_i),
-  .grant_o          (sa_global_input_dir_oh_o[NumInputs-1:0]),
+  .grant_o          (arb_input_dir_oh),
   .grant_id_o       ( ),
   .rst_ni,
   .clk_i
 );
 
-assign sa_global_v_o = |sa_local_v_i; // any valid input -> a valid output exists
+always_comb begin
+  if(wormhole_v_i) begin
+    sa_global_input_dir_oh_o = wormhole_sa_global_input_dir_oh_i & sa_local_v_i;
+    sa_global_v_o = |(wormhole_sa_global_input_dir_oh_i & sa_local_v_i); // correct input valid
+  end else begin
+    sa_global_input_dir_oh_o = arb_input_dir_oh;
+    sa_global_v_o = |sa_local_v_i; // any valid input -> a valid output exists
+  end
+end
 
 endmodule
