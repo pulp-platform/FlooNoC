@@ -93,16 +93,13 @@ logic           [NumPorts-1:0]                                      read_enable_
 logic           [NumPorts-1:0][NumVCMax-1:0]                        read_vc_id_oh_st_stage;
 
 logic           [NumPorts-1:0][NumPorts-1:0]                        sa_local_output_dir_oh;
-logic           [NumPorts-1:0][NumVCWidth-1:0]                      sa_local_vc_id;
 logic           [NumPorts-1:0][NumVCMax-1:0]                        sa_local_vc_id_oh;
 hdr_t           [NumPorts-1:0]                                      sa_local_sel_ctrl_head;
 
 logic           [NumPorts-1:0][NumPorts-1:0]                        sa_local_v_per_output;
-logic           [NumPorts-1:0][NumPorts-1:0][NumVCWidth-1:0]        sa_local_vc_id_per_output;
 
 logic           [NumPorts-1:0]                                      sa_global_v;
 logic           [NumPorts-1:0][NumPorts-1:0]                        sa_global_input_dir_oh;
-logic           [NumPorts-1:0][NumVCWidth-1:0]                      sa_global_input_vc_id;
 
 route_direction_e [NumPorts-1:0]                                    look_ahead_routing_per_input;
 route_direction_e [NumPorts-1:0][NumPorts-1:0]                      look_ahead_routing_per_output;
@@ -184,14 +181,12 @@ end
 for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
   floo_sa_local #(
     .NumVC                          (NumVC                  [in_port]),
-    .NumVCWidth                     (NumVCWidth),
     .NumPorts                       (NumPorts),
     .hdr_t                          (hdr_t)
   ) i_sa_local (
     .vc_ctrl_head_v_i               (vc_ctrl_head_v         [in_port][NumVC[in_port]-1:0]),
     .vc_ctrl_head_i                 (vc_ctrl_head           [in_port][NumVC[in_port]-1:0]),
 
-    .sa_local_vc_id_o               (sa_local_vc_id         [in_port]), // chosen id
     .sa_local_vc_id_oh_o            (sa_local_vc_id_oh      [in_port][NumVC[in_port]-1:0]),
     .sa_local_sel_ctrl_head_o       (sa_local_sel_ctrl_head [in_port]),
 
@@ -213,18 +208,13 @@ end
 for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_sa_global
   floo_sa_global #(
   .NumInputs                        (NumInputSaGlobal       [out_port]),
-  .NumVCWidth                       (NumVCWidth),
   .NumPorts                         (NumPorts)
   ) i_sa_global (
   // for each input: is their sa local in that dir valid
   .sa_local_v_i                     (sa_local_v_per_output  [out_port]
                                                             [NumInputSaGlobal[out_port]-1:0]),
-  .sa_local_vc_id_i                 (sa_local_vc_id_per_output[out_port]
-                                                            [NumInputSaGlobal[out_port]-1:0]),
-
   .sa_global_v_o                    (sa_global_v            [out_port]),
   .sa_global_input_dir_oh_o         (sa_global_input_dir_oh [out_port]),
-  .sa_global_input_vc_id_o          (sa_global_input_vc_id  [out_port]),
 
   // update arbiter if the vc assignment was successful
   .update_rr_arb_i                  (outport_v              [out_port]
@@ -404,7 +394,6 @@ last_bits_per_input
 inport_id_oh_per_output_sa_stage
 
 output space:
-sa_local_vc_id_per_output
 sa_local_v_per_output
 look_ahead_routing_per_output
 last_bits_per_output
@@ -424,13 +413,14 @@ sa_global_input_dir_oh
 //     // $display("look_ahead_routing_per_output: %p", look_ahead_routing_per_output);
 //     $display("credit_counter: %p", credit_counter);
 //     $display("vc_assignment_v: %b", vc_assignment_v);
+//     $display("last_bits_sel: %b, outport_v:%b, wormhole_detected: %b, wormhole_v_d_ %b",
+//         last_bits_sel, outport_v, wormhole_detected, wormhole_v_d);
 //     $display("sa_global_input_dir_oh: %b", sa_global_input_dir_oh);
 //     $display("inport_id_oh_per_output_sa_stage: %p", inport_id_oh_per_output_sa_stage);
 //   end
 // end
 
 always_comb begin
-  sa_local_vc_id_per_output        = '0;
   sa_local_v_per_output            = '0;
   look_ahead_routing_per_output    = '0;
   inport_id_oh_per_output_sa_stage = '0;
@@ -447,8 +437,6 @@ always_comb begin
                         (in_port < out_port ? in_port : in_port - 1) :
               (out_port == East || in_port >= Eject ? in_port - 3 : 0);
             // $display("(%0d,%0d, %0d) ",out_port,in_port, per_output_index);
-            sa_local_vc_id_per_output[out_port][per_output_index]
-                  = sa_local_vc_id[in_port];
             sa_local_v_per_output[out_port][per_output_index]
                   = sa_local_output_dir_oh[in_port][out_port];
             look_ahead_routing_per_output[out_port][per_output_index]
@@ -466,8 +454,6 @@ always_comb begin
       for (int in_port = 0; in_port < NumPorts; in_port++) begin : gen_transp_sa_results_in_port
         if(in_port != out_port) begin : gen_transp_sa_results_in_port_ne_out_port
           automatic int per_output_index = in_port < out_port ? in_port : in_port - 1;
-          sa_local_vc_id_per_output[out_port][per_output_index]
-                = sa_local_vc_id[in_port];
           sa_local_v_per_output[out_port][per_output_index]
                 = sa_local_output_dir_oh[in_port][out_port];
           look_ahead_routing_per_output[out_port][per_output_index]
