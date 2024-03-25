@@ -620,7 +620,7 @@ module floo_narrow_wide_chimney
     .rst_ni,
     .route_table_i,
     .addr_map_i ( Sam ),
-    .id_i       ( '0  ),
+    .id_i       ( id_t'('0) ),
     .addr_i ({
       axi_narrow_aw_queue.addr, axi_narrow_ar_queue.addr,
       axi_wide_aw_queue.addr, axi_wide_ar_queue.addr
