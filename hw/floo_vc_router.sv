@@ -130,6 +130,7 @@ logic           [NumPorts-1:0]                                      wormhole_v; 
 logic           [NumPorts-1:0]                                      wormhole_v_d;
 logic           [NumPorts-1:0][NumPorts-1:0]                        wormhole_required_sel_input;
 logic           [NumPorts-1:0]                                      wormhole_correct_input_sel;
+logic           [NumPorts-1:0][NumPorts-1:0]                        wormhole_sa_global_input_dir_oh;
 
 
 
@@ -207,18 +208,20 @@ end
 
 for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_sa_global
   floo_sa_global #(
-  .NumInputs                        (NumInputSaGlobal       [out_port]),
-  .NumPorts                         (NumPorts)
+  .NumInputs                        (NumInputSaGlobal       [out_port])
   ) i_sa_global (
   // for each input: is their sa local in that dir valid
   .sa_local_v_i                     (sa_local_v_per_output  [out_port]
                                                             [NumInputSaGlobal[out_port]-1:0]),
+  .wormhole_sa_global_input_dir_oh_i(wormhole_sa_global_input_dir_oh[out_port]
+                                                            [NumInputSaGlobal[out_port]-1:0]),
+  .wormhole_v_i                     (wormhole_v             [out_port]),
   .sa_global_v_o                    (sa_global_v            [out_port]),
-  .sa_global_input_dir_oh_o         (sa_global_input_dir_oh [out_port]),
+  .sa_global_input_dir_oh_o         (sa_global_input_dir_oh [out_port]
+                                                            [NumInputSaGlobal[out_port]-1:0]),
 
   // update arbiter if the vc assignment was successful
-  .update_rr_arb_i                  (outport_v              [out_port]
-                                     & ~wormhole_v_d        [out_port]),
+  .update_rr_arb_i                  (outport_v              [out_port]),
 
   .clk_i,
   .rst_ni
@@ -350,9 +353,10 @@ end
 for(genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_check_result
   assign wormhole_correct_input_sel[out_port] =
           inport_id_oh_per_output_sa_stage[out_port] == wormhole_required_sel_input[out_port];
-  `FFL( wormhole_required_sel_input     [out_port],
-        inport_id_oh_per_output_sa_stage[out_port], wormhole_detected, '0)
 end
+`FFL( wormhole_required_sel_input,
+      inport_id_oh_per_output_sa_stage, wormhole_detected, '0)
+`FFL( wormhole_sa_global_input_dir_oh, sa_global_input_dir_oh, wormhole_detected, '0)
 
 assign outport_v = vc_assignment_v & (~wormhole_v | wormhole_correct_input_sel);
 

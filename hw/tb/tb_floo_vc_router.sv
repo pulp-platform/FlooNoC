@@ -55,7 +55,7 @@ credit_id_t free_credits_queue [NumPorts][$];
 int automatically_free_credits = 1;
 int collect_received_credits = 1;
 flit_t flit;
-flit_t random_flit;
+flit_t random_flit = '0;
 int any_credit_v, any_output_v;
 
 flit_t result;
@@ -136,7 +136,7 @@ task automatic free_credits();
 endtask
 
 task automatic check_received_results(int unsigned num_cycles);
-  for(int t = 1; t < num_cycles; t++) begin
+  for(int t = 1; t <= num_cycles; t++) begin
     @(posedge clk);
     if(Debug) $display("t = %0d: ", t);
     for(int port = 0; port < NumPorts; port++) begin
@@ -270,7 +270,7 @@ task automatic randomize_flit();
   flit.hdr.rob_req = random_flit.hdr.rob_req;
 endtask
 
-int next_in_port, num_vc_in, num_vc_out, vc_out_helper;
+int next_in_port, num_vc_in, num_vc_out, vc_out_wormhole, vc_out_helper, num_blocked_packets;
 route_direction_e expected_lookahead;
 
 task automatic test_connection(int unsigned in_port, int unsigned out_port);
@@ -282,13 +282,18 @@ test if vc is set correctly:
 */
 if(in_port==out_port||((in_port==North||in_port==South)&&(out_port==East||out_port==West)))
     $fatal(1, "in_port = %0d to %0d = out_port is impossible in xy routing", in_port, out_port);
+if(Debug) $display("Testing connection from \p to \p",
+        route_direction_e'(in_port),route_direction_e'(out_port));
 flit = '0;
 flit.hdr.last = 1'b1;
 num_vc_in = (in_port == North || in_port == South) ? 2 : 4;
 next_in_port = out_port >= Eject ? out_port : (out_port + 2) % 4; // out->n_in:0->2,1->3,2->0,3->1
 num_vc_out = (next_in_port == North || next_in_port == South) ? 2 :
               next_in_port >= Eject ? 1 : 4;
+automatically_free_credits = 1;
+collect_received_credits = 1;
 // Test connectivity
+if(Debug) $display("Testing connectivity from each vc in to each vc out");
 // Explanation for batching: sending more than 2 directly consecutive messages to the same vc does not work due to buffer size
 for(vc_id_t vc_out_batch = 0; vc_out_batch < num_vc_out; vc_out_batch += 2) begin
   for(vc_id_t vc_in = 0; vc_in < num_vc_in; vc_in ++) begin
@@ -314,8 +319,10 @@ check_received_results(num_vc_in * num_vc_out + 4);
 check_received_credits();
 check_exp_queue_empty();
 
+
 // Test FVADA: pick correct vc if space, if not pick other vc (numerically decreasing) if no other, dont send
 // connectivity is granted now -> fill up using first two input vc (since these are always given)
+if(Debug) $display("Testing FVADA");
 #(2*CyclTime)
 collect_received_credits = 0; // dont care
 for(vc_id_t vc_out = 0; vc_out<num_vc_out; vc_out++) begin // test each vc_out
@@ -349,9 +356,104 @@ for(vc_id_t vc_out = 0; vc_out<num_vc_out; vc_out++) begin // test each vc_out
   check_exp_queue_empty(); // now all flits arrived
 end
 
-automatically_free_credits = 1;
-collect_received_credits = 1;
 
+// Test Wormhole routing: for each vc in: pick a random vc_out
+if(Debug) $display("Testing Wormhole routing");
+automatically_free_credits = 1;
+collect_received_credits = 0;
+
+for(vc_id_t vc_in = 0; vc_in<num_vc_in; vc_in++) begin // test each vc_in
+  vc_out_wormhole = $urandom_range(num_vc_out-1);
+  //send wormhole flit
+  randomize_flit();
+  get_direction_from_vc(next_in_port, vc_id_t'(vc_out_wormhole), expected_lookahead);
+  get_dst_id(route_direction_e'(out_port), expected_lookahead, flit.hdr.dst_id);
+  flit.hdr.last = 0;
+  flit.hdr.vc_id = vc_in;
+  flit.hdr.lookahead = route_direction_e'(out_port);
+  if(Debug) $display("Wormhole flit: %0d:%0d->%0d:%0d, expected_lookahead: %p, dst_id: %p",
+        in_port, flit.hdr.vc_id, out_port, vc_out_wormhole, expected_lookahead, flit.hdr.dst_id);
+  input_queue[in_port].push_back(flit);
+  flit.hdr.lookahead = expected_lookahead;
+  flit.hdr.vc_id = vc_out_wormhole;
+  expected_result_queue[out_port].push_back(flit);
+  #(CyclTime); // make sure wormhole flit is chosen by sa global
+
+  //now we send a flit from each other input port, (these should not arrive yet)
+  num_blocked_packets = 0;
+  flit.hdr.last = 1; //these are normal packets
+  for(int port = 0; port < NumPorts; port++) begin
+    if(port != in_port && port != out_port &&
+        !((port==North||port==South)&&(out_port==East||out_port==West))) begin
+      num_blocked_packets += 1;
+      randomize_flit();
+      flit.hdr.vc_id = $urandom_range((port == North || port == South) ? 1 : 3); // random vc_in
+      vc_out_helper = $urandom_range(num_vc_out-1); // random vc_out
+      get_direction_from_vc(next_in_port, vc_id_t'(vc_out_helper), expected_lookahead);
+      get_dst_id(route_direction_e'(out_port), expected_lookahead, flit.hdr.dst_id);
+      flit.hdr.lookahead = route_direction_e'(out_port);
+      if(Debug) $display("%0d:%0d->%0d:%0d, expected_lookahead: %p, dst_id: %p",
+            port, flit.hdr.vc_id, out_port, vc_out_helper, expected_lookahead, flit.hdr.dst_id);
+      input_queue[port].push_back(flit);
+      flit.hdr.lookahead = expected_lookahead;
+      flit.hdr.vc_id = vc_out_helper;
+      expected_result_queue[out_port].push_back(flit);
+    end
+  end
+  if(expected_result_queue[out_port].size() != num_blocked_packets + 1)
+    $error("Expected %0d flits to be stored in buffers, but was %0d",
+      num_blocked_packets + 1, expected_result_queue[out_port].size());
+  check_received_results(num_blocked_packets + 5); // everything could arrive
+  if(expected_result_queue[out_port].size() != num_blocked_packets) // only correct arrived
+    $error("Expected %0d flits to be stored in buffers, but was %0d",
+      num_blocked_packets, expected_result_queue[out_port].size());
+  // send another packet with last = 0: should arrive
+  randomize_flit();
+  get_direction_from_vc(next_in_port, vc_id_t'(vc_out_wormhole), expected_lookahead);
+  get_dst_id(route_direction_e'(out_port), expected_lookahead, flit.hdr.dst_id);
+  flit.hdr.last = 0;
+  flit.hdr.vc_id = vc_in;
+  flit.hdr.lookahead = route_direction_e'(out_port);
+  if(Debug) $display("Wormhole flit: %0d:%0d->%0d:%0d, expected_lookahead: %p, dst_id: %p",
+        in_port, flit.hdr.vc_id, out_port, vc_out_wormhole, expected_lookahead, flit.hdr.dst_id);
+  input_queue[in_port].push_back(flit);
+  flit.hdr.lookahead = expected_lookahead;
+  flit.hdr.vc_id = vc_out_wormhole;
+  expected_result_queue[out_port].push_front(flit); // should directly arrive: so push_front
+  check_received_results(num_blocked_packets + 5); // everything could arrive
+  if(expected_result_queue[out_port].size() != num_blocked_packets) // only correct arrived
+    $error("Expected %0d flits to be stored in buffers, but was %0d",
+      num_blocked_packets, expected_result_queue[out_port].size());
+  // send packet with last = 1: should arrive and end wormhole routing
+  randomize_flit();
+  get_direction_from_vc(next_in_port, vc_id_t'(vc_out_wormhole), expected_lookahead);
+  get_dst_id(route_direction_e'(out_port), expected_lookahead, flit.hdr.dst_id);
+  flit.hdr.last = 1;
+  flit.hdr.vc_id = vc_in;
+  flit.hdr.lookahead = route_direction_e'(out_port);
+  if(Debug) $display("Wormhole done flit: %0d:%0d->%0d:%0d, expected_lookahead: %p, dst_id: %p",
+        in_port, flit.hdr.vc_id, out_port, vc_out_wormhole, expected_lookahead, flit.hdr.dst_id);
+  input_queue[in_port].push_back(flit);
+  flit.hdr.lookahead = expected_lookahead;
+  flit.hdr.vc_id = vc_out_wormhole;
+  expected_result_queue[out_port].push_front(flit); // should directly arrive: so push_front
+  check_received_results(3); // let wormhole done flit arrive and check it
+  #((num_blocked_packets + 1)*CyclTime); // everything should arrive
+  if(expected_result_queue[out_port].size() !=
+              result_queue[out_port].size())
+    $error("Expected %0d flits on port %0d, but got %0d",
+      num_blocked_packets, out_port, result_queue[out_port].size());
+  for(int p = 0; p < num_blocked_packets; p++) begin
+    exp_result = expected_result_queue[out_port].pop_front();
+    result = result_queue[out_port].pop_front();
+  end
+  check_exp_queue_empty();
+
+end
+
+
+
+if(Debug) $display(" ");
 endtask
 
 task automatic test_wormhole();
