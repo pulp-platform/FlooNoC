@@ -20,6 +20,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 ### Fixed
 
 - The generation of the unique ID has been changed resp. aligned for 2D meshes to increment Y-first and X-second. This way the address range and ID increment are consistent with each other.
+- Broadcasted input `id_i` in the chimneys should not throw an error anymore in elaboration.
+
+### Removed
+
+- Removed all `floo_synth*` wrapper modules. They are moved to the internal PD repository, since they are not really maintained as part of the FlooNoC repository.
 
 ## [0.4.0] - 2024-02-07
 
