@@ -4,18 +4,7 @@
 //
 // Lukas Berner <bernerl@student.ethz.ch>
 
-/*test ideas:
-1) connectivity from each input vs to each output vc, lookahead is set correctly on output
-2) FVADA working correctly: forward to different vc if prioritized one is not free -> lookahead still set correctly
-3) dont send if all buffers full
-
-
-*/
-
 `include "floo_noc/typedef.svh"
-
-
-
 module tb_floo_vc_router;
 
 import floo_pkg::*;
@@ -273,13 +262,15 @@ endtask
 int next_in_port, num_vc_in, num_vc_out, vc_out_wormhole, vc_out_helper, num_blocked_packets;
 route_direction_e expected_lookahead;
 
-task automatic test_connection(int unsigned in_port, int unsigned out_port);
+
 /*
 test if all input vc are able to connect to out port and send free credit messages
 test if lookahead is set correctly
-test if vc is set correctly:
+test if vc is set correctly: FVADA
   if space, in correct, if no space, in other, if no other, dont send (yet)
+test wormhole routing: after receiving a flit with last = 0, dont forward any other flits to that out port
 */
+task automatic test_connection(int unsigned in_port, int unsigned out_port);
 if(in_port==out_port||((in_port==North||in_port==South)&&(out_port==East||out_port==West)))
     $fatal(1, "in_port = %0d to %0d = out_port is impossible in xy routing", in_port, out_port);
 if(Debug) $display("Testing connection from \p to \p",
@@ -403,7 +394,7 @@ for(vc_id_t vc_in = 0; vc_in<num_vc_in; vc_in++) begin // test each vc_in
   if(expected_result_queue[out_port].size() != num_blocked_packets + 1)
     $error("Expected %0d flits to be stored in buffers, but was %0d",
       num_blocked_packets + 1, expected_result_queue[out_port].size());
-  check_received_results(num_blocked_packets + 5); // everything could arrive
+  check_received_results(num_blocked_packets + 5); // everything could arrive, only 1 should
   if(expected_result_queue[out_port].size() != num_blocked_packets) // only correct arrived
     $error("Expected %0d flits to be stored in buffers, but was %0d",
       num_blocked_packets, expected_result_queue[out_port].size());
@@ -448,30 +439,12 @@ for(vc_id_t vc_in = 0; vc_in<num_vc_in; vc_in++) begin // test each vc_in
     result = result_queue[out_port].pop_front();
   end
   check_exp_queue_empty();
-
 end
-
-
-
 if(Debug) $display(" ");
 endtask
 
-task automatic test_wormhole();
-/* for each output dir:
-start wormhole from any input dir,
-then send packets to that output dir from all other input dirs
-  -> no packet should be sent
-then send packet (still not last) -> should get through
-then send last packet, then all should get through
-  -> ignore content at that point, that is tested in other test
-*/
-
-endtask
-
-
 
 // "main"
-
 initial begin : main_test_bench
 @(posedge rst_n)
 fork : start_send_and_recieve_threads
