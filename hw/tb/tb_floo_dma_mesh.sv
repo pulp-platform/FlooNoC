@@ -42,7 +42,7 @@ module tb_floo_dma_mesh;
   localparam int unsigned NarrowMaxTxns = 32;
   localparam int unsigned WideMaxTxns = 32;
   localparam int unsigned ChannelFifoDepth = 2;
-  localparam int unsigned OutputFifoDepth = 32;
+  localparam int unsigned OutputFifoDepth = 2;
 
   logic clk, rst_n;
 
