@@ -58,10 +58,16 @@ module floo_narrow_wide_chimney_cr
   /// Number of routes in the routing table
   parameter int unsigned NumRoutes               = 0,
    /// Used for ID-based and XY routing
-  parameter int unsigned IdWidth          = 0,
+  parameter int unsigned IdWidth                 = 0,
+  //on which port the chimney is connected to the router (as seen from the router)
+  parameter route_direction_e OutputDir           = Eject,
+
+  parameter int NumVC                            = 4, // as seen from chimney
+  parameter int NumVCWidth                       = $clog2(NumVC),
+
   /// Used for ID-based routing
-  parameter int unsigned NumAddrRules     = 0,
-  parameter type         addr_rule_t      = logic
+  parameter int unsigned NumAddrRules            = 0,
+  parameter type         addr_rule_t             = logic
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -112,9 +118,9 @@ module floo_narrow_wide_chimney_cr
   floo_req_chan_t [WideAr:NarrowAw] floo_req_arb_in;
   floo_rsp_chan_t [WideB:NarrowB] floo_rsp_arb_in;
   floo_wide_chan_t [WideR:WideAw] floo_wide_arb_in;
-  logic  [WideAr:NarrowAw] floo_req_arb_req_in, floo_req_arb_gnt_out;
-  logic  [WideB:NarrowB]   floo_rsp_arb_req_in, floo_rsp_arb_gnt_out;
-  logic  [WideR:WideAw]    floo_wide_arb_req_in, floo_wide_arb_gnt_out;
+  logic  [WideAr:NarrowAw] floo_req_arb_req_in, floo_req_arb_gnt_out, floo_req_arb_gnt;
+  logic  [WideB:NarrowB]   floo_rsp_arb_req_in, floo_rsp_arb_gnt_out, floo_rsp_arb_gnt;
+  logic  [WideR:WideAw]    floo_wide_arb_req_in, floo_wide_arb_gnt_out,  floo_wide_arb_gnt;
 
   // flit queue
   floo_req_chan_t floo_req_in;
@@ -150,15 +156,16 @@ module floo_narrow_wide_chimney_cr
   route_direction_e floo_req_lookahead, floo_rsp_lookahead, floo_wide_lookahead;
 
   // Credit counting
-  localparam int NumVC      = 4;
-  localparam int NumVCWidth = 2;
   localparam int VCDepthWidth = 2;
   logic [NumVC-1:0][VCDepthWidth-1:0] floo_req_credit_counter;
   logic [NumVC-1:0]                   floo_req_credit_counter_not_empty;
+  logic [NumVCWidth-1:0]              floo_req_required_vc;
   logic [NumVC-1:0][VCDepthWidth-1:0] floo_rsp_credit_counter;
   logic [NumVC-1:0]                   floo_rsp_credit_counter_not_empty;
+  logic [NumVCWidth-1:0]              floo_rsp_required_vc;
   logic [NumVC-1:0][VCDepthWidth-1:0] floo_wide_credit_counter;
   logic [NumVC-1:0]                   floo_wide_credit_counter_not_empty;
+  logic [NumVCWidth-1:0]              floo_wide_required_vc;
 
   // VC Selection / Assignment
 
@@ -392,12 +399,13 @@ module floo_narrow_wide_chimney_cr
     );
 
   end else begin : gen_no_rsp_cuts
-    assign floo_req_in = floo_req_i.req;
-    assign floo_rsp_in = floo_rsp_i.rsp;
-    assign floo_wide_in = floo_wide_i.wide;
-    assign floo_req_in_valid = floo_req_i.valid;
-    assign floo_rsp_in_valid = floo_rsp_i.valid;
-    assign floo_wide_in_valid = floo_wide_i.valid;
+    $fatal(1, "A credit based chimney requires a buffer");
+    // assign floo_req_in = floo_req_i.req;
+    // assign floo_rsp_in = floo_rsp_i.rsp;
+    // assign floo_wide_in = floo_wide_i.wide;
+    // assign floo_req_in_valid = floo_req_i.valid;
+    // assign floo_rsp_in_valid = floo_rsp_i.valid;
+    // assign floo_wide_in_valid = floo_wide_i.valid;
   end
 
   ///////////////////////
@@ -713,6 +721,8 @@ module floo_narrow_wide_chimney_cr
   ///////////////////
   // FLIT PACKING  //
   ///////////////////
+  localparam route_direction_e InputDir = OutputDir == Eject ? Eject :
+                              route_direction_e'((OutputDir - 2) % 4);
 
   always_comb begin
     floo_narrow_aw              = '0;
@@ -720,7 +730,7 @@ module floo_narrow_wide_chimney_cr
     floo_narrow_aw.hdr.rob_idx  = rob_idx_t'(narrow_aw_rob_idx_out);
     floo_narrow_aw.hdr.dst_id   = dst_id[NarrowAw];
     floo_narrow_aw.hdr.src_id   = id_i;
-    floo_narrow_aw.hdr.lookahead = Eject; // such that lookahead calculates from local router
+    floo_narrow_aw.hdr.lookahead = InputDir; // such that lookahead calculates correctly
     floo_narrow_aw.hdr.last     = 1'b0;  // AW and W need to be sent together
     floo_narrow_aw.hdr.axi_ch   = NarrowAw;
     floo_narrow_aw.hdr.atop     = axi_narrow_aw_queue.atop != axi_pkg::ATOP_NONE;
@@ -733,7 +743,7 @@ module floo_narrow_wide_chimney_cr
     floo_narrow_w.hdr.rob_idx   = rob_idx_t'(narrow_aw_rob_idx_out);
     floo_narrow_w.hdr.dst_id    = dst_id[NarrowW];
     floo_narrow_w.hdr.src_id    = id_i;
-    floo_narrow_w.hdr.lookahead = Eject; // such that lookahead calculates from local router
+    floo_narrow_w.hdr.lookahead = InputDir; // such that lookahead calculates correctly
     floo_narrow_w.hdr.last      = axi_narrow_req_in.w.last;
     floo_narrow_w.hdr.axi_ch    = NarrowW;
     floo_narrow_w.w             = axi_narrow_req_in.w;
@@ -745,7 +755,7 @@ module floo_narrow_wide_chimney_cr
     floo_narrow_ar.hdr.rob_idx  = rob_idx_t'(narrow_ar_rob_idx_out);
     floo_narrow_ar.hdr.dst_id   = dst_id[NarrowAr];
     floo_narrow_ar.hdr.src_id   = id_i;
-    floo_narrow_ar.hdr.lookahead = Eject; // such that lookahead calculates from local router
+    floo_narrow_ar.hdr.lookahead = InputDir; // such that lookahead calculates correctly
     floo_narrow_ar.hdr.last     = 1'b1;
     floo_narrow_ar.hdr.axi_ch   = NarrowAr;
     floo_narrow_ar.ar           = axi_narrow_ar_queue;
@@ -757,7 +767,7 @@ module floo_narrow_wide_chimney_cr
     floo_narrow_b.hdr.rob_idx = rob_idx_t'(narrow_aw_out_data_out.rob_idx);
     floo_narrow_b.hdr.dst_id  = dst_id[NarrowB];
     floo_narrow_b.hdr.src_id  = id_i;
-    floo_narrow_b.hdr.lookahead = Eject; // such that lookahead calculates from local router
+    floo_narrow_b.hdr.lookahead = InputDir; // such that lookahead calculates correctly
     floo_narrow_b.hdr.last    = 1'b1;
     floo_narrow_b.hdr.axi_ch  = NarrowB;
     floo_narrow_b.hdr.atop    = narrow_aw_out_data_out.atop;
@@ -771,7 +781,7 @@ module floo_narrow_wide_chimney_cr
     floo_narrow_r.hdr.rob_idx = rob_idx_t'(narrow_ar_out_data_out.rob_idx);
     floo_narrow_r.hdr.dst_id  = dst_id[NarrowR];
     floo_narrow_r.hdr.src_id  = id_i;
-    floo_narrow_r.hdr.lookahead = Eject; // such that lookahead calculates from local router
+    floo_narrow_r.hdr.lookahead = InputDir; // such that lookahead calculates correctly
     floo_narrow_r.hdr.axi_ch  = NarrowR;
     floo_narrow_r.hdr.last    = 1'b1; // There is no reason to do wormhole routing for R bursts
     floo_narrow_r.hdr.atop    = narrow_ar_out_data_out.atop;
@@ -785,7 +795,7 @@ module floo_narrow_wide_chimney_cr
     floo_wide_aw.hdr.rob_idx  = rob_idx_t'(wide_aw_rob_idx_out);
     floo_wide_aw.hdr.dst_id   = dst_id[WideAw];
     floo_wide_aw.hdr.src_id   = id_i;
-    floo_wide_aw.hdr.lookahead = Eject; // such that lookahead calculates from local router
+    floo_wide_aw.hdr.lookahead = InputDir; // such that lookahead calculates correctly
     floo_wide_aw.hdr.last     = 1'b0;  // AW and W need to be sent together
     floo_wide_aw.hdr.axi_ch   = WideAw;
     floo_wide_aw.aw           = axi_wide_aw_queue;
@@ -797,7 +807,7 @@ module floo_narrow_wide_chimney_cr
     floo_wide_w.hdr.rob_idx = rob_idx_t'(wide_aw_rob_idx_out);
     floo_wide_w.hdr.dst_id  = dst_id[WideW];
     floo_wide_w.hdr.src_id  = id_i;
-    floo_wide_w.hdr.lookahead = Eject; // such that lookahead calculates from local router
+    floo_wide_w.hdr.lookahead = InputDir; // such that lookahead calculates correctly
     floo_wide_w.hdr.last    = axi_wide_req_in.w.last;
     floo_wide_w.hdr.axi_ch  = WideW;
     floo_wide_w.w           = axi_wide_req_in.w;
@@ -809,7 +819,7 @@ module floo_narrow_wide_chimney_cr
     floo_wide_ar.hdr.rob_idx  = rob_idx_t'(wide_ar_rob_idx_out);
     floo_wide_ar.hdr.dst_id   = dst_id[WideAr];
     floo_wide_ar.hdr.src_id   = id_i;
-    floo_wide_ar.hdr.lookahead = Eject; // such that lookahead calculates from local router
+    floo_wide_ar.hdr.lookahead = InputDir; // such that lookahead calculates correctly
     floo_wide_ar.hdr.last     = 1'b1;
     floo_wide_ar.hdr.axi_ch   = WideAr;
     floo_wide_ar.ar           = axi_wide_ar_queue;
@@ -821,7 +831,7 @@ module floo_narrow_wide_chimney_cr
     floo_wide_b.hdr.rob_idx = rob_idx_t'(wide_aw_out_data_out.rob_idx);
     floo_wide_b.hdr.dst_id  = dst_id[WideB];
     floo_wide_b.hdr.src_id  = id_i;
-    floo_wide_b.hdr.lookahead = Eject; // such that lookahead calculates from local router
+    floo_wide_b.hdr.lookahead = InputDir; // such that lookahead calculates correctly
     floo_wide_b.hdr.last    = 1'b1;
     floo_wide_b.hdr.axi_ch  = WideB;
     floo_wide_b.b           = axi_wide_meta_buf_rsp_out.b;
@@ -834,7 +844,7 @@ module floo_narrow_wide_chimney_cr
     floo_wide_r.hdr.rob_idx = rob_idx_t'(wide_ar_out_data_out.rob_idx);
     floo_wide_r.hdr.dst_id  = dst_id[WideR];
     floo_wide_r.hdr.src_id  = id_i;
-    floo_wide_r.hdr.lookahead = Eject; // such that lookahead calculates from local router
+    floo_wide_r.hdr.lookahead = InputDir; // such that lookahead calculates correctly
     floo_wide_r.hdr.axi_ch  = WideR;
     floo_wide_r.hdr.last    = 1'b1; // There is no reason to do wormhole routing for R bursts
     floo_wide_r.r           = axi_wide_meta_buf_rsp_out.r;
@@ -881,16 +891,16 @@ module floo_narrow_wide_chimney_cr
   assign floo_wide_arb_req_in[WideAw]   = 1'b0; // AW and W need to be sent together
   assign floo_wide_arb_req_in[WideR]    = axi_wide_meta_buf_rsp_out.r_valid;
 
-  assign narrow_aw_rob_ready_in     = floo_req_arb_gnt_out[NarrowW] &&
+  assign narrow_aw_rob_ready_in     = floo_req_arb_gnt[NarrowW] &&
                                       (narrow_aw_w_sel_q == SelAw);
-  assign axi_narrow_rsp_out.w_ready = floo_req_arb_gnt_out[NarrowW] &&
+  assign axi_narrow_rsp_out.w_ready = floo_req_arb_gnt[NarrowW] &&
                                       (narrow_aw_w_sel_q == SelW);
-  assign narrow_ar_rob_ready_in     = floo_req_arb_gnt_out[NarrowAr];
-  assign wide_aw_rob_ready_in       = floo_wide_arb_gnt_out[WideW] &&
+  assign narrow_ar_rob_ready_in     = floo_req_arb_gnt[NarrowAr];
+  assign wide_aw_rob_ready_in       = floo_wide_arb_gnt[WideW] &&
                                       (wide_aw_w_sel_q == SelAw);
-  assign axi_wide_rsp_out.w_ready   = floo_wide_arb_gnt_out[WideW] &&
+  assign axi_wide_rsp_out.w_ready   = floo_wide_arb_gnt[WideW] &&
                                       (wide_aw_w_sel_q == SelW);
-  assign wide_ar_rob_ready_in       = floo_req_arb_gnt_out[WideAr];
+  assign wide_ar_rob_ready_in       = floo_req_arb_gnt[WideAr];
 
   assign floo_req_arb_in[NarrowAw]            = '0;
   assign floo_req_arb_in[NarrowW]             = (narrow_aw_w_sel_q == SelAw)?
@@ -919,7 +929,8 @@ module floo_narrow_wide_chimney_cr
     .data_i   ( floo_req_arb_in       ),
     .ready_o  ( floo_req_arb_gnt_out  ),
     .data_o   ( {floo_req_arb_sel_hdr, floo_req_o.req.generic.rsvd}),
-    .ready_i  ( |floo_req_credit_counter_not_empty),
+    .ready_i  ( ~floo_req_wormhole_v & |floo_req_credit_counter_not_empty |
+    floo_req_credit_counter_not_empty[floo_req_required_vc] ),
     .valid_o  ( floo_req_arb_v      )
   );
 
@@ -933,7 +944,8 @@ module floo_narrow_wide_chimney_cr
     .data_i   ( floo_rsp_arb_in       ),
     .ready_o  ( floo_rsp_arb_gnt_out  ),
     .data_o   ( {floo_rsp_arb_sel_hdr,floo_rsp_o.rsp.generic.rsvd}),
-    .ready_i  ( |floo_rsp_credit_counter_not_empty),
+    .ready_i  ( ~floo_rsp_wormhole_v & |floo_rsp_credit_counter_not_empty |
+    floo_rsp_credit_counter_not_empty[floo_rsp_required_vc] ),
     .valid_o  ( floo_rsp_arb_v  )
   );
 
@@ -947,9 +959,14 @@ module floo_narrow_wide_chimney_cr
     .data_i   ( floo_wide_arb_in      ),
     .ready_o  ( floo_wide_arb_gnt_out ),
     .data_o   ( {floo_wide_arb_sel_hdr, floo_wide_o.wide.generic.rsvd}),
-    .ready_i  ( |floo_wide_credit_counter_not_empty),
+    .ready_i  ( ~floo_wide_wormhole_v & |floo_wide_credit_counter_not_empty |
+                floo_wide_credit_counter_not_empty[floo_wide_required_vc] ),
     .valid_o  ( floo_wide_arb_v )
   );
+
+  assign floo_req_arb_gnt = floo_req_arb_gnt_out & {$bits(floo_req_arb_gnt_out){floo_req_o.valid}};
+  assign floo_rsp_arb_gnt = floo_rsp_arb_gnt_out & {$bits(floo_rsp_arb_gnt_out){floo_rsp_o.valid}};
+  assign floo_wide_arb_gnt =floo_wide_arb_gnt_out&{$bits(floo_wide_arb_gnt_out){floo_wide_o.valid}};
 
   ///////////////////////
   // LOOKAHEAD ROUTING //
@@ -1149,8 +1166,16 @@ module floo_narrow_wide_chimney_cr
   // VC assignment
   // runs after arb & lookahead
   // Issue: this chimney might not be the only chimney connected to the router
-  assign floo_req_pref_vc_id = floo_req_lookahead >= Eject ?
-                  Eject : floo_req_lookahead;
+  // Other Issue: if not connected to Eject, it is somewhat complicated:
+  // N: S,Ej, E: N,S,W,Ej, S: N,Ej, W: N,E,S,Ej
+  assign floo_req_pref_vc_id = OutputDir >= Eject ?
+        (floo_req_lookahead >= Eject ? Eject : floo_req_lookahead) :
+        floo_req_lookahead >= Eject ?
+          (OutputDir==North || OutputDir==South ? 1: 3)  :
+          OutputDir==North || OutputDir==South ? 0 :
+          floo_req_lookahead==North ? 0 :
+          floo_req_lookahead==South ? (OutputDir==East ? 1 : 2) :
+          OutputDir==East ? 2 : 1;
   assign floo_req_vc_id =
             {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_req_vc_selection_id[floo_req_pref_vc_id]};
   // need the assigned vc_id to be the preffered one if not last or wormhole
@@ -1158,8 +1183,14 @@ module floo_narrow_wide_chimney_cr
                 & (~(~floo_req_arb_sel_hdr.last | floo_req_wormhole_v) |
                 (floo_req_vc_id == floo_req_pref_vc_id));
 
-  assign floo_rsp_pref_vc_id = floo_rsp_lookahead >= Eject ?
-                  Eject : floo_rsp_lookahead;
+  assign floo_rsp_pref_vc_id = OutputDir >= Eject ?
+        (floo_rsp_lookahead >= Eject ? Eject : floo_rsp_lookahead) :
+        floo_rsp_lookahead >= Eject ?
+          (OutputDir==North || OutputDir==South ? 1: 3)  :
+          OutputDir==North || OutputDir==South ? 0 :
+          floo_rsp_lookahead==North ? 0 :
+          floo_rsp_lookahead==South ? (OutputDir==East ? 1 : 2) :
+          OutputDir==East ? 2 : 1;
   assign floo_rsp_vc_id =
             {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_rsp_vc_selection_id[floo_rsp_pref_vc_id]};
   // need the assigned vc_id to be the preffered one if not last or wormhole
@@ -1167,8 +1198,14 @@ module floo_narrow_wide_chimney_cr
                 & (~(~floo_rsp_arb_sel_hdr.last | floo_rsp_wormhole_v) |
                 (floo_rsp_vc_id == floo_rsp_pref_vc_id));
 
-  assign floo_wide_pref_vc_id = floo_wide_lookahead >= Eject ?
-                  Eject : floo_wide_lookahead;
+  assign floo_wide_pref_vc_id = OutputDir >= Eject ?
+        (floo_wide_lookahead >= Eject ? Eject : floo_wide_lookahead) :
+        floo_wide_lookahead >= Eject ?
+          (OutputDir==North || OutputDir==South ? 1: 3)  :
+          OutputDir==North || OutputDir==South ? 0 :
+          floo_wide_lookahead==North ? 0 :
+          floo_wide_lookahead==South ? (OutputDir==East ? 1 : 2) :
+          OutputDir==East ? 2 : 1;
   assign floo_wide_vc_id =
             {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_wide_vc_selection_id[floo_wide_pref_vc_id]};
   // need the assigned vc_id to be the preffered one if not last or wormhole
@@ -1213,6 +1250,10 @@ module floo_narrow_wide_chimney_cr
   `FF(floo_req_wormhole_v, floo_req_wormhole_v_d, '0)
   `FF(floo_rsp_wormhole_v, floo_rsp_wormhole_v_d, '0)
   `FF(floo_wide_wormhole_v, floo_wide_wormhole_v_d, '0)
+
+  `FFL(floo_req_required_vc, floo_req_vc_id[NumVCWidth-1:0], floo_req_wormhole_detected, '0)
+  `FFL(floo_rsp_required_vc, floo_rsp_vc_id[NumVCWidth-1:0], floo_rsp_wormhole_detected, '0)
+  `FFL(floo_wide_required_vc, floo_wide_vc_id[NumVCWidth-1:0], floo_wide_wormhole_detected, '0)
 
   ////////////////////
   // FLIT UNPACKER  //
@@ -1291,10 +1332,10 @@ module floo_narrow_wide_chimney_cr
     aw_valid  : axi_valid_in[NarrowAw],
     w         : axi_narrow_unpack_w,
     w_valid   : axi_valid_in[NarrowW],
-    b_ready   : floo_rsp_arb_gnt_out[NarrowB],
+    b_ready   : floo_rsp_arb_gnt[NarrowB],
     ar        : axi_narrow_unpack_ar,
     ar_valid  : axi_valid_in[NarrowAr],
-    r_ready   : floo_rsp_arb_gnt_out[NarrowR]
+    r_ready   : floo_rsp_arb_gnt[NarrowR]
   };
 
   assign axi_wide_meta_buf_req_in ='{
@@ -1302,10 +1343,10 @@ module floo_narrow_wide_chimney_cr
     aw_valid  : axi_valid_in[WideAw],
     w         : axi_wide_unpack_w,
     w_valid   : axi_valid_in[WideW],
-    b_ready   : floo_rsp_arb_gnt_out[WideB],
+    b_ready   : floo_rsp_arb_gnt[WideB],
     ar        : axi_wide_unpack_ar,
     ar_valid  : axi_valid_in[WideAr],
-    r_ready   : floo_wide_arb_gnt_out[WideR]
+    r_ready   : floo_wide_arb_gnt[WideR]
   };
 
   assign narrow_b_rob_valid_in      = axi_valid_in[NarrowB] && !is_atop_b_rsp;
@@ -1496,5 +1537,10 @@ module floo_narrow_wide_chimney_cr
   `ASSERT(SpillRegReadyReq, req_spill_reg_ready || !floo_req_i.valid)
   `ASSERT(SpillRegReadyRsp, rsp_spill_reg_ready || !floo_rsp_i.valid)
   `ASSERT(SpillRegReadyWide, wide_spill_reg_ready || !floo_wide_i.valid)
+
+  // all inputs need to go to vc 0 since there is only one vc
+  `ASSERT(OnlyVC0Req, floo_req_i.req.generic.hdr.vc_id == '0 || !floo_req_i.valid)
+  `ASSERT(OnlyVC0Rsp, floo_rsp_i.rsp.generic.hdr.vc_id == '0 || !floo_rsp_i.valid)
+  `ASSERT(OnlyVC0Wide, floo_wide_i.wide.generic.hdr.vc_id == '0 || !floo_wide_i.valid)
 
 endmodule
