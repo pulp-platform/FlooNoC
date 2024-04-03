@@ -41,8 +41,8 @@ module tb_floo_dma_mesh_cr;
   localparam int unsigned WideReorderBufferSize = 32'd64;
   localparam int unsigned NarrowMaxTxns = 32;
   localparam int unsigned WideMaxTxns = 32;
-  localparam int unsigned ChannelFifoDepth = 2;
-  localparam int unsigned OutputFifoDepth = 32;
+  // localparam int unsigned ChannelFifoDepth = 2;
+  // localparam int unsigned OutputFifoDepth = 2;
 
   logic clk, rst_n;
 
@@ -209,7 +209,9 @@ module tb_floo_dma_mesh_cr;
       .WideReorderBufferSize    ( WideReorderBufferSize   ),
       .CutAx                    ( CutAx                   ),
       .CutRsp                   ( CutRsp                  ),
-      .NumRoutes                ( int'(NumDirections)     )
+      .NumRoutes                ( int'(NumDirections)     ),
+      .OutputDir                ( route_direction_e'(i)   ),
+      .NumVC                    ((i==North||i==South)? 2:4)
     ) i_hbm_chimney [NumChimneys-1:0] (
       .clk_i                ( clk               ),
       .rst_ni               ( rst_n             ),
@@ -242,7 +244,7 @@ module tb_floo_dma_mesh_cr;
   //////////////////
 
   for (genvar x = 0; x < NumX; x++) begin : gen_x
-    for (genvar y = 0; y < NumX; y++) begin : gen_y
+    for (genvar y = 0; y < NumY; y++) begin : gen_y
       id_t current_id;
       localparam string NarrowDmaName = $sformatf("narrow_dma_%0d_%0d", x, y);
       localparam string WideDmaName   = $sformatf("wide_dma_%0d_%0d", x, y);
@@ -344,7 +346,8 @@ module tb_floo_dma_mesh_cr;
         .WideReorderBufferSize    ( WideReorderBufferSize   ),
         .CutAx                    ( CutAx                   ),
         .CutRsp                   ( CutRsp                  ),
-        .NumRoutes                ( int'(NumDirections)     )
+        .NumRoutes                ( int'(NumDirections)     ),
+        .OutputDir                ( Eject                   )
       ) i_dma_chimney (
         .clk_i                ( clk                           ),
         .rst_ni               ( rst_n                         ),
@@ -372,7 +375,13 @@ module tb_floo_dma_mesh_cr;
       floo_narrow_wide_router_cr #(
         .NumPorts       ( int'(NumDirections)),
         .RouteAlgo      ( RouteAlgo         ),
-        .id_t           ( id_t              )
+        .id_t           ( id_t              ),
+        // only 1 towards hbm
+        .NumVCToOut     ({y==NumY-1 ? 1 : 2,
+                          x==NumX-1 ? 1 : 4,
+                          y==0 ?      1 : 2,
+                          x==0 ?      1 : 4,
+                          1}        )
       ) i_router (
         .clk_i          ( clk         ),
         .rst_ni         ( rst_n       ),

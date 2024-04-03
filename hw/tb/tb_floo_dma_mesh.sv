@@ -34,7 +34,7 @@ module tb_floo_dma_mesh;
 
   // Narrow Wide Chimney parameters
   localparam bit CutAx = 1'b1;
-  localparam bit CutRsp = 1'b0;
+  localparam bit CutRsp = 1'b1;
   localparam int unsigned NarrowMaxTxnsPerId = 4;
   localparam int unsigned NarrowReorderBufferSize = 32'd256;
   localparam int unsigned WideMaxTxnsPerId = 32;
