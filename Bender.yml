@@ -49,9 +49,11 @@ sources:
   - hw/floo_narrow_wide_join.sv
   - hw/floo_axi_chimney.sv
   - hw/floo_narrow_wide_chimney.sv
+  - hw/floo_narrow_wide_chimney_cr.sv
   - hw/floo_router.sv
   - hw/floo_vc_router.sv
   - hw/floo_narrow_wide_router.sv
+  - hw/floo_narrow_wide_router_cr.sv
 
   - target: test
     include_dirs:

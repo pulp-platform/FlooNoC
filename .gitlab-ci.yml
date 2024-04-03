@@ -62,7 +62,7 @@ run-vsim:
 run-traffic:
   stage: run
   variables:
-    VSIM_TB_DUT: tb_floo_dma_mesh
+    VSIM_TB_DUT: [tb_floo_dma_mesh, tb_floo_dma_mesh_cr]
     JOB_NAME: mesh
   parallel:
     matrix:
