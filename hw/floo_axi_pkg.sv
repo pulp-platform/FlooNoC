@@ -184,5 +184,19 @@ package floo_axi_pkg;
     floo_rsp_chan_t rsp;
   } floo_rsp_t;
 
+  typedef struct packed {
+    logic valid;
+    logic credit_v;
+    vc_id_t credit_id;
+    floo_req_chan_t req;
+  } floo_cr_req_t;
+
+  typedef struct packed {
+    logic valid;
+    logic credit_v;
+    vc_id_t credit_id;
+    floo_rsp_chan_t rsp;
+  } floo_cr_rsp_t;
+
 
 endpackage
