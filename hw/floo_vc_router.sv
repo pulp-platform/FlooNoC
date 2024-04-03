@@ -267,7 +267,7 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_credit_co
   )
   i_floo_credit_counter (
     .credit_v_i                     (credit_v_i             [out_port]),
-    .credit_id_i                    (credit_id_i            [out_port]),
+    .credit_id_i                    (credit_id_i            [out_port][NumVCWidthToOutMax-1:0]),
     .consume_credit_v_i             (outport_v              [out_port]),
     .consume_credit_id_i            (vc_assignment_id       [out_port]),
     .credit_counter_o               (credit_counter         [out_port][NumVCToOut[out_port]-1:0]),
