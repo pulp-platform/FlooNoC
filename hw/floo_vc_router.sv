@@ -354,9 +354,13 @@ for(genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_check_resu
   assign wormhole_correct_input_sel[out_port] =
           inport_id_oh_per_output_sa_stage[out_port] == wormhole_required_sel_input[out_port];
 end
-`FFL( wormhole_required_sel_input,
-      inport_id_oh_per_output_sa_stage, wormhole_detected, '0)
-`FFL( wormhole_sa_global_input_dir_oh, sa_global_input_dir_oh, wormhole_detected, '0)
+
+for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_wormhole_ff
+  `FFL( wormhole_required_sel_input[out_port],
+        inport_id_oh_per_output_sa_stage[out_port], wormhole_detected[out_port], '0)
+  `FFL( wormhole_sa_global_input_dir_oh[out_port],
+        sa_global_input_dir_oh[out_port], wormhole_detected[out_port], '0)
+end
 
 assign outport_v = vc_assignment_v & (~wormhole_v | wormhole_correct_input_sel);
 
