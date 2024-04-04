@@ -1213,6 +1213,69 @@ module floo_narrow_wide_chimney_cr
                 & (~(~floo_wide_arb_sel_hdr.last | floo_wide_wormhole_v) |
                 (floo_wide_vc_id == floo_wide_pref_vc_id));
 
+/*
+
+  always_comb begin
+    if(floo_req_i.credit_v && floo_req_i.credit_id == floo_req_pref_vc_id) begin
+      floo_req_vc_id = floo_req_pref_vc_id;
+      floo_req_o.valid = floo_req_arb_v;
+    end else begin
+      floo_req_vc_id =
+        {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_req_vc_selection_id[floo_req_pref_vc_id]};
+      // need the assigned vc_id to be the preffered one if not last or wormhole
+      floo_req_o.valid  = floo_req_vc_selection_v[floo_req_pref_vc_id] & floo_req_arb_v
+          & (~(~floo_req_arb_sel_hdr.last | floo_req_wormhole_v) |
+          (floo_req_vc_id == floo_req_pref_vc_id));
+    end
+  end
+
+  assign floo_rsp_pref_vc_id = OutputDir >= Eject ?
+        (floo_rsp_lookahead >= Eject ? Eject : floo_rsp_lookahead) :
+        floo_rsp_lookahead >= Eject ?
+          (OutputDir==North || OutputDir==South ? 1: 3)  :
+          OutputDir==North || OutputDir==South ? 0 :
+          floo_rsp_lookahead==North ? 0 :
+          floo_rsp_lookahead==South ? (OutputDir==East ? 1 : 2) :
+          OutputDir==East ? 2 : 1;
+  always_comb begin
+    if(floo_rsp_i.credit_v && floo_rsp_i.credit_id == floo_rsp_pref_vc_id) begin
+      floo_rsp_vc_id = floo_rsp_pref_vc_id;
+      floo_rsp_o.valid = floo_rsp_arb_v;
+    end else begin
+      floo_rsp_vc_id =
+        {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_rsp_vc_selection_id[floo_rsp_pref_vc_id]};
+      // need the assigned vc_id to be the preffered one if not last or wormhole
+      floo_rsp_o.valid  = floo_rsp_vc_selection_v[floo_rsp_pref_vc_id] & floo_rsp_arb_v
+          & (~(~floo_rsp_arb_sel_hdr.last | floo_rsp_wormhole_v) |
+          (floo_rsp_vc_id == floo_rsp_pref_vc_id));
+    end
+  end
+
+  assign floo_wide_pref_vc_id = OutputDir >= Eject ?
+        (floo_wide_lookahead >= Eject ? Eject : floo_wide_lookahead) :
+        floo_wide_lookahead >= Eject ?
+          (OutputDir==North || OutputDir==South ? 1: 3)  :
+          OutputDir==North || OutputDir==South ? 0 :
+          floo_wide_lookahead==North ? 0 :
+          floo_wide_lookahead==South ? (OutputDir==East ? 1 : 2) :
+          OutputDir==East ? 2 : 1;
+  always_comb begin
+    if(floo_wide_i.credit_v && floo_wide_i.credit_id == floo_wide_pref_vc_id) begin
+      floo_wide_vc_id = floo_wide_pref_vc_id;
+      floo_wide_o.valid = floo_wide_arb_v;
+    end else begin
+      floo_wide_vc_id =
+        {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_wide_vc_selection_id[floo_wide_pref_vc_id]};
+      // need the assigned vc_id to be the preffered one if not last or wormhole
+      floo_wide_o.valid  = floo_wide_vc_selection_v[floo_wide_pref_vc_id] & floo_wide_arb_v
+          & (~(~floo_wide_arb_sel_hdr.last | floo_wide_wormhole_v) |
+          (floo_wide_vc_id == floo_wide_pref_vc_id));
+    end
+  end
+
+
+  */
+
 
   //////////////////
   // WRITE HEADER //

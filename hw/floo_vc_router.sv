@@ -320,6 +320,8 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_vc_assign
     // make sure correct vc is selected if not last or doing wormhole routing
     .require_correct_vc_i           (~last_bits_sel          [out_port]
                                     | wormhole_v            [out_port]),
+    .credit_v_i                     (credit_v_i             [out_port]),
+    .credit_id_i                    (credit_id_i            [out_port][NumVCWidthToOutMax-1:0]),
     .vc_assignment_v_o              (vc_assignment_v        [out_port]),
     .vc_assignment_id_o             (vc_assignment_id       [out_port]),
     .look_ahead_routing_sel_o       (look_ahead_routing_sel [out_port])

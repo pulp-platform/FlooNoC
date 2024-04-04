@@ -19,11 +19,15 @@ module floo_vc_assignment import floo_pkg::*;#(
   input logic   [NumVC-1:0]                     vc_selection_v_i, //for each dir, found a vc?
   input logic   [NumVC-1:0][NumVCWidthMax-1:0]  vc_selection_id_i, //for each dir which vc assigned?
   input logic                                   require_correct_vc_i,
+  input logic                                   credit_v_i,
+  input logic   [NumVCWidthMax-1:0]             credit_id_i,
 
   output logic                                  vc_assignment_v_o,
   output logic [NumVCWidthMax-1:0]              vc_assignment_id_o,
   output route_direction_e                      look_ahead_routing_sel_o
 );
+logic [$bits(route_direction_e)-1:0] preferred_vc_id;
+
 // handle size differences
 logic [NumVCWidth-1:0]              vc_assignment_id;
 logic [NumVC-1:0][NumVCWidth-1:0]   vc_selection_id;
@@ -37,7 +41,7 @@ end else begin : gen_width_is_not_max
   assign vc_assignment_id_o = {{(NumVCWidthMax-NumVCWidth){1'b0}},vc_assignment_id};
 end
 
-logic[$bits(route_direction_e)-1:0] look_ahead_routing_sel;
+logic [$bits(route_direction_e)-1:0] look_ahead_routing_sel;
 floo_mux #(
   .NumInputs(NumInputs),
   .DataWidth($bits(route_direction_e))
@@ -60,136 +64,44 @@ mapping of dir to id is depending on dir
 if(NumVC == 1) begin : gen_only_one_vc
   assign vc_assignment_id = vc_selection_id;
   assign vc_assignment_v_o  = vc_selection_v_i & sa_global_v_i;
+end else begin : gen_multiple_vcs
+
+  if(RouteAlgo != XYRouting) begin : gen_not_xy_routing_optimized
+    // since ports dont have a vc towards their own direction, calculate id
+    // N->S,E->W,S->N,W->E,L1->L1,...
+    // 0->2,1->3,2->0,3->1, 4-> 4,...
+    localparam int InputIdOnNextRouter = OutputId < 4 ? (OutputId + 2) % 4 : OutputId;
+    assign preferred_vc_id = look_ahead_routing_sel > InputIdOnNextRouter ?
+                    look_ahead_routing_sel - 3'b001 : look_ahead_routing_sel;
+  end
+  else begin : gen_xy_routing_optimized
+    // N: N,Ej, E: N,E,S,Ej, S: S,Ej, W: N,S,W,Ej
+    assign preferred_vc_id = (NumVCWidth)'(OutputId >= Eject ? 0 :
+          look_ahead_routing_sel >= Eject ?
+            (OutputId==North || OutputId==South ? look_ahead_routing_sel - Eject + 1 :
+                                                  look_ahead_routing_sel - Eject + 3) :
+            OutputId==North || OutputId==South ? 0 :
+            look_ahead_routing_sel==North ? 0 :
+            look_ahead_routing_sel==South ? (OutputId==East ? 2 : 1) :
+            OutputId==East ? 1 : 2);
+  end
+
+  always_comb begin
+    vc_assignment_v_o = '0;
+    vc_assignment_id = '0;
+    if(sa_global_v_i) begin
+      if(credit_v_i && credit_id_i == preferred_vc_id) begin : credit_shortcut
+        vc_assignment_id = preferred_vc_id[NumVCWidth-1:0];
+        vc_assignment_v_o = 1'b1;
+      end else begin
+        vc_assignment_id = vc_selection_id[preferred_vc_id];
+        vc_assignment_v_o  = vc_selection_v_i[preferred_vc_id]
+              & (~require_correct_vc_i | (vc_assignment_id == preferred_vc_id));
+      end
+    end
+  end
 end
 
-else if(RouteAlgo != XYRouting) begin : gen_not_xy_routing_optimized
-  // since ports dont have a vc towards their own direction, calculate id
-  // N->S,E->W,S->N,W->E,L1->L1,...
-  // 0->2,1->3,2->0,3->1, 4-> 4,...
-  localparam int InputIdOnNextRouter = OutputId < 4 ? (OutputId + 2) % 4 : OutputId;
-  logic [$bits(route_direction_e)-1:0] preferred_vc_id;
-  assign preferred_vc_id = look_ahead_routing_sel > InputIdOnNextRouter ?
-                  look_ahead_routing_sel - 3'b001 : look_ahead_routing_sel;
-  assign vc_assignment_id = vc_selection_id[preferred_vc_id];
-  assign vc_assignment_v_o  = vc_selection_v_i[preferred_vc_id] & sa_global_v_i
-                              & (~require_correct_vc_i | (vc_assignment_id == preferred_vc_id));
-end
 
-else begin : gen_xy_routing_optimized
-case (OutputId)
-  North: begin : gen_xy_routing_optimized_to_North
-    always_comb begin
-      vc_assignment_v_o = '0;
-      vc_assignment_id = '0;
-      if(sa_global_v_i) begin
-        unique case(look_ahead_routing_sel)
-          North: begin
-            vc_assignment_id = vc_selection_id[0];
-            vc_assignment_v_o  = vc_selection_v_i[0]
-                  & (~require_correct_vc_i | (vc_assignment_id == 0));
-          end
-          default: begin
-            vc_assignment_id = vc_selection_id[look_ahead_routing_sel - Eject + 1];
-            vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 1]
-                  & (~require_correct_vc_i |
-                        (vc_assignment_id == (look_ahead_routing_sel - Eject + 1)));
-          end
-        endcase
-      end
-    end
-  end
-
-  East: begin : gen_xy_routing_optimized_to_East
-    always_comb begin
-      vc_assignment_v_o = '0;
-      vc_assignment_id = '0;
-      if(sa_global_v_i) begin
-        unique case(look_ahead_routing_sel)
-          North: begin
-            vc_assignment_id = vc_selection_id[0];
-            vc_assignment_v_o  = vc_selection_v_i[0]
-                  & (~require_correct_vc_i | (vc_assignment_id == 0));
-          end
-          East: begin
-            vc_assignment_id = vc_selection_id[1];
-            vc_assignment_v_o  = vc_selection_v_i[1]
-                  & (~require_correct_vc_i | (vc_assignment_id == 1));
-          end
-          South: begin
-            vc_assignment_id = vc_selection_id[2];
-            vc_assignment_v_o  = vc_selection_v_i[2]
-                  & (~require_correct_vc_i | (vc_assignment_id == 2));
-          end
-          default: begin
-            vc_assignment_id = vc_selection_id[look_ahead_routing_sel - Eject + 3];
-            vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 3]
-                  & (~require_correct_vc_i |
-                        (vc_assignment_id == (look_ahead_routing_sel - Eject + 3)));
-          end
-        endcase
-      end
-    end
-  end
-
-  South: begin : gen_xy_routing_optimized_to_South
-    always_comb begin
-      vc_assignment_v_o = '0;
-      vc_assignment_id = '0;
-      if(sa_global_v_i) begin
-        unique case(look_ahead_routing_sel)
-          South: begin
-            vc_assignment_id = vc_selection_id[0];
-            vc_assignment_v_o  = vc_selection_v_i[0]
-                  & (~require_correct_vc_i | (vc_assignment_id == 0));
-          end
-          default: begin
-            vc_assignment_id = vc_selection_id[look_ahead_routing_sel - Eject + 1];
-            vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 1]
-                  & (~require_correct_vc_i |
-                        (vc_assignment_id == (look_ahead_routing_sel - Eject + 1)));
-          end
-        endcase
-      end
-    end
-  end
-
-  West: begin : gen_xy_routing_optimized_to_West
-    always_comb begin
-      vc_assignment_v_o = '0;
-      vc_assignment_id = '0;
-      if(sa_global_v_i) begin
-        unique case(look_ahead_routing_sel)
-          North: begin
-            vc_assignment_id = vc_selection_id[0];
-            vc_assignment_v_o  = vc_selection_v_i[0]
-                  & (~require_correct_vc_i | (vc_assignment_id == 0));
-          end
-          South: begin
-            vc_assignment_id = vc_selection_id[1];
-            vc_assignment_v_o  = vc_selection_v_i[1]
-                  & (~require_correct_vc_i | (vc_assignment_id == 1));
-          end
-          West: begin
-            vc_assignment_id = vc_selection_id[2];
-            vc_assignment_v_o  = vc_selection_v_i[2]
-                  & (~require_correct_vc_i | (vc_assignment_id == 2));
-          end
-          default: begin
-            vc_assignment_id = vc_selection_id[look_ahead_routing_sel - Eject + 3];
-            vc_assignment_v_o  = vc_selection_v_i[look_ahead_routing_sel - Eject + 3]
-                  & (~require_correct_vc_i |
-                        (vc_assignment_id == (look_ahead_routing_sel - Eject + 3)));
-          end
-        endcase
-      end
-    end
-  end
-
-  default: begin : gen_xy_routing_optimized_to_Local
-    $warning("Unimplemented!: Via port %d! Local Ports are assumed to have only one vc, not %d!",
-              OutputId, NumVC);
-  end
-endcase
-end
 
 endmodule
