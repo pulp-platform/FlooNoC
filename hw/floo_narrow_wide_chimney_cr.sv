@@ -721,7 +721,7 @@ module floo_narrow_wide_chimney_cr
   ///////////////////
   // FLIT PACKING  //
   ///////////////////
-  localparam route_direction_e InputDir = OutputDir == Eject ? Eject :
+  localparam route_direction_e ChimneyOutDir = OutputDir >= Eject ? Eject :
                               route_direction_e'((OutputDir - 2) % 4);
 
   always_comb begin
@@ -730,7 +730,7 @@ module floo_narrow_wide_chimney_cr
     floo_narrow_aw.hdr.rob_idx  = rob_idx_t'(narrow_aw_rob_idx_out);
     floo_narrow_aw.hdr.dst_id   = dst_id[NarrowAw];
     floo_narrow_aw.hdr.src_id   = id_i;
-    floo_narrow_aw.hdr.lookahead = InputDir; // such that lookahead calculates correctly
+    floo_narrow_aw.hdr.lookahead = ChimneyOutDir; // such that lookahead calculates correctly
     floo_narrow_aw.hdr.last     = 1'b0;  // AW and W need to be sent together
     floo_narrow_aw.hdr.axi_ch   = NarrowAw;
     floo_narrow_aw.hdr.atop     = axi_narrow_aw_queue.atop != axi_pkg::ATOP_NONE;
@@ -743,7 +743,7 @@ module floo_narrow_wide_chimney_cr
     floo_narrow_w.hdr.rob_idx   = rob_idx_t'(narrow_aw_rob_idx_out);
     floo_narrow_w.hdr.dst_id    = dst_id[NarrowW];
     floo_narrow_w.hdr.src_id    = id_i;
-    floo_narrow_w.hdr.lookahead = InputDir; // such that lookahead calculates correctly
+    floo_narrow_w.hdr.lookahead = ChimneyOutDir; // such that lookahead calculates correctly
     floo_narrow_w.hdr.last      = axi_narrow_req_in.w.last;
     floo_narrow_w.hdr.axi_ch    = NarrowW;
     floo_narrow_w.w             = axi_narrow_req_in.w;
@@ -755,7 +755,7 @@ module floo_narrow_wide_chimney_cr
     floo_narrow_ar.hdr.rob_idx  = rob_idx_t'(narrow_ar_rob_idx_out);
     floo_narrow_ar.hdr.dst_id   = dst_id[NarrowAr];
     floo_narrow_ar.hdr.src_id   = id_i;
-    floo_narrow_ar.hdr.lookahead = InputDir; // such that lookahead calculates correctly
+    floo_narrow_ar.hdr.lookahead = ChimneyOutDir; // such that lookahead calculates correctly
     floo_narrow_ar.hdr.last     = 1'b1;
     floo_narrow_ar.hdr.axi_ch   = NarrowAr;
     floo_narrow_ar.ar           = axi_narrow_ar_queue;
@@ -767,7 +767,7 @@ module floo_narrow_wide_chimney_cr
     floo_narrow_b.hdr.rob_idx = rob_idx_t'(narrow_aw_out_data_out.rob_idx);
     floo_narrow_b.hdr.dst_id  = dst_id[NarrowB];
     floo_narrow_b.hdr.src_id  = id_i;
-    floo_narrow_b.hdr.lookahead = InputDir; // such that lookahead calculates correctly
+    floo_narrow_b.hdr.lookahead = ChimneyOutDir; // such that lookahead calculates correctly
     floo_narrow_b.hdr.last    = 1'b1;
     floo_narrow_b.hdr.axi_ch  = NarrowB;
     floo_narrow_b.hdr.atop    = narrow_aw_out_data_out.atop;
@@ -781,7 +781,7 @@ module floo_narrow_wide_chimney_cr
     floo_narrow_r.hdr.rob_idx = rob_idx_t'(narrow_ar_out_data_out.rob_idx);
     floo_narrow_r.hdr.dst_id  = dst_id[NarrowR];
     floo_narrow_r.hdr.src_id  = id_i;
-    floo_narrow_r.hdr.lookahead = InputDir; // such that lookahead calculates correctly
+    floo_narrow_r.hdr.lookahead = ChimneyOutDir; // such that lookahead calculates correctly
     floo_narrow_r.hdr.axi_ch  = NarrowR;
     floo_narrow_r.hdr.last    = 1'b1; // There is no reason to do wormhole routing for R bursts
     floo_narrow_r.hdr.atop    = narrow_ar_out_data_out.atop;
@@ -795,7 +795,7 @@ module floo_narrow_wide_chimney_cr
     floo_wide_aw.hdr.rob_idx  = rob_idx_t'(wide_aw_rob_idx_out);
     floo_wide_aw.hdr.dst_id   = dst_id[WideAw];
     floo_wide_aw.hdr.src_id   = id_i;
-    floo_wide_aw.hdr.lookahead = InputDir; // such that lookahead calculates correctly
+    floo_wide_aw.hdr.lookahead = ChimneyOutDir; // such that lookahead calculates correctly
     floo_wide_aw.hdr.last     = 1'b0;  // AW and W need to be sent together
     floo_wide_aw.hdr.axi_ch   = WideAw;
     floo_wide_aw.aw           = axi_wide_aw_queue;
@@ -807,7 +807,7 @@ module floo_narrow_wide_chimney_cr
     floo_wide_w.hdr.rob_idx = rob_idx_t'(wide_aw_rob_idx_out);
     floo_wide_w.hdr.dst_id  = dst_id[WideW];
     floo_wide_w.hdr.src_id  = id_i;
-    floo_wide_w.hdr.lookahead = InputDir; // such that lookahead calculates correctly
+    floo_wide_w.hdr.lookahead = ChimneyOutDir; // such that lookahead calculates correctly
     floo_wide_w.hdr.last    = axi_wide_req_in.w.last;
     floo_wide_w.hdr.axi_ch  = WideW;
     floo_wide_w.w           = axi_wide_req_in.w;
@@ -819,7 +819,7 @@ module floo_narrow_wide_chimney_cr
     floo_wide_ar.hdr.rob_idx  = rob_idx_t'(wide_ar_rob_idx_out);
     floo_wide_ar.hdr.dst_id   = dst_id[WideAr];
     floo_wide_ar.hdr.src_id   = id_i;
-    floo_wide_ar.hdr.lookahead = InputDir; // such that lookahead calculates correctly
+    floo_wide_ar.hdr.lookahead = ChimneyOutDir; // such that lookahead calculates correctly
     floo_wide_ar.hdr.last     = 1'b1;
     floo_wide_ar.hdr.axi_ch   = WideAr;
     floo_wide_ar.ar           = axi_wide_ar_queue;
@@ -831,7 +831,7 @@ module floo_narrow_wide_chimney_cr
     floo_wide_b.hdr.rob_idx = rob_idx_t'(wide_aw_out_data_out.rob_idx);
     floo_wide_b.hdr.dst_id  = dst_id[WideB];
     floo_wide_b.hdr.src_id  = id_i;
-    floo_wide_b.hdr.lookahead = InputDir; // such that lookahead calculates correctly
+    floo_wide_b.hdr.lookahead = ChimneyOutDir; // such that lookahead calculates correctly
     floo_wide_b.hdr.last    = 1'b1;
     floo_wide_b.hdr.axi_ch  = WideB;
     floo_wide_b.b           = axi_wide_meta_buf_rsp_out.b;
@@ -844,7 +844,7 @@ module floo_narrow_wide_chimney_cr
     floo_wide_r.hdr.rob_idx = rob_idx_t'(wide_ar_out_data_out.rob_idx);
     floo_wide_r.hdr.dst_id  = dst_id[WideR];
     floo_wide_r.hdr.src_id  = id_i;
-    floo_wide_r.hdr.lookahead = InputDir; // such that lookahead calculates correctly
+    floo_wide_r.hdr.lookahead = ChimneyOutDir; // such that lookahead calculates correctly
     floo_wide_r.hdr.axi_ch  = WideR;
     floo_wide_r.hdr.last    = 1'b1; // There is no reason to do wormhole routing for R bursts
     floo_wide_r.r           = axi_wide_meta_buf_rsp_out.r;
@@ -929,9 +929,9 @@ module floo_narrow_wide_chimney_cr
     .data_i   ( floo_req_arb_in       ),
     .ready_o  ( floo_req_arb_gnt_out  ),
     .data_o   ( {floo_req_arb_sel_hdr, floo_req_o.req.generic.rsvd}),
-    .ready_i  ( ~floo_req_wormhole_v & |floo_req_credit_counter_not_empty |
-    floo_req_credit_counter_not_empty[floo_req_required_vc] ),
-    .valid_o  ( floo_req_arb_v      )
+    .ready_i  ( (~floo_req_wormhole_v & |floo_req_credit_counter_not_empty) |
+                floo_req_credit_counter_not_empty[floo_req_required_vc] ),
+    .valid_o  ( floo_req_arb_v        )
   );
 
   floo_wormhole_arbiter #(
@@ -944,9 +944,9 @@ module floo_narrow_wide_chimney_cr
     .data_i   ( floo_rsp_arb_in       ),
     .ready_o  ( floo_rsp_arb_gnt_out  ),
     .data_o   ( {floo_rsp_arb_sel_hdr,floo_rsp_o.rsp.generic.rsvd}),
-    .ready_i  ( ~floo_rsp_wormhole_v & |floo_rsp_credit_counter_not_empty |
-    floo_rsp_credit_counter_not_empty[floo_rsp_required_vc] ),
-    .valid_o  ( floo_rsp_arb_v  )
+    .ready_i  ( (~floo_rsp_wormhole_v & |floo_rsp_credit_counter_not_empty) |
+                floo_rsp_credit_counter_not_empty[floo_rsp_required_vc] ),
+    .valid_o  ( floo_rsp_arb_v        )
   );
 
   floo_wormhole_arbiter #(
@@ -959,14 +959,14 @@ module floo_narrow_wide_chimney_cr
     .data_i   ( floo_wide_arb_in      ),
     .ready_o  ( floo_wide_arb_gnt_out ),
     .data_o   ( {floo_wide_arb_sel_hdr, floo_wide_o.wide.generic.rsvd}),
-    .ready_i  ( ~floo_wide_wormhole_v & |floo_wide_credit_counter_not_empty |
+    .ready_i  ( (~floo_wide_wormhole_v & |floo_wide_credit_counter_not_empty) |
                 floo_wide_credit_counter_not_empty[floo_wide_required_vc] ),
-    .valid_o  ( floo_wide_arb_v )
+    .valid_o  ( floo_wide_arb_v       )
   );
 
   assign floo_req_arb_gnt = floo_req_arb_gnt_out & {$bits(floo_req_arb_gnt_out){floo_req_o.valid}};
   assign floo_rsp_arb_gnt = floo_rsp_arb_gnt_out & {$bits(floo_rsp_arb_gnt_out){floo_rsp_o.valid}};
-  assign floo_wide_arb_gnt =floo_wide_arb_gnt_out&{$bits(floo_wide_arb_gnt_out){floo_wide_o.valid}};
+  assign floo_wide_arb_gnt= floo_wide_arb_gnt_out&{$bits(floo_wide_arb_gnt_out){floo_wide_o.valid}};
 
   ///////////////////////
   // LOOKAHEAD ROUTING //
