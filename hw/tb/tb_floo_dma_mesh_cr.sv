@@ -377,11 +377,11 @@ module tb_floo_dma_mesh_cr;
         .RouteAlgo      ( RouteAlgo         ),
         .id_t           ( id_t              ),
         // only 1 towards hbm
-        .NumVCToOut     ({y==NumY-1 ? 1 : 2,
-                          x==NumX-1 ? 1 : 4,
-                          y==0 ?      1 : 2,
-                          x==0 ?      1 : 4,
-                          1}        )
+        .NumVCToOut     ({int'(y==NumY-1 ? 1 : 2),
+                          int'(x==NumX-1 ? 1 : 4),
+                          int'(y==0 ?      1 : 2),
+                          int'(x==0 ?      1 : 4),
+                          int'(1)}        )
       ) i_router (
         .clk_i          ( clk         ),
         .rst_ni         ( rst_n       ),
