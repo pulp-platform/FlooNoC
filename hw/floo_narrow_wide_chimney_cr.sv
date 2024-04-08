@@ -1165,9 +1165,9 @@ module floo_narrow_wide_chimney_cr
   // Other Issue: if not connected to Eject, it is somewhat complicated:
   // N: S,Ej, E: N,S,W,Ej, S: N,Ej, W: N,E,S,Ej
   assign floo_req_pref_vc_id = OutputDir >= Eject ?
-        (floo_req_lookahead >= Eject ? Eject : floo_req_lookahead) :
+        (floo_req_lookahead > OutputDir ? floo_req_lookahead - 1 : floo_req_lookahead) :
         floo_req_lookahead >= Eject ?
-          (OutputDir==North || OutputDir==South ? 1: 3)  :
+          (floo_req_lookahead - Eject + (OutputDir==North || OutputDir==South ? 1: 3)) :
           OutputDir==North || OutputDir==South ? 0 :
           floo_req_lookahead==North ? 0 :
           floo_req_lookahead==South ? (OutputDir==East ? 1 : 2) :
@@ -1187,9 +1187,9 @@ module floo_narrow_wide_chimney_cr
   end
 
   assign floo_rsp_pref_vc_id = OutputDir >= Eject ?
-        (floo_rsp_lookahead >= Eject ? Eject : floo_rsp_lookahead) :
+        (floo_rsp_lookahead > OutputDir ? floo_rsp_lookahead - 1 : floo_rsp_lookahead) :
         floo_rsp_lookahead >= Eject ?
-          (OutputDir==North || OutputDir==South ? 1: 3)  :
+          (floo_rsp_lookahead - Eject + (OutputDir==North || OutputDir==South ? 1: 3)) :
           OutputDir==North || OutputDir==South ? 0 :
           floo_rsp_lookahead==North ? 0 :
           floo_rsp_lookahead==South ? (OutputDir==East ? 1 : 2) :
@@ -1209,9 +1209,9 @@ module floo_narrow_wide_chimney_cr
   end
 
   assign floo_wide_pref_vc_id = OutputDir >= Eject ?
-        (floo_wide_lookahead >= Eject ? Eject : floo_wide_lookahead) :
+        (floo_wide_lookahead > OutputDir ? floo_wide_lookahead - 1 : floo_wide_lookahead) :
         floo_wide_lookahead >= Eject ?
-          (OutputDir==North || OutputDir==South ? 1: 3)  :
+          (floo_wide_lookahead - Eject + (OutputDir==North || OutputDir==South ? 1: 3)) :
           OutputDir==North || OutputDir==South ? 0 :
           floo_wide_lookahead==North ? 0 :
           floo_wide_lookahead==South ? (OutputDir==East ? 1 : 2) :
