@@ -31,6 +31,8 @@ VERIBLE_FMT	?= verible-verilog-format
 
 BENDER_FLAGS += -t rtl
 BENDER_FLAGS += -t test
+BENDER_FLAGS += -t snitch_cluster
+BENDER_FLAGS += -t idma_test
 
 VLOG_ARGS += -suppress vlog-2583
 VLOG_ARGS += -suppress vlog-13314

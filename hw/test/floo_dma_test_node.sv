@@ -79,6 +79,19 @@ module floo_dma_test_node  #(
   // AXI typedef
   `AXI_TYPEDEF_ALL(axi_xbar, addr_t, id_out_t, data_t, strb_t, user_t)
 
+  typedef struct packed {
+    axi_xbar_ar_chan_t ar_chan;
+  } axi_xbar_read_meta_channel_t;
+  typedef union packed {
+    axi_xbar_read_meta_channel_t axi;
+  } read_meta_channel_t;
+  typedef struct packed {
+    axi_xbar_aw_chan_t aw_chan;
+  } axi_xbar_write_meta_channel_t;
+  typedef union packed {
+    axi_xbar_write_meta_channel_t axi;
+  } write_meta_channel_t;
+
   // iDMA request / response types
   `IDMA_TYPEDEF_FULL_REQ_T(idma_req_t, id_out_t, addr_t, tf_len_t)
   `IDMA_TYPEDEF_FULL_RSP_T(idma_rsp_t, addr_t)
@@ -109,8 +122,8 @@ module floo_dma_test_node  #(
   axi_xbar_resp_t [1:0]  xbar_out_rsp;
 
   // AXI4 master
-  axi_xbar_req_t axi_dma_req;
-  axi_xbar_resp_t axi_dma_rsp;
+  axi_xbar_req_t axi_dma_req, axi_dma_read_req, axi_dma_write_req;
+  axi_xbar_resp_t axi_dma_rsp, axi_dma_read_rsp, axi_dma_write_rsp;
 
   // AXI4 slave
   axi_xbar_req_t axi_mem_req;
@@ -149,7 +162,7 @@ module floo_dma_test_node  #(
   //--------------------------------------
   // DMA
   //--------------------------------------
-  idma_backend #(
+  idma_backend_rw_axi #(
     .DataWidth           ( DataWidth              ),
     .AddrWidth           ( AddrWidth              ),
     .AxiIdWidth          ( AxiIdOutWidth          ),
@@ -168,11 +181,11 @@ module floo_dma_test_node  #(
     .idma_rsp_t          ( idma_rsp_t             ),
     .idma_eh_req_t       ( idma_eh_req_t          ),
     .idma_busy_t         ( idma_busy_t            ),
-    .protocol_req_t      ( axi_xbar_req_t         ),
-    .protocol_rsp_t      ( axi_xbar_resp_t        ),
-    .aw_chan_t           ( axi_xbar_aw_chan_t     ),
-    .ar_chan_t           ( axi_xbar_ar_chan_t     )
-  ) i_idma_backend  (
+    .axi_req_t           ( axi_xbar_req_t         ),
+    .axi_rsp_t           ( axi_xbar_resp_t        ),
+    .write_meta_channel_t( write_meta_channel_t   ),
+    .read_meta_channel_t ( read_meta_channel_t    )
+  ) i_idma_backend (
     .clk_i          ( clk_i           ),
     .rst_ni         ( rst_ni          ),
     .testmode_i     ( 1'b0            ),
@@ -185,10 +198,27 @@ module floo_dma_test_node  #(
     .idma_eh_req_i  ( idma_eh_req     ),
     .eh_req_valid_i ( eh_req_valid    ),
     .eh_req_ready_o ( eh_req_ready    ),
-    .protocol_req_o ( axi_dma_req     ),
-    .protocol_rsp_i ( axi_dma_rsp     ),
+    .axi_read_req_o (axi_dma_read_req ),
+    .axi_read_rsp_i (axi_dma_read_rsp ),
+    .axi_write_req_o(axi_dma_write_req),
+    .axi_write_rsp_i(axi_dma_write_rsp),
     .busy_o         ( busy            )
   );
+
+  // Read Write Join
+  axi_rw_join #(
+    .axi_req_t        ( axi_xbar_req_t ),
+    .axi_resp_t       ( axi_xbar_resp_t )
+) i_axi_rw_join (
+    .clk_i,
+    .rst_ni,
+    .slv_read_req_i   ( axi_dma_read_req  ),
+    .slv_read_resp_o  ( axi_dma_read_rsp  ),
+    .slv_write_req_i  ( axi_dma_write_req ),
+    .slv_write_resp_o ( axi_dma_write_rsp ),
+    .mst_req_o        ( axi_dma_req       ),
+    .mst_resp_i       ( axi_dma_rsp       )
+);
 
   axi_xbar #(
     .Cfg          ( XbarCfg             ),
@@ -320,7 +350,111 @@ module floo_dma_test_node  #(
   tb_dma_job_t req_jobs [$];
   tb_dma_job_t rsp_jobs [$];
 
-  `include "include/tb_tasks.svh"
+  // `include "include/tb_tasks.svh" //: instead: content of that file pasted here
+  // this fixes issue that it reads idma/test/include/tb_tasks.svh instead of the one in the same directory
+  // -> in that other file, almost exactly the same functions exist, plus some that need a model to be defined
+
+////////////////////////////////////////
+// START OF TB_TASKS.SVH /////////////////
+////////////////////////////////////////
+
+  task automatic read_jobs (
+    input string       filename,
+    ref   tb_dma_job_t jobs [$]
+  );
+
+    // job file
+    integer job_file;
+
+    // parsed fields
+    int unsigned            num_errors;
+    string                  is_read, error_handling;
+    addr_t                  err_addr;
+    tb_dma_job_t            now;
+    idma_pkg::idma_eh_req_t eh;
+
+    // open file
+    job_file = $fopen(filename, "r");
+
+    // check if file exist
+    if (job_file == 0)
+        $fatal(1, "File not found!");
+
+    // until not end of file
+    while (! $feof(job_file)) begin
+        now = new();
+        void'($fscanf(job_file, "%d\n", now.length));
+        void'($fscanf(job_file, "0x%x\n", now.src_addr));
+        void'($fscanf(job_file, "0x%x\n", now.dst_addr));
+        void'($fscanf(job_file, "%d\n", now.src_protocol));
+        void'($fscanf(job_file, "%d\n", now.dst_protocol));
+        void'($fscanf(job_file, "%d\n", now.max_src_len));
+        void'($fscanf(job_file, "%d\n", now.max_dst_len));
+        void'($fscanf(job_file, "%b\n", now.aw_decoupled));
+        void'($fscanf(job_file, "%b\n", now.rw_decoupled));
+        if (now.IsND) begin
+            for (int d = 0; d < now.NumDim-1; d++) begin
+                void'($fscanf(job_file, "%d\n", now.n_dims[d].reps));
+                void'($fscanf(job_file, "0x%x\n", now.n_dims[d].src_strides));
+                void'($fscanf(job_file, "0x%x\n", now.n_dims[d].dst_strides));
+            end
+        end
+        void'($fscanf(job_file, "%d\n", num_errors));
+        for (int i = 0; i < num_errors; i++) begin
+            void'($fscanf(job_file, "%c%c0x%h\n", is_read, error_handling, err_addr));
+            // parse error handling option
+            eh = '0;
+            case (error_handling)
+                "c" : eh = idma_pkg::CONTINUE;
+                "a" : eh = idma_pkg::ABORT;
+                default:;
+            endcase
+            now.err_action.push_back(eh);
+
+            // parse read flag
+            if (is_read == "r") begin
+                now.err_is_read.push_back(1);
+            end else begin
+                now.err_is_read.push_back(0);
+            end
+
+            // error address
+            now.err_addr.push_back(err_addr);
+        end
+        if (now.length == 0) continue;
+        jobs.push_back(now);
+    end
+
+    // close job file
+    $fclose(job_file);
+
+  endtask
+
+  // print a job summary (# jobs and total length)
+  task automatic print_summary (
+    ref   tb_dma_job_t jobs [$]
+  );
+    int unsigned data_size;
+    int unsigned num_transfers;
+    data_size     = '0;
+    num_transfers = jobs.size();
+    // go through queue
+    for (int i = 0; i < num_transfers; i++) begin
+        data_size = data_size + jobs[i].length;
+    end
+    $display("[DMA%0d] Launching %d jobs copying a total of %d B (%d kiB - %d MiB)",
+                JobId + 1,
+                num_transfers,
+                data_size,
+                data_size / 1024,
+                data_size / 1024 / 1024
+            );
+  endtask
+
+  ////////////////////////////////////////
+  // END OF TB_TASKS.SVH /////////////////
+  ////////////////////////////////////////
+
 
   //--------------------------------------
     // Read Job queue from File
@@ -379,12 +513,15 @@ module floo_dma_test_node  #(
                       now.length,
                       now.src_addr,
                       now.dst_addr,
+                      now.src_protocol,
+                      now.dst_protocol,
                       now.aw_decoupled,
                       now.rw_decoupled,
                       $clog2(now.max_src_len),
                       $clog2(now.max_dst_len),
                       now.max_src_len != 'd256,
-                      now.max_dst_len != 'd256
+                      now.max_dst_len != 'd256,
+                      now.id
                     );
     end
     // once done: launched all transfers

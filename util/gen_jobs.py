@@ -43,6 +43,8 @@ def gen_job_str(
     job_str += f"{int(length)}\n"
     job_str += f"{hex(src_addr)}\n"
     job_str += f"{hex(dst_addr)}\n"
+    job_str += f"{0}\n" # src_protocol: AXI
+    job_str += f"{0}\n" # dst_protocol: AXI
     job_str += f"{max_src_burst_size}\n"
     job_str += f"{max_dst_burst_size}\n"
     job_str += f"{int(r_aw_decouple)}\n"
