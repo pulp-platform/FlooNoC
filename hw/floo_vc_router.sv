@@ -459,7 +459,7 @@ always_comb begin
         end
       end
     end
-    // if not XY Routing: just transpose the matrix and leave o ut this dim
+    // if not XY Routing: just transpose the matrix and leave out this dim
     else begin : gen_transpose_sa_results
       for (int in_port = 0; in_port < NumPorts; in_port++) begin : gen_transp_sa_results_in_port
         if(in_port != out_port) begin : gen_transp_sa_results_in_port_ne_out_port
