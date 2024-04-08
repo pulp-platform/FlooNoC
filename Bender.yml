@@ -36,6 +36,7 @@ sources:
   - hw/floo_rob_wrapper.sv
   - hw/floo_meta_buffer.sv
   - hw/vc_router_util/floo_credit_counter.sv
+  - hw/vc_router_util/floo_input_fifo.sv
   - hw/vc_router_util/floo_input_port.sv
   - hw/vc_router_util/floo_look_ahead_routing.sv
   - hw/vc_router_util/floo_mux.sv
