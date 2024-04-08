@@ -273,7 +273,7 @@ test wormhole routing: after receiving a flit with last = 0, dont forward any ot
 task automatic test_connection(int unsigned in_port, int unsigned out_port);
 if(in_port==out_port||((in_port==North||in_port==South)&&(out_port==East||out_port==West)))
     $fatal(1, "in_port = %0d to %0d = out_port is impossible in xy routing", in_port, out_port);
-if(Debug) $display("Testing connection from \p to \p",
+if(Debug) $display("Testing connection from %p to %p",
         route_direction_e'(in_port),route_direction_e'(out_port));
 flit = '0;
 flit.hdr.last = 1'b1;
@@ -333,7 +333,9 @@ for(vc_id_t vc_out = 0; vc_out<num_vc_out; vc_out++) begin // test each vc_out
     flit.hdr.lookahead = expected_lookahead;
     // golden model of FVADA: ex 1 with 4 vc: 11,33,22,00,11,33
     vc_out_helper = num_vc_out -2 -((i%(2*num_vc_out)-2) >> 1);
-    if(i % (2* num_vc_out) < 2) flit.hdr.vc_id = vc_out;
+    if(i % (2* num_vc_out) < 2 // first towards preferred
+      || (num_vc_out==2 && i == 7)) // last i: credit shortcut since preferred is freed
+      flit.hdr.vc_id = vc_out;
     else flit.hdr.vc_id = vc_out_helper < vc_out ? vc_out_helper: vc_out_helper + 1;
     expected_result_queue[out_port].push_back(flit);
   end

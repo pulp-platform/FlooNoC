@@ -41,9 +41,6 @@ logic [NumVC-1:0] data_v_i_oh;
 logic [NumVC-1:0] remove_ctrl_head;
 logic [NumVC-1:0] remove_data_head;
 
-logic [NumVC-1:0] data_reg_ready;
-logic [NumVC-1:0] ctrl_reg_ready;
-
 // where to add data
 always_comb begin
   data_v_i_oh = '0;
@@ -66,18 +63,14 @@ end
 
 // data fifo -> hdr is always before payload in flits
 for(genvar v_chan = 0; v_chan < NumVC; v_chan++) begin: gen_data_fifos
-  stream_fifo_optimal_wrap #(
+  floo_input_fifo #(
     .Depth  (VCDepth),
     .type_t (flit_payload_t)
   ) i_data_fifo (
     .clk_i,
     .rst_ni,
-    .testmode_i ('0),
-    .flush_i    ('0),
-    .usage_o    (),
     .data_i     (data_i           [DataLength-1:0]),
     .valid_i    (data_v_i_oh      [v_chan]),
-    .ready_o    (data_reg_ready   [v_chan]),
     .data_o     (vc_data_head_o   [v_chan]),
     .valid_o    (),
     .ready_i    (remove_data_head [v_chan])
@@ -86,25 +79,18 @@ end
 
 // ctrl fifo -> hdr is always before payload in flits
 for(genvar v_chan = 0; v_chan < NumVC; v_chan++) begin: gen_ctrl_fifos
-  stream_fifo_optimal_wrap #(
+  floo_input_fifo #(
       .Depth  (VCDepth),
       .type_t (hdr_t)
     ) i_data_fifo (
       .clk_i,
       .rst_ni,
-      .testmode_i ('0),
-      .flush_i    ('0),
-      .usage_o    (),
       .data_i     (data_i           [DataLength+HdrLength-1:DataLength]),
       .valid_i    (data_v_i_oh      [v_chan]),
-      .ready_o    (ctrl_reg_ready   [v_chan]),
       .data_o     (vc_ctrl_head_o   [v_chan]),
       .valid_o    (vc_ctrl_head_v_o [v_chan]),
       .ready_i    (remove_ctrl_head [v_chan])
     );
-
-  `ASSERT(DataRegReady, data_reg_ready[v_chan] || !data_v_i_oh[v_chan])
-  `ASSERT(CtrlRegReady, ctrl_reg_ready[v_chan] || !data_v_i_oh[v_chan])
 end
 
 assign credit_v_o   = read_enable_st_stage_i; //could also be from sa stage

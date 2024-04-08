@@ -128,7 +128,6 @@ module floo_narrow_wide_chimney_cr
   floo_wide_chan_t floo_wide_in;
   logic floo_req_in_valid, floo_rsp_in_valid, floo_wide_in_valid;
   logic floo_req_out_ready, floo_rsp_out_ready, floo_wide_out_ready;
-  logic req_spill_reg_ready, rsp_spill_reg_ready, wide_spill_reg_ready;
   logic [NumAxiChannels-1:0] axi_valid_in, axi_ready_out;
 
   // Flit packing
@@ -358,41 +357,41 @@ module floo_narrow_wide_chimney_cr
     assign axi_wide_ar_queue_valid_out = 1'b0;
   end
 
-  if (CutRsp) begin : gen_rsp_cuts
-    spill_register #(
-      .T ( floo_req_chan_t )
+  if (CutRsp) begin : gen_floo_input_fifos
+    floo_input_fifo #(
+    .Depth  ( 2 ),
+    .type_t ( floo_req_chan_t )
     ) i_narrow_data_req_arb (
       .clk_i,
       .rst_ni,
       .data_i     ( floo_req_i.req      ),
       .valid_i    ( floo_req_i.valid    ),
-      .ready_o    ( req_spill_reg_ready ),
       .data_o     ( floo_req_in         ),
       .valid_o    ( floo_req_in_valid   ),
       .ready_i    ( floo_req_out_ready  )
     );
 
-    spill_register #(
-      .T ( floo_rsp_chan_t )
+    floo_input_fifo #(
+    .Depth  ( 2 ),
+    .type_t ( floo_rsp_chan_t )
     ) i_narrow_data_rsp_arb (
       .clk_i,
       .rst_ni,
       .data_i     ( floo_rsp_i.rsp      ),
       .valid_i    ( floo_rsp_i.valid    ),
-      .ready_o    ( rsp_spill_reg_ready ),
       .data_o     ( floo_rsp_in         ),
       .valid_o    ( floo_rsp_in_valid   ),
       .ready_i    ( floo_rsp_out_ready  )
     );
 
-    spill_register #(
-      .T ( floo_wide_chan_t )
+    floo_input_fifo #(
+    .Depth  ( 2 ),
+    .type_t ( floo_wide_chan_t )
     ) i_wide_data_req_arb (
       .clk_i,
       .rst_ni,
       .data_i     ( floo_wide_i.wide    ),
       .valid_i    ( floo_wide_i.valid   ),
-      .ready_o    ( wide_spill_reg_ready),
       .data_o     ( floo_wide_in        ),
       .valid_o    ( floo_wide_in_valid  ),
       .ready_i    ( floo_wide_out_ready )
@@ -929,8 +928,7 @@ module floo_narrow_wide_chimney_cr
     .data_i   ( floo_req_arb_in       ),
     .ready_o  ( floo_req_arb_gnt_out  ),
     .data_o   ( {floo_req_arb_sel_hdr, floo_req_o.req.generic.rsvd}),
-    .ready_i  ( (~floo_req_wormhole_v & |floo_req_credit_counter_not_empty) |
-                floo_req_credit_counter_not_empty[floo_req_required_vc] ),
+    .ready_i  ( floo_req_o.valid ),
     .valid_o  ( floo_req_arb_v        )
   );
 
@@ -944,8 +942,7 @@ module floo_narrow_wide_chimney_cr
     .data_i   ( floo_rsp_arb_in       ),
     .ready_o  ( floo_rsp_arb_gnt_out  ),
     .data_o   ( {floo_rsp_arb_sel_hdr,floo_rsp_o.rsp.generic.rsvd}),
-    .ready_i  ( (~floo_rsp_wormhole_v & |floo_rsp_credit_counter_not_empty) |
-                floo_rsp_credit_counter_not_empty[floo_rsp_required_vc] ),
+    .ready_i  ( floo_rsp_o.valid ),
     .valid_o  ( floo_rsp_arb_v        )
   );
 
@@ -959,8 +956,7 @@ module floo_narrow_wide_chimney_cr
     .data_i   ( floo_wide_arb_in      ),
     .ready_o  ( floo_wide_arb_gnt_out ),
     .data_o   ( {floo_wide_arb_sel_hdr, floo_wide_o.wide.generic.rsvd}),
-    .ready_i  ( (~floo_wide_wormhole_v & |floo_wide_credit_counter_not_empty) |
-                floo_wide_credit_counter_not_empty[floo_wide_required_vc] ),
+    .ready_i  ( floo_wide_o.valid ),
     .valid_o  ( floo_wide_arb_v       )
   );
 
@@ -1176,45 +1172,6 @@ module floo_narrow_wide_chimney_cr
           floo_req_lookahead==North ? 0 :
           floo_req_lookahead==South ? (OutputDir==East ? 1 : 2) :
           OutputDir==East ? 2 : 1;
-  assign floo_req_vc_id =
-            {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_req_vc_selection_id[floo_req_pref_vc_id]};
-  // need the assigned vc_id to be the preffered one if not last or wormhole
-  assign floo_req_o.valid  = floo_req_vc_selection_v[floo_req_pref_vc_id] & floo_req_arb_v
-                & (~(~floo_req_arb_sel_hdr.last | floo_req_wormhole_v) |
-                (floo_req_vc_id == floo_req_pref_vc_id));
-
-  assign floo_rsp_pref_vc_id = OutputDir >= Eject ?
-        (floo_rsp_lookahead >= Eject ? Eject : floo_rsp_lookahead) :
-        floo_rsp_lookahead >= Eject ?
-          (OutputDir==North || OutputDir==South ? 1: 3)  :
-          OutputDir==North || OutputDir==South ? 0 :
-          floo_rsp_lookahead==North ? 0 :
-          floo_rsp_lookahead==South ? (OutputDir==East ? 1 : 2) :
-          OutputDir==East ? 2 : 1;
-  assign floo_rsp_vc_id =
-            {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_rsp_vc_selection_id[floo_rsp_pref_vc_id]};
-  // need the assigned vc_id to be the preffered one if not last or wormhole
-  assign floo_rsp_o.valid  = floo_rsp_vc_selection_v[floo_rsp_pref_vc_id] & floo_rsp_arb_v
-                & (~(~floo_rsp_arb_sel_hdr.last | floo_rsp_wormhole_v) |
-                (floo_rsp_vc_id == floo_rsp_pref_vc_id));
-
-  assign floo_wide_pref_vc_id = OutputDir >= Eject ?
-        (floo_wide_lookahead >= Eject ? Eject : floo_wide_lookahead) :
-        floo_wide_lookahead >= Eject ?
-          (OutputDir==North || OutputDir==South ? 1: 3)  :
-          OutputDir==North || OutputDir==South ? 0 :
-          floo_wide_lookahead==North ? 0 :
-          floo_wide_lookahead==South ? (OutputDir==East ? 1 : 2) :
-          OutputDir==East ? 2 : 1;
-  assign floo_wide_vc_id =
-            {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_wide_vc_selection_id[floo_wide_pref_vc_id]};
-  // need the assigned vc_id to be the preffered one if not last or wormhole
-  assign floo_wide_o.valid  = floo_wide_vc_selection_v[floo_wide_pref_vc_id] & floo_wide_arb_v
-                & (~(~floo_wide_arb_sel_hdr.last | floo_wide_wormhole_v) |
-                (floo_wide_vc_id == floo_wide_pref_vc_id));
-
-/*
-
   always_comb begin
     if(floo_req_i.credit_v && floo_req_i.credit_id == floo_req_pref_vc_id) begin
       floo_req_vc_id = floo_req_pref_vc_id;
@@ -1273,8 +1230,6 @@ module floo_narrow_wide_chimney_cr
     end
   end
 
-
-  */
 
 
   //////////////////
@@ -1595,12 +1550,6 @@ module floo_narrow_wide_chimney_cr
                            (floo_req_unpack_generic.hdr.axi_ch == WideAr)))
   `ASSERT(NoWideSbrPortWRequest,  EnWideSbrPort || !(floo_wide_in_valid &&
                            (floo_wide_unpack_generic.hdr.axi_ch == WideW)))
-
-  // Spill registers cant be written if not ready
-  `ASSERT(SpillRegReadyReq, req_spill_reg_ready || !floo_req_i.valid)
-  `ASSERT(SpillRegReadyRsp, rsp_spill_reg_ready || !floo_rsp_i.valid)
-  `ASSERT(SpillRegReadyWide, wide_spill_reg_ready || !floo_wide_i.valid)
-
   // all inputs need to go to vc 0 since there is only one vc
   `ASSERT(OnlyVC0Req, floo_req_i.req.generic.hdr.vc_id == '0 || !floo_req_i.valid)
   `ASSERT(OnlyVC0Rsp, floo_rsp_i.rsp.generic.hdr.vc_id == '0 || !floo_rsp_i.valid)
