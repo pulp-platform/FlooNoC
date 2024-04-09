@@ -159,13 +159,10 @@ module floo_vc_narrow_wide_chimney
   localparam int VCDepthWidth = 2;
   logic [NumVC-1:0][VCDepthWidth-1:0] floo_req_credit_counter;
   logic [NumVC-1:0]                   floo_req_credit_counter_not_empty;
-  logic [NumVCWidth-1:0]              floo_req_required_vc;
   logic [NumVC-1:0][VCDepthWidth-1:0] floo_rsp_credit_counter;
   logic [NumVC-1:0]                   floo_rsp_credit_counter_not_empty;
-  logic [NumVCWidth-1:0]              floo_rsp_required_vc;
   logic [NumVC-1:0][VCDepthWidth-1:0] floo_wide_credit_counter;
   logic [NumVC-1:0]                   floo_wide_credit_counter_not_empty;
-  logic [NumVCWidth-1:0]              floo_wide_required_vc;
 
   // VC Selection / Assignment
 
@@ -1269,10 +1266,6 @@ module floo_vc_narrow_wide_chimney
   `FF(floo_req_wormhole_v, floo_req_wormhole_v_d, '0)
   `FF(floo_rsp_wormhole_v, floo_rsp_wormhole_v_d, '0)
   `FF(floo_wide_wormhole_v, floo_wide_wormhole_v_d, '0)
-
-  `FFL(floo_req_required_vc, floo_req_vc_id[NumVCWidth-1:0], floo_req_wormhole_detected, '0)
-  `FFL(floo_rsp_required_vc, floo_rsp_vc_id[NumVCWidth-1:0], floo_rsp_wormhole_detected, '0)
-  `FFL(floo_wide_required_vc, floo_wide_vc_id[NumVCWidth-1:0], floo_wide_wormhole_detected, '0)
 
   ////////////////////
   // FLIT UNPACKER  //
