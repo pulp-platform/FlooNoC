@@ -1,11 +1,12 @@
-// Copyright 2023 ETH Zurich and University of Bologna.
+// Copyright 2024 ETH Zurich and University of Bologna.
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
 //
-// Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
+// Tim Fischer <fischeti@iis.ee.ethz.ch>
+// Lukas Berner <bernerl@student.ethz.ch>
 
 /// Wrapper of a multi-link router for narrow and wide links
-module floo_narrow_wide_router_cr
+module floo_vc_narrow_wide_router
   import floo_pkg::*;
   import floo_narrow_wide_pkg::*;
   #(
@@ -43,12 +44,12 @@ module floo_narrow_wide_router_cr
   input  id_t id_i,
   input  addr_rule_t [NumAddrRules-1:0] id_route_map_i,
 
-  input   floo_cr_req_t   [NumPorts-1:0] floo_req_i,
-  output  floo_cr_req_t   [NumPorts-1:0] floo_req_o,
-  input   floo_cr_rsp_t   [NumPorts-1:0] floo_rsp_i,
-  output  floo_cr_rsp_t   [NumPorts-1:0] floo_rsp_o,
-  input   floo_cr_wide_t  [NumPorts-1:0] floo_wide_i,
-  output  floo_cr_wide_t  [NumPorts-1:0] floo_wide_o
+  input   floo_vc_req_t   [NumPorts-1:0] floo_req_i,
+  output  floo_vc_req_t   [NumPorts-1:0] floo_req_o,
+  input   floo_vc_rsp_t   [NumPorts-1:0] floo_rsp_i,
+  output  floo_vc_rsp_t   [NumPorts-1:0] floo_rsp_o,
+  input   floo_vc_wide_t  [NumPorts-1:0] floo_wide_i,
+  output  floo_vc_wide_t  [NumPorts-1:0] floo_wide_o
 );
 
   floo_req_chan_t [NumPorts-1:0] req_in, req_out;

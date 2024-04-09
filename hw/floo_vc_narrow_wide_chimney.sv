@@ -1,15 +1,16 @@
-// Copyright 2022 ETH Zurich and University of Bologna.
+// Copyright 2024 ETH Zurich and University of Bologna.
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
 //
 // Tim Fischer <fischeti@iis.ee.ethz.ch>
+// Lukas Berner <bernerl@student.ethz.ch>
 
 `include "common_cells/registers.svh"
 `include "common_cells/assertions.svh"
 `include "axi/assign.svh"
 
 /// A bidirectional network interface for connecting narrow & wide AXI Buses to the multi-link NoC
-module floo_narrow_wide_chimney_cr
+module floo_vc_narrow_wide_chimney
   import floo_pkg::*;
   import floo_narrow_wide_pkg::*;
 #(
@@ -89,13 +90,13 @@ module floo_narrow_wide_chimney_cr
   input  addr_rule_t [NumAddrRules-1:0] id_route_map_i,
 
   /// Output to NoC
-  output floo_cr_req_t   floo_req_o,
-  output floo_cr_rsp_t   floo_rsp_o,
-  output floo_cr_wide_t  floo_wide_o,
+  output floo_vc_req_t   floo_req_o,
+  output floo_vc_rsp_t   floo_rsp_o,
+  output floo_vc_wide_t  floo_wide_o,
   /// Input from NoC
-  input  floo_cr_req_t   floo_req_i,
-  input  floo_cr_rsp_t   floo_rsp_i,
-  input  floo_cr_wide_t  floo_wide_i
+  input  floo_vc_req_t   floo_req_i,
+  input  floo_vc_rsp_t   floo_rsp_i,
+  input  floo_vc_wide_t  floo_wide_i
 );
 
   // Duplicate AXI port signals to degenerate ports
