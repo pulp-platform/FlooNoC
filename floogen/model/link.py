@@ -141,7 +141,7 @@ class Link(BaseModel, ABC):
                            "credit_v": "logic",
                            "credit_id": "vc_id_t", # defined in routing.py
                            phys_ch: f"floo_{phys_ch}_chan_t"}
-            string += sv_struct_typedef(f"floo_cr_{phys_ch}_t", struct_dict)
+            string += sv_struct_typedef(f"floo_vc_{phys_ch}_t", struct_dict)
         return string
 
 

@@ -65,7 +65,7 @@ run-traffic:
     JOB_NAME: mesh
   parallel:
     matrix:
-      - VSIM_TB_DUT: [tb_floo_dma_mesh, tb_floo_dma_mesh_cr]
+      - VSIM_TB_DUT: [tb_floo_dma_mesh, tb_floo_vc_dma_mesh]
         TRAFFIC_TYPE: [random, hbm, onehop]
         TRAFFIC_RW: [read, write]
   needs:

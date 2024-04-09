@@ -189,14 +189,14 @@ package floo_axi_pkg;
     logic credit_v;
     vc_id_t credit_id;
     floo_req_chan_t req;
-  } floo_cr_req_t;
+  } floo_vc_req_t;
 
   typedef struct packed {
     logic valid;
     logic credit_v;
     vc_id_t credit_id;
     floo_rsp_chan_t rsp;
-  } floo_cr_rsp_t;
+  } floo_vc_rsp_t;
 
 
 endpackage

@@ -7,7 +7,7 @@
 `include "floo_noc/typedef.svh"
 `include "common_cells/assertions.svh"
 
-module tb_floo_dma_mesh_cr;
+module tb_floo_vc_dma_mesh;
 
   import floo_pkg::*;
   import floo_narrow_wide_pkg::*;
@@ -70,22 +70,22 @@ module tb_floo_dma_mesh_cr;
   /////////////////////
 
 
-  floo_cr_req_t [NumX-1:0][NumY-1:0] narrow_chimney_man_req, narrow_chimney_sub_req;
-  floo_cr_rsp_t [NumX-1:0][NumY-1:0] narrow_chimney_man_rsp, narrow_chimney_sub_rsp;
-  floo_cr_wide_t       [NumX-1:0][NumY-1:0] wide_chimney_man, wide_chimney_sub;
+  floo_vc_req_t [NumX-1:0][NumY-1:0] narrow_chimney_man_req, narrow_chimney_sub_req;
+  floo_vc_rsp_t [NumX-1:0][NumY-1:0] narrow_chimney_man_rsp, narrow_chimney_sub_rsp;
+  floo_vc_wide_t       [NumX-1:0][NumY-1:0] wide_chimney_man, wide_chimney_sub;
 
-  floo_cr_req_t [NumX:0][NumY-1:0] req_hor_pos;
-  floo_cr_req_t [NumX:0][NumY-1:0] req_hor_neg;
-  floo_cr_req_t [NumY:0][NumX-1:0] req_ver_pos;
-  floo_cr_req_t [NumY:0][NumX-1:0] req_ver_neg;
-  floo_cr_rsp_t [NumX:0][NumY-1:0] rsp_hor_pos;
-  floo_cr_rsp_t [NumX:0][NumY-1:0] rsp_hor_neg;
-  floo_cr_rsp_t [NumY:0][NumX-1:0] rsp_ver_pos;
-  floo_cr_rsp_t [NumY:0][NumX-1:0] rsp_ver_neg;
-  floo_cr_wide_t       [NumX:0][NumY-1:0] wide_hor_pos;
-  floo_cr_wide_t       [NumX:0][NumY-1:0] wide_hor_neg;
-  floo_cr_wide_t       [NumY:0][NumX-1:0] wide_ver_pos;
-  floo_cr_wide_t       [NumY:0][NumX-1:0] wide_ver_neg;
+  floo_vc_req_t [NumX:0][NumY-1:0] req_hor_pos;
+  floo_vc_req_t [NumX:0][NumY-1:0] req_hor_neg;
+  floo_vc_req_t [NumY:0][NumX-1:0] req_ver_pos;
+  floo_vc_req_t [NumY:0][NumX-1:0] req_ver_neg;
+  floo_vc_rsp_t [NumX:0][NumY-1:0] rsp_hor_pos;
+  floo_vc_rsp_t [NumX:0][NumY-1:0] rsp_hor_neg;
+  floo_vc_rsp_t [NumY:0][NumX-1:0] rsp_ver_pos;
+  floo_vc_rsp_t [NumY:0][NumX-1:0] rsp_ver_neg;
+  floo_vc_wide_t       [NumX:0][NumY-1:0] wide_hor_pos;
+  floo_vc_wide_t       [NumX:0][NumY-1:0] wide_hor_neg;
+  floo_vc_wide_t       [NumY:0][NumX-1:0] wide_ver_pos;
+  floo_vc_wide_t       [NumY:0][NumX-1:0] wide_ver_neg;
 
 
   logic [NumX-1:0][NumY-1:0][1:0] end_of_sim;
@@ -152,9 +152,9 @@ module tb_floo_dma_mesh_cr;
 
     localparam int unsigned NumChimneys = (i == North || i == South) ? NumX : NumY;
 
-    floo_cr_req_t [NumChimneys-1:0] req_hbm_in, req_hbm_out;
-    floo_cr_rsp_t [NumChimneys-1:0] rsp_hbm_in, rsp_hbm_out;
-    floo_cr_wide_t [NumChimneys-1:0]       wide_hbm_in, wide_hbm_out;
+    floo_vc_req_t [NumChimneys-1:0] req_hbm_in, req_hbm_out;
+    floo_vc_rsp_t [NumChimneys-1:0] rsp_hbm_in, rsp_hbm_out;
+    floo_vc_wide_t [NumChimneys-1:0]       wide_hbm_in, wide_hbm_out;
     id_t [NumChimneys-1:0]           xy_id_hbm;
 
     if (i == North) begin : gen_north_hbm_chimneys
@@ -202,7 +202,7 @@ module tb_floo_dma_mesh_cr;
       assign wide_hor_pos[0]       = wide_hbm_out;
     end
 
-    floo_narrow_wide_chimney_cr #(
+    floo_vc_narrow_wide_chimney #(
       .NarrowMaxTxns            ( NarrowMaxTxns           ),
       .WideMaxTxns              ( WideMaxTxns             ),
       .NarrowReorderBufferSize  ( NarrowReorderBufferSize ),
@@ -248,9 +248,9 @@ module tb_floo_dma_mesh_cr;
       id_t current_id;
       localparam string NarrowDmaName = $sformatf("narrow_dma_%0d_%0d", x, y);
       localparam string WideDmaName   = $sformatf("wide_dma_%0d_%0d", x, y);
-      floo_cr_req_t [NumDirections-1:0] req_out, req_in;
-      floo_cr_rsp_t [NumDirections-1:0] rsp_out, rsp_in;
-      floo_cr_wide_t       [NumDirections-1:0] wide_out, wide_in;
+      floo_vc_req_t [NumDirections-1:0] req_out, req_in;
+      floo_vc_rsp_t [NumDirections-1:0] rsp_out, rsp_in;
+      floo_vc_wide_t       [NumDirections-1:0] wide_out, wide_in;
 
       localparam int unsigned Index = y * NumX + x+1;
       localparam logic [AxiNarrowInAddrWidth-1:0] MemBaseAddr =
@@ -339,7 +339,7 @@ module tb_floo_dma_mesh_cr;
         .aw_in_flight_o(                    )
         );
 
-      floo_narrow_wide_chimney_cr #(
+      floo_vc_narrow_wide_chimney #(
         .NarrowMaxTxns            ( NarrowMaxTxns           ),
         .WideMaxTxns              ( WideMaxTxns             ),
         .NarrowReorderBufferSize  ( NarrowReorderBufferSize ),
@@ -372,7 +372,7 @@ module tb_floo_dma_mesh_cr;
         .floo_wide_o          ( wide_chimney_man[x][y]        )
       );
 
-      floo_narrow_wide_router_cr #(
+      floo_vc_narrow_wide_router #(
         .NumPorts       ( int'(NumDirections)),
         .RouteAlgo      ( RouteAlgo         ),
         .id_t           ( id_t              ),
