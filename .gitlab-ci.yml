@@ -66,7 +66,7 @@ run-traffic:
   parallel:
     matrix:
       - VSIM_TB_DUT: [tb_floo_dma_mesh, tb_floo_vc_dma_mesh]
-        TRAFFIC_TYPE: [random, hbm, onehop]
+        TRAFFIC_TYPE: [random, hbm, onehop, bit_complement, bit_reverse, bit_rotation, neighbor, shuffle, transpose, tornado]
         TRAFFIC_RW: [read, write]
   needs:
     - collect-bender-sources

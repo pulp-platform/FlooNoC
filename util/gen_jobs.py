@@ -172,7 +172,7 @@ def gen_mesh_traffic(
     out_dir: str,
     **_kwargs
 ):
-    # pylint: disable=too-many-arguments, too-many-locals
+    # pylint: disable=too-many-arguments, too-many-locals, too-many-branches, too-many-statements
     """Generate Mesh traffic."""
     for x in range(1, NUM_X + 1):
         for y in range(1, NUM_Y + 1):
@@ -201,7 +201,8 @@ def gen_mesh_traffic(
             elif traffic_type == "bit_complement":
                 ext_addr = get_xy_base_addr(NUM_X - x + 1, NUM_Y - y + 1)
             elif traffic_type == "bit_reverse":
-                # in order to achieve same result as garnet: change to space where addresses start at 0 and return afterwards
+                # in order to achieve same result as garnet:
+                # change to space where addresses start at 0 and return afterwards
                 straight = x-1 + (y-1) * NUM_X
                 num_destinations = NUM_X * NUM_Y
                 reverse = straight & 1  # LSB
