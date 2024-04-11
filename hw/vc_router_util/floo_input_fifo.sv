@@ -20,7 +20,23 @@ module floo_input_fifo #(
   input  logic ready_i ,
   output type_t     data_o
 );
-  if(Depth == 2) begin : gen_fifo
+  if(Depth == 1) begin : gen_reg
+    logic ready_for_input;
+    type_t data_q;
+    logic full_q;
+    logic fill, drain;
+    `FFL(data_q, data_i, fill, '0)
+    `FFL(full_q, fill, fill || drain, '0)
+
+    assign fill = valid_i & ready_for_input;
+    assign drain = full_q & ready_i;
+
+    assign ready_for_input = ~full_q | ready_i;
+    assign valid_o = full_q;
+    assign data_o = data_q;
+
+    `ASSERT(RegFullWrite, ready_for_input | !valid_i)
+  end else if(Depth == 2) begin : gen_fifo_2
     logic ready_for_input;
     // The A register.
     type_t a_data_q;
@@ -58,8 +74,52 @@ module floo_input_fifo #(
     assign data_o = b_full_q ? b_data_q : a_data_q;
 
     `ASSERT(RegFullWrite, ready_for_input | !valid_i)
-  end
-  else begin : gen_fifo_not_depth_2
+  end else if(Depth == 3) begin : gen_fifo_3
+    logic ready_for_input;
+    // The A register.
+    type_t a_data_q;
+    logic a_full_q;
+    logic a_fill, a_drain;
+    `FFL(a_data_q, data_i, a_fill, '0)
+    `FFL(a_full_q, a_fill, a_fill || a_drain, '0)
+
+    // The B register.
+    type_t b_data_q;
+    logic b_full_q;
+    logic b_fill, b_drain;
+    `FFL(b_data_q, a_data_q, b_fill, '0)
+    `FFL(b_full_q, b_fill, b_fill || b_drain, '0)
+
+    // The C register.
+    type_t c_data_q;
+    logic c_full_q;
+    logic c_fill, c_drain;
+    `FFL(c_data_q, b_data_q, c_fill, '0)
+    `FFL(c_full_q, c_fill, c_fill || c_drain, '0)
+
+
+    // Fill the A register when being filled. Drain the A register
+    // whenever data is popped or more space needed.
+    // If data is written to B or not (not -> data is output) is decided there
+    assign a_fill = valid_i & ready_for_input;
+    assign a_drain = (ready_i & ~b_full_q) | a_fill;
+
+    // Fill the B register when A is filled but already full.
+    // B full but A empty is impossible
+    assign b_fill = a_fill & ((b_full_q & ready_i & ~c_full_q) | (a_full_q & ~ready_i));
+    assign b_drain = (b_full_q & ready_i & ~c_full_q) | b_fill;
+
+    // Fill the C register when B is filled but already full.
+    // B full but A empty is impossible
+    assign c_fill = b_fill & (c_drain | (b_full_q & ~ready_i));
+    assign c_drain = c_full_q & ready_i;
+
+    assign ready_for_input = ~a_full_q | ~b_full_q | ~c_full_q | ready_i;
+    assign valid_o = a_full_q | b_full_q | c_full_q;
+    assign data_o = c_full_q ? c_data_q : b_full_q ? b_data_q : a_data_q;
+
+    `ASSERT(RegFullWrite, ready_for_input | !valid_i)
+  end else begin : gen_fifo_general
     logic reg_ready;
     $warning("if depth != 2, write and read is not possible at same time while full");
     stream_fifo_optimal_wrap #(
