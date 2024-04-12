@@ -58,11 +58,16 @@ module floo_rr_arbiter #(
       assign selected_req_id[i] = |(dereordered_selected_req & id_mask[i]);
     end
 
-    // ff for round ptr
-    assign round_ptr_d =  (selected_req_id == '0)          ? NumInputs-1 :
-                          (selected_req_id == (NumInputs-1)) ? '0        :
-                          (NumInputs-1) - selected_req_id;
-    `FFL(round_ptr_q, round_ptr_d, update_i, '0)
+    // ff for round ptr.
+    // logic: decrease rount_ptr if update_i, else set to selected_req_id
+    always_comb begin
+      if (update_i) begin
+          round_ptr_d = NumInputs - selected_req_id - 1;
+      end else begin
+        round_ptr_d = NumInputs - selected_req_id;
+      end
+    end
+    `FF(round_ptr_q, round_ptr_d, '0)
 
     assign grant_o     = dereordered_selected_req;
     assign grant_id_o  = selected_req_id;
