@@ -195,7 +195,8 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
     .sa_local_output_dir_oh_o       (sa_local_output_dir_oh [in_port]),
 
     // when to update rr arbiter
-    .update_rr_arb_i                (read_enable_sa_stage   [in_port]),
+    .update_rr_arb_i                (read_enable_sa_stage   [in_port] &
+                                     sel_ctrl_head_per_input_sa_stage[in_port].last),
     .clk_i,
     .rst_ni
   );
