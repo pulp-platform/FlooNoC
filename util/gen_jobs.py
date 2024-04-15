@@ -232,7 +232,7 @@ def gen_mesh_traffic(
             elif traffic_type == "transpose":
                 dest_x = y
                 dest_y = x
-                ext_addr = get_xy_base_addr(dest_y, dest_x)
+                ext_addr = get_xy_base_addr(dest_x, dest_y)
             elif traffic_type == "tornado":
                 dest_x = (x-1 + math.ceil(NUM_X / 2) - 1) % NUM_X + 1
                 ext_addr = get_xy_base_addr(dest_x, y)
