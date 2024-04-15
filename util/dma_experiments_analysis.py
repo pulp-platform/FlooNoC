@@ -5,7 +5,6 @@
 #
 # Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-import random
 import argparse
 import os
 import math
@@ -14,6 +13,7 @@ import re
 
 
 def main():
+    # pylint: disable=too-many-arguments, too-many-locals, too-many-statements
     """Main function."""
     # parse arguments
     parser = argparse.ArgumentParser()
@@ -27,7 +27,7 @@ def main():
         "Error: output file does not exist"
     assert args.router_tb in ["tb_floo_dma_mesh", "tb_floo_vc_dma_mesh"], \
         "Error: router_tb not tb_floo_dma_mesh"
-    assert "read" == args.traffic_rw or "write" == args.traffic_rw, \
+    assert args.traffic_rw in ["read", "write"], \
         "Error: traffic_rw not read or write"
 
 
@@ -38,31 +38,30 @@ def main():
         r"Latency: (\d+.\d+) \+- (\d+.\d+), BW: (\d+.\d+) Bits/cycle, Util: \d+.\d+%")
 
     # read the output file
-    output = open(args.output_file, "r", encoding="utf8")
-    output_lines = output.readlines()
-    for line_index, line in enumerate(output_lines):
-        regex_match = monitor_regex.match(line)
-        if not regex_match:
-            continue
-        # check if legal: if traffic_rw == read: must be all 0 if Write
-        [mtype, mrw, mlat, mlatstd, mbw] = regex_match.groups()
-        # ignore all 0 lines:
-        if(mlat == "0.00" and mlatstd == "0.00" and mbw == "0.00"):
-            continue
-        if((mrw == "Read" and args.traffic_rw == "write")
-           or (mrw == "Write" and args.traffic_rw == "read")):
-            print(f"Error: nonzero {mrw} monitor in {args.traffic_rw} experiment: ")
-            print(f"Line {line_index}: {line}")
-            return
-        if(mtype == "narrow"):
-            monitors_n.append([mlat, mlatstd, mbw])
-        else:
-            monitors_w.append([mlat, mlatstd, mbw])
-    assert not output_lines[-2].startswith("# Errors: 0, Warnings:"), \
-        "Error: simulation did not finish correctly"
+    with open(args.output_file, "r", encoding="utf8") as output:
+        output_lines = output.readlines()
+        for line_index, line in enumerate(output_lines):
+            regex_match = monitor_regex.match(line)
+            if not regex_match:
+                continue
+            # check if legal: if traffic_rw == read: must be all 0 if Write
+            [mtype, mrw, mlat, mlatstd, mbw] = regex_match.groups()
+            # ignore all 0 lines:
+            if(mlat == "0.00" and mlatstd == "0.00" and mbw == "0.00"):
+                continue
+            if((mrw == "Read" and args.traffic_rw == "write")
+            or (mrw == "Write" and args.traffic_rw == "read")):
+                print(f"Error: nonzero {mrw} monitor in {args.traffic_rw} experiment: ")
+                print(f"Line {line_index}: {line}")
+                return
+            if mtype == "narrow":
+                monitors_n.append([mlat, mlatstd, mbw])
+            else:
+                monitors_w.append([mlat, mlatstd, mbw])
+        assert not output_lines[-2].startswith("# Errors: 0, Warnings:"), \
+            "Error: simulation did not finish correctly"
 
 
-    output.close()
 
     assert len(monitors_n) == len(monitors_w), "Error: number of monitors do not match"
     assert len(monitors_n) > 0, "Error: no monitors found"
@@ -100,14 +99,13 @@ def main():
 #     - average nw Bandwidth
 #     - average w Bandwidth
 
-    results = open(args.results_file, "a", encoding="utf8") # a for append
-    if args.router_tb == "tb_floo_dma_mesh":
-        results.write("Old router: ")
-    else:
-        results.write("VC router : ")
-    results.write(f"[latency, std, BW]: narrow: [{n_lat:.2f}, {n_lat_std:.2f}, {n_bw:.2f}], \
-wide: [{w_lat:.2f}, {w_lat_std:.2f}, {w_bw:.2f}]\n")
-    results.close()
+    with open(args.results_file, "a", encoding="utf8") as results:
+        if args.router_tb == "tb_floo_dma_mesh":
+            results.write("Old router: ")
+        else:
+            results.write("VC router : ")
+        results.write(f"[latency, std, BW]: narrow: [{n_lat:.2f}, {n_lat_std:.2f}, {n_bw:.2f}], \
+    wide: [{w_lat:.2f}, {w_lat_std:.2f}, {w_bw:.2f}]\n")
 
 
 if __name__ == "__main__":
