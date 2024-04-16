@@ -12,7 +12,8 @@ module floo_rr_arbiter #(
   localparam  int NumInputsWidth = NumInputs > 1 ? $clog2(NumInputs) : 1
 ) (
   input   logic [NumInputs-1:0]       req_i,
-  input   logic                       update_i, //only update arbiter when told to
+  input   logic                       update_i, // only update arbiter when told to
+  input   logic                       grant_i,  // output was actually selected
   output  logic [NumInputs-1:0]       grant_o,
   output  logic [NumInputsWidth-1:0]  grant_id_o,
   input   logic                       clk_i, rst_ni
@@ -61,10 +62,12 @@ module floo_rr_arbiter #(
     // ff for round ptr.
     // logic: decrease rount_ptr if update_i, else set to selected_req_id
     always_comb begin
-      if (update_i) begin
+      round_ptr_d = round_ptr_q;
+      if(grant_i) begin
+        if (update_i)
           round_ptr_d = NumInputs - selected_req_id - 1;
-      end else begin
-        round_ptr_d = NumInputs - selected_req_id;
+        else
+          round_ptr_d = NumInputs - selected_req_id;
       end
     end
     `FF(round_ptr_q, round_ptr_d, '0)

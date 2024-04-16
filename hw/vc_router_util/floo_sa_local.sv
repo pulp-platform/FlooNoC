@@ -20,7 +20,8 @@ module floo_sa_local #(
   output logic      [NumPorts-1:0]      sa_local_output_dir_oh_o, //chosen output: all 0 if none
 
   // when to update rr arbiter
-  input logic                           update_rr_arb_i,
+  input  logic                          sent_i,
+  input  logic                          update_rr_arb_i,
 
   input  logic                          clk_i,
   input  logic                          rst_ni
@@ -37,6 +38,7 @@ floo_rr_arbiter #(
 ) i_sa_local_rr_arbiter (
   .req_i            (vc_ctrl_head_v_i ),
   .update_i         (update_rr_arb),
+  .grant_i          (sent_i),
   .grant_o          (sa_local_vc_id_oh_o),
   .grant_id_o       (),
   .rst_ni,
