@@ -79,6 +79,9 @@ verible*
 # spyglass
 scripts/spyglass/*
 
+# experiment outputs
+util/output/*
+
 # Misc
 *.csv
 **/*.log

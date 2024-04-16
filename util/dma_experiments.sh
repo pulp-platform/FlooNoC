@@ -51,7 +51,6 @@ do
       num_w_injected=${num_w_injected_list[$i]}
       wide_burst_len=${wide_burst_len_list[$i]}
       # print the current experiment
-      echo "Running experiment: $traffic_type $traffic_rw num_narrow_bursts: $num_n_injected num_wide_bursts: $num_w_injected wide_burst_length: $wide_burst_len"
       printf "Experiment: $traffic_type $traffic_rw num_narrow_bursts: $num_n_injected num_wide_bursts: $num_w_injected wide_burst_length: $wide_burst_len\n" | tee -a $output_file $output_file_raw
 
       # do several runs if random traffic
