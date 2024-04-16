@@ -65,7 +65,7 @@ module floo_vc_narrow_wide_chimney
 
   parameter int NumVC                            = 4, // as seen from chimney
   parameter int NumVCWidth                       = $clog2(NumVC),
-
+  parameter int VCDepth                          = 2,
   /// Used for ID-based routing
   parameter int unsigned NumAddrRules            = 0,
   parameter type         addr_rule_t             = logic
@@ -156,7 +156,7 @@ module floo_vc_narrow_wide_chimney
   route_direction_e floo_req_lookahead, floo_rsp_lookahead, floo_wide_lookahead;
 
   // Credit counting
-  localparam int VCDepthWidth = 2;
+  localparam int VCDepthWidth = $clog2(VCDepth+1);
   logic [NumVC-1:0][VCDepthWidth-1:0] floo_req_credit_counter;
   logic [NumVC-1:0]                   floo_req_credit_counter_not_empty;
   logic [NumVC-1:0][VCDepthWidth-1:0] floo_rsp_credit_counter;
@@ -357,7 +357,7 @@ module floo_vc_narrow_wide_chimney
 
   if (CutRsp) begin : gen_floo_input_fifos
     floo_input_fifo #(
-    .Depth  ( 2 ),
+    .Depth  ( VCDepth ),
     .type_t ( floo_req_chan_t )
     ) i_narrow_data_req_arb (
       .clk_i,
@@ -370,7 +370,7 @@ module floo_vc_narrow_wide_chimney
     );
 
     floo_input_fifo #(
-    .Depth  ( 2 ),
+    .Depth  ( VCDepth ),
     .type_t ( floo_rsp_chan_t )
     ) i_narrow_data_rsp_arb (
       .clk_i,
@@ -383,7 +383,7 @@ module floo_vc_narrow_wide_chimney
     );
 
     floo_input_fifo #(
-    .Depth  ( 2 ),
+    .Depth  ( VCDepth ),
     .type_t ( floo_wide_chan_t )
     ) i_wide_data_req_arb (
       .clk_i,
@@ -1040,7 +1040,7 @@ module floo_vc_narrow_wide_chimney
   #(
     .NumVC                          (NumVC),
     .NumVCWidthMax                  (NumVCWidth),
-    .VCDepth                        (2)
+    .VCDepth                        (VCDepth)
   )
   i_floo_req_credit_counter (
     .credit_v_i                     (floo_req_i.credit_v),
@@ -1056,7 +1056,7 @@ module floo_vc_narrow_wide_chimney
   #(
     .NumVC                          (NumVC),
     .NumVCWidthMax                  (NumVCWidth),
-    .VCDepth                        (2)
+    .VCDepth                        (VCDepth)
   )
   i_floo_rsp_credit_counter (
     .credit_v_i                     (floo_rsp_i.credit_v),
@@ -1072,7 +1072,7 @@ module floo_vc_narrow_wide_chimney
   #(
     .NumVC                          (NumVC),
     .NumVCWidthMax                  (NumVCWidth),
-    .VCDepth                        (2)
+    .VCDepth                        (VCDepth)
   )
   i_floo_wide_credit_counter (
     .credit_v_i                     (floo_wide_i.credit_v),
