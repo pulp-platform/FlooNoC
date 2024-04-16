@@ -41,7 +41,7 @@ module tb_floo_vc_dma_mesh;
   localparam int unsigned WideReorderBufferSize = 32'd64;
   localparam int unsigned NarrowMaxTxns = 32;
   localparam int unsigned WideMaxTxns = 32;
-  // localparam int unsigned ChannelFifoDepth = 2;
+  localparam int unsigned ChannelFifoDepth = 3;
   // localparam int unsigned OutputFifoDepth = 2;
 
   logic clk, rst_n;
@@ -211,7 +211,8 @@ module tb_floo_vc_dma_mesh;
       .CutRsp                   ( CutRsp                  ),
       .NumRoutes                ( int'(NumDirections)     ),
       .OutputDir                ( route_direction_e'(i)   ),
-      .NumVC                    ((i==North||i==South)? 2:4)
+      .NumVC                    ((i==North||i==South)? 2:4),
+      .VCDepth                  ( ChannelFifoDepth        )
     ) i_hbm_chimney [NumChimneys-1:0] (
       .clk_i                ( clk               ),
       .rst_ni               ( rst_n             ),
@@ -347,7 +348,8 @@ module tb_floo_vc_dma_mesh;
         .CutAx                    ( CutAx                   ),
         .CutRsp                   ( CutRsp                  ),
         .NumRoutes                ( int'(NumDirections)     ),
-        .OutputDir                ( Eject                   )
+        .OutputDir                ( Eject                   ),
+        .VCDepth                  ( ChannelFifoDepth        )
       ) i_dma_chimney (
         .clk_i                ( clk                           ),
         .rst_ni               ( rst_n                         ),
@@ -381,7 +383,8 @@ module tb_floo_vc_dma_mesh;
                           int'(x==NumX-1 ? 1 : 4),
                           int'(y==0 ?      1 : 2),
                           int'(x==0 ?      1 : 4),
-                          int'(1)}        )
+                          int'(1)}          ),
+        .VCDepth        ( ChannelFifoDepth  )
       ) i_router (
         .clk_i          ( clk         ),
         .rst_ni         ( rst_n       ),
