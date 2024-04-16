@@ -105,7 +105,7 @@ def main():
         else:
             results.write("VC router : ")
         results.write(f"[latency, std, BW]: narrow: [{n_lat:.2f}, {n_lat_std:.2f}, {n_bw:.2f}], \
-    wide: [{w_lat:.2f}, {w_lat_std:.2f}, {w_bw:.2f}]\n")
+wide: [{w_lat:.2f}, {w_lat_std:.2f}, {w_bw:.2f}]\n")
 
 
 if __name__ == "__main__":
