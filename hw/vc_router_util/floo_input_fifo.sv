@@ -102,15 +102,17 @@ module floo_input_fifo #(
     // whenever data is popped or more space needed.
     // If data is written to B or not (not -> data is output) is decided there
     assign a_fill = valid_i & ready_for_input;
+    // Drain A if need data from A or if filling B
     assign a_drain = (ready_i & ~b_full_q) | a_fill;
 
     // Fill the B register when A is filled but already full.
     // B full but A empty is impossible
-    assign b_fill = a_fill & ((b_full_q & ready_i & ~c_full_q) | (a_full_q & ~ready_i));
+    assign b_fill = a_fill & (b_full_q | (a_full_q & ~ready_i));
+    // Drain B if need data from B or if filling B
     assign b_drain = (b_full_q & ready_i & ~c_full_q) | b_fill;
 
     // Fill the C register when B is filled but already full.
-    // B full but A empty is impossible
+    // C full but B empty is impossible
     assign c_fill = b_fill & (c_drain | (b_full_q & ~ready_i));
     assign c_drain = c_full_q & ready_i;
 
@@ -118,6 +120,9 @@ module floo_input_fifo #(
     assign valid_o = a_full_q | b_full_q | c_full_q;
     assign data_o = c_full_q ? c_data_q : b_full_q ? b_data_q : a_data_q;
 
+    `ASSERT(CFullBEmpty, !c_full_q | b_full_q)
+    `ASSERT(CFullAEmpty, !c_full_q | a_full_q)
+    `ASSERT(BFullAEmpty, !b_full_q | a_full_q)
     `ASSERT(RegFullWrite, ready_for_input | !valid_i)
   end else begin : gen_fifo_general
     logic reg_ready;
