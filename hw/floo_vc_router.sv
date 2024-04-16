@@ -193,8 +193,8 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
 
     // chosen output: all 0 if none
     .sa_local_output_dir_oh_o       (sa_local_output_dir_oh [in_port]),
-
     // when to update rr arbiter
+    .sent_i                         (read_enable_sa_stage   [in_port]),
     .update_rr_arb_i                (read_enable_sa_stage   [in_port] &
                                      sel_ctrl_head_per_input_sa_stage[in_port].last),
     .clk_i,
@@ -222,7 +222,9 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_sa_global
                                                             [NumInputSaGlobal[out_port]-1:0]),
 
   // update arbiter if the vc assignment was successful
-  .update_rr_arb_i                  (outport_v              [out_port]),
+  .sent_i                           (outport_v              [out_port]),
+  .update_rr_arb_i                  (outport_v              [out_port] &
+                                     last_bits_sel          [out_port]),
 
   .clk_i,
   .rst_ni

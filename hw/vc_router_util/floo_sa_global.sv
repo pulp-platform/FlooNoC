@@ -17,6 +17,7 @@ module floo_sa_global #(
   output logic [NumInputs-1:0]              sa_global_input_dir_oh_o,
 
   // when to update rr arbiter
+  input  logic                              sent_i,
   input  logic                              update_rr_arb_i,
 
   input  logic                              clk_i,
@@ -31,6 +32,7 @@ floo_rr_arbiter #(
 ) i_sa_global_rr_arbiter (
   .req_i            (sa_local_v_i),
   .update_i         (update_rr_arb_i),
+  .grant_i          (sent_i),
   .grant_o          (arb_input_dir_oh),
   .grant_id_o       ( ),
   .rst_ni,
