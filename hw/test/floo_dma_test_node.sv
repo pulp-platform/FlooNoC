@@ -500,7 +500,7 @@ module floo_dma_test_node  #(
     // print a job summary
     print_summary(req_jobs);
     // wait some additional time
-    #100ns;
+    #2ns;
 
     // run all requests in queue
     while (req_jobs.size() != 0) begin
@@ -545,8 +545,6 @@ initial begin
         $display("[DMA%0d] Burst Address: 0x%0h", JobId + 1, burst_addr);
       end
   end
-  // wait for some time
-  #100ns;
   // stop simulation
   end_of_sim_o = 1'b1;
 end
