@@ -41,7 +41,7 @@ module tb_floo_vc_dma_mesh;
   localparam int unsigned WideReorderBufferSize = 32'd64;
   localparam int unsigned NarrowMaxTxns = 32;
   localparam int unsigned WideMaxTxns = 32;
-  localparam int unsigned ChannelFifoDepth = 3;
+  localparam int unsigned ChannelFifoDepth = 2;
   // localparam int unsigned OutputFifoDepth = 2;
 
   logic clk, rst_n;
@@ -444,7 +444,7 @@ module tb_floo_vc_dma_mesh;
   initial begin
     wait(&end_of_sim);
     // Wait for some time
-    #100ns;
+    #2ns;
     // Stop the simulation
     $stop;
   end
