@@ -444,7 +444,7 @@ module tb_floo_vc_dma_mesh;
   initial begin
     wait(&end_of_sim);
     // Wait for some time
-    #2ns;
+    repeat (2) @(posedge clk);
     // Stop the simulation
     $stop;
   end
