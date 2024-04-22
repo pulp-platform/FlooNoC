@@ -27,7 +27,8 @@ dependencies = [
   "jsonref",
   "click",
   "pylint",
-  "pytest"
+  "pytest",
+  "pygame"
 ]
 
 [build-system]
