@@ -318,7 +318,7 @@ module tb_floo_vc_dma_mesh;
       ) i_axi_narrow_bw_monitor (
         .clk_i        ( clk                   ),
         .en_i         ( rst_n                 ),
-        .end_of_sim_i ( &end_of_sim           ),
+        .end_of_sim_i ( end_of_sim[x][y][0]   ),
         .req_i        ( narrow_man_req[x][y]  ),
         .rsp_i        ( narrow_man_rsp[x][y]  ),
         .ar_in_flight_o(                      ),
@@ -333,7 +333,7 @@ module tb_floo_vc_dma_mesh;
       ) i_axi_wide_bw_monitor (
         .clk_i        ( clk                 ),
         .en_i         ( rst_n               ),
-        .end_of_sim_i ( &end_of_sim         ),
+        .end_of_sim_i ( end_of_sim[x][y][1] ),
         .req_i        ( wide_man_req[x][y]  ),
         .rsp_i        ( wide_man_rsp[x][y]  ),
         .ar_in_flight_o(                    ),
