@@ -7,7 +7,7 @@
 
 import argparse
 import os
-import math
+from math import sqrt
 import re
 
 
@@ -81,16 +81,18 @@ def main():
         w_lat_std += float(mlatstd) ** 2
         w_bw += float(mbw)
 
-    n_lat_std = math.sqrt(n_lat_std)
-    w_lat_std  = math.sqrt(w_lat_std)
+    n_lat_std = sqrt(n_lat_std)
+    w_lat_std  = sqrt(w_lat_std)
 
     n_lat /= len(monitors_n)
     n_lat_std /= len(monitors_n)
     n_bw /= len(monitors_n)
+    n_bw_std = sqrt(sum((float(mbw)-n_bw)**2 for (_, _, mbw) in monitors_n) / len(monitors_n))
 
     w_lat /= len(monitors_w)
     w_lat_std /= len(monitors_w)
     w_bw /= len(monitors_w)
+    w_bw_std = sqrt(sum((float(wbw)-w_bw)**2 for (_, _, wbw) in monitors_w) / len(monitors_w))
 
 
 
@@ -104,8 +106,9 @@ def main():
             results.write("Old router: ")
         else:
             results.write("VC router : ")
-        results.write(f"[latency, std, BW]: narrow: [{n_lat:.2f}, {n_lat_std:.2f}, {n_bw:.2f}], \
-wide: [{w_lat:.2f}, {w_lat_std:.2f}, {w_bw:.2f}]\n")
+        results.write(f"[latency +- std, BW +- std]: narrow: \
+[{n_lat:.2f} +- {n_lat_std:.1f}, {n_bw:.2f} +- {n_bw_std:.1f}], \
+wide: [{w_lat:.2f} +- {w_lat_std:.1f}, {w_bw:.2f} +- {w_bw_std:.1f}]\n")
 
 
 if __name__ == "__main__":
