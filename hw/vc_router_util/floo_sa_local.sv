@@ -26,10 +26,6 @@ module floo_sa_local #(
   input  logic                          clk_i,
   input  logic                          rst_ni
 );
-
-logic update_rr_arb;
-// wormhole routing: dont update if not last
-assign update_rr_arb = update_rr_arb_i & sa_local_sel_ctrl_head_o.last;
 logic sa_local_v;
 
 // pick a valid vc via rr arbitration
@@ -37,7 +33,7 @@ floo_rr_arbiter #(
   .NumInputs        (NumVC)
 ) i_sa_local_rr_arbiter (
   .req_i            (vc_ctrl_head_v_i ),
-  .update_i         (update_rr_arb),
+  .update_i         (update_rr_arb_i),
   .grant_i          (sent_i),
   .grant_o          (sa_local_vc_id_oh_o),
   .grant_id_o       (),
