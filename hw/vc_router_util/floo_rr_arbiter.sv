@@ -63,12 +63,10 @@ module floo_rr_arbiter #(
     // logic: decrease rount_ptr if update_i, else set to selected_req_id
     always_comb begin
       round_ptr_d = round_ptr_q;
-      if(grant_i) begin
-        if (update_i)
-          round_ptr_d = NumInputs - selected_req_id - 1;
-        else
-          round_ptr_d = NumInputs - selected_req_id;
-      end
+      if(grant_i & ~update_i)
+        round_ptr_d = NumInputs - selected_req_id;
+      else if (update_i)
+        round_ptr_d = NumInputs - selected_req_id - 1;
     end
     `FF(round_ptr_q, round_ptr_d, '0)
 
