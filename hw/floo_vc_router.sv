@@ -129,12 +129,12 @@ hdr_t           [NumPorts-1:0]                      sel_ctrl_head_per_input_sa_s
 hdr_t           [NumPorts-1:0]                      sel_ctrl_head_per_input_st_stage;
 
 logic           [NumPorts-1:0][NumPorts-1:0]        last_bits_per_output;
-logic           [NumPorts-1:0]                      last_bits_sel;  //1 bit/output
+logic           [NumPorts-1:0]                      last_bits_sel;  // 1 bit/output
 logic           [NumPorts-1:0]                      last_bits_sel_st_stage;
-logic           [NumPorts-1:0]                      wormhole_detected; //per output
-logic           [NumPorts-1:0]                      wormhole_v; //per_outport
+logic           [NumPorts-1:0]                      wormhole_detected; // per output
+logic           [NumPorts-1:0]                      wormhole_v; // per outport
 logic           [NumPorts-1:0]                      wormhole_v_d;
-logic           [NumPorts-1:0]                      wormhole_v_per_input;
+logic           [NumPorts-1:0]                      wormhole_v_per_input; // per input
 logic           [NumPorts-1:0][NumPorts-1:0]        wormhole_required_sel_input;
 logic           [NumPorts-1:0][NumPorts-1:0]        wormhole_required_sel_input_transposed;
 logic           [NumPorts-1:0]                      wormhole_correct_input_sel;
@@ -207,7 +207,7 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
     .sent_i                         (read_enable_sa_stage   [in_port]),
     .update_rr_arb_i                ((read_enable_sa_stage  [in_port] &
                                       sel_ctrl_head_per_input_sa_stage[in_port].last) |
-                                     (UpdateRRArbIfNotSent==1 & ~read_enable_sa_stage [in_port] &
+                                     (UpdateRRArbIfNotSent==0 & ~read_enable_sa_stage [in_port] &
                                       ~wormhole_v_per_input [in_port])),
     .clk_i,
     .rst_ni
@@ -445,10 +445,11 @@ sa_global_input_dir_oh
 //     $display("sa_global_input_dir: %b", sa_global_input_dir_oh);
 //     // $display("look_ahead_routing_per_input: %p", look_ahead_routing_per_input);
 //     // $display("look_ahead_routing_per_output: %p", look_ahead_routing_per_output);
-//     $display("credit_counter: %p", credit_counter);
+//     $display("vc_not_full: %b", vc_not_full);
 //     $display("vc_assignment_v: %b", vc_assignment_v);
 //     $display("last_bits_sel: %b, outport_v:%b, wormhole_detected: %b, wormhole_v_d_ %b",
 //         last_bits_sel, outport_v, wormhole_detected, wormhole_v_d);
+//     $display("wormhole_v_per_input: %b", wormhole_v_per_input);
 //     $display("sa_global_input_dir_oh: %b", sa_global_input_dir_oh);
 //     $display("inport_id_oh_per_output_sa_stage: %p", inport_id_oh_per_output_sa_stage);
 //   end
