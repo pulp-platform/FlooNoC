@@ -25,6 +25,7 @@ module floo_vc_router import floo_pkg::*; #(
   parameter int           NumInputSaGlobal[NumPorts]  =
     {3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 4+NumLocalPorts-1},
     // to dir N,E,S,W,L0(,L1,L2,L3)
+  parameter int           UpdateRRArbIfNotSent        = 0,
 
   parameter int           VCDepth                     = 2,
   parameter int           FixedWormholeVC             = 1,
@@ -205,8 +206,8 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
     // when to update rr arbiter
     .sent_i                         (read_enable_sa_stage   [in_port]),
     .update_rr_arb_i                ((read_enable_sa_stage  [in_port] &
-                                     sel_ctrl_head_per_input_sa_stage[in_port].last) |
-                                     (~read_enable_sa_stage [in_port] &
+                                      sel_ctrl_head_per_input_sa_stage[in_port].last) |
+                                     (UpdateRRArbIfNotSent==1 & ~read_enable_sa_stage [in_port] &
                                       ~wormhole_v_per_input [in_port])),
     .clk_i,
     .rst_ni
@@ -234,7 +235,7 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_sa_global
   // update arbiter if allowed to update
   .sent_i                           (outport_v              [out_port]),
   .update_rr_arb_i                  ((outport_v[out_port] & last_bits_sel[out_port]) |
-                                    (~outport_v[out_port] & ~wormhole_v  [out_port])),
+                      (UpdateRRArbIfNotSent==1 & ~outport_v[out_port] & ~wormhole_v  [out_port])),
   .clk_i,
   .rst_ni
 );
