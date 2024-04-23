@@ -6,16 +6,18 @@
 # Lukas Berner <bernerl@student.ethz.ch>
 
 
-traffic_type_list=("random" "hbm" "onehop" "bit_complement" "bit_reverse" "bit_rotation" "neighbor" "shuffle" "transpose" "tornado")
+traffic_type_list=("random" "hbm" "onehop" "bit_complement" "bit_reverse" "bit_rotation" "neighbor" "shuffle" "transpose" "tornado" "single_dest_boundry" "single_dest_center")
 traffic_rw_list=("read" "write")
 router_tb_list=("tb_floo_dma_mesh" "tb_floo_vc_dma_mesh")
 
-num_n_injected_list=(4  4  4  4  16 16 16)
-num_w_injected_list=(4  4  16 16 16 16 16)
-wide_burst_len_list=(1  16 1  16 4  8  16)
+num_n_injected_list=(4  4  4  4  16 16 16 8   8   8 64  64)
+num_w_injected_list=(4  4  16 16 16 16 16 64 64  64 64   8)
+wide_burst_len_list=(1  16 1  16 4  8  16 16 32  64 16  16)
+# num_n_injected_list=(8   8   8 64  64 )
+# num_w_injected_list=(64 64  64 64   8 )
+# wide_burst_len_list=(16 32  64 16  16 )
+
 printf -v date '%(%Y%m%d_%H%M%S)T' -1
-
-
 #contains the raw output spam of the experiments (for debugging useful)
 output_file_raw="util/output/dma_experiments_raw_${date}.txt"
 #contains the raw output of 1 experiment, will be read by sript to extract the relevant information
@@ -36,7 +38,8 @@ set -e #exit on error
 set -o noclobber #do not overwrite files (file should be new)
 
 # clean install
-make clean all
+# make clean all
+make all
 
 # for each benchmark:
 for traffic_type in ${traffic_type_list[@]}
