@@ -42,7 +42,9 @@ module tb_floo_vc_dma_mesh;
   localparam int unsigned NarrowMaxTxns = 32;
   localparam int unsigned WideMaxTxns = 32;
   localparam int unsigned ChannelFifoDepth = 2;
-  // localparam int unsigned OutputFifoDepth = 2;
+  localparam int unsigned WormholeVCDepth = 3;
+  localparam int unsigned FixedWormholeVC = 1;
+  localparam int unsigned AllowOverflowFromDeeperVC = 0;
 
   logic clk, rst_n;
 
@@ -212,7 +214,11 @@ module tb_floo_vc_dma_mesh;
       .NumRoutes                ( int'(NumDirections)     ),
       .OutputDir                ( route_direction_e'(i)   ),
       .NumVC                    ((i==North||i==South)? 2:4),
-      .VCDepth                  ( ChannelFifoDepth        )
+      .InputFifoDepth           ( WormholeVCDepth         ),
+      .VCDepth                  ( ChannelFifoDepth        ),
+      .FixedWormholeVC          ( FixedWormholeVC         ),
+      .WormholeVCId             (i==East? 2: i==West? 1: 0),
+      .WormholeVCDepth          ( WormholeVCDepth         )
     ) i_hbm_chimney [NumChimneys-1:0] (
       .clk_i                ( clk               ),
       .rst_ni               ( rst_n             ),
@@ -349,7 +355,11 @@ module tb_floo_vc_dma_mesh;
         .CutRsp                   ( CutRsp                  ),
         .NumRoutes                ( int'(NumDirections)     ),
         .OutputDir                ( Eject                   ),
-        .VCDepth                  ( ChannelFifoDepth        )
+        .InputFifoDepth           ( WormholeVCDepth         ),
+        .VCDepth                  ( ChannelFifoDepth        ),
+        .FixedWormholeVC          ( FixedWormholeVC         ),
+        .WormholeVCId             ( 0                       ),
+        .WormholeVCDepth          ( WormholeVCDepth         )
       ) i_dma_chimney (
         .clk_i                ( clk                           ),
         .rst_ni               ( rst_n                         ),
@@ -384,7 +394,11 @@ module tb_floo_vc_dma_mesh;
                           int'(y==0 ?      1 : 2),
                           int'(x==0 ?      1 : 4),
                           int'(1)}          ),
-        .VCDepth        ( ChannelFifoDepth  )
+        .VCDepth          ( ChannelFifoDepth  ),
+        .FixedWormholeVC            (FixedWormholeVC),
+        .WormholeVCDepth            (WormholeVCDepth),
+        .AllowOverflowFromDeeperVC  (AllowOverflowFromDeeperVC),
+        .WormholeVCId               ({int'(0),int'(1),int'(0),int'(2),int'(0)})
       ) i_router (
         .clk_i          ( clk         ),
         .rst_ni         ( rst_n       ),

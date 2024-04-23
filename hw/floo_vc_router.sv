@@ -27,6 +27,11 @@ module floo_vc_router import floo_pkg::*; #(
     // to dir N,E,S,W,L0(,L1,L2,L3)
 
   parameter int           VCDepth                     = 2,
+  parameter int           FixedWormholeVC             = 1,
+  // Idea behind this: need depth 3 for continuous flow, since xy-routing: usually flits traverse straight through -> make that vc deeper
+  parameter int           WormholeVCId    [NumPorts]  = {0,1,0,2,0}, // as seen from output port
+  parameter int           WormholeVCDepth             = 3,
+  parameter int           AllowOverflowFromDeeperVC   = 0,
   parameter int           VCDepthWidth                = $clog2(VCDepth+1),
   parameter type          flit_t                      = logic,
   parameter type          hdr_t                       = logic,
@@ -106,7 +111,7 @@ route_direction_e [NumPorts-1:0][NumPorts-1:0]                      look_ahead_r
 route_direction_e [NumPorts-1:0]                                    look_ahead_routing_sel;
 route_direction_e [NumPorts-1:0]                                    look_ahead_routing_sel_st_stage;
 
-logic           [NumPorts-1:0][NumVCToOutMax-1:0][VCDepthWidth-1:0] credit_counter;
+logic           [NumPorts-1:0][NumVCToOutMax-1:0]                   vc_not_full;
 
 logic           [NumPorts-1:0][NumVCToOutMax-1:0]                        vc_selection_v;
 logic           [NumPorts-1:0][NumVCToOutMax-1:0][NumVCWidthToOutMax-1:0]vc_selection_id;
@@ -122,15 +127,17 @@ logic           [NumPorts-1:0][NumPorts-1:0]        inport_id_oh_per_output_st_s
 hdr_t           [NumPorts-1:0]                      sel_ctrl_head_per_input_sa_stage;
 hdr_t           [NumPorts-1:0]                      sel_ctrl_head_per_input_st_stage;
 
-logic           [NumPorts-1:0][NumPorts-1:0]                        last_bits_per_output;
-logic           [NumPorts-1:0]                                      last_bits_sel;  //1 bit/output
-logic           [NumPorts-1:0]                                      last_bits_sel_st_stage;
-logic           [NumPorts-1:0]                                      wormhole_detected; //per output
-logic           [NumPorts-1:0]                                      wormhole_v; //per_outport
-logic           [NumPorts-1:0]                                      wormhole_v_d;
-logic           [NumPorts-1:0][NumPorts-1:0]                        wormhole_required_sel_input;
-logic           [NumPorts-1:0]                                      wormhole_correct_input_sel;
-logic           [NumPorts-1:0][NumPorts-1:0]                        wormhole_sa_global_input_dir_oh;
+logic           [NumPorts-1:0][NumPorts-1:0]        last_bits_per_output;
+logic           [NumPorts-1:0]                      last_bits_sel;  //1 bit/output
+logic           [NumPorts-1:0]                      last_bits_sel_st_stage;
+logic           [NumPorts-1:0]                      wormhole_detected; //per output
+logic           [NumPorts-1:0]                      wormhole_v; //per_outport
+logic           [NumPorts-1:0]                      wormhole_v_d;
+logic           [NumPorts-1:0]                      wormhole_v_per_input;
+logic           [NumPorts-1:0][NumPorts-1:0]        wormhole_required_sel_input;
+logic           [NumPorts-1:0][NumPorts-1:0]        wormhole_required_sel_input_transposed;
+logic           [NumPorts-1:0]                      wormhole_correct_input_sel;
+logic           [NumPorts-1:0][NumPorts-1:0]        wormhole_sa_global_input_dir_oh;
 
 
 
@@ -146,7 +153,9 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_input_ports
     .hdr_t                          (hdr_t),
     .NumVC                          (NumVC[in_port]),
     .NumVCWidth                     (NumVCWidth),
-    .VCDepth                        (VCDepth)
+    .VCDepth                        (VCDepth),
+    .DeeperVCId                     (WormholeVCId[in_port >= Eject ? in_port : (in_port+2) % 4]),
+    .DeeperVCDepth                  (WormholeVCDepth)
   ) i_input_port (
     // input from other router or local port
     .credit_v_o                     (credit_v_o           [in_port]),
@@ -195,8 +204,10 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
     .sa_local_output_dir_oh_o       (sa_local_output_dir_oh [in_port]),
     // when to update rr arbiter
     .sent_i                         (read_enable_sa_stage   [in_port]),
-    .update_rr_arb_i                (read_enable_sa_stage   [in_port] &
-                                     sel_ctrl_head_per_input_sa_stage[in_port].last),
+    .update_rr_arb_i                ((read_enable_sa_stage  [in_port] &
+                                     sel_ctrl_head_per_input_sa_stage[in_port].last) |
+                                     (~read_enable_sa_stage [in_port] &
+                                      ~wormhole_v_per_input [in_port])),
     .clk_i,
     .rst_ni
   );
@@ -220,12 +231,10 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_sa_global
   .sa_global_v_o                    (sa_global_v            [out_port]),
   .sa_global_input_dir_oh_o         (sa_global_input_dir_oh [out_port]
                                                             [NumInputSaGlobal[out_port]-1:0]),
-
-  // update arbiter if the vc assignment was successful
+  // update arbiter if allowed to update
   .sent_i                           (outport_v              [out_port]),
-  .update_rr_arb_i                  (outport_v              [out_port] &
-                                     last_bits_sel          [out_port]),
-
+  .update_rr_arb_i                  ((outport_v[out_port] & last_bits_sel[out_port]) |
+                                    (~outport_v[out_port] & ~wormhole_v  [out_port])),
   .clk_i,
   .rst_ni
 );
@@ -266,14 +275,16 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_credit_co
   #(
     .NumVC                          (NumVCToOut             [out_port]),
     .NumVCWidthMax                  (NumVCWidthToOutMax),
-    .VCDepth                        (VCDepth)
+    .VCDepth                        (VCDepth),
+    .DeeperVCId                     (WormholeVCId           [out_port]),
+    .DeeperVCDepth                  (WormholeVCDepth)
   )
   i_floo_credit_counter (
     .credit_v_i                     (credit_v_i             [out_port]),
     .credit_id_i                    (credit_id_i            [out_port][NumVCWidthToOutMax-1:0]),
     .consume_credit_v_i             (outport_v              [out_port]),
     .consume_credit_id_i            (vc_assignment_id       [out_port]),
-    .credit_counter_o               (credit_counter         [out_port][NumVCToOut[out_port]-1:0]),
+    .vc_not_full_o                  (vc_not_full            [out_port][NumVCToOut[out_port]-1:0]),
     .clk_i,
     .rst_ni
   );
@@ -289,10 +300,12 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_vc_select
   #(
     .NumVC                          (NumVCToOut             [out_port]),
     .NumVCWidthMax                  (NumVCWidthToOutMax),
-    .VCDepth                        (VCDepth)
+    .VCDepth                        (VCDepth),
+    .AllowOverflowFromDeeperVC      (AllowOverflowFromDeeperVC),
+    .DeeperVCId                     (WormholeVCId          [out_port])
   )
   i_floo_vc_selection (
-    .credit_counter_i               (credit_counter         [out_port][NumVCToOut[out_port]-1:0]),
+    .vc_not_full_i                  (vc_not_full            [out_port][NumVCToOut[out_port]-1:0]),
     .vc_selection_v_o               (vc_selection_v         [out_port][NumVCToOut[out_port]-1:0]),
     .vc_selection_id_o              (vc_selection_id        [out_port][NumVCToOut[out_port]-1:0])
   );
@@ -310,7 +323,9 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_vc_assign
     .NumVCWidthMax                  (NumVCWidthToOutMax),
     .NumInputs                      (NumInputSaGlobal       [out_port]),
     .RouteAlgo                      (RouteAlgo),
-    .OutputId                       (out_port)
+    .OutputId                       (out_port),
+    .FixedWormholeVC                (FixedWormholeVC),
+    .WormholeVCId                   (WormholeVCId          [out_port])
   )
   i_floo_vc_assignment (
     .sa_global_v_i                  (sa_global_v            [out_port]),
@@ -320,8 +335,9 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_vc_assign
                                                                 [NumInputSaGlobal[out_port]-1:0]),
     .vc_selection_v_i               (vc_selection_v         [out_port][NumVCToOut[out_port]-1:0]),
     .vc_selection_id_i              (vc_selection_id        [out_port][NumVCToOut[out_port]-1:0]),
+    .vc_not_full_i                  (vc_not_full            [out_port][NumVCToOut[out_port]-1:0]),
     // make sure correct vc is selected if not last or doing wormhole routing
-    .require_correct_vc_i           (~last_bits_sel          [out_port]
+    .require_wormhole_vc_i          (~last_bits_sel          [out_port]
                                     | wormhole_v            [out_port]),
     .credit_v_i                     (credit_v_i             [out_port]),
     .credit_id_i                    (credit_id_i            [out_port][NumVCWidthToOutMax-1:0]),
@@ -377,6 +393,8 @@ for(genvar i = 0 ; i < NumPorts; i++) begin : gen_transpose_DataWidth
   for(genvar j = 0 ; j < NumPorts; j++) begin : gen_transpose_NumInputs
     assign inport_id_oh_per_output_sa_stage_transposed[i][j] =
                       inport_id_oh_per_output_sa_stage[j][i];
+    assign wormhole_required_sel_input_transposed[i][j] =
+                      wormhole_required_sel_input[j][i];
   end
 end
 
@@ -384,6 +402,8 @@ end
 for(genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_inport_read_enable
   assign read_enable_sa_stage[in_port] =
       |(inport_id_oh_per_output_sa_stage_transposed[in_port] & outport_v);
+  assign wormhole_v_per_input[in_port] =
+      |(wormhole_required_sel_input_transposed[in_port] & wormhole_v);
   assign read_vc_id_oh_sa_stage[in_port] = sa_local_vc_id_oh[in_port];
 end
 
