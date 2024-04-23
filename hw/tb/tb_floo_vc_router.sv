@@ -73,7 +73,11 @@ floo_vc_router #(
   .flit_t             (flit_t),
   .hdr_t              (hdr_t),
   .flit_payload_t     (flit_payload_t),
-  .id_t               (id_t)
+  .id_t               (id_t),
+  .FixedWormholeVC    (0), //without special features
+  .AllowOverflowFromDeeperVC (1), //without special features
+  .WormholeVCDepth    (2), //without special features
+  .VCDepth            (2)
 ) i_floo_vc_router (
   .clk_i              (clk),
   .rst_ni             (rst_n),

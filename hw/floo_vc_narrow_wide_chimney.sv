@@ -65,7 +65,11 @@ module floo_vc_narrow_wide_chimney
 
   parameter int NumVC                            = 4, // as seen from chimney
   parameter int NumVCWidth                       = $clog2(NumVC),
+  parameter int InputFifoDepth                   = 3,
   parameter int VCDepth                          = 2,
+  parameter int FixedWormholeVC                  = 1, // if 1, force wormhole flits to wormholeVCId
+  parameter int WormholeVCId                     = 0,
+  parameter int WormholeVCDepth                  = 3,
   /// Used for ID-based routing
   parameter int unsigned NumAddrRules            = 0,
   parameter type         addr_rule_t             = logic
@@ -157,12 +161,9 @@ module floo_vc_narrow_wide_chimney
 
   // Credit counting
   localparam int VCDepthWidth = $clog2(VCDepth+1);
-  logic [NumVC-1:0][VCDepthWidth-1:0] floo_req_credit_counter;
-  logic [NumVC-1:0]                   floo_req_credit_counter_not_empty;
-  logic [NumVC-1:0][VCDepthWidth-1:0] floo_rsp_credit_counter;
-  logic [NumVC-1:0]                   floo_rsp_credit_counter_not_empty;
-  logic [NumVC-1:0][VCDepthWidth-1:0] floo_wide_credit_counter;
-  logic [NumVC-1:0]                   floo_wide_credit_counter_not_empty;
+  logic [NumVC-1:0]                 floo_req_vc_not_full;
+  logic [NumVC-1:0]                 floo_rsp_vc_not_full;
+  logic [NumVC-1:0]                 floo_wide_vc_not_full;
 
   // VC Selection / Assignment
 
@@ -357,7 +358,7 @@ module floo_vc_narrow_wide_chimney
 
   if (CutRsp) begin : gen_floo_input_fifos
     floo_input_fifo #(
-    .Depth  ( VCDepth ),
+    .Depth  ( InputFifoDepth ),
     .type_t ( floo_req_chan_t )
     ) i_narrow_data_req_arb (
       .clk_i,
@@ -370,7 +371,7 @@ module floo_vc_narrow_wide_chimney
     );
 
     floo_input_fifo #(
-    .Depth  ( VCDepth ),
+    .Depth  ( InputFifoDepth ),
     .type_t ( floo_rsp_chan_t )
     ) i_narrow_data_rsp_arb (
       .clk_i,
@@ -383,7 +384,7 @@ module floo_vc_narrow_wide_chimney
     );
 
     floo_input_fifo #(
-    .Depth  ( VCDepth ),
+    .Depth  ( InputFifoDepth ),
     .type_t ( floo_wide_chan_t )
     ) i_wide_data_req_arb (
       .clk_i,
@@ -1028,26 +1029,20 @@ module floo_vc_narrow_wide_chimney
   /////////////////////
 
   // these Credit counters count the credits (towards the input port of the router)
-
-  for (genvar vc = 0; vc < NumVC; vc++) begin : gen_check_credit_counters
-    assign floo_req_credit_counter_not_empty[vc] = |floo_req_credit_counter[vc];
-    assign floo_rsp_credit_counter_not_empty[vc] = |floo_rsp_credit_counter[vc];
-    assign floo_wide_credit_counter_not_empty[vc] = |floo_wide_credit_counter[vc];
-  end
-
-
   floo_credit_counter
   #(
     .NumVC                          (NumVC),
     .NumVCWidthMax                  (NumVCWidth),
-    .VCDepth                        (VCDepth)
+    .VCDepth                        (VCDepth),
+    .DeeperVCId                     (WormholeVCId),
+    .DeeperVCDepth                  (WormholeVCDepth)
   )
   i_floo_req_credit_counter (
     .credit_v_i                     (floo_req_i.credit_v),
     .credit_id_i                    (floo_req_i.credit_id[NumVCWidth-1:0]),
     .consume_credit_v_i             (floo_req_o.valid),
     .consume_credit_id_i            (floo_req_vc_id[NumVCWidth-1:0]),
-    .credit_counter_o               (floo_req_credit_counter),
+    .vc_not_full_o                  (floo_req_vc_not_full),
     .clk_i,
     .rst_ni
   );
@@ -1056,14 +1051,16 @@ module floo_vc_narrow_wide_chimney
   #(
     .NumVC                          (NumVC),
     .NumVCWidthMax                  (NumVCWidth),
-    .VCDepth                        (VCDepth)
+    .VCDepth                        (VCDepth),
+    .DeeperVCId                     (WormholeVCId),
+    .DeeperVCDepth                  (WormholeVCDepth)
   )
   i_floo_rsp_credit_counter (
     .credit_v_i                     (floo_rsp_i.credit_v),
     .credit_id_i                    (floo_rsp_i.credit_id[NumVCWidth-1:0]),
     .consume_credit_v_i             (floo_rsp_o.valid),
     .consume_credit_id_i            (floo_rsp_vc_id[NumVCWidth-1:0]),
-    .credit_counter_o               (floo_rsp_credit_counter),
+    .vc_not_full_o                  (floo_rsp_vc_not_full),
     .clk_i,
     .rst_ni
   );
@@ -1072,14 +1069,16 @@ module floo_vc_narrow_wide_chimney
   #(
     .NumVC                          (NumVC),
     .NumVCWidthMax                  (NumVCWidth),
-    .VCDepth                        (VCDepth)
+    .VCDepth                        (VCDepth),
+    .DeeperVCId                     (WormholeVCId),
+    .DeeperVCDepth                  (WormholeVCDepth)
   )
   i_floo_wide_credit_counter (
     .credit_v_i                     (floo_wide_i.credit_v),
     .credit_id_i                    (floo_wide_i.credit_id[NumVCWidth-1:0]),
     .consume_credit_v_i             (floo_wide_o.valid),
     .consume_credit_id_i            (floo_wide_vc_id[NumVCWidth-1:0]),
-    .credit_counter_o               (floo_wide_credit_counter),
+    .vc_not_full_o                  (floo_wide_vc_not_full),
     .clk_i,
     .rst_ni
   );
@@ -1115,39 +1114,39 @@ module floo_vc_narrow_wide_chimney
       floo_rsp_vc_selection_id [vc]      = '0;
       floo_wide_vc_selection_v  [vc]      = '0;
       floo_wide_vc_selection_id [vc]      = '0;
-      if(floo_req_credit_counter_not_empty[vc]) begin // the preferred output port vc has space
+      if(floo_req_vc_not_full[vc]) begin // the preferred output port vc has space
         floo_req_vc_selection_v  [vc]    = 1'b1;
         floo_req_vc_selection_id [vc]    = vc[NumVCWidth-1:0];
       end else begin // the preferred output port vc has no space, try other vc
         for(int o_vc = 0; o_vc < NumVC; o_vc++) begin
           if(o_vc != vc) begin
-            if(floo_req_credit_counter_not_empty[o_vc]) begin
+            if(floo_req_vc_not_full[o_vc]) begin
               floo_req_vc_selection_v [vc] = 1'b1;
               floo_req_vc_selection_id[vc] = o_vc[NumVCWidth-1:0];
             end
           end
         end
       end
-      if(floo_rsp_credit_counter_not_empty[vc]) begin // the preferred output port vc has space
+      if(floo_rsp_vc_not_full[vc]) begin // the preferred output port vc has space
         floo_rsp_vc_selection_v  [vc]    = 1'b1;
         floo_rsp_vc_selection_id [vc]    = vc[NumVCWidth-1:0];
       end else begin // the preferred output port vc has no space, try other vc
         for(int o_vc = 0; o_vc < NumVC; o_vc++) begin
           if(o_vc != vc) begin
-            if(floo_rsp_credit_counter_not_empty[o_vc]) begin
+            if(floo_rsp_vc_not_full[o_vc]) begin
               floo_rsp_vc_selection_v [vc] = 1'b1;
               floo_rsp_vc_selection_id[vc] = o_vc[NumVCWidth-1:0];
             end
           end
         end
       end
-      if(floo_wide_credit_counter_not_empty[vc]) begin // the preferred output port vc has space
+      if(floo_wide_vc_not_full[vc]) begin // the preferred output port vc has space
         floo_wide_vc_selection_v  [vc]    = 1'b1;
         floo_wide_vc_selection_id [vc]    = vc[NumVCWidth-1:0];
       end else begin // the preferred output port vc has no space, try other vc
         for(int o_vc = 0; o_vc < NumVC; o_vc++) begin
           if(o_vc != vc) begin
-            if(floo_wide_credit_counter_not_empty[o_vc]) begin
+            if(floo_wide_vc_not_full[o_vc]) begin
               floo_wide_vc_selection_v [vc] = 1'b1;
               floo_wide_vc_selection_id[vc] = o_vc[NumVCWidth-1:0];
             end
@@ -1171,16 +1170,22 @@ module floo_vc_narrow_wide_chimney
           floo_req_lookahead==South ? (OutputDir==East ? 1 : 2) :
           OutputDir==East ? 2 : 1;
   always_comb begin
-    if(floo_req_i.credit_v && floo_req_i.credit_id == floo_req_pref_vc_id) begin
-      floo_req_vc_id = floo_req_pref_vc_id;
-      floo_req_o.valid = floo_req_arb_v;
+    if(FixedWormholeVC==1 && (~floo_req_arb_sel_hdr.last | floo_req_wormhole_v)) begin
+      floo_req_vc_id = WormholeVCId;
+      floo_req_o.valid = floo_req_arb_v & (floo_req_vc_not_full[WormholeVCId] |
+          (floo_req_i.credit_v && floo_req_i.credit_id == WormholeVCId));
     end else begin
-      floo_req_vc_id =
-        {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_req_vc_selection_id[floo_req_pref_vc_id]};
-      // need the assigned vc_id to be the preffered one if not last or wormhole
-      floo_req_o.valid  = floo_req_vc_selection_v[floo_req_pref_vc_id] & floo_req_arb_v
-          & (~(~floo_req_arb_sel_hdr.last | floo_req_wormhole_v) |
-          (floo_req_vc_id == floo_req_pref_vc_id));
+      if(floo_req_i.credit_v && floo_req_i.credit_id == floo_req_pref_vc_id) begin
+        floo_req_vc_id = floo_req_pref_vc_id;
+        floo_req_o.valid = floo_req_arb_v;
+      end else begin
+        floo_req_vc_id =
+          {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_req_vc_selection_id[floo_req_pref_vc_id]};
+        // need the assigned vc_id to be the preffered one if not last or wormhole
+        floo_req_o.valid  = floo_req_vc_selection_v[floo_req_pref_vc_id] & floo_req_arb_v
+            & (FixedWormholeVC==1 | ~(~floo_req_arb_sel_hdr.last | floo_req_wormhole_v) |
+            (floo_req_vc_id == floo_req_pref_vc_id));
+      end
     end
   end
 
@@ -1193,16 +1198,22 @@ module floo_vc_narrow_wide_chimney
           floo_rsp_lookahead==South ? (OutputDir==East ? 1 : 2) :
           OutputDir==East ? 2 : 1;
   always_comb begin
-    if(floo_rsp_i.credit_v && floo_rsp_i.credit_id == floo_rsp_pref_vc_id) begin
-      floo_rsp_vc_id = floo_rsp_pref_vc_id;
-      floo_rsp_o.valid = floo_rsp_arb_v;
+    if(FixedWormholeVC==1 && (~floo_rsp_arb_sel_hdr.last | floo_rsp_wormhole_v)) begin
+      floo_rsp_vc_id = WormholeVCId;
+      floo_rsp_o.valid = floo_rsp_arb_v & (floo_rsp_vc_not_full[WormholeVCId] |
+          (floo_rsp_i.credit_v && floo_rsp_i.credit_id == WormholeVCId));
     end else begin
-      floo_rsp_vc_id =
-        {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_rsp_vc_selection_id[floo_rsp_pref_vc_id]};
-      // need the assigned vc_id to be the preffered one if not last or wormhole
-      floo_rsp_o.valid  = floo_rsp_vc_selection_v[floo_rsp_pref_vc_id] & floo_rsp_arb_v
-          & (~(~floo_rsp_arb_sel_hdr.last | floo_rsp_wormhole_v) |
-          (floo_rsp_vc_id == floo_rsp_pref_vc_id));
+      if(floo_rsp_i.credit_v && floo_rsp_i.credit_id == floo_rsp_pref_vc_id) begin
+        floo_rsp_vc_id = floo_rsp_pref_vc_id;
+        floo_rsp_o.valid = floo_rsp_arb_v;
+      end else begin
+        floo_rsp_vc_id =
+          {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_rsp_vc_selection_id[floo_rsp_pref_vc_id]};
+        // need the assigned vc_id to be the preffered one if not last or wormhole
+        floo_rsp_o.valid  = floo_rsp_vc_selection_v[floo_rsp_pref_vc_id] & floo_rsp_arb_v
+            & (FixedWormholeVC==1 | ~(~floo_rsp_arb_sel_hdr.last | floo_rsp_wormhole_v) |
+            (floo_rsp_vc_id == floo_rsp_pref_vc_id));
+      end
     end
   end
 
@@ -1215,16 +1226,22 @@ module floo_vc_narrow_wide_chimney
           floo_wide_lookahead==South ? (OutputDir==East ? 1 : 2) :
           OutputDir==East ? 2 : 1;
   always_comb begin
-    if(floo_wide_i.credit_v && floo_wide_i.credit_id == floo_wide_pref_vc_id) begin
-      floo_wide_vc_id = floo_wide_pref_vc_id;
-      floo_wide_o.valid = floo_wide_arb_v;
+    if(FixedWormholeVC==1 && (~floo_wide_arb_sel_hdr.last | floo_wide_wormhole_v)) begin
+      floo_wide_vc_id = WormholeVCId;
+      floo_wide_o.valid = floo_wide_arb_v & (floo_wide_vc_not_full[WormholeVCId] |
+          (floo_wide_i.credit_v && floo_wide_i.credit_id == WormholeVCId));
     end else begin
-      floo_wide_vc_id =
-        {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_wide_vc_selection_id[floo_wide_pref_vc_id]};
-      // need the assigned vc_id to be the preffered one if not last or wormhole
-      floo_wide_o.valid  = floo_wide_vc_selection_v[floo_wide_pref_vc_id] & floo_wide_arb_v
-          & (~(~floo_wide_arb_sel_hdr.last | floo_wide_wormhole_v) |
-          (floo_wide_vc_id == floo_wide_pref_vc_id));
+      if(floo_wide_i.credit_v && floo_wide_i.credit_id == floo_wide_pref_vc_id) begin
+        floo_wide_vc_id = floo_wide_pref_vc_id;
+        floo_wide_o.valid = floo_wide_arb_v;
+      end else begin
+        floo_wide_vc_id =
+          {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_wide_vc_selection_id[floo_wide_pref_vc_id]};
+        // need the assigned vc_id to be the preffered one if not last or wormhole
+        floo_wide_o.valid  = floo_wide_vc_selection_v[floo_wide_pref_vc_id] & floo_wide_arb_v
+            & (FixedWormholeVC==1 | ~(~floo_wide_arb_sel_hdr.last | floo_wide_wormhole_v) |
+            (floo_wide_vc_id == floo_wide_pref_vc_id));
+      end
     end
   end
 

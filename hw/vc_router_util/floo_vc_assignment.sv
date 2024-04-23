@@ -11,14 +11,17 @@ module floo_vc_assignment import floo_pkg::*;#(
   parameter int NumVCWidthMax = 2,
   parameter int NumInputs     = 4,
   parameter route_algo_e RouteAlgo = XYRouting,
-  parameter int OutputId      = 0
+  parameter int OutputId      = 0,
+  parameter int FixedWormholeVC = 1, // if 1, wormhole flits are all sent to wormholeVCId
+  parameter int WormholeVCId  = 0
 ) (
   input logic                                   sa_global_v_i,
   input logic   [NumInputs-1:0]                 sa_global_input_dir_oh_i,
   input route_direction_e [NumInputs-1:0]       look_ahead_routing_i,
   input logic   [NumVC-1:0]                     vc_selection_v_i, //for each dir, found a vc?
   input logic   [NumVC-1:0][NumVCWidthMax-1:0]  vc_selection_id_i, //for each dir which vc assigned?
-  input logic                                   require_correct_vc_i,
+  input logic   [NumVC-1:0]                     vc_not_full_i,
+  input logic                                   require_wormhole_vc_i,
   input logic                                   credit_v_i,
   input logic   [NumVCWidthMax-1:0]             credit_id_i,
 
@@ -90,13 +93,19 @@ end else begin : gen_multiple_vcs
     vc_assignment_v_o = '0;
     vc_assignment_id = '0;
     if(sa_global_v_i) begin
-      if(credit_v_i && credit_id_i == preferred_vc_id) begin : credit_shortcut
-        vc_assignment_id = preferred_vc_id[NumVCWidth-1:0];
-        vc_assignment_v_o = 1'b1;
+      if(FixedWormholeVC == 1 && require_wormhole_vc_i) begin
+        vc_assignment_id = WormholeVCId;
+        vc_assignment_v_o = vc_not_full_i[WormholeVCId]
+                        | (credit_v_i && credit_id_i == WormholeVCId);
       end else begin
-        vc_assignment_id = vc_selection_id[preferred_vc_id];
-        vc_assignment_v_o  = vc_selection_v_i[preferred_vc_id]
-              & (~require_correct_vc_i | (vc_assignment_id == preferred_vc_id));
+        if(credit_v_i && credit_id_i == preferred_vc_id) begin : credit_shortcut
+          vc_assignment_id = preferred_vc_id[NumVCWidth-1:0];
+          vc_assignment_v_o = 1'b1;
+        end else begin
+          vc_assignment_id = vc_selection_id[preferred_vc_id];
+          vc_assignment_v_o  = vc_selection_v_i[preferred_vc_id]
+            & (FixedWormholeVC==1 | ~require_wormhole_vc_i |(vc_assignment_id == preferred_vc_id));
+        end
       end
     end
   end

@@ -29,6 +29,11 @@ module floo_vc_narrow_wide_router
 
     parameter int           VCDepth                     = 2,
     parameter int           VCDepthWidth                = $clog2(VCDepth+1),
+    parameter int           FixedWormholeVC             = 1,
+    parameter int           WormholeVCId    [NumPorts]  = {0,1,0,2,0}, // as seen from output port
+    parameter int           WormholeVCDepth             = 3,
+    parameter int           AllowOverflowFromDeeperVC   = 0,
+
     // Route Algorithm stuff
     parameter route_algo_e  RouteAlgo                   = XYRouting,
     /// Used for ID-based and XY routing
@@ -103,6 +108,10 @@ module floo_vc_narrow_wide_router
     .NumInputSaGlobal   (NumInputSaGlobal),
     .VCDepth            (VCDepth),
     .VCDepthWidth       (VCDepthWidth),
+    .FixedWormholeVC    (FixedWormholeVC),
+    .WormholeVCDepth    (WormholeVCDepth),
+    .WormholeVCId       (WormholeVCId),
+    .AllowOverflowFromDeeperVC(AllowOverflowFromDeeperVC),
     .RouteAlgo          (RouteAlgo),
     .flit_t             (floo_req_generic_flit_t),
     .hdr_t              (hdr_t),
@@ -138,6 +147,10 @@ module floo_vc_narrow_wide_router
     .NumInputSaGlobal   (NumInputSaGlobal),
     .VCDepth            (VCDepth),
     .VCDepthWidth       (VCDepthWidth),
+    .FixedWormholeVC    (FixedWormholeVC),
+    .WormholeVCDepth    (WormholeVCDepth),
+    .WormholeVCId       (WormholeVCId),
+    .AllowOverflowFromDeeperVC(AllowOverflowFromDeeperVC),
     .RouteAlgo          (RouteAlgo),
     .flit_t             (floo_rsp_generic_flit_t),
     .hdr_t              (hdr_t),
@@ -173,6 +186,10 @@ module floo_vc_narrow_wide_router
     .NumInputSaGlobal   (NumInputSaGlobal),
     .VCDepth            (VCDepth),
     .VCDepthWidth       (VCDepthWidth),
+    .FixedWormholeVC    (FixedWormholeVC),
+    .WormholeVCDepth    (WormholeVCDepth),
+    .WormholeVCId       (WormholeVCId),
+    .AllowOverflowFromDeeperVC(AllowOverflowFromDeeperVC),
     .RouteAlgo          (RouteAlgo),
     .flit_t             (floo_wide_generic_flit_t),
     .hdr_t              (hdr_t),

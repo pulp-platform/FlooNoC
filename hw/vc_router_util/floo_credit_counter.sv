@@ -11,7 +11,9 @@ module floo_credit_counter #(
   parameter int NumVCWidth    = NumVC > 1 ? $clog2(NumVC) : 1,
   parameter int NumVCWidthMax = 2,
   parameter int VCDepth       = 2,
-  parameter int VCDepthWidth  = $clog2(VCDepth+1)
+  parameter int VCDepthWidth  = $clog2(VCDepth+1),
+  parameter int DeeperVCId    = 0,
+  parameter int DeeperVCDepth = 2
 ) (
   input logic                                     credit_v_i,
   input logic       [NumVCWidthMax-1:0]           credit_id_i,
@@ -19,7 +21,7 @@ module floo_credit_counter #(
   input logic                                     consume_credit_v_i,
   input logic       [NumVCWidthMax-1:0]           consume_credit_id_i,
 
-  output logic      [NumVC-1:0][VCDepthWidth-1:0] credit_counter_o,
+  output logic      [NumVC-1:0]                   vc_not_full_o,
 
   input logic                                     clk_i,
   input logic                                     rst_ni
@@ -38,10 +40,12 @@ for (genvar vc = 0; vc < NumVC; vc++) begin : gen_credit_counters
       credit_counter_d[vc] = credit_counter_q[vc] - 1;
     end
 
-  `FF(credit_counter_q[vc], credit_counter_d[vc], VCDepth[VCDepthWidth-1:0])
+  `FF(credit_counter_q[vc], credit_counter_d[vc],
+    vc == DeeperVCId ? DeeperVCDepth[VCDepthWidth-1:0] : VCDepth[VCDepthWidth-1:0])
 end
 
-assign credit_counter_o = credit_counter_q;
-
+for (genvar vc = 0; vc < NumVC; vc++) begin : gen_check_credit_counter
+  assign vc_not_full_o[vc] = |credit_counter_q[vc];
+end
 
 endmodule

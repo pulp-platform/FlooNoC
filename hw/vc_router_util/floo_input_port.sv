@@ -14,7 +14,9 @@ module floo_input_port #(
   parameter type flit_payload_t = logic[DataLength-1:0],
   parameter int NumVC = 4,
   parameter int NumVCWidth = 2,
-  parameter int VCDepth  = 3
+  parameter int VCDepth  = 3,
+  parameter int DeeperVCId = 0,
+  parameter int DeeperVCDepth = 2
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -64,7 +66,7 @@ end
 // data fifo -> hdr is always before payload in flits
 for(genvar v_chan = 0; v_chan < NumVC; v_chan++) begin: gen_data_fifos
   floo_input_fifo #(
-    .Depth  (VCDepth),
+    .Depth  (v_chan == DeeperVCId ? DeeperVCDepth : VCDepth),
     .type_t (flit_payload_t)
   ) i_data_fifo (
     .clk_i,
@@ -80,7 +82,7 @@ end
 // ctrl fifo -> hdr is always before payload in flits
 for(genvar v_chan = 0; v_chan < NumVC; v_chan++) begin: gen_ctrl_fifos
   floo_input_fifo #(
-      .Depth  (VCDepth),
+      .Depth  (v_chan == DeeperVCId ? DeeperVCDepth : VCDepth),
       .type_t (hdr_t)
     ) i_data_fifo (
       .clk_i,
