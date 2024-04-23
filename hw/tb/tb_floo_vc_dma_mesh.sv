@@ -42,8 +42,8 @@ module tb_floo_vc_dma_mesh;
   localparam int unsigned NarrowMaxTxns = 32;
   localparam int unsigned WideMaxTxns = 32;
   localparam int unsigned ChannelFifoDepth = 2;
-  localparam int unsigned WormholeVCDepth = 2;
-  localparam int unsigned FixedWormholeVC = 0;
+  localparam int unsigned WormholeVCDepth = 3;
+  localparam int unsigned FixedWormholeVC = 1;
   localparam int unsigned AllowOverflowFromDeeperVC = 1;
   localparam int unsigned UpdateRRArbIfNotSent = 0;
 
