@@ -44,7 +44,7 @@ module tb_floo_vc_dma_mesh;
   localparam int unsigned ChannelFifoDepth = 2;
   localparam int unsigned WormholeVCDepth = 3;
   localparam int unsigned FixedWormholeVC = 1;
-  localparam int unsigned AllowOverflowFromDeeperVC = 0;
+  localparam int unsigned AllowOverflowFromDeeperVC = 1;
 
   logic clk, rst_n;
 
