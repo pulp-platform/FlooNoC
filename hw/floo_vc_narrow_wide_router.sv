@@ -26,7 +26,7 @@ module floo_vc_narrow_wide_router
     parameter int           NumInputSaGlobal[NumPorts]  =
       {3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 4+NumLocalPorts-1},
       // to dir N,E,S,W,L0(,L1,L2,L3)
-
+    parameter int           UpdateRRArbIfNotSent        = 1,
     parameter int           VCDepth                     = 2,
     parameter int           VCDepthWidth                = $clog2(VCDepth+1),
     parameter int           FixedWormholeVC             = 1,
@@ -106,6 +106,7 @@ module floo_vc_narrow_wide_router
     .NumVCToOutMax      (NumVCToOutMax),
     .NumVCWidthToOutMax (NumVCWidthToOutMax),
     .NumInputSaGlobal   (NumInputSaGlobal),
+    .UpdateRRArbIfNotSent(UpdateRRArbIfNotSent),
     .VCDepth            (VCDepth),
     .VCDepthWidth       (VCDepthWidth),
     .FixedWormholeVC    (FixedWormholeVC),
@@ -145,6 +146,7 @@ module floo_vc_narrow_wide_router
     .NumVCToOutMax      (NumVCToOutMax),
     .NumVCWidthToOutMax (NumVCWidthToOutMax),
     .NumInputSaGlobal   (NumInputSaGlobal),
+    .UpdateRRArbIfNotSent(UpdateRRArbIfNotSent),
     .VCDepth            (VCDepth),
     .VCDepthWidth       (VCDepthWidth),
     .FixedWormholeVC    (FixedWormholeVC),
@@ -184,6 +186,7 @@ module floo_vc_narrow_wide_router
     .NumVCToOutMax      (NumVCToOutMax),
     .NumVCWidthToOutMax (NumVCWidthToOutMax),
     .NumInputSaGlobal   (NumInputSaGlobal),
+    .UpdateRRArbIfNotSent(UpdateRRArbIfNotSent),
     .VCDepth            (VCDepth),
     .VCDepthWidth       (VCDepthWidth),
     .FixedWormholeVC    (FixedWormholeVC),

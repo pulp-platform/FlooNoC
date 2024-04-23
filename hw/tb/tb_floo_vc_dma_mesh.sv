@@ -42,9 +42,10 @@ module tb_floo_vc_dma_mesh;
   localparam int unsigned NarrowMaxTxns = 32;
   localparam int unsigned WideMaxTxns = 32;
   localparam int unsigned ChannelFifoDepth = 2;
-  localparam int unsigned WormholeVCDepth = 3;
-  localparam int unsigned FixedWormholeVC = 1;
+  localparam int unsigned WormholeVCDepth = 2;
+  localparam int unsigned FixedWormholeVC = 0;
   localparam int unsigned AllowOverflowFromDeeperVC = 1;
+  localparam int unsigned UpdateRRArbIfNotSent = 0;
 
   logic clk, rst_n;
 
@@ -398,6 +399,7 @@ module tb_floo_vc_dma_mesh;
         .FixedWormholeVC            (FixedWormholeVC),
         .WormholeVCDepth            (WormholeVCDepth),
         .AllowOverflowFromDeeperVC  (AllowOverflowFromDeeperVC),
+        .UpdateRRArbIfNotSent       (UpdateRRArbIfNotSent),
         .WormholeVCId               ({int'(0),int'(1),int'(0),int'(2),int'(0)})
       ) i_router (
         .clk_i          ( clk         ),
