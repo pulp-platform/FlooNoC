@@ -64,7 +64,7 @@ module floo_vc_narrow_wide_chimney
   parameter route_direction_e OutputDir           = Eject,
 
   parameter int NumVC                            = 4, // as seen from chimney
-  parameter int NumVCWidth                       = $clog2(NumVC),
+  parameter int NumVCWidth                       = NumVC > 1 ? $clog2(NumVC) : 1,
   parameter int InputFifoDepth                   = 3,
   parameter int VCDepth                          = 2,
   parameter int FixedWormholeVC                  = 1, // if 1, force wormhole flits to wormholeVCId
@@ -1161,14 +1161,14 @@ module floo_vc_narrow_wide_chimney
   // Issue: this chimney might not be the only chimney connected to the router
   // Other Issue: if not connected to Eject, it is somewhat complicated:
   // N: S,Ej, E: N,S,W,Ej, S: N,Ej, W: N,E,S,Ej
-  assign floo_req_pref_vc_id = OutputDir >= Eject ?
+  assign floo_req_pref_vc_id = (OutputDir >= Eject ?
         (floo_req_lookahead > OutputDir ? floo_req_lookahead - 1 : floo_req_lookahead) :
         floo_req_lookahead >= Eject ?
           (floo_req_lookahead - Eject + (OutputDir==North || OutputDir==South ? 1: 3)) :
           OutputDir==North || OutputDir==South ? 0 :
           floo_req_lookahead==North ? 0 :
           floo_req_lookahead==South ? (OutputDir==East ? 1 : 2) :
-          OutputDir==East ? 2 : 1;
+          OutputDir==East ? 2 : 1) % NumVC;
   always_comb begin
     if(FixedWormholeVC==1 && (~floo_req_arb_sel_hdr.last | floo_req_wormhole_v)) begin
       floo_req_vc_id = WormholeVCId;
@@ -1189,14 +1189,14 @@ module floo_vc_narrow_wide_chimney
     end
   end
 
-  assign floo_rsp_pref_vc_id = OutputDir >= Eject ?
+  assign floo_rsp_pref_vc_id = (OutputDir >= Eject ?
         (floo_rsp_lookahead > OutputDir ? floo_rsp_lookahead - 1 : floo_rsp_lookahead) :
         floo_rsp_lookahead >= Eject ?
           (floo_rsp_lookahead - Eject + (OutputDir==North || OutputDir==South ? 1: 3)) :
           OutputDir==North || OutputDir==South ? 0 :
           floo_rsp_lookahead==North ? 0 :
           floo_rsp_lookahead==South ? (OutputDir==East ? 1 : 2) :
-          OutputDir==East ? 2 : 1;
+          OutputDir==East ? 2 : 1) % NumVC;
   always_comb begin
     if(FixedWormholeVC==1 && (~floo_rsp_arb_sel_hdr.last | floo_rsp_wormhole_v)) begin
       floo_rsp_vc_id = WormholeVCId;
@@ -1217,14 +1217,14 @@ module floo_vc_narrow_wide_chimney
     end
   end
 
-  assign floo_wide_pref_vc_id = OutputDir >= Eject ?
+  assign floo_wide_pref_vc_id = (OutputDir >= Eject ?
         (floo_wide_lookahead > OutputDir ? floo_wide_lookahead - 1 : floo_wide_lookahead) :
         floo_wide_lookahead >= Eject ?
           (floo_wide_lookahead - Eject + (OutputDir==North || OutputDir==South ? 1: 3)) :
           OutputDir==North || OutputDir==South ? 0 :
           floo_wide_lookahead==North ? 0 :
           floo_wide_lookahead==South ? (OutputDir==East ? 1 : 2) :
-          OutputDir==East ? 2 : 1;
+          OutputDir==East ? 2 : 1) % NumVC;
   always_comb begin
     if(FixedWormholeVC==1 && (~floo_wide_arb_sel_hdr.last | floo_wide_wormhole_v)) begin
       floo_wide_vc_id = WormholeVCId;
