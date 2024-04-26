@@ -25,7 +25,7 @@ module floo_vc_router import floo_pkg::*; #(
   parameter int           NumInputSaGlobal[NumPorts]  =
     {3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 4+NumLocalPorts-1},
     // to dir N,E,S,W,L0(,L1,L2,L3)
-  parameter int           UpdateRRArbIfNotSent        = 1,
+  parameter int           UpdateRRArbIfNotSent        = 0, //doesnt seem to work
 
   parameter int           VCDepth                     = 2,
   parameter int           FixedWormholeVC             = 1,
