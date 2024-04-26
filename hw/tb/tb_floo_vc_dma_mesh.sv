@@ -41,13 +41,15 @@ module tb_floo_vc_dma_mesh;
   localparam int unsigned WideReorderBufferSize = 32'd64;
   localparam int unsigned NarrowMaxTxns = 32;
   localparam int unsigned WideMaxTxns = 32;
-  localparam int unsigned ChannelFifoDepth = 2;
-  localparam int unsigned WormholeVCDepth = 2;
-  localparam int unsigned FixedWormholeVC = 0;
-  localparam int unsigned AllowOverflowFromDeeperVC = 1;
-  localparam int unsigned UpdateRRArbIfNotSent = 0;
-  localparam int unsigned NumVCLocal = 1; // 4 would be 1 per direction
-  localparam int unsigned Only1VC = 1;
+
+  localparam int unsigned ChannelFifoDepth = 2; // VCDepth
+  localparam int unsigned WormholeVCDepth = 2;  // >= ChannelFifoDepth
+  localparam int unsigned FixedWormholeVC = 0;  // send all Wormhole flits to same VC
+  localparam int unsigned AllowVCOverflow = 0;  // 1: FVADA, 0: fixed VC, direction based
+  localparam int unsigned AllowOverflowFromDeeperVC = 0; // can be overwritten by AllowVCOverflow=0
+  localparam int unsigned UpdateRRArbIfNotSent = 0; // does not work
+  localparam int unsigned NumVCLocal = 4;       // 4 would be 1 per direction
+  localparam int unsigned Only1VC = 0;          // tiny standart router
 
   logic clk, rst_n;
 
@@ -219,6 +221,7 @@ module tb_floo_vc_dma_mesh;
       .NumVC                    (Only1VC? 1 : (i==North||i==South)? 2:4),
       .InputFifoDepth           ( WormholeVCDepth         ),
       .VCDepth                  ( ChannelFifoDepth        ),
+      .AllowVCOverflow          ( AllowVCOverflow         ),
       .FixedWormholeVC          ( FixedWormholeVC         ),
       .WormholeVCId             (i==East? 2: i==West? 1: 0),
       .WormholeVCDepth          ( WormholeVCDepth         )
@@ -361,6 +364,7 @@ module tb_floo_vc_dma_mesh;
         .InputFifoDepth           ( WormholeVCDepth         ),
         .NumVC                    ( NumVCLocal              ),
         .VCDepth                  ( ChannelFifoDepth        ),
+        .AllowVCOverflow          ( AllowVCOverflow         ),
         .FixedWormholeVC          ( FixedWormholeVC         ),
         .WormholeVCId             ( 0                       ),
         .WormholeVCDepth          ( WormholeVCDepth         )
@@ -403,6 +407,7 @@ module tb_floo_vc_dma_mesh;
             int'(x==0 ?      1 : 4),
             int'(1)}),      // only 1 towards hbm
         .VCDepth                    ( ChannelFifoDepth        ),
+        .AllowVCOverflow            ( AllowVCOverflow         ),
         .FixedWormholeVC            ( FixedWormholeVC         ),
         .WormholeVCDepth            ( WormholeVCDepth         ),
         .AllowOverflowFromDeeperVC  (AllowOverflowFromDeeperVC),
