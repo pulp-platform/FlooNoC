@@ -42,10 +42,12 @@ module tb_floo_vc_dma_mesh;
   localparam int unsigned NarrowMaxTxns = 32;
   localparam int unsigned WideMaxTxns = 32;
   localparam int unsigned ChannelFifoDepth = 2;
-  localparam int unsigned WormholeVCDepth = 3;
-  localparam int unsigned FixedWormholeVC = 1;
-  localparam int unsigned AllowOverflowFromDeeperVC = 0;
+  localparam int unsigned WormholeVCDepth = 2;
+  localparam int unsigned FixedWormholeVC = 0;
+  localparam int unsigned AllowOverflowFromDeeperVC = 1;
   localparam int unsigned UpdateRRArbIfNotSent = 0;
+  localparam int unsigned NumVCLocal = 1; // 4 would be 1 per direction
+  localparam int unsigned Only1VC = 1;
 
   logic clk, rst_n;
 
@@ -214,7 +216,7 @@ module tb_floo_vc_dma_mesh;
       .CutRsp                   ( CutRsp                  ),
       .NumRoutes                ( int'(NumDirections)     ),
       .OutputDir                ( route_direction_e'(i)   ),
-      .NumVC                    ((i==North||i==South)? 2:4),
+      .NumVC                    (Only1VC? 1 : (i==North||i==South)? 2:4),
       .InputFifoDepth           ( WormholeVCDepth         ),
       .VCDepth                  ( ChannelFifoDepth        ),
       .FixedWormholeVC          ( FixedWormholeVC         ),
@@ -357,6 +359,7 @@ module tb_floo_vc_dma_mesh;
         .NumRoutes                ( int'(NumDirections)     ),
         .OutputDir                ( Eject                   ),
         .InputFifoDepth           ( WormholeVCDepth         ),
+        .NumVC                    ( NumVCLocal              ),
         .VCDepth                  ( ChannelFifoDepth        ),
         .FixedWormholeVC          ( FixedWormholeVC         ),
         .WormholeVCId             ( 0                       ),
@@ -386,21 +389,27 @@ module tb_floo_vc_dma_mesh;
       );
 
       floo_vc_narrow_wide_router #(
-        .NumPorts       ( int'(NumDirections)),
-        .RouteAlgo      ( RouteAlgo         ),
-        .id_t           ( id_t              ),
-        // only 1 towards hbm
-        .NumVCToOut     ({int'(y==NumY-1 ? 1 : 2),
-                          int'(x==NumX-1 ? 1 : 4),
-                          int'(y==0 ?      1 : 2),
-                          int'(x==0 ?      1 : 4),
-                          int'(1)}          ),
-        .VCDepth          ( ChannelFifoDepth  ),
-        .FixedWormholeVC            (FixedWormholeVC),
-        .WormholeVCDepth            (WormholeVCDepth),
+        .NumPorts                   ( int'(NumDirections)     ),
+        .NumVC                      ( Only1VC ?
+              {int'(1), int'(1), int'(1), int'(1), NumVCLocal} : // no vc
+              {int'(2), int'(4), int'(2), int'(4), NumVCLocal}),
+        .RouteAlgo                  ( RouteAlgo               ),
+        .id_t                       ( id_t                    ),
+        .NumVCToOut                 ( Only1VC ?
+            {int'(1), int'(1), int'(1), int'(1), int'(1)} :   // no vc
+            {int'(y==NumY-1 ? 1 : 2),
+            int'(x==NumX-1 ? 1 : 4),
+            int'(y==0 ?      1 : 2),
+            int'(x==0 ?      1 : 4),
+            int'(1)}),      // only 1 towards hbm
+        .VCDepth                    ( ChannelFifoDepth        ),
+        .FixedWormholeVC            ( FixedWormholeVC         ),
+        .WormholeVCDepth            ( WormholeVCDepth         ),
         .AllowOverflowFromDeeperVC  (AllowOverflowFromDeeperVC),
-        .UpdateRRArbIfNotSent       (UpdateRRArbIfNotSent),
-        .WormholeVCId               ({int'(0),int'(1),int'(0),int'(2),int'(0)})
+        .UpdateRRArbIfNotSent       (UpdateRRArbIfNotSent     ),
+        .WormholeVCId               ( Only1VC ?
+            {int'(0),int'(0),int'(0),int'(0),int'(0)} : // no vc
+            {int'(0),int'(1),int'(0),int'(2),int'(0)})  // straight on for xy routing
       ) i_router (
         .clk_i          ( clk         ),
         .rst_ni         ( rst_n       ),
