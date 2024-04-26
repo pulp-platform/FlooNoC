@@ -28,11 +28,12 @@ module floo_vc_router import floo_pkg::*; #(
   parameter int           UpdateRRArbIfNotSent        = 0, //doesnt seem to work
 
   parameter int           VCDepth                     = 2,
-  parameter int           FixedWormholeVC             = 1,
+  parameter int           AllowVCOverflow             = 1, // 1: FVADA, 0: fixed VC, direction based
+  parameter int           FixedWormholeVC             = 0, // send all Wormhole flits to same VC
   // Idea behind this: need depth 3 for continuous flow, since xy-routing: usually flits traverse straight through -> make that vc deeper
   parameter int           WormholeVCId    [NumPorts]  = {0,1,0,2,0}, // as seen from output port
   parameter int           WormholeVCDepth             = 3,
-  parameter int           AllowOverflowFromDeeperVC   = 0,
+  parameter int           AllowOverflowFromDeeperVC   = 1, //if 1 but AllowVCOverflow=0, overwritten
   parameter int           VCDepthWidth                = $clog2(VCDepth+1),
   parameter type          flit_t                      = logic,
   parameter type          hdr_t                       = logic,
@@ -302,6 +303,7 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_vc_select
     .NumVC                          (NumVCToOut             [out_port]),
     .NumVCWidthMax                  (NumVCWidthToOutMax),
     .VCDepth                        (VCDepth),
+    .AllowVCOverflow                (AllowVCOverflow),
     .AllowOverflowFromDeeperVC      (AllowOverflowFromDeeperVC),
     .DeeperVCId                     (WormholeVCId          [out_port])
   )

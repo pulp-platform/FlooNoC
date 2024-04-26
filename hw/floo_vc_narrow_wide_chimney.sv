@@ -65,6 +65,7 @@ module floo_vc_narrow_wide_chimney
 
   parameter int NumVC                            = 4, // as seen from chimney
   parameter int NumVCWidth                       = NumVC > 1 ? $clog2(NumVC) : 1,
+  parameter int AllowVCOverflow                  = 1,
   parameter int InputFifoDepth                   = 3,
   parameter int VCDepth                          = 2,
   parameter int FixedWormholeVC                  = 1, // if 1, force wormhole flits to wormholeVCId
@@ -1119,7 +1120,7 @@ module floo_vc_narrow_wide_chimney
         floo_req_vc_selection_id [vc]    = vc[NumVCWidth-1:0];
       end else begin // the preferred output port vc has no space, try other vc
         for(int o_vc = 0; o_vc < NumVC; o_vc++) begin
-          if(o_vc != vc) begin
+          if(AllowVCOverflow && o_vc != vc) begin
             if(floo_req_vc_not_full[o_vc]) begin
               floo_req_vc_selection_v [vc] = 1'b1;
               floo_req_vc_selection_id[vc] = o_vc[NumVCWidth-1:0];
@@ -1132,7 +1133,7 @@ module floo_vc_narrow_wide_chimney
         floo_rsp_vc_selection_id [vc]    = vc[NumVCWidth-1:0];
       end else begin // the preferred output port vc has no space, try other vc
         for(int o_vc = 0; o_vc < NumVC; o_vc++) begin
-          if(o_vc != vc) begin
+          if(AllowVCOverflow && o_vc != vc) begin
             if(floo_rsp_vc_not_full[o_vc]) begin
               floo_rsp_vc_selection_v [vc] = 1'b1;
               floo_rsp_vc_selection_id[vc] = o_vc[NumVCWidth-1:0];
@@ -1145,7 +1146,7 @@ module floo_vc_narrow_wide_chimney
         floo_wide_vc_selection_id [vc]    = vc[NumVCWidth-1:0];
       end else begin // the preferred output port vc has no space, try other vc
         for(int o_vc = 0; o_vc < NumVC; o_vc++) begin
-          if(o_vc != vc) begin
+          if(AllowVCOverflow && o_vc != vc) begin
             if(floo_wide_vc_not_full[o_vc]) begin
               floo_wide_vc_selection_v [vc] = 1'b1;
               floo_wide_vc_selection_id[vc] = o_vc[NumVCWidth-1:0];

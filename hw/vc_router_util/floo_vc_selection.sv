@@ -10,6 +10,7 @@ module floo_vc_selection #(
   parameter int NumVCWidth    = NumVC > 1 ? $clog2(NumVC) : 1,
   parameter int NumVCWidthMax = 2,    // in order to pad if necessary
   parameter int VCDepth       = 2,
+  parameter int AllowVCOverflow = 1,  // 1: FVADA, 0: fixed VC assignment
   parameter int VCDepthWidth  = $clog2(VCDepth+1),
   parameter int AllowOverflowFromDeeperVC = 0,
   parameter int DeeperVCId    = 0
@@ -27,7 +28,7 @@ for(genvar vc = 0; vc < NumVC; vc++) begin : gen_FVADA
       vc_selection_v_o  [vc]    = 1'b1;
       vc_selection_id_o [vc]    = {{(NumVCWidthMax - NumVCWidth){1'b0}},vc[NumVCWidth-1:0]};
     end else begin // the preferred output port vc has no space, try other vc
-      if(AllowOverflowFromDeeperVC || vc != DeeperVCId) begin
+      if(AllowVCOverflow && (AllowOverflowFromDeeperVC || vc != DeeperVCId)) begin
         for(int o_vc = 0; o_vc < NumVC; o_vc++) begin
           if(o_vc != vc) begin
             if(vc_not_full_i[o_vc]) begin
