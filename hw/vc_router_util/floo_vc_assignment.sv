@@ -74,19 +74,19 @@ end else begin : gen_multiple_vcs
     // N->S,E->W,S->N,W->E,L1->L1,...
     // 0->2,1->3,2->0,3->1, 4-> 4,...
     localparam int InputIdOnNextRouter = OutputId < 4 ? (OutputId + 2) % 4 : OutputId;
-    assign preferred_vc_id = look_ahead_routing_sel > InputIdOnNextRouter ?
-                    look_ahead_routing_sel - 3'b001 : look_ahead_routing_sel;
+    assign preferred_vc_id = (look_ahead_routing_sel > InputIdOnNextRouter ?
+                    look_ahead_routing_sel - 3'b001 : look_ahead_routing_sel) % NumVC;
   end
   else begin : gen_xy_routing_optimized
     // N: N,Ej, E: N,E,S,Ej, S: S,Ej, W: N,S,W,Ej
-    assign preferred_vc_id = (NumVCWidth)'(OutputId >= Eject ? 0 :
+    assign preferred_vc_id = ((NumVCWidth)'(OutputId >= Eject ? 0 :
           look_ahead_routing_sel >= Eject ?
             (OutputId==North || OutputId==South ? look_ahead_routing_sel - Eject + 1 :
                                                   look_ahead_routing_sel - Eject + 3) :
             OutputId==North || OutputId==South ? 0 :
             look_ahead_routing_sel==North ? 0 :
             look_ahead_routing_sel==South ? (OutputId==East ? 2 : 1) :
-            OutputId==East ? 1 : 2);
+            OutputId==East ? 1 : 2)) % NumVC;
   end
 
   always_comb begin
