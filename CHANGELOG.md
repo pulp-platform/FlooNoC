@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 - The generation of the unique ID has been changed resp. aligned for 2D meshes to increment Y-first and X-second. This way the address range and ID increment are consistent with each other.
 - Broadcasted input `id_i` in the chimneys should not throw an error anymore in elaboration.
+- The `id_offset` should not be correctly applied in the system address map. Before it resulted in negative coordinates.
 
 ### Removed
 
