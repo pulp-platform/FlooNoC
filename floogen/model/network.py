@@ -559,7 +559,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         for ni in ni_sbr_nodes:
             dest = ni.id
             if self.routing.id_offset is not None:
-                dest += self.routing.id_offset
+                dest -= self.routing.id_offset
             addr_range = ni.addr_range
             addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, desc=ni.name)
             addr_table.append(addr_rule)
