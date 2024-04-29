@@ -46,10 +46,12 @@ class Link(BaseModel, ABC):
             for ch_type, axi_chs in mapping.items():
                 for axi_ch in axi_chs:
                     name = f"{ch_type}_{axi_ch}"
-                    string += f"{snake_to_camel(name)} = {i},\n"
+                    string += f"{snake_to_camel(name)} = TMP_BIT_WIDTH'd{i},\n"
                     i += 1
-        string = f"typedef enum logic [{clog2(i+1)-1}:0]{{" + string
-        string += f"NumAxiChannels = {i}\n}} axi_ch_e;\n"
+        bitwidth = clog2(i+1)
+        string = f"typedef enum logic [{bitwidth-1}:0]{{" + string
+        string = string.replace("TMP_BIT_WIDTH", str(bitwidth))
+        string += f"NumAxiChannels = {bitwidth}'d{i}\n}} axi_ch_e;\n"
         return string
 
     @classmethod

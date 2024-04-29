@@ -15,17 +15,17 @@ package floo_narrow_wide_pkg;
   ////////////////////////
 
   typedef enum logic [3:0] {
-    NarrowAw = 0,
-    NarrowW = 1,
-    NarrowAr = 2,
-    WideAr = 3,
-    NarrowB = 4,
-    NarrowR = 5,
-    WideB = 6,
-    WideAw = 7,
-    WideW = 8,
-    WideR = 9,
-    NumAxiChannels = 10
+    NarrowAw = 4'd0,
+    NarrowW = 4'd1,
+    NarrowAr = 4'd2,
+    WideAr = 4'd3,
+    NarrowB = 4'd4,
+    NarrowR = 4'd5,
+    WideB = 4'd6,
+    WideAw = 4'd7,
+    WideW = 4'd8,
+    WideR = 4'd9,
+    NumAxiChannels = 4'd10
   } axi_ch_e;
 
 
