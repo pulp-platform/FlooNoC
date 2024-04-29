@@ -15,12 +15,12 @@ package floo_axi_pkg;
   ////////////////////////
 
   typedef enum logic [2:0] {
-    AxiAw = 0,
-    AxiW = 1,
-    AxiAr = 2,
-    AxiB = 3,
-    AxiR = 4,
-    NumAxiChannels = 5
+    AxiAw = 3'd0,
+    AxiW = 3'd1,
+    AxiAr = 3'd2,
+    AxiB = 3'd3,
+    AxiR = 3'd4,
+    NumAxiChannels = 3'd5
   } axi_ch_e;
 
 
