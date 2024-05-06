@@ -48,6 +48,7 @@ module tb_floo_vc_dma_mesh;
   localparam int unsigned AllowVCOverflow = 0;  // 1: FVADA, 0: fixed VC, direction based
   localparam int unsigned AllowOverflowFromDeeperVC = 0; // can be overwritten by AllowVCOverflow=0
   localparam int unsigned UpdateRRArbIfNotSent = 0; // does not work
+  localparam int unsigned CreditShortcut = 1;   // 1: if receive free credit from correct vc, send
   localparam int unsigned NumVCLocal = 4;       // 4 would be 1 per direction
   localparam int unsigned Only1VC = 0;          // tiny standart router
 
@@ -221,6 +222,7 @@ module tb_floo_vc_dma_mesh;
       .NumVC                    (Only1VC? 1 : (i==North||i==South)? 2:4),
       .InputFifoDepth           ( WormholeVCDepth         ),
       .VCDepth                  ( ChannelFifoDepth        ),
+      .CreditShortcut           ( CreditShortcut          ),
       .AllowVCOverflow          ( AllowVCOverflow         ),
       .FixedWormholeVC          ( FixedWormholeVC         ),
       .WormholeVCId             (i==East? 2: i==West? 1: 0),
@@ -364,6 +366,7 @@ module tb_floo_vc_dma_mesh;
         .InputFifoDepth           ( WormholeVCDepth         ),
         .NumVC                    ( NumVCLocal              ),
         .VCDepth                  ( ChannelFifoDepth        ),
+        .CreditShortcut           ( CreditShortcut          ),
         .AllowVCOverflow          ( AllowVCOverflow         ),
         .FixedWormholeVC          ( FixedWormholeVC         ),
         .WormholeVCId             ( 0                       ),
@@ -407,6 +410,7 @@ module tb_floo_vc_dma_mesh;
             int'(x==0 ?      1 : 4),
             int'(1)}),      // only 1 towards hbm
         .VCDepth                    ( ChannelFifoDepth        ),
+        .CreditShortcut             ( CreditShortcut          ),
         .AllowVCOverflow            ( AllowVCOverflow         ),
         .FixedWormholeVC            ( FixedWormholeVC         ),
         .WormholeVCDepth            ( WormholeVCDepth         ),

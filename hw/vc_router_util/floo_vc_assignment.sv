@@ -12,6 +12,7 @@ module floo_vc_assignment import floo_pkg::*;#(
   parameter int NumInputs     = 4,
   parameter route_algo_e RouteAlgo = XYRouting,
   parameter int OutputId      = 0,
+  parameter int CreditShortcut = 1,
   parameter int FixedWormholeVC = 1, // if 1, wormhole flits are all sent to wormholeVCId
   parameter int WormholeVCId  = 0
 ) (
@@ -96,9 +97,9 @@ end else begin : gen_multiple_vcs
       if(FixedWormholeVC == 1 && require_wormhole_vc_i) begin
         vc_assignment_id = WormholeVCId;
         vc_assignment_v_o = vc_not_full_i[WormholeVCId]
-                        | (credit_v_i && credit_id_i == WormholeVCId);
+                        | (CreditShortcut==1 && credit_v_i && credit_id_i == WormholeVCId);
       end else begin
-        if(credit_v_i && credit_id_i == preferred_vc_id) begin : credit_shortcut
+        if(CreditShortcut==1 && credit_v_i && credit_id_i == preferred_vc_id) begin :credit_shortcut
           vc_assignment_id = preferred_vc_id[NumVCWidth-1:0];
           vc_assignment_v_o = 1'b1;
         end else begin
