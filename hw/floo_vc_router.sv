@@ -25,16 +25,16 @@ module floo_vc_router import floo_pkg::*; #(
   parameter int           NumInputSaGlobal[NumPorts]  =
     {3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 4+NumLocalPorts-1},
     // to dir N,E,S,W,L0(,L1,L2,L3)
-  parameter int           UpdateRRArbIfNotSent        = 0, //doesnt seem to work
-
   parameter int           VCDepth                     = 2,
+  parameter int           VCDepthWidth                = $clog2(VCDepth+1),
+  parameter int           CreditShortcut              = 1,
   parameter int           AllowVCOverflow             = 1, // 1: FVADA, 0: fixed VC, direction based
-  parameter int           FixedWormholeVC             = 0, // send all Wormhole flits to same VC
   // Idea behind this: need depth 3 for continuous flow, since xy-routing: usually flits traverse straight through -> make that vc deeper
+  parameter int           FixedWormholeVC             = 0, // send all Wormhole flits to same VC
   parameter int           WormholeVCId    [NumPorts]  = {0,1,0,2,0}, // as seen from output port
   parameter int           WormholeVCDepth             = 3,
   parameter int           AllowOverflowFromDeeperVC   = 1, //if 1 but AllowVCOverflow=0, overwritten
-  parameter int           VCDepthWidth                = $clog2(VCDepth+1),
+  parameter int           UpdateRRArbIfNotSent        = 0, //doesnt seem to work
   parameter type          flit_t                      = logic,
   parameter type          hdr_t                       = logic,
   parameter int           HdrLength                   = $bits(hdr_t),
@@ -327,6 +327,7 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_vc_assign
     .NumInputs                      (NumInputSaGlobal       [out_port]),
     .RouteAlgo                      (RouteAlgo),
     .OutputId                       (out_port),
+    .CreditShortcut                 (CreditShortcut),
     .FixedWormholeVC                (FixedWormholeVC),
     .WormholeVCId                   (WormholeVCId          [out_port])
   )

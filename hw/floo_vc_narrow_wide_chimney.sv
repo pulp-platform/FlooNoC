@@ -65,6 +65,7 @@ module floo_vc_narrow_wide_chimney
 
   parameter int NumVC                            = 4, // as seen from chimney
   parameter int NumVCWidth                       = NumVC > 1 ? $clog2(NumVC) : 1,
+  parameter int CreditShortcut                   = 1,
   parameter int AllowVCOverflow                  = 1,
   parameter int InputFifoDepth                   = 3,
   parameter int VCDepth                          = 2,
@@ -1174,9 +1175,9 @@ module floo_vc_narrow_wide_chimney
     if(FixedWormholeVC==1 && (~floo_req_arb_sel_hdr.last | floo_req_wormhole_v)) begin
       floo_req_vc_id = WormholeVCId;
       floo_req_o.valid = floo_req_arb_v & (floo_req_vc_not_full[WormholeVCId] |
-          (floo_req_i.credit_v && floo_req_i.credit_id == WormholeVCId));
+          (CreditShortcut==1 && floo_req_i.credit_v && floo_req_i.credit_id == WormholeVCId));
     end else begin
-      if(floo_req_i.credit_v && floo_req_i.credit_id == floo_req_pref_vc_id) begin
+      if(CreditShortcut==1&&floo_req_i.credit_v &&floo_req_i.credit_id == floo_req_pref_vc_id) begin
         floo_req_vc_id = floo_req_pref_vc_id;
         floo_req_o.valid = floo_req_arb_v;
       end else begin
@@ -1202,9 +1203,9 @@ module floo_vc_narrow_wide_chimney
     if(FixedWormholeVC==1 && (~floo_rsp_arb_sel_hdr.last | floo_rsp_wormhole_v)) begin
       floo_rsp_vc_id = WormholeVCId;
       floo_rsp_o.valid = floo_rsp_arb_v & (floo_rsp_vc_not_full[WormholeVCId] |
-          (floo_rsp_i.credit_v && floo_rsp_i.credit_id == WormholeVCId));
+          (CreditShortcut==1 && floo_rsp_i.credit_v && floo_rsp_i.credit_id == WormholeVCId));
     end else begin
-      if(floo_rsp_i.credit_v && floo_rsp_i.credit_id == floo_rsp_pref_vc_id) begin
+      if(CreditShortcut==1&&floo_rsp_i.credit_v &&floo_rsp_i.credit_id == floo_rsp_pref_vc_id) begin
         floo_rsp_vc_id = floo_rsp_pref_vc_id;
         floo_rsp_o.valid = floo_rsp_arb_v;
       end else begin
@@ -1230,9 +1231,9 @@ module floo_vc_narrow_wide_chimney
     if(FixedWormholeVC==1 && (~floo_wide_arb_sel_hdr.last | floo_wide_wormhole_v)) begin
       floo_wide_vc_id = WormholeVCId;
       floo_wide_o.valid = floo_wide_arb_v & (floo_wide_vc_not_full[WormholeVCId] |
-          (floo_wide_i.credit_v && floo_wide_i.credit_id == WormholeVCId));
+          (CreditShortcut==1 && floo_wide_i.credit_v && floo_wide_i.credit_id == WormholeVCId));
     end else begin
-      if(floo_wide_i.credit_v && floo_wide_i.credit_id == floo_wide_pref_vc_id) begin
+      if(CreditShortcut==1&&floo_wide_i.credit_v&&floo_wide_i.credit_id==floo_wide_pref_vc_id) begin
         floo_wide_vc_id = floo_wide_pref_vc_id;
         floo_wide_o.valid = floo_wide_arb_v;
       end else begin
