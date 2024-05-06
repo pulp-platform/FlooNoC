@@ -146,7 +146,9 @@ def visualize_traffic():
         # pg.draw.circle(surf, color, (x, y), radius, 0)
         # for each job calculate current position of circle to be drawn and draw it
         for job in jobs:
-            factor = frame/NUM_FRAMES # 0 to 1
+            factor = frame / NUM_FRAMES # 0 to 1
+            factor = factor * factor * (3 - 2 * factor) # smoothstep
+            # factor = factor * factor * factor * (10 + factor * (6 * factor - 15)) # smootherstep
             if job[0][0] == job[1][0] and job[0][1] == job[1][1]:
                 continue
             coord = (job[1][0] * factor + job[0][0] * (1-factor),
