@@ -27,7 +27,7 @@ module floo_vc_router import floo_pkg::*; #(
     // to dir N,E,S,W,L0(,L1,L2,L3)
   parameter int           VCDepth                     = 2,
   parameter int           VCDepthWidth                = $clog2(VCDepth+1),
-  parameter int           CreditShortcut              = 1,
+  parameter int           CreditShortcut              = 1, // not used if SingleStage=1
   parameter int           AllowVCOverflow             = 1, // 1: FVADA, 0: fixed VC, direction based
   // Idea behind this: need depth 3 for continuous flow, since xy-routing: usually flits traverse straight through -> make that vc deeper
   parameter int           FixedWormholeVC             = 0, // send all Wormhole flits to same VC
@@ -35,6 +35,7 @@ module floo_vc_router import floo_pkg::*; #(
   parameter int           WormholeVCDepth             = 3,
   parameter int           AllowOverflowFromDeeperVC   = 1, //if 1 but AllowVCOverflow=0, overwritten
   parameter int           UpdateRRArbIfNotSent        = 0, //doesnt seem to work
+  parameter int           SingleStage                 = 0, // 0: standard 2 stage, 1: single stage
   parameter type          flit_t                      = logic,
   parameter type          hdr_t                       = logic,
   parameter int           HdrLength                   = $bits(hdr_t),
@@ -327,7 +328,7 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_vc_assign
     .NumInputs                      (NumInputSaGlobal       [out_port]),
     .RouteAlgo                      (RouteAlgo),
     .OutputId                       (out_port),
-    .CreditShortcut                 (CreditShortcut),
+    .CreditShortcut                 (CreditShortcut && SingleStage == 0),
     .FixedWormholeVC                (FixedWormholeVC),
     .WormholeVCId                   (WormholeVCId          [out_port])
   )
@@ -512,6 +513,17 @@ end
 // 10 SA to ST stage reg
 // =============
 
+if(SingleStage) begin : gen_no_stage_reg
+  assign read_enable_st_stage             = read_enable_sa_stage;
+  assign read_vc_id_oh_st_stage           = read_vc_id_oh_sa_stage;
+  assign inport_id_oh_per_output_st_stage = inport_id_oh_per_output_sa_stage;
+  assign data_v_o                         = outport_v;
+  assign sel_ctrl_head_per_input_st_stage = sel_ctrl_head_per_input_sa_stage;
+  assign vc_assignment_id_st_stage        = vc_assignment_id;
+  assign look_ahead_routing_sel_st_stage  = look_ahead_routing_sel;
+  assign last_bits_sel_st_stage           = last_bits_sel;
+end else begin : gen_sa_to_st_stage
+
 `FF(read_enable_st_stage, read_enable_sa_stage, '0)
 `FF(read_vc_id_oh_st_stage, read_vc_id_oh_sa_stage, '0)
 `FF(inport_id_oh_per_output_st_stage, inport_id_oh_per_output_sa_stage, '0)
@@ -535,6 +547,8 @@ for (genvar port = 0; port < NumPorts; port++) begin : gen_hdr_ff
   `FF(vc_assignment_id_st_stage[port], vc_assignment_id[port], '0)
   `FF(look_ahead_routing_sel_st_stage[port], look_ahead_routing_sel[port], North)
   `FF(last_bits_sel_st_stage[port], last_bits_sel[port], '0)
+end
+
 end
 
 // =============

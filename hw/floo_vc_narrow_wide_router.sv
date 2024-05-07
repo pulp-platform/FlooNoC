@@ -28,13 +28,14 @@ module floo_vc_narrow_wide_router
       // to dir N,E,S,W,L0(,L1,L2,L3)
     parameter int           VCDepth                     = 2,
     parameter int           VCDepthWidth                = $clog2(VCDepth+1),
-    parameter int           CreditShortcut              = 1,
+    parameter int           CreditShortcut              = 1, // not used if SingleStage
     parameter int           AllowVCOverflow             = 1, // 1: FVADA, 0: fixed VC per direction
     parameter int           FixedWormholeVC             = 1,
     parameter int           WormholeVCId    [NumPorts]  = {0,1,0,2,0}, // as seen from output port
     parameter int           WormholeVCDepth             = 3,
     parameter int           AllowOverflowFromDeeperVC   = 1, //overriden if AllowVCOverflow is 0
     parameter int           UpdateRRArbIfNotSent        = 0,
+    parameter int           SingleStage                 = 0, // 0: standard 2 stage, 1: single stage
 
     // Route Algorithm stuff
     parameter route_algo_e  RouteAlgo                   = XYRouting,
@@ -109,6 +110,7 @@ module floo_vc_narrow_wide_router
     .NumVCWidthToOutMax (NumVCWidthToOutMax),
     .NumInputSaGlobal   (NumInputSaGlobal),
     .UpdateRRArbIfNotSent(UpdateRRArbIfNotSent),
+    .SingleStage        (SingleStage),
     .VCDepth            (VCDepth),
     .VCDepthWidth       (VCDepthWidth),
     .CreditShortcut     (CreditShortcut),
@@ -151,6 +153,7 @@ module floo_vc_narrow_wide_router
     .NumVCWidthToOutMax (NumVCWidthToOutMax),
     .NumInputSaGlobal   (NumInputSaGlobal),
     .UpdateRRArbIfNotSent(UpdateRRArbIfNotSent),
+    .SingleStage        (SingleStage),
     .VCDepth            (VCDepth),
     .VCDepthWidth       (VCDepthWidth),
     .CreditShortcut     (CreditShortcut),
@@ -193,6 +196,7 @@ module floo_vc_narrow_wide_router
     .NumVCWidthToOutMax (NumVCWidthToOutMax),
     .NumInputSaGlobal   (NumInputSaGlobal),
     .UpdateRRArbIfNotSent(UpdateRRArbIfNotSent),
+    .SingleStage        (SingleStage),
     .VCDepth            (VCDepth),
     .VCDepthWidth       (VCDepthWidth),
     .CreditShortcut     (CreditShortcut),

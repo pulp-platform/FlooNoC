@@ -51,6 +51,7 @@ module tb_floo_vc_dma_mesh;
   localparam int unsigned CreditShortcut = 1;   // 1: if receive free credit from correct vc, send
   localparam int unsigned NumVCLocal = 4;       // 4 would be 1 per direction
   localparam int unsigned Only1VC = 0;          // tiny standart router
+  localparam int unsigned SingleStage = 1;      // 0: standard 2 stage router, 1: single stage
 
   logic clk, rst_n;
 
@@ -413,6 +414,7 @@ module tb_floo_vc_dma_mesh;
         .CreditShortcut             ( CreditShortcut          ),
         .AllowVCOverflow            ( AllowVCOverflow         ),
         .FixedWormholeVC            ( FixedWormholeVC         ),
+        .SingleStage                ( SingleStage             ),
         .WormholeVCDepth            ( WormholeVCDepth         ),
         .AllowOverflowFromDeeperVC  (AllowOverflowFromDeeperVC),
         .UpdateRRArbIfNotSent       (UpdateRRArbIfNotSent     ),
