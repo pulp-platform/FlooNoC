@@ -63,6 +63,7 @@ deps
 # Auto generated sources
 generated
 *.png
+!util/traffic_visualizations/*.png
 hw/test/jobs
 
 # QuestaSim
