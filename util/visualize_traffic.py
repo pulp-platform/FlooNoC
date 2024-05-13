@@ -95,7 +95,7 @@ def gen_mesh_traffic():
             elif args.traffic_type == "tornado":
                 dest_x = (x-1 + math.ceil(NUM_X / 2) - 1) % NUM_X + 1
                 ext_addr = (dest_x, y)
-            elif args.traffic_type == "single_dest_boundry":
+            elif args.traffic_type == "single_dest_boundary":
                 ext_addr = (0, NUM_Y//2)
             elif args.traffic_type == "single_dest_center":
                 ext_addr = (NUM_X//2, NUM_Y//2)
@@ -250,7 +250,7 @@ def main():
         print("Visualizing all traffic types")
         traffic_types = ["neighbor", "random", "bit_complement", "bit_reverse",
                          "bit_rotation", "shuffle", "transpose", "tornado", "hbm",
-                         "onehop", "single_dest_boundry", "single_dest_center"]
+                         "onehop", "single_dest_boundary", "single_dest_center"]
         for traffic_type in traffic_types:
             args.traffic_type = traffic_type
             visualize_traffic()
