@@ -6,16 +6,19 @@
 # Lukas Berner <bernerl@student.ethz.ch>
 
 
-traffic_type_list=("random" "hbm" "onehop" "bit_complement" "bit_reverse" "bit_rotation" "neighbor" "shuffle" "transpose" "tornado" "single_dest_boundry" "single_dest_center")
+traffic_type_list=("random" "hbm" "onehop" "bit_complement" "bit_reverse" "bit_rotation" "neighbor" "shuffle" "transpose" "tornado" "single_dest_boundary" "single_dest_center")
 traffic_rw_list=("read" "write")
 router_tb_list=("tb_floo_dma_mesh" "tb_floo_vc_dma_mesh")
 
-num_n_injected_list=(4  4  4  4  16 16 16 8   8   8 64  64)
-num_w_injected_list=(4  4  16 16 16 16 16 64 64  64 64   8)
-wide_burst_len_list=(1  16 1  16 4  8  16 16 32  64 16  16)
-# num_n_injected_list=(8   8   8 64  64 )
-# num_w_injected_list=(64 64  64 64   8 )
-# wide_burst_len_list=(16 32  64 16  16 )
+num_n_injected_list=(4  4  4  4  16 16 16 16 16 32 64 64 64 64  1  4 16 32 )
+num_w_injected_list=(4  4  16 16 16 16 16 32 64 16 16  1  4 16 64 64 64 64 )
+wide_burst_len_list=(1  16 1  16 4  8  16 16 16 16 16  4  4  4  4  4  4  4 )
+# num_n_injected_list=(16 16 32 64  64  64 64 )
+# num_w_injected_list=(32 64 16 16   1   4 16 )
+# wide_burst_len_list=(16 16 16 16   4   4  4 )
+# num_n_injected_list=( 1  4 16 32 )
+# num_w_injected_list=(64 64 64 64 )
+# wide_burst_len_list=( 4  4  4  4 )
 
 printf -v date '%(%Y%m%d_%H%M%S)T' -1
 #contains the raw output spam of the experiments (for debugging useful)
@@ -65,7 +68,6 @@ do
         # for each router:
         for router_tb in ${router_tb_list[@]}
         do
-
           # Run the simulation
           printf "$router_tb\n" >| $output_file_temp #clear file
           make run-sim-batch VSIM_TB_DUT=$router_tb JOB_NAME=mesh | tee -a $output_file_raw $output_file_temp >/dev/null

@@ -236,7 +236,7 @@ def gen_mesh_traffic(
             elif traffic_type == "tornado":
                 dest_x = (x-1 + math.ceil(NUM_X / 2) - 1) % NUM_X + 1
                 ext_addr = get_xy_base_addr(dest_x, y)
-            elif traffic_type == "single_dest_boundry":
+            elif traffic_type == "single_dest_boundary":
                 ext_addr = get_xy_base_addr(0, NUM_Y//2)
             elif traffic_type == "single_dest_center":
                 ext_addr = get_xy_base_addr(NUM_X//2, NUM_Y//2)
