@@ -1031,58 +1031,52 @@ module floo_vc_narrow_wide_chimney
   /////////////////////
 
   // these Credit counters count the credits (towards the input port of the router)
-  floo_credit_counter
-  #(
-    .NumVC                          (NumVC),
-    .NumVCWidthMax                  (NumVCWidth),
-    .VCDepth                        (VCDepth),
-    .DeeperVCId                     (WormholeVCId),
-    .DeeperVCDepth                  (WormholeVCDepth)
-  )
-  i_floo_req_credit_counter (
-    .credit_v_i                     (floo_req_i.credit_v),
-    .credit_id_i                    (floo_req_i.credit_id[NumVCWidth-1:0]),
-    .consume_credit_v_i             (floo_req_o.valid),
-    .consume_credit_id_i            (floo_req_vc_id[NumVCWidth-1:0]),
-    .vc_not_full_o                  (floo_req_vc_not_full),
+  floo_credit_counter #(
+    .NumVC          ( NumVC           ),
+    .VCIdxWidthMax  ( NumVCWidth      ),
+    .VCDepth        ( VCDepth         ),
+    .DeeperVCId     ( WormholeVCId    ),
+    .DeeperVCDepth  ( WormholeVCDepth )
+  ) i_floo_req_credit_counter (
     .clk_i,
-    .rst_ni
+    .rst_ni,
+    .credit_valid_i         ( floo_req_i.credit_v                   ),
+    .credit_id_i            ( floo_req_i.credit_id[NumVCWidth-1:0]  ),
+    .consume_credit_valid_i ( floo_req_o.valid                      ),
+    .consume_credit_id_i    ( floo_req_vc_id[NumVCWidth-1:0]        ),
+    .vc_not_full_o          ( floo_req_vc_not_full                  )
   );
 
-  floo_credit_counter
-  #(
-    .NumVC                          (NumVC),
-    .NumVCWidthMax                  (NumVCWidth),
-    .VCDepth                        (VCDepth),
-    .DeeperVCId                     (WormholeVCId),
-    .DeeperVCDepth                  (WormholeVCDepth)
-  )
-  i_floo_rsp_credit_counter (
-    .credit_v_i                     (floo_rsp_i.credit_v),
-    .credit_id_i                    (floo_rsp_i.credit_id[NumVCWidth-1:0]),
-    .consume_credit_v_i             (floo_rsp_o.valid),
-    .consume_credit_id_i            (floo_rsp_vc_id[NumVCWidth-1:0]),
-    .vc_not_full_o                  (floo_rsp_vc_not_full),
+  floo_credit_counter #(
+    .NumVC          ( NumVC           ),
+    .VCIdxWidthMax  ( NumVCWidth      ),
+    .VCDepth        ( VCDepth         ),
+    .DeeperVCId     ( WormholeVCId    ),
+    .DeeperVCDepth  ( WormholeVCDepth )
+  ) i_floo_rsp_credit_counter (
     .clk_i,
-    .rst_ni
+    .rst_ni,
+    .credit_valid_i         ( floo_rsp_i.credit_v                   ),
+    .credit_id_i            ( floo_rsp_i.credit_id[NumVCWidth-1:0]  ),
+    .consume_credit_valid_i ( floo_rsp_o.valid                      ),
+    .consume_credit_id_i    ( floo_rsp_vc_id[NumVCWidth-1:0]        ),
+    .vc_not_full_o          ( floo_rsp_vc_not_full                  )
   );
 
-  floo_credit_counter
-  #(
-    .NumVC                          (NumVC),
-    .NumVCWidthMax                  (NumVCWidth),
-    .VCDepth                        (VCDepth),
-    .DeeperVCId                     (WormholeVCId),
-    .DeeperVCDepth                  (WormholeVCDepth)
-  )
-  i_floo_wide_credit_counter (
-    .credit_v_i                     (floo_wide_i.credit_v),
-    .credit_id_i                    (floo_wide_i.credit_id[NumVCWidth-1:0]),
-    .consume_credit_v_i             (floo_wide_o.valid),
-    .consume_credit_id_i            (floo_wide_vc_id[NumVCWidth-1:0]),
-    .vc_not_full_o                  (floo_wide_vc_not_full),
+  floo_credit_counter #(
+    .NumVC          ( NumVC           ),
+    .VCIdxWidthMax  ( NumVCWidth      ),
+    .VCDepth        ( VCDepth         ),
+    .DeeperVCId     ( WormholeVCId    ),
+    .DeeperVCDepth  ( WormholeVCDepth )
+  ) i_floo_wide_credit_counter (
     .clk_i,
-    .rst_ni
+    .rst_ni,
+    .credit_valid_i         ( floo_wide_i.credit_v                  ),
+    .credit_id_i            ( floo_wide_i.credit_id[NumVCWidth-1:0] ),
+    .consume_credit_valid_i ( floo_wide_o.valid                     ),
+    .consume_credit_id_i    ( floo_wide_vc_id[NumVCWidth-1:0]       ),
+    .vc_not_full_o          ( floo_wide_vc_not_full                 )
   );
 
 

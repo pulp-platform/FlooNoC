@@ -274,22 +274,20 @@ end
 // =============
 
 for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_credit_counters
-  floo_credit_counter
-  #(
-    .NumVC                          (NumVCToOut             [out_port]),
-    .NumVCWidthMax                  (NumVCWidthToOutMax),
-    .VCDepth                        (VCDepth),
-    .DeeperVCId                     (WormholeVCId           [out_port]),
-    .DeeperVCDepth                  (WormholeVCDepth)
-  )
-  i_floo_credit_counter (
-    .credit_v_i                     (credit_v_i             [out_port]),
-    .credit_id_i                    (credit_id_i            [out_port][NumVCWidthToOutMax-1:0]),
-    .consume_credit_v_i             (outport_v              [out_port]),
-    .consume_credit_id_i            (vc_assignment_id       [out_port]),
-    .vc_not_full_o                  (vc_not_full            [out_port][NumVCToOut[out_port]-1:0]),
+  floo_credit_counter #(
+    .NumVC          ( NumVCToOut [out_port]   ),
+    .VCIdxWidthMax  ( NumVCWidthToOutMax      ),
+    .VCDepth        ( VCDepth                 ),
+    .DeeperVCId     ( WormholeVCId [out_port] ),
+    .DeeperVCDepth  ( WormholeVCDepth         )
+  ) i_floo_credit_counter (
     .clk_i,
-    .rst_ni
+    .rst_ni,
+    .credit_valid_i         ( credit_v_i[out_port]                            ),
+    .credit_id_i            ( credit_id_i[out_port][NumVCWidthToOutMax-1:0]   ),
+    .consume_credit_valid_i ( outport_v[out_port]                             ),
+    .consume_credit_id_i    ( vc_assignment_id[out_port]                      ),
+    .vc_not_full_o          ( vc_not_full[out_port][NumVCToOut[out_port]-1:0] )
   );
 end
 
@@ -576,4 +574,3 @@ floo_vc_router_switch #(
 
 
 endmodule
-
