@@ -58,7 +58,7 @@ sources:
 
   - target: test
     include_dirs:
-      - hw/test
+      - hw/test/include
     files:
       # Level 0
       - hw/test/floo_test_pkg.sv
