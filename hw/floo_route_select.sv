@@ -166,9 +166,7 @@ module floo_route_select import floo_pkg::*;
               ((route_sel_id_q != route_sel_id) || (route_sel_q != route_sel)))
         $warning("Mismatch in route selection!");
     end
-  end
-
-  else begin : gen_no_lock
+  end else begin : gen_no_lock
     assign route_sel_o = route_sel;
     assign route_sel_id_o = route_sel_id;
   end
