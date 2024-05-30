@@ -6,46 +6,54 @@
 
 `include "common_cells/registers.svh"
 
+/// Simple credit counter module
 module floo_credit_counter #(
-  parameter int NumVC         = 4,
-  parameter int NumVCWidth    = NumVC > 1 ? $clog2(NumVC) : 1,
-  parameter int NumVCWidthMax = 2,
-  parameter int VCDepth       = 2,
-  parameter int VCDepthWidth  = $clog2(VCDepth+1),
-  parameter int DeeperVCId    = 0,
-  parameter int DeeperVCDepth = 2
+  /// Number of virtual channels
+  parameter int unsigned NumVC         = 32'd5,
+  // Maximum number of bits to address the virtual channels
+  parameter int unsigned VCIdxWidthMax = 32'd0,
+  /// Number of entries in the virtual channel FIFO
+  parameter int unsigned VCDepth       = 32'd2,
+  /// The virtual channel to which the depth should be increased
+  parameter int unsigned DeeperVCId    = 32'd0,
+  /// The depth to which the virtual channel should be increased
+  parameter int unsigned DeeperVCDepth = 32'd2,
+  /// Number of bits to address the virtual channels
+  parameter int unsigned VCIdxWidth    = cf_math_pkg::idx_width(NumVC),
+  /// Number of bits to index the virtual channel FIFO
+  parameter int unsigned VCDepthWidth  = $clog2(VCDepth+1)
 ) (
-  input logic                                     credit_v_i,
-  input logic       [NumVCWidthMax-1:0]           credit_id_i,
-
-  input logic                                     consume_credit_v_i,
-  input logic       [NumVCWidthMax-1:0]           consume_credit_id_i,
-
-  output logic      [NumVC-1:0]                   vc_not_full_o,
-
-  input logic                                     clk_i,
-  input logic                                     rst_ni
+  input logic                     clk_i,
+  input logic                     rst_ni,
+  // Credit refill
+  input logic                     credit_valid_i,
+  input logic [VCIdxWidthMax-1:0] credit_id_i,
+  /// Credit consumption
+  input logic                     consume_credit_valid_i,
+  input logic [VCIdxWidthMax-1:0] consume_credit_id_i,
+  /// Credit status
+  output logic  [NumVC-1:0]       vc_not_full_o
 );
 
-logic [NumVC-1:0][VCDepthWidth-1:0]               credit_counter_d, credit_counter_q;
+logic [NumVC-1:0][VCDepthWidth-1:0]               credit_cnt_d, credit_cnt_q;
 
-for (genvar vc = 0; vc < NumVC; vc++) begin : gen_credit_counters
+for (genvar vc = 0; vc < NumVC; vc++) begin : gen_credit_cnts
+
   always_comb begin
-    credit_counter_d[vc] = credit_counter_q[vc];
-    if( (credit_v_i & (credit_id_i == vc[NumVCWidth-1:0])) &
-       ~(consume_credit_v_i & (consume_credit_id_i == vc[NumVCWidth-1:0])))
-      credit_counter_d[vc] = credit_counter_q[vc] + 1;
-    else if(~(credit_v_i & (credit_id_i == vc[NumVCWidth-1:0])) &
-        (consume_credit_v_i & (consume_credit_id_i == vc[NumVCWidth-1:0])))
-      credit_counter_d[vc] = credit_counter_q[vc] - 1;
+    credit_cnt_d[vc] = credit_cnt_q[vc];
+    if( (credit_valid_i & (credit_id_i == vc[VCIdxWidth-1:0])) &
+       ~(consume_credit_valid_i & (consume_credit_id_i == vc[VCIdxWidth-1:0])))
+      credit_cnt_d[vc] = credit_cnt_q[vc] + 1;
+    else if(~(credit_valid_i & (credit_id_i == vc[VCIdxWidth-1:0])) &
+        (consume_credit_valid_i & (consume_credit_id_i == vc[VCIdxWidth-1:0])))
+      credit_cnt_d[vc] = credit_cnt_q[vc] - 1;
     end
 
-  `FF(credit_counter_q[vc], credit_counter_d[vc],
-    vc == DeeperVCId ? DeeperVCDepth[VCDepthWidth-1:0] : VCDepth[VCDepthWidth-1:0])
+  `FF(credit_cnt_q[vc], credit_cnt_d[vc], vc == DeeperVCId ? DeeperVCDepth : VCDepth)
 end
 
-for (genvar vc = 0; vc < NumVC; vc++) begin : gen_check_credit_counter
-  assign vc_not_full_o[vc] = |credit_counter_q[vc];
+for (genvar vc = 0; vc < NumVC; vc++) begin : gen_check_credit_cnt
+  assign vc_not_full_o[vc] = |credit_cnt_q[vc];
 end
 
 endmodule
