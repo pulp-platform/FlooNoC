@@ -115,53 +115,6 @@ def gen_nw_chimney2chimney_traffic(
         emit_jobs(narrow_jobs, out_dir, "nw_chimney2chimney", i + 100)
 
 
-# GarnetSyntheticTraffic::generatePkt() {
-#     int num_destinations = numDestinations;
-#     int radix = (int) sqrt(num_destinations);
-#     unsigned destination = id;
-#     int dest_x = -1;
-#     int dest_y = -1;
-#     int source = id;
-#     int src_x = id%radix;
-#     int src_y = id/radix;
-#     if (singleDest >= 0) {
-#         destination = singleDest;
-#     } else if (traffic == UNIFORM_RANDOM_) {
-#         destination = random_mt.random<unsigned>(0, num_destinations - 1);
-#     } else if (traffic == BIT_COMPLEMENT_) {
-#         dest_x = radix - src_x - 1;
-#         dest_y = radix - src_y - 1;
-#         destination = dest_y*radix + dest_x;
-#     } else if (traffic == BIT_REVERSE_) {
-#         unsigned int straight = source;
-#         unsigned int reverse = source & 1; // LSB
-#         int num_bits = (int) log2(num_destinations);
-#         for (int i = 1; i < num_bits; i++) {
-#             reverse <<= 1;
-#             straight >>= 1;
-#             reverse |= (straight & 1); // LSB }
-#         destination = reverse;
-#     } else if (traffic == BIT_ROTATION_) {
-#         if (source%2 == 0)
-#             destination = source/2;
-#         else // (source%2 == 1)
-#             destination = ((source/2) + (num_destinations/2));
-#     } else if (traffic == NEIGHBOR_) {
-#         dest_x = (src_x + 1) % radix;
-#         dest_y = src_y;
-#         destination = dest_y*radix + dest_x;
-#     } else if (traffic == SHUFFLE_) {
-#         if (source < num_destinations/2) destination = source*2;
-#         else destination = (source*2 - num_destinations + 1);
-#     } else if (traffic == TRANSPOSE_) {
-#         dest_x = src_y;
-#         dest_y = src_x;
-#         destination = dest_y*radix + dest_x;
-#     } else if (traffic == TORNADO_) {
-#         dest_x = (src_x + (int) ceil(radix/2) - 1) % radix;
-#         dest_y = src_y;
-#         destination = dest_y*radix + dest_x; }
-
 def gen_mesh_traffic(
     narrow_burst_length: int,
     wide_burst_length: int,
