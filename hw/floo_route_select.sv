@@ -150,16 +150,15 @@ module floo_route_select import floo_pkg::*;
       end
     end
 
-    `FF(locked_route_q, locked_route_d, '0)
-
-    //route_sel
     logic [NumRoutes-1:0] route_sel_q;
-    assign route_sel_o = locked_route_q ? route_sel_q : route_sel;
-    `FFL(route_sel_q, route_sel, ~locked_route_q, '0)
-
-    //route_sel_id
     logic [RouteSelWidth-1:0] route_sel_id_q;
+
+    // Use previous route selection if locked
+    assign route_sel_o = locked_route_q ? route_sel_q : route_sel;
     assign route_sel_id_o = locked_route_q ? route_sel_id_q : route_sel_id;
+
+    `FF(locked_route_q, locked_route_d, '0)
+    `FFL(route_sel_q, route_sel, ~locked_route_q, '0)
     `FFL(route_sel_id_q, route_sel_id, ~locked_route_q, '0)
 
     always @(posedge clk_i) begin
