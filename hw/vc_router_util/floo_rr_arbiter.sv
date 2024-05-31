@@ -6,32 +6,35 @@
 
 `include "common_cells/registers.svh"
 
-// one hot & id encoded round robin arbiter
+/// One-hot & id encoded round-robin arbiter
+// TODO: Could be replaced with `rr_arb_tree` from `common_cells`
 module floo_rr_arbiter #(
-  parameter   int NumInputs = 2,
-  localparam  int NumInputsWidth = NumInputs > 1 ? $clog2(NumInputs) : 1
+  parameter   int unsigned NumInputs = 2,
+  // Derived parameters
+  localparam  int unsigned InIdxWidth = cf_math_pkg::idx_width(NumInputs)
 ) (
-  input   logic [NumInputs-1:0]       req_i,
-  input   logic                       update_i, // only update arbiter when told to
-  input   logic                       grant_i,  // output was actually selected
-  output  logic [NumInputs-1:0]       grant_o,
-  output  logic [NumInputsWidth-1:0]  grant_id_o,
-  input   logic                       clk_i, rst_ni
+  input  logic clk_i,
+  input  logic rst_ni,
+  input  logic [NumInputs-1:0]  req_i,
+  input  logic                  update_i, // only update arbiter when told to
+  input  logic                  grant_i,  // output was actually selected
+  output logic [NumInputs-1:0]  grant_o,
+  output logic [InIdxWidth-1:0] grant_id_o
 );
-  genvar i, j;
+
   if(NumInputs == 1) begin: gen_1_input
-    assign grant_o     = req_i;
-    assign grant_id_o = 0;
+    assign grant_o = req_i;
+    assign grant_id_o = '0;
   end else begin: gen_gt1_inputs
 
     logic [NumInputs-1:0] reodered_req, reordered_selected_req;
     logic [NumInputs*2-1:0] left_rotate_helper, right_rotate_helper;
     logic [NumInputs-1:0] dereordered_selected_req;
-    logic [NumInputsWidth-1:0] round_ptr_q, round_ptr_d;
-    logic [NumInputsWidth-1:0] round_ptr_q_comp;
-    logic [NumInputsWidth-1:0] selected_req_id;
+    logic [InIdxWidth-1:0] round_ptr_q, round_ptr_d;
+    logic [InIdxWidth-1:0] round_ptr_q_comp;
+    logic [InIdxWidth-1:0] selected_req_id;
 
-    logic [NumInputsWidth-1:0][NumInputs-1:0] id_mask;
+    logic [InIdxWidth-1:0][NumInputs-1:0] id_mask;
 
     // rotade left
     assign left_rotate_helper = {req_i, req_i} << round_ptr_q;
@@ -47,15 +50,15 @@ module floo_rr_arbiter #(
     assign dereordered_selected_req = right_rotate_helper[NumInputs*2-1-:NumInputs];
 
     //extract id from onehot: create id mask
-    for(i = 0; i < NumInputsWidth; i++) begin : gen_id_mask_NumInputsWidth
-      for(j = 0; j < NumInputs; j++) begin : gen_id_mask_NumInputs
+    for(genvar i = 0; i < InIdxWidth; i++) begin : gen_id_mask_NumInputsWidth
+      for(genvar j = 0; j < NumInputs; j++) begin : gen_id_mask_NumInputs
         assign id_mask[i][j] = (j/(2**i)) % 2;
       end
     end
     //mask looks like this: N_Input = 3: (0,0) is first bit
     // 0 0 0  // 1 0 0  // 0 1 0  // 1 1 0  // 0 0 1  // 1 0 1  // 0 1 1  // 1 1 1
     // use mask to get req_id
-    for(i = 0; i < NumInputsWidth; i++) begin : gen_get_selected_req_id
+    for(genvar i = 0; i < InIdxWidth; i++) begin : gen_get_selected_req_id
       assign selected_req_id[i] = |(dereordered_selected_req & id_mask[i]);
     end
 
