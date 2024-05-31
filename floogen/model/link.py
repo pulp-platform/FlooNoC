@@ -9,7 +9,7 @@ from typing import ClassVar, List, Union, Dict, Optional, NamedTuple
 from abc import ABC, abstractmethod
 from pydantic import BaseModel
 
-from floogen.utils import snake_to_camel, sv_struct_typedef, clog2
+from floogen.utils import snake_to_camel, sv_typedef, sv_struct_typedef, clog2
 
 
 class Link(BaseModel, ABC):
@@ -107,9 +107,10 @@ class Link(BaseModel, ABC):
                     string += sv_struct_typedef(f"floo_{p.name}_{axi_ch}_flit_t", struct_dict)
 
         for phys_ch, size in link_sizes.items():
+            string += sv_typedef(f"floo_{phys_ch}_payload_t", "logic", size)
             struct_dict = {
                 "hdr": "hdr_t",
-                "payload": f"logic[{size-1}:0]",
+                "payload": f"floo_{phys_ch}_payload_t",
             }
             string += sv_struct_typedef(f"floo_{phys_ch}_generic_flit_t", struct_dict)
         return string

@@ -137,14 +137,16 @@ package floo_axi_pkg;
     axi_in_r_chan_t r;
   } floo_axi_r_flit_t;
 
+  typedef logic [73:0] floo_req_payload_t;
   typedef struct packed {
     hdr_t hdr;
-    logic [73:0] payload;
+    floo_req_payload_t payload;
   } floo_req_generic_flit_t;
 
+  typedef logic [70:0] floo_rsp_payload_t;
   typedef struct packed {
     hdr_t hdr;
-    logic [70:0] payload;
+    floo_rsp_payload_t payload;
   } floo_rsp_generic_flit_t;
 
 

@@ -15,9 +15,7 @@ localparam time ApplTime = 2ns;
 localparam time TestTime = 8ns;
 
 localparam type          flit_t                       = floo_req_generic_flit_t;
-localparam int           HdrLength                    = $bits(hdr_t);
-localparam int           DataLength                   = $bits(flit_t) - HdrLength;
-localparam type          flit_payload_t               = logic[DataLength-1:0];
+localparam type          payload_t                    = floo_req_payload_t;
 localparam int           NumVCWidth                   = 2;
 localparam int           NumPorts                     = 5;
 localparam int           Debug                        = 0;
