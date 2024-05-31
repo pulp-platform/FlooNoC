@@ -145,7 +145,12 @@ task automatic check_received_results(int unsigned num_cycles);
             exp_result = expected_result_queue[port].pop_front();
             if(exp_result != result) begin
               $error("Results dont match");
-              $display(exp_result.payload == result.payload ? "Data was correct": "Data was incorrect");
+              if (exp_result.payload == result.payload) begin
+                $display("Payloads were correct");
+              end else begin
+                $display("Expected payload: %p", exp_result.payload);
+                $display("Result payload  : %p", result.payload);
+              end
               if(exp_result.hdr != result.hdr) begin
                 $display("Expected hdr: %p", exp_result.hdr);
                 $display("Result hdr  : %p", result.hdr);
