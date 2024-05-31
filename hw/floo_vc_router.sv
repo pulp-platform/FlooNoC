@@ -38,9 +38,7 @@ module floo_vc_router import floo_pkg::*; #(
   parameter int           SingleStage                 = 0, // 0: standard 2 stage, 1: single stage
   parameter type          flit_t                      = logic,
   parameter type          hdr_t                       = logic,
-  parameter int           HdrLength                   = $bits(hdr_t),
-  parameter int           DataLength                  = $bits(flit_t) - HdrLength,
-  parameter type          flit_payload_t              = logic[DataLength-1:0],
+  parameter type          payload_t                   = logic,
 
   // Route Algorithm stuff
   parameter route_algo_e  RouteAlgo                   = XYRouting,
@@ -93,7 +91,7 @@ Structure:
 // These arrays are too large: in these dimensions where there are fewer vc, the highest indexes are never accessed, so the synthesizer should remove them
 logic           [NumPorts-1:0][NumVCMax-1:0]                        vc_ctrl_head_v;
 hdr_t           [NumPorts-1:0][NumVCMax-1:0]                        vc_ctrl_head;
-flit_payload_t  [NumPorts-1:0][NumVCMax-1:0]                        vc_data_head;
+payload_t       [NumPorts-1:0][NumVCMax-1:0]                        vc_data_head;
 
 logic           [NumPorts-1:0]                                      read_enable_sa_stage;
 logic           [NumPorts-1:0][NumVCMax-1:0]                        read_vc_id_oh_sa_stage;
@@ -150,39 +148,32 @@ logic           [NumPorts-1:0][NumPorts-1:0]        wormhole_sa_global_input_dir
 // =============
 
 for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_input_ports
+
+  localparam int unsigned DeeperVCId = WormholeVCId[in_port >= Eject ? in_port : (in_port+2) % 4];
+
   floo_input_port #(
-    .flit_t                         (flit_t),
-    .flit_payload_t                 (flit_payload_t),
-    .hdr_t                          (hdr_t),
-    .NumVC                          (NumVC[in_port]),
-    .NumVCWidth                     (NumVCWidth),
-    .VCDepth                        (VCDepth),
-    .DeeperVCId                     (WormholeVCId[in_port >= Eject ? in_port : (in_port+2) % 4]),
-    .DeeperVCDepth                  (WormholeVCDepth)
+    .flit_t         ( flit_t          ),
+    .payload_t      ( payload_t       ),
+    .hdr_t          ( hdr_t           ),
+    .NumVC          ( NumVC[in_port]  ),
+    .VCIdxWidth     ( NumVCWidth      ),
+    .VCDepth        ( VCDepth         ),
+    .DeeperVCId     ( DeeperVCId      ),
+    .DeeperVCDepth  ( WormholeVCDepth )
   ) i_input_port (
-    // input from other router or local port
-    .credit_v_o                     (credit_v_o           [in_port]),
-    .credit_id_o                    (credit_id_o          [in_port]),
-    .data_v_i                       (data_v_i             [in_port]),
-    .data_i                         (data_i               [in_port]),
-
-    // output head flit ctrl info to SA & RC unit
-    .vc_ctrl_head_v_o               (vc_ctrl_head_v       [in_port][NumVC[in_port]-1:0]),
-    .vc_ctrl_head_o                 (vc_ctrl_head         [in_port][NumVC[in_port]-1:0]),
-
-    // output data to switch traversal
-    .vc_data_head_o                 (vc_data_head         [in_port][NumVC[in_port]-1:0]),
-
-    // pop flit ctrl fifo (comes from SA stage)
-    .read_enable_sa_stage_i         (read_enable_sa_stage [in_port]),
-    .read_vc_id_oh_sa_stage_i       (sa_local_vc_id_oh    [in_port][NumVC[in_port]-1:0]),
-
-    // pop flit data fifo (comes from ST stage)
-    .read_enable_st_stage_i         (read_enable_st_stage [in_port]),
-    .read_vc_id_oh_st_stage_i       (read_vc_id_oh_st_stage[in_port][NumVC[in_port]-1:0]),
-
     .clk_i,
-    .rst_ni
+    .rst_ni,
+    .credit_valid_o           ( credit_v_o[in_port]                                 ),
+    .credit_id_o              ( credit_id_o[in_port]                                ),
+    .data_valid_i             ( data_v_i[in_port]                                   ),
+    .data_i                   ( data_i[in_port]                                     ),
+    .vc_hdr_valid_o           ( vc_ctrl_head_v[in_port][NumVC[in_port]-1:0]         ),
+    .vc_hdr_o                 ( vc_ctrl_head[in_port][NumVC[in_port]-1:0]           ),
+    .vc_data_o                ( vc_data_head[in_port][NumVC[in_port]-1:0]           ),
+    .read_enable_sa_stage_i   ( read_enable_sa_stage[in_port]                       ),
+    .read_vc_id_oh_sa_stage_i ( sa_local_vc_id_oh[in_port][NumVC[in_port]-1:0]      ),
+    .read_enable_st_stage_i   ( read_enable_st_stage[in_port]                       ),
+    .read_vc_id_oh_st_stage_i ( read_vc_id_oh_st_stage[in_port][NumVC[in_port]-1:0] )
   );
 end
 
@@ -558,7 +549,7 @@ floo_vc_router_switch #(
   .NumVC                            (NumVC),
   .NumVCMax                         (NumVCMax),
   .flit_t                           (flit_t),
-  .flit_payload_t                   (flit_payload_t),
+  .flit_payload_t                   (payload_t),
   .hdr_t                            (hdr_t),
   .RouteAlgo                        (RouteAlgo)
 ) i_floo_vc_router_switch (

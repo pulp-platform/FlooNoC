@@ -70,7 +70,7 @@ floo_vc_router #(
   .RouteAlgo          (XYRouting),
   .flit_t             (flit_t),
   .hdr_t              (hdr_t),
-  .flit_payload_t     (flit_payload_t),
+  .payload_t          (payload_t),
   .id_t               (id_t),
   .FixedWormholeVC    (0), //without special features
   .UpdateRRArbIfNotSent(0), //without special features
