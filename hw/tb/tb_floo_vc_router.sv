@@ -145,7 +145,7 @@ task automatic check_received_results(int unsigned num_cycles);
             exp_result = expected_result_queue[port].pop_front();
             if(exp_result != result) begin
               $error("Results dont match");
-              $display(exp_result.rsvd == result.rsvd ? "Data was correct": "Data was incorrect");
+              $display(exp_result.payload == result.payload ? "Data was correct": "Data was incorrect");
               if(exp_result.hdr != result.hdr) begin
                 $display("Expected hdr: %p", exp_result.hdr);
                 $display("Result hdr  : %p", result.hdr);
@@ -257,7 +257,7 @@ endtask
 task automatic randomize_flit();
   if(!std::randomize(random_flit))
     $fatal(1,"Was not able to randomize flit");
-  flit.rsvd = random_flit.rsvd;
+  flit.payload = random_flit.payload;
   flit.hdr.src_id =random_flit.hdr.src_id;
   flit.hdr.atop = random_flit.hdr.atop;
   flit.hdr.axi_ch = random_flit.hdr.axi_ch;

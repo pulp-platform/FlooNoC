@@ -928,7 +928,7 @@ module floo_vc_narrow_wide_chimney
     .valid_i  ( floo_req_arb_req_in   ),
     .data_i   ( floo_req_arb_in       ),
     .ready_o  ( floo_req_arb_gnt_out  ),
-    .data_o   ( {floo_req_arb_sel_hdr, floo_req_o.req.generic.rsvd}),
+    .data_o   ( {floo_req_arb_sel_hdr, floo_req_o.req.generic.payload}),
     .ready_i  ( floo_req_o.valid ),
     .valid_o  ( floo_req_arb_v        )
   );
@@ -942,7 +942,7 @@ module floo_vc_narrow_wide_chimney
     .valid_i  ( floo_rsp_arb_req_in   ),
     .data_i   ( floo_rsp_arb_in       ),
     .ready_o  ( floo_rsp_arb_gnt_out  ),
-    .data_o   ( {floo_rsp_arb_sel_hdr,floo_rsp_o.rsp.generic.rsvd}),
+    .data_o   ( {floo_rsp_arb_sel_hdr,floo_rsp_o.rsp.generic.payload}),
     .ready_i  ( floo_rsp_o.valid ),
     .valid_o  ( floo_rsp_arb_v        )
   );
@@ -956,7 +956,7 @@ module floo_vc_narrow_wide_chimney
     .valid_i  ( floo_wide_arb_req_in  ),
     .data_i   ( floo_wide_arb_in      ),
     .ready_o  ( floo_wide_arb_gnt_out ),
-    .data_o   ( {floo_wide_arb_sel_hdr, floo_wide_o.wide.generic.rsvd}),
+    .data_o   ( {floo_wide_arb_sel_hdr, floo_wide_o.wide.generic.payload}),
     .ready_i  ( floo_wide_o.valid ),
     .valid_o  ( floo_wide_arb_v       )
   );

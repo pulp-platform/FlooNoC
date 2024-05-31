@@ -51,7 +51,7 @@ if(RouteAlgo != XYRouting) begin : gen_switch_not_XY_routing_optimized
         // dont need to check bits on diagonal
         if(out_port != in_port) begin : gen_nXYopt_out_neq_in
           if(inport_id_oh_per_output_i[out_port][in_port]) begin : gen_nXYopt_found_match
-            data_o[out_port].rsvd             = data_head_per_inport[in_port];
+            data_o[out_port].payload          = data_head_per_inport[in_port];
             data_o[out_port].hdr.rob_req      = ctrl_head_per_inport_i[in_port].rob_req;
             data_o[out_port].hdr.rob_idx      = ctrl_head_per_inport_i[in_port].rob_idx;
             data_o[out_port].hdr.dst_id       = ctrl_head_per_inport_i[in_port].dst_id;
@@ -78,7 +78,7 @@ end else begin : gen_switch_XY_routing_optimized
             (out_port == West && (in_port == South || in_port == North))
               )) begin : gen_XYopt_possible_connection
           if(inport_id_oh_per_output_i[out_port][in_port]) begin : gen_nXYopt_found_match
-            data_o[out_port].rsvd             = data_head_per_inport[in_port];
+            data_o[out_port].payload          = data_head_per_inport[in_port];
             data_o[out_port].hdr.rob_req      = ctrl_head_per_inport_i[in_port].rob_req;
             data_o[out_port].hdr.rob_idx      = ctrl_head_per_inport_i[in_port].rob_idx;
             data_o[out_port].hdr.dst_id       = ctrl_head_per_inport_i[in_port].dst_id;

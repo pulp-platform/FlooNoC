@@ -206,17 +206,17 @@ package floo_narrow_wide_pkg;
 
   typedef struct packed {
     hdr_t hdr;
-    logic [87:0] rsvd;
+    logic [87:0] payload;
   } floo_req_generic_flit_t;
 
   typedef struct packed {
     hdr_t hdr;
-    logic [71:0] rsvd;
+    logic [71:0] payload;
   } floo_rsp_generic_flit_t;
 
   typedef struct packed {
     hdr_t hdr;
-    logic [577:0] rsvd;
+    logic [577:0] payload;
   } floo_wide_generic_flit_t;
 
 

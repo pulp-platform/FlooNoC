@@ -109,7 +109,7 @@ class Link(BaseModel, ABC):
         for phys_ch, size in link_sizes.items():
             struct_dict = {
                 "hdr": "hdr_t",
-                "rsvd": f"logic[{size-1}:0]",
+                "payload": f"logic[{size-1}:0]",
             }
             string += sv_struct_typedef(f"floo_{phys_ch}_generic_flit_t", struct_dict)
         return string
