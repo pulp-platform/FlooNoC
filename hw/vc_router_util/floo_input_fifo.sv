@@ -7,35 +7,39 @@
 `include "common_cells/registers.svh"
 `include "common_cells/assertions.svh"
 
-// similar to spill_register, but writeable while full if ready_i
+/// similar to spill_register, but can accept input while full, if
+/// being read in the same cycle i.e. `ready_i` is high.
 module floo_input_fifo #(
-  parameter int Depth     = 2,
-  parameter type type_t        = logic
+  /// Depth of the "FIFO"
+  parameter int unsigned Depth  = 32'd2,
+  /// Type of the data to be stored
+  parameter type type_t         = logic
 ) (
-  input  logic clk_i   ,
-  input  logic rst_ni  ,
-  input  logic valid_i ,
-  input  type_t     data_i  ,
-  output logic valid_o ,
-  input  logic ready_i ,
-  output type_t     data_o
+  input  logic  clk_i,
+  input  logic  rst_ni,
+  input  logic  valid_i,
+  input  type_t data_i,
+  output logic  valid_o,
+  input  logic  ready_i,
+  output type_t data_o
 );
   if(Depth == 1) begin : gen_reg
-    logic ready_for_input;
-    type_t data_q;
-    logic full_q;
-    logic fill, drain;
-    `FFL(data_q, data_i, fill, '0)
-    `FFL(full_q, fill, fill || drain, '0)
-
-    assign fill = valid_i & ready_for_input;
-    assign drain = full_q & ready_i;
-
-    assign ready_for_input = ~full_q | ready_i;
-    assign valid_o = full_q;
-    assign data_o = data_q;
-
-    `ASSERT(RegFullWrite, ready_for_input | !valid_i)
+    logic ready_out;
+    stream_register #(
+      .T(type_t)
+    ) i_stream_register (
+      .clk_i,
+      .rst_ni,
+      .clr_i      ( 1'b0      ),
+      .testmode_i ( 1'b0      ),
+      .valid_i,
+      .ready_o    ( ready_out ),
+      .data_i,
+      .valid_o,
+      .ready_i,
+      .data_o
+    );
+    `ASSERT(RegFullWrite, ready_out | !valid_i)
   end else if(Depth == 2) begin : gen_fifo_2
     logic ready_for_input;
     // The A register.
