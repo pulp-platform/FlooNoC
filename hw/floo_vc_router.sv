@@ -184,26 +184,22 @@ end
 
 for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
   floo_sa_local #(
-    .NumVC                          (NumVC                  [in_port]),
-    .NumPorts                       (NumPorts),
-    .hdr_t                          (hdr_t)
+    .NumVC    ( NumVC[in_port]  ),
+    .NumPorts ( NumPorts        ),
+    .hdr_t    ( hdr_t           )
   ) i_sa_local (
-    .vc_ctrl_head_v_i               (vc_ctrl_head_v         [in_port][NumVC[in_port]-1:0]),
-    .vc_ctrl_head_i                 (vc_ctrl_head           [in_port][NumVC[in_port]-1:0]),
-
-    .sa_local_vc_id_oh_o            (sa_local_vc_id_oh      [in_port][NumVC[in_port]-1:0]),
-    .sa_local_sel_ctrl_head_o       (sa_local_sel_ctrl_head [in_port]),
-
-    // chosen output: all 0 if none
-    .sa_local_output_dir_oh_o       (sa_local_output_dir_oh [in_port]),
-    // when to update rr arbiter
-    .sent_i                         (read_enable_sa_stage   [in_port]),
-    .update_rr_arb_i                ((read_enable_sa_stage  [in_port] &
-                                      sel_ctrl_head_per_input_sa_stage[in_port].last) |
-                                     (UpdateRRArbIfNotSent==1 & ~read_enable_sa_stage [in_port] &
-                                      ~wormhole_v_per_input [in_port])),
     .clk_i,
-    .rst_ni
+    .rst_ni,
+    .vc_hdr_valid_i           (vc_ctrl_head_v[in_port][NumVC[in_port]-1:0]    ),
+    .vc_hdr_i                 (vc_ctrl_head[in_port][NumVC[in_port]-1:0]      ),
+    .sa_local_vc_id_oh_o      (sa_local_vc_id_oh[in_port][NumVC[in_port]-1:0] ),
+    .sa_local_sel_hdr_o       (sa_local_sel_ctrl_head[in_port]                ),
+    .sa_local_output_dir_oh_o (sa_local_output_dir_oh[in_port]                ),
+    .sent_i                   (read_enable_sa_stage[in_port]                  ),
+    .update_rr_arb_i          ((read_enable_sa_stage  [in_port] &
+                                sel_ctrl_head_per_input_sa_stage[in_port].last) |
+                               (UpdateRRArbIfNotSent==1 & ~read_enable_sa_stage [in_port] &
+                                ~wormhole_v_per_input [in_port])              )
   );
 end
 

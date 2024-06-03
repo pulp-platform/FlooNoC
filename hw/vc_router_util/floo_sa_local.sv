@@ -4,78 +4,57 @@
 //
 // Lukas Berner <bernerl@student.ethz.ch>
 
-// sa local: choose a valid vc via rr arbitration
+/// SA local: choose a valid VC with rr-arbitration and output direction
 module floo_sa_local #(
-  parameter int NumVC = 4,
-  parameter int NumPorts = 5,
-  parameter type hdr_t   = logic,
-  parameter int HdrLength= $bits(hdr_t)
+  parameter int unsigned NumVC      = 4,
+  parameter int unsigned NumPorts   = 5,
+  parameter type hdr_t              = logic,
+  localparam int unsigned HdrLength = $bits(hdr_t)
 ) (
-  input  logic      [NumVC-1:0]         vc_ctrl_head_v_i,
-  input  hdr_t      [NumVC-1:0]         vc_ctrl_head_i,
-
-  output logic      [NumVC-1:0]         sa_local_vc_id_oh_o,
-  output hdr_t                          sa_local_sel_ctrl_head_o,
-
-  output logic      [NumPorts-1:0]      sa_local_output_dir_oh_o, //chosen output: all 0 if none
-
-  // when to update rr arbiter
-  input  logic                          sent_i,
-  input  logic                          update_rr_arb_i,
-
-  input  logic                          clk_i,
-  input  logic                          rst_ni
+  input  logic                  clk_i,
+  input  logic                  rst_ni,
+  /// Input VC: one-hot encoding of valid VCs
+  input  logic  [NumVC-1:0]     vc_hdr_valid_i,
+  /// Input header: the headers of the VCs
+  input  hdr_t  [NumVC-1:0]     vc_hdr_i,
+  /// Output VC: one-hot encoding of the chosen VC
+  output logic  [NumVC-1:0]     sa_local_vc_id_oh_o,
+  /// Output header: the chosen header
+  output hdr_t                  sa_local_sel_hdr_o,
+  /// Output direction: one-hot encoding of the chosen output port
+  output logic  [NumPorts-1:0]  sa_local_output_dir_oh_o,
+  // When to update round-robin arbiter
+  input  logic                  sent_i,
+  input  logic                  update_rr_arb_i
 );
-logic sa_local_v;
 
-// pick a valid vc via rr arbitration
-floo_rr_arbiter #(
-  .NumInputs        (NumVC)
-) i_sa_local_rr_arbiter (
-  .req_i            (vc_ctrl_head_v_i ),
-  .update_i         (update_rr_arb_i),
-  .grant_i          (sent_i),
-  .grant_o          (sa_local_vc_id_oh_o),
-  .grant_id_o       (),
-  .rst_ni,
-  .clk_i
-);
+// Pick a valid vc via rr arbitration
+  floo_rr_arbiter #(
+    .NumInputs  ( NumVC )
+  ) i_sa_local_rr_arbiter (
+    .clk_i,
+    .rst_ni,
+    .req_i      ( vc_hdr_valid_i      ),
+    .update_i   ( update_rr_arb_i     ),
+    .grant_i    ( sent_i              ),
+    .grant_o    ( sa_local_vc_id_oh_o ),
+    .grant_id_o (                     )
+  );
 
 
   floo_mux #(
-    .NumInputs        (NumVC),
-    .DataWidth        (HdrLength)
-    ) i_floo_mux_select_head (
-      .sel_i            (sa_local_vc_id_oh_o),
-      .data_i           (vc_ctrl_head_i),
-      .data_o           (sa_local_sel_ctrl_head_o)
-      );
+    .NumInputs  ( NumVC     ),
+    .DataWidth  ( HdrLength )
+  ) i_floo_mux_select_head (
+    .sel_i  ( sa_local_vc_id_oh_o ),
+    .data_i ( vc_hdr_i            ),
+    .data_o ( sa_local_sel_hdr_o  )
+  );
 
-// set bit corresponding to correct direction in sa_local_output_dir_oh_o to 1 if a vc was chosen
-always_comb begin
-  sa_local_output_dir_oh_o = '0;
-  sa_local_v = |vc_ctrl_head_v_i; //if any vc is valid, a vc will be chosen
-  sa_local_output_dir_oh_o[sa_local_sel_ctrl_head_o.lookahead] = sa_local_v;
-end
-
-/*
-// Other way of setting correct bit:
-// might be faster since output_dir_per_vc can be calculated before rr arbitration is done
-
-logic     [NumVC-1:0][NumPorts-1:0]           output_dir_per_vc;
-
-for(genvar i = 0; i < NumPorts; i++) begin
-  assign sa_local_output_dir_oh_o[i] = vc_ctrl_head_v_i[sa_local_vc_id_o] &
-                                          output_dir_per_vc[sa_local_vc_id_o][i];
-end
-
-for(genvar i = 0; i < NumVC; i++) begin:
-  for(genvar j = 0; j < NumPorts; j++) begin:
-    assign output_dir_per_vc[i][j] =
-                                vc_ctrl_head_i[i].lookahead == j[$bits(route_dir_e)-1:0];
+  // Set bit corresponding to correct direction in sa_local_output_dir_oh_o to 1 if a vc was chosen
+  always_comb begin
+    sa_local_output_dir_oh_o = '0;
+    sa_local_output_dir_oh_o[sa_local_sel_hdr_o.lookahead] = |vc_hdr_valid_i;
   end
-end
-*/
-
 
 endmodule
