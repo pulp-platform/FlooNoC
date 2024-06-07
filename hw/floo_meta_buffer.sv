@@ -13,6 +13,8 @@
 module floo_meta_buffer #(
   /// Maximum number of non-atomic outstanding requests
   parameter int MaxTxns       = 32'd0,
+  /// Number of unique non-atomic IDs
+  parameter int MaxUniqueIDs  = 32'd1,
   /// Enable support for atomics
   parameter bit AtopSupport   = 1'b1,
   /// Number of outstanding atomic requests
@@ -31,6 +33,10 @@ module floo_meta_buffer #(
   localparam type id_in_t      = logic[IdInWidth-1:0],
   /// ID type for outgoing responses
   localparam type id_out_t     = logic[IdOutWidth-1:0],
+  /// Minimum IdWidth
+  localparam int IdMinWidth    = (IdInWidth < IdOutWidth)? IdInWidth : IdOutWidth,
+  /// Minimum ID type
+  localparam type id_t         = logic[IdMinWidth-1:0],
   /// Constant ID for non-atomic requests
   localparam id_out_t  NonAtomicId = '1
 ) (
@@ -56,41 +62,112 @@ module floo_meta_buffer #(
   buf_t no_atop_r_buf, no_atop_b_buf;
   buf_t [MaxAtomicTxns-1:0] atop_r_buf, atop_b_buf;
 
-  fifo_v3 #(
-    .FALL_THROUGH ( 1'b0    ),
-    .DEPTH        ( MaxTxns ),
-    .dtype        ( buf_t   )
-  ) i_ar_no_atop_fifo (
-    .clk_i,
-    .rst_ni,
-    .flush_i    ( 1'b0                ),
-    .testmode_i ( test_enable_i       ),
-    .full_o     ( ar_no_atop_buf_full ),
-    .empty_o    (                     ),
-    .usage_o    (                     ),
-    .data_i     ( ar_buf_i            ),
-    .push_i     ( ar_no_atop_push     ),
-    .data_o     ( no_atop_r_buf       ),
-    .pop_i      ( ar_no_atop_pop      )
-  );
+  id_t no_atop_aw_req_id, no_atop_ar_req_id;
 
-  fifo_v3 #(
-    .FALL_THROUGH ( 1'b0    ),
-    .DEPTH        ( MaxTxns ),
-    .dtype        ( buf_t   )
-  ) i_aw_no_atop_fifo (
-    .clk_i,
-    .rst_ni,
-    .flush_i    ( 1'b0                ),
-    .testmode_i ( test_enable_i       ),
-    .full_o     ( aw_no_atop_buf_full ),
-    .empty_o    (                     ),
-    .usage_o    (                     ),
-    .data_i     ( aw_buf_i            ),
-    .push_i     ( aw_no_atop_push     ),
-    .data_o     ( no_atop_b_buf       ),
-    .pop_i      ( aw_no_atop_pop      )
-  );
+  if (MaxUniqueIDs == 1) begin : gen_no_atop_fifos
+
+    assign no_atop_aw_req_id = NonAtomicId;
+    assign no_atop_ar_req_id = NonAtomicId;
+
+    fifo_v3 #(
+      .FALL_THROUGH ( 1'b0    ),
+      .DEPTH        ( MaxTxns ),
+      .dtype        ( buf_t   )
+    ) i_ar_no_atop_fifo (
+      .clk_i,
+      .rst_ni,
+      .flush_i    ( 1'b0                ),
+      .testmode_i ( test_enable_i       ),
+      .full_o     ( ar_no_atop_buf_full ),
+      .empty_o    (                     ),
+      .usage_o    (                     ),
+      .data_i     ( ar_buf_i            ),
+      .push_i     ( ar_no_atop_push     ),
+      .data_o     ( no_atop_r_buf       ),
+      .pop_i      ( ar_no_atop_pop      )
+    );
+
+    fifo_v3 #(
+      .FALL_THROUGH ( 1'b0    ),
+      .DEPTH        ( MaxTxns ),
+      .dtype        ( buf_t   )
+    ) i_aw_no_atop_fifo (
+      .clk_i,
+      .rst_ni,
+      .flush_i    ( 1'b0                ),
+      .testmode_i ( test_enable_i       ),
+      .full_o     ( aw_no_atop_buf_full ),
+      .empty_o    (                     ),
+      .usage_o    (                     ),
+      .data_i     ( aw_buf_i            ),
+      .push_i     ( aw_no_atop_push     ),
+      .data_o     ( no_atop_b_buf       ),
+      .pop_i      ( aw_no_atop_pop      )
+    );
+
+  end else begin : gen_no_atop_id_queue
+
+    logic b_outp_gnt, b_oup_data_valid;
+    logic r_outp_gnt, r_oup_data_valid;
+
+    assign no_atop_aw_req_id = NonAtomicId - id_t'(axi_req_i.aw.id);
+    assign no_atop_ar_req_id = NonAtomicId - id_t'(axi_req_i.ar.id);
+
+    id_queue #(
+      .ID_WIDTH           (IdMinWidth),
+      .CAPACITY           (MaxTxns),
+      .FULL_BW            (1'b0),
+      .data_t             (buf_t)
+    ) i_aw_no_atop_id_queue (
+      .clk_i,
+      .rst_ni,
+      .inp_id_i        (id_t'(axi_req_i.aw.id)),
+      .inp_data_i      (aw_buf_i),
+      .inp_req_i       (aw_no_atop_push),
+      .inp_gnt_o       (aw_no_atop_buf_full),
+      .exists_data_i   ('0),
+      .exists_mask_i   ('0),
+      .exists_req_i    ('0),
+      .exists_o        (),
+      .exists_gnt_o    (),
+      .oup_id_i        (axi_rsp_i.b.id),
+      .oup_pop_i       (aw_no_atop_pop),
+      .oup_req_i       (axi_rsp_i.b_valid),
+      .oup_data_o      (no_atop_b_buf),
+      .oup_data_valid_o(b_oup_data_valid),
+      .oup_gnt_o       (b_outp_gnt)
+    );
+
+    id_queue #(
+      .ID_WIDTH           (IdMinWidth),
+      .CAPACITY           (MaxTxns),
+      .FULL_BW            (1'b0),
+      .data_t             (buf_t)
+    ) i_ar_no_atop_id_queue (
+      .clk_i,
+      .rst_ni,
+      .inp_id_i        (id_t'(axi_req_i.ar.id)),
+      .inp_data_i      (ar_buf_i),
+      .inp_req_i       (ar_no_atop_push),
+      .inp_gnt_o       (ar_no_atop_buf_full),
+      .exists_data_i   ('0),
+      .exists_mask_i   ('0),
+      .exists_req_i    ('0),
+      .exists_o        (),
+      .exists_gnt_o    (),
+      .oup_id_i        (axi_rsp_i.r.id),
+      .oup_pop_i       (ar_no_atop_pop),
+      .oup_req_i       (axi_rsp_i.r_valid),
+      .oup_data_o      (no_atop_b_buf),
+      .oup_data_valid_o(r_oup_data_valid),
+      .oup_gnt_o       (r_oup_gnt)
+    );
+
+    `ASSERT(NoBResponseIdQueue, axi_rsp_i.b_valid -> (b_oup_data_valid && b_outp_gnt),
+            "Meta data for B response must exist in Id Queue!")
+    `ASSERT(NoRResponseIdQueue, axi_rsp_i.r_valid -> (r_oup_data_valid && r_oup_gnt),
+            "Meta data for R response must exist in Id Queue!")
+  end
 
   // Non-atomic AR's
   assign ar_no_atop_push = axi_req_o.ar_valid && axi_rsp_i.ar_ready;
@@ -101,8 +178,8 @@ module floo_meta_buffer #(
   assign aw_no_atop_push = axi_req_o.aw_valid && axi_rsp_i.aw_ready && !is_atop_aw;
   assign aw_no_atop_pop = axi_rsp_o.b_valid && axi_req_i.b_ready && !is_atop_b_rsp;
 
-  assign is_atop_r_rsp = axi_rsp_i.r_valid && axi_rsp_i.r.id != NonAtomicId;
-  assign is_atop_b_rsp = axi_rsp_i.b_valid && axi_rsp_i.b.id != NonAtomicId;
+  assign is_atop_r_rsp = axi_rsp_i.r_valid && axi_rsp_i.r.id > MaxAtomicTxns;
+  assign is_atop_b_rsp = axi_rsp_i.b_valid && axi_rsp_i.b.id > MaxAtomicTxns;
   `ASSERT(NoAtopSupport, !(!AtopSupport && is_atop_aw),
           "Atomics not supported, but atomic request received!")
 
@@ -188,8 +265,8 @@ module floo_meta_buffer #(
       axi_req_o = axi_req_i;
       axi_rsp_o = axi_rsp_i;
       // Use fixed ID for non-atomic requests and unique ID for atomic requests
-      axi_req_o.ar.id = NonAtomicId;
-      axi_req_o.aw.id = (is_atop_aw && AtopSupport)? atop_req_id : NonAtomicId;
+      axi_req_o.ar.id = no_atop_ar_req_id;
+      axi_req_o.aw.id = (is_atop_aw && AtopSupport)? atop_req_id : no_atop_aw_req_id;
       // Use original, buffered ID again for responses
       axi_rsp_o.r.id = (is_atop_r_rsp && AtopSupport)?
                         atop_r_buf[axi_rsp_i.r.id] : no_atop_r_buf.id;
@@ -204,5 +281,6 @@ module floo_meta_buffer #(
     end
   end
 
+  `ASSERT_INIT(InvalidMaxUniqueIDs, MaxUniqueIDs > 0)
 
 endmodule
