@@ -126,7 +126,7 @@ scripts/compile_vsim.tcl: Bender.yml
 	$(BENDER) script vsim --vlog-arg="$(VLOG_ARGS)" $(BENDER_FLAGS) | grep -v "set ROOT" >> scripts/compile_vsim.tcl
 	echo >> scripts/compile_vsim.tcl
 
-compile-sim: scripts/compile_vsim.tcl $(FLOOGEN_PKG_SRC)
+compile-sim: scripts/compile_vsim.tcl
 	$(VSIM) -64 -c -do "source scripts/compile_vsim.tcl; quit"
 
 run-sim:
