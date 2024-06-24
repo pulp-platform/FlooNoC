@@ -23,14 +23,13 @@ module floo_vc_arbiter import floo_pkg::*;
   output flit_t [NumPhysChannels-1:0] data_o
 );
 
-  typedef logic [$clog2(NumVirtChannels)-1:0] arb_idx_t;
+if (NumVirtChannels == NumPhysChannels) begin : gen_virt_eq_phys
+  assign valid_o = valid_i;
+  assign ready_o = ready_i;
+  assign data_o  = data_i;
+end else if (NumPhysChannels == 1) begin : gen_single_phys
 
-  if (NumVirtChannels == NumPhysChannels) begin : gen_virt_eq_phys
-    assign valid_o = valid_i;
-    assign ready_o = ready_i;
-    assign data_o  = data_i;
-  end else if (NumPhysChannels == 1) begin : gen_single_phys
-
+    typedef logic [$clog2(NumVirtChannels)-1:0] arb_idx_t;
     arb_idx_t vc_arb_idx;
 
     logic [NumVirtChannels-1:0] vc_arb_req_in;
