@@ -1,8 +1,8 @@
 <% def camelcase(s):
   return ''.join(x.capitalize() or '_' for x in s.split('_'))
 %>\
-% if router.route_algo == 'IdTable':
-${router.table.render(name=router.name + "_table")}
+% if router.route_algo.value == 'IdTable':
+${router.table.render()}
 % endif
 
 ${router.incoming[0].req_type} [${len(router.incoming)-1}:0] ${router.name}_req_in;
@@ -43,9 +43,9 @@ floo_narrow_wide_router #(
   .ChannelFifoDepth (2),
   .OutputFifoDepth (2),
   .id_t(id_t),
-% if router.route_algo == 'IdTable':
+% if router.route_algo.value == 'IdTable':
   .NumAddrRules (${len(router.table.rules)}),
-  .addr_rule_t (${router.name}_table_rule_t)
+  .addr_rule_t (${router.name}_map_rule_t),
 % endif
   .RouteAlgo (${router.route_algo.value})
 ) ${router.name} (
@@ -53,8 +53,8 @@ floo_narrow_wide_router #(
   .rst_ni,
   .test_enable_i,
   .id_i ('0),
-% if router.route_algo == 'IdTable':
-  .id_route_map_i (${camelcase(router.name + "_table")}),
+% if router.route_algo.value == 'IdTable':
+  .id_route_map_i (${camelcase(router.name + "_map")}),
 % else:
   .id_route_map_i ('0),
 % endif
