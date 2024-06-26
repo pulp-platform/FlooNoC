@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - The `id_offset` should not be correctly applied in the system address map. Before it resulted in negative coordinates.
 - The `axi_ch_e` types now have an explicit bitwidth. Previously, this caused issues during elaboration since a 32-bit integer was used as a type.
 - Fixed a typedef in `floo_vc_arbiter` when setting `NumVirtChannels` to 1, that caused issue when compiling with Verilator.
+- Fixes issue that the routing table was not renderred when `IdTable` was used as the routing algorithm.
 
 ### Removed
 
