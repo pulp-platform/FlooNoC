@@ -37,6 +37,12 @@ module floo_narrow_wide_chimney
   parameter int unsigned NarrowMaxTxns           = 32,
   /// Number of maximum oustanding requests on the wide network
   parameter int unsigned WideMaxTxns             = 32,
+  /// The number of unique IDs that can be used to send out
+  /// requests on the narrow network
+  parameter int unsigned NarrowMaxUniqueIds       = 1,
+  /// The number of unique IDs that can be used to send out
+  /// requests on the wide network
+  parameter int unsigned WideMaxUniqueIds         = 1,
   /// Maximum number of outstanding requests per ID on the narrow network
   parameter int unsigned NarrowMaxTxnsPerId      = NarrowMaxTxns,
   /// Maximum number of outstanding requests per ID on the wide network
@@ -150,14 +156,10 @@ module floo_narrow_wide_chimney
   floo_wide_generic_flit_t  floo_wide_unpack_generic;
 
   // Meta Buffers
-  axi_narrow_in_req_t axi_narrow_meta_buf_req_in, axi_narrow_meta_buf_req_out;
-  axi_narrow_in_rsp_t axi_narrow_meta_buf_rsp_in, axi_narrow_meta_buf_rsp_out;
-  axi_wide_in_req_t   axi_wide_meta_buf_req_in, axi_wide_meta_buf_req_out;
-  axi_wide_in_rsp_t   axi_wide_meta_buf_rsp_in, axi_wide_meta_buf_rsp_out;
-  `AXI_ASSIGN_REQ_STRUCT(axi_narrow_out_req_o, axi_narrow_meta_buf_req_out)
-  `AXI_ASSIGN_RESP_STRUCT(axi_narrow_meta_buf_rsp_in, axi_narrow_out_rsp_i)
-  `AXI_ASSIGN_REQ_STRUCT(axi_wide_out_req_o, axi_wide_meta_buf_req_out)
-  `AXI_ASSIGN_RESP_STRUCT(axi_wide_meta_buf_rsp_in, axi_wide_out_rsp_i)
+  axi_narrow_in_req_t axi_narrow_meta_buf_req_in;
+  axi_narrow_in_rsp_t axi_narrow_meta_buf_rsp_out;
+  axi_wide_in_req_t   axi_wide_meta_buf_req_in;
+  axi_wide_in_rsp_t   axi_wide_meta_buf_rsp_out;
 
   // ID tracking
   typedef struct packed {
@@ -1057,26 +1059,27 @@ module floo_narrow_wide_chimney
 
   if (EnNarrowSbrPort) begin : gen_narrow_mgr_port
     floo_meta_buffer #(
-      .MaxTxns        ( NarrowMaxTxns       ),
-      .AtopSupport    ( AtopSupport         ),
-      .MaxAtomicTxns  ( MaxAtomicTxns       ),
-      .buf_t          ( narrow_id_out_buf_t ),
-      .IdInWidth      ( AxiNarrowInIdWidth  ),
-      .IdOutWidth     ( AxiNarrowOutIdWidth ),
-      .axi_req_t      ( axi_narrow_in_req_t ),
-      .axi_rsp_t      ( axi_narrow_in_rsp_t )
+      .MaxTxns        ( NarrowMaxTxns         ),
+      .MaxUniqueIds   ( NarrowMaxUniqueIds    ),
+      .AtopSupport    ( AtopSupport           ),
+      .MaxAtomicTxns  ( MaxAtomicTxns         ),
+      .buf_t          ( narrow_id_out_buf_t   ),
+      .axi_in_req_t   ( axi_narrow_in_req_t   ),
+      .axi_in_rsp_t   ( axi_narrow_in_rsp_t   ),
+      .axi_out_req_t  ( axi_narrow_out_req_t  ),
+      .axi_out_rsp_t  ( axi_narrow_out_rsp_t  )
     ) i_narrow_meta_buffer (
       .clk_i,
       .rst_ni,
       .test_enable_i,
-      .axi_req_i  ( axi_narrow_meta_buf_req_in   ),
-      .axi_rsp_o  ( axi_narrow_meta_buf_rsp_out  ),
-      .axi_req_o  ( axi_narrow_meta_buf_req_out  ),
-      .axi_rsp_i  ( axi_narrow_meta_buf_rsp_in   ),
-      .aw_buf_i   ( narrow_aw_out_data_in        ),
-      .ar_buf_i   ( narrow_ar_out_data_in        ),
-      .r_buf_o    ( narrow_ar_out_data_out       ),
-      .b_buf_o    ( narrow_aw_out_data_out       )
+      .axi_req_i  ( axi_narrow_meta_buf_req_in  ),
+      .axi_rsp_o  ( axi_narrow_meta_buf_rsp_out ),
+      .axi_req_o  ( axi_narrow_out_req_o        ),
+      .axi_rsp_i  ( axi_narrow_out_rsp_i        ),
+      .aw_buf_i   ( narrow_aw_out_data_in       ),
+      .ar_buf_i   ( narrow_ar_out_data_in       ),
+      .r_buf_o    ( narrow_ar_out_data_out      ),
+      .b_buf_o    ( narrow_aw_out_data_out      )
     );
   end else begin : gen_no_narrow_mgr_port
     axi_err_slv #(
@@ -1091,33 +1094,34 @@ module floo_narrow_wide_chimney
       .slv_req_i  ( axi_narrow_meta_buf_req_in  ),
       .slv_resp_o ( axi_narrow_meta_buf_rsp_out )
     );
-    assign axi_narrow_meta_buf_req_out = '0;
+    assign axi_narrow_out_req_o = '0;
     assign narrow_ar_out_data_out = '0;
     assign narrow_aw_out_data_out = '0;
   end
 
   if (EnWideSbrPort) begin : gen_wide_mgr_port
     floo_meta_buffer #(
-      .MaxTxns        ( WideMaxTxns       ),
-      .AtopSupport    ( 1'b1              ),
-      .MaxAtomicTxns  ( MaxAtomicTxns     ),
-      .buf_t          ( wide_id_out_buf_t ),
-      .IdInWidth      ( AxiWideInIdWidth  ),
-      .IdOutWidth     ( AxiWideOutIdWidth ),
-      .axi_req_t      ( axi_wide_in_req_t ),
-      .axi_rsp_t      ( axi_wide_in_rsp_t )
+      .MaxTxns        ( WideMaxTxns         ),
+      .MaxUniqueIds   ( WideMaxUniqueIds    ),
+      .AtopSupport    ( 1'b0                ),
+      .MaxAtomicTxns  ( '0                  ),
+      .buf_t          ( wide_id_out_buf_t   ),
+      .axi_in_req_t   ( axi_wide_in_req_t   ),
+      .axi_in_rsp_t   ( axi_wide_in_rsp_t   ),
+      .axi_out_req_t  ( axi_wide_out_req_t  ),
+      .axi_out_rsp_t  ( axi_wide_out_rsp_t  )
     ) i_wide_meta_buffer (
       .clk_i,
       .rst_ni,
       .test_enable_i,
-      .axi_req_i  ( axi_wide_meta_buf_req_in   ),
-      .axi_rsp_o  ( axi_wide_meta_buf_rsp_out  ),
-      .axi_req_o  ( axi_wide_meta_buf_req_out  ),
-      .axi_rsp_i  ( axi_wide_meta_buf_rsp_in   ),
-      .aw_buf_i   ( wide_aw_out_data_in        ),
-      .ar_buf_i   ( wide_ar_out_data_in        ),
-      .r_buf_o    ( wide_ar_out_data_out       ),
-      .b_buf_o    ( wide_aw_out_data_out       )
+      .axi_req_i  ( axi_wide_meta_buf_req_in  ),
+      .axi_rsp_o  ( axi_wide_meta_buf_rsp_out ),
+      .axi_req_o  ( axi_wide_out_req_o        ),
+      .axi_rsp_i  ( axi_wide_out_rsp_i        ),
+      .aw_buf_i   ( wide_aw_out_data_in       ),
+      .ar_buf_i   ( wide_ar_out_data_in       ),
+      .r_buf_o    ( wide_ar_out_data_out      ),
+      .b_buf_o    ( wide_aw_out_data_out      )
     );
   end else begin : gen_no_wide_mgr_port
     axi_err_slv #(
@@ -1132,7 +1136,7 @@ module floo_narrow_wide_chimney
       .slv_req_i  ( axi_wide_meta_buf_req_in  ),
       .slv_resp_o ( axi_wide_meta_buf_rsp_out )
     );
-    assign axi_wide_meta_buf_req_out = '0;
+    assign axi_wide_out_req_o = '0;
     assign wide_ar_out_data_out = '0;
     assign wide_aw_out_data_out = '0;
   end
