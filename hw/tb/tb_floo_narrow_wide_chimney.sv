@@ -23,6 +23,8 @@ module tb_floo_narrow_wide_chimney;
   localparam int unsigned WideNumWrites = 1000;
 
   localparam bit AtopSupport = 1'b1;
+  localparam int unsigned WideMaxUniqueIds = 2;
+  localparam int unsigned MaxAtomicTxns = 3;
 
   localparam int unsigned NumTargets = 2;
 
@@ -187,11 +189,12 @@ module tb_floo_narrow_wide_chimney;
 
   floo_narrow_wide_chimney #(
     .AtopSupport              ( AtopSupport           ),
-    .MaxAtomicTxns            ( 1                     ),
+    .MaxAtomicTxns            ( MaxAtomicTxns         ),
     .NarrowMaxTxns            ( MaxTxns               ),
     .NarrowMaxTxnsPerId       ( MaxTxnsPerId          ),
     .NarrowReorderBufferSize  ( ReorderBufferSize     ),
     .WideMaxTxns              ( MaxTxns               ),
+    .WideMaxUniqueIds         ( WideMaxUniqueIds      ),
     .WideMaxTxnsPerId         ( MaxTxnsPerId          ),
     .WideReorderBufferSize    ( ReorderBufferSize     ),
     .CutAx                    ( 1'b0                  ),
@@ -221,11 +224,12 @@ module tb_floo_narrow_wide_chimney;
 
   floo_narrow_wide_chimney #(
     .AtopSupport              ( AtopSupport           ),
-    .MaxAtomicTxns            ( 1                     ),
+    .MaxAtomicTxns            ( MaxAtomicTxns         ),
     .NarrowMaxTxns            ( MaxTxns               ),
     .NarrowMaxTxnsPerId       ( MaxTxnsPerId          ),
     .NarrowReorderBufferSize  ( ReorderBufferSize     ),
     .WideMaxTxns              ( MaxTxns               ),
+    .WideMaxUniqueIds         ( WideMaxUniqueIds      ),
     .WideMaxTxnsPerId         ( MaxTxnsPerId          ),
     .WideReorderBufferSize    ( ReorderBufferSize     ),
     .CutAx                    ( 1'b0                  ),
