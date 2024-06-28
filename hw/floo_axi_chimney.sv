@@ -6,7 +6,6 @@
 
 `include "common_cells/registers.svh"
 `include "common_cells/assertions.svh"
-`include "axi/assign.svh"
 
 /// A bidirectional network interface for connecting AXI4 Buses to the NoC
 module floo_axi_chimney

@@ -6,7 +6,6 @@
 
 `include "common_cells/registers.svh"
 `include "common_cells/assertions.svh"
-`include "axi/assign.svh"
 
 /// A bidirectional network interface for connecting narrow & wide AXI Buses to the multi-link NoC
 module floo_narrow_wide_chimney
