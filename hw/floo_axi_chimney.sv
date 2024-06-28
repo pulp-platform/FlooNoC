@@ -6,7 +6,6 @@
 
 `include "common_cells/registers.svh"
 `include "common_cells/assertions.svh"
-`include "axi/assign.svh"
 
 /// A bidirectional network interface for connecting AXI4 Buses to the NoC
 module floo_axi_chimney
@@ -30,6 +29,9 @@ module floo_axi_chimney
   parameter int unsigned MaxAtomicTxns      = 1,
   /// ID address offset for ID routing
   parameter int unsigned MaxTxns            = 32,
+  /// The number of unique IDs that can be used to send out
+  /// requests
+  parameter int unsigned MaxUniqueIds       = 1,
   /// Maximum number of outstanding requests per ID
   parameter int unsigned MaxTxnsPerId       = MaxTxns,
   /// Type of the narrow reorder buffer
@@ -107,10 +109,8 @@ module floo_axi_chimney
   floo_rsp_generic_flit_t unpack_rsp_generic;
 
   // Meta Buffer
-  axi_in_req_t axi_meta_buf_req_in, axi_meta_buf_req_out;
-  axi_in_rsp_t axi_meta_buf_rsp_in, axi_meta_buf_rsp_out;
-  `AXI_ASSIGN_REQ_STRUCT(axi_out_req_o, axi_meta_buf_req_out)
-  `AXI_ASSIGN_RESP_STRUCT(axi_meta_buf_rsp_in, axi_out_rsp_i)
+  axi_in_req_t axi_meta_buf_req_in;
+  axi_in_rsp_t axi_meta_buf_rsp_out;
 
   // Flit arbitration
   typedef enum logic {SelAw, SelW} aw_w_sel_e;
@@ -615,21 +615,22 @@ module floo_axi_chimney
   if (EnSbrPort) begin : gen_mgr_port
     floo_meta_buffer #(
       .MaxTxns        ( MaxTxns       ),
+      .MaxUniqueIds   ( MaxUniqueIds  ),
       .AtopSupport    ( AtopSupport   ),
       .MaxAtomicTxns  ( MaxAtomicTxns ),
       .buf_t          ( id_out_buf_t  ),
-      .IdInWidth      ( AxiInIdWidth  ),
-      .IdOutWidth     ( AxiOutIdWidth ),
-      .axi_req_t      ( axi_in_req_t  ),
-      .axi_rsp_t      ( axi_in_rsp_t  )
+      .axi_in_req_t   ( axi_in_req_t  ),
+      .axi_in_rsp_t   ( axi_in_rsp_t  ),
+      .axi_out_req_t  ( axi_out_req_t ),
+      .axi_out_rsp_t  ( axi_out_rsp_t )
     ) i_floo_meta_buffer (
       .clk_i,
       .rst_ni,
       .test_enable_i,
       .axi_req_i  ( axi_meta_buf_req_in   ),
       .axi_rsp_o  ( axi_meta_buf_rsp_out  ),
-      .axi_req_o  ( axi_meta_buf_req_out  ),
-      .axi_rsp_i  ( axi_meta_buf_rsp_in   ),
+      .axi_req_o  ( axi_out_req_o         ),
+      .axi_rsp_i  ( axi_out_rsp_i         ),
       .aw_buf_i   ( aw_out_data_in        ),
       .ar_buf_i   ( ar_out_data_in        ),
       .r_buf_o    ( ar_out_data_out       ),
@@ -649,7 +650,7 @@ module floo_axi_chimney
       .slv_resp_o ( axi_meta_buf_rsp_out  )
     );
 
-    assign axi_meta_buf_req_out = '0;
+    assign axi_out_req_o = '0;
     assign ar_out_data_out = '0;
     assign aw_out_data_out = '0;
   end
