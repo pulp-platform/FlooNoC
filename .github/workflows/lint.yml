@@ -27,15 +27,13 @@ jobs:
           pip install .
       - name: Install bender
         uses: pulp-platform/pulp-actions/bender-install@v2
+      - name: Install Verible
+        uses: chipsalliance/verible-actions-common/install-verible@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Make clean sources
         run: |
-          make clean pkg-sources FLOOGEN_ARGS="--no-format"
-      - name: Format with verible
-        uses: chipsalliance/verible-formatter-action@main
-        with:
-          files:
-            ./hw/**/*.sv
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          make clean pkg-sources
       - name: Check clean
         run: |
           git status && test -z "$(git status --porcelain)"
@@ -57,15 +55,13 @@ jobs:
           pip install .
       - name: Install bender
         uses: pulp-platform/pulp-actions/bender-install@v2
+      - name: Install Verible
+        uses: chipsalliance/verible-actions-common/install-verible@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Make clean sources
         run: |
-          make -B pkg-sources FLOOGEN_ARGS="--no-format"
-      - name: Format with verible
-        uses: chipsalliance/verible-formatter-action@main
-        with:
-          files:
-            ./hw/**/*.sv
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          make -B pkg-sources
       - name: Check clean
         run: |
             git status && test -z "$(git status --porcelain)"
