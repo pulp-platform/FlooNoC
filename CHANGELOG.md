@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 ### Added
 
 - Support for source-based routing algorithm in routers, chimnyes and `floogen`. The route is encoded in the header as a `route_t` field, and each router consumes a couple of bits to determine the output ports. In the chimney, a two-stage encoder was added to first determine the destination ID of the request, and then retrive the pre-computed route to that destination from a table. The `floogen` configuration was extended to support the new routing algorithm, and it will also generate the necessary tables for the chimneys.
+- Chimneys now support multiple AXI IDs for non-atomic transactions by specifying the `MaxUniqueids` parameter. This will mitigate ordering of transactions from initially different IDs or endpoints at the expense of some complexity in the `meta_buffer` which then uses `id_queue` to store the meta information required to return responses.
+- The conversion from req/rsp with different ID widths from/to NoC has been moved from the chimneys to the `floo_meta_buffer` module.
 
 ### Changed
 
