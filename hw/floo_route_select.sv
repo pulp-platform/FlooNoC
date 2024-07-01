@@ -6,8 +6,9 @@
 
 `include "common_cells/registers.svh"
 
-module floo_route_select import floo_pkg::*;
- #(
+module floo_route_select
+  import floo_pkg::*;
+#(
   parameter int unsigned NumRoutes     = 0,
   parameter type         flit_t        = logic,
   parameter route_algo_e RouteAlgo     = IdTable,
@@ -32,8 +33,8 @@ module floo_route_select import floo_pkg::*;
   input  logic                          valid_i,
   input  logic                          ready_i,
   output flit_t                         channel_o,
-  output logic       [   NumRoutes-1:0] route_sel_o, // One-hot route
-  output logic       [RouteSelWidth-1:0]route_sel_id_o
+  output logic [NumRoutes-1:0]          route_sel_o, // One-hot route
+  output logic [RouteSelWidth-1:0]      route_sel_id_o
 );
 
   logic [NumRoutes-1:0] route_sel;
