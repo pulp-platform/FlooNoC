@@ -100,14 +100,14 @@ logic           [NumPorts-1:0][NumVCMax-1:0]                        read_vc_id_o
 
 logic           [NumPorts-1:0][NumPorts-1:0]                        sa_local_output_dir_oh;
 logic           [NumPorts-1:0][NumVCMax-1:0]                        sa_local_vc_id_oh;
-hdr_t           [NumPorts-1:0]                                      sa_local_sel_ctrl_head;
+hdr_t           [NumPorts-1:0]                                      sa_local_sel_hdr;
 
 logic           [NumPorts-1:0][NumPorts-1:0]                        sa_local_v_per_output;
 
 logic           [NumPorts-1:0]                                      sa_global_v;
 logic           [NumPorts-1:0][NumPorts-1:0]                        sa_global_dir_oh;
 
-route_direction_e [NumPorts-1:0]                                    look_ahead_routing_per_input;
+route_direction_e [NumPorts-1:0]                                    la_route_per_input;
 route_direction_e [NumPorts-1:0][NumPorts-1:0]                      look_ahead_routing_per_output;
 route_direction_e [NumPorts-1:0]                                    look_ahead_routing_sel;
 route_direction_e [NumPorts-1:0]                                    look_ahead_routing_sel_st_stage;
@@ -125,7 +125,7 @@ logic           [NumPorts-1:0]                                      outport_vali
 logic           [NumPorts-1:0][NumPorts-1:0]        inport_id_oh_per_output_sa_stage;
 logic           [NumPorts-1:0][NumPorts-1:0]        inport_id_oh_per_output_sa_stage_transposed;
 logic           [NumPorts-1:0][NumPorts-1:0]        inport_id_oh_per_output_st_stage;
-hdr_t           [NumPorts-1:0]                      sel_ctrl_head_per_input_sa_stage;
+hdr_t           [NumPorts-1:0]                      sel_hdr_per_input_sa_stage;
 hdr_t           [NumPorts-1:0]                      sel_ctrl_head_per_input_st_stage;
 
 logic           [NumPorts-1:0][NumPorts-1:0]        last_bits_per_output;
@@ -193,11 +193,11 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
     .vc_hdr_valid_i           (vc_ctrl_head_v[in_port][NumVC[in_port]-1:0]    ),
     .vc_hdr_i                 (vc_ctrl_head[in_port][NumVC[in_port]-1:0]      ),
     .sa_local_vc_id_oh_o      (sa_local_vc_id_oh[in_port][NumVC[in_port]-1:0] ),
-    .sa_local_sel_hdr_o       (sa_local_sel_ctrl_head[in_port]                ),
+    .sa_local_sel_hdr_o       (sa_local_sel_hdr[in_port]                ),
     .sa_local_output_dir_oh_o (sa_local_output_dir_oh[in_port]                ),
     .sent_i                   (read_enable_sa_stage[in_port]                  ),
     .update_rr_arb_i          ((read_enable_sa_stage  [in_port] &
-                                sel_ctrl_head_per_input_sa_stage[in_port].last) |
+                                sel_hdr_per_input_sa_stage[in_port].last) |
                                (UpdateRRArbIfNotSent==1 & ~read_enable_sa_stage [in_port] &
                                 ~wormhole_v_per_input [in_port])              )
   );
@@ -235,21 +235,20 @@ end
 
 for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_lookahead_routing
   floo_look_ahead_routing #(
-    .NumRoutes                      (NumPorts),
-    .hdr_t                          (hdr_t),
-    .RouteAlgo                      (RouteAlgo),
-    .IdWidth                        (IdWidth),
-    .id_t                           (id_t),
-    .NumAddrRules                   (NumAddrRules),
-    .addr_rule_t                    (addr_rule_t)
+    .NumRoutes    ( NumPorts      ),
+    .hdr_t        ( hdr_t         ),
+    .RouteAlgo    ( RouteAlgo     ),
+    .id_t         ( id_t          ),
+    .NumAddrRules ( NumAddrRules  ),
+    .addr_rule_t  ( addr_rule_t)
   ) i_floo_look_ahead_routing (
-    .ctrl_head_i                    (sa_local_sel_ctrl_head           [in_port]),
-    .ctrl_head_o                    (sel_ctrl_head_per_input_sa_stage [in_port]),
-    .look_ahead_routing_o           (look_ahead_routing_per_input     [in_port]),
+    .clk_i,
+    .rst_ni,
     .id_route_map_i,
     .xy_id_i,
-    .clk_i,
-    .rst_ni
+    .hdr_i      ( sa_local_sel_hdr[in_port]           ),
+    .hdr_o      ( sel_hdr_per_input_sa_stage[in_port] ),
+    .la_route_o ( la_route_per_input[in_port]         )
   );
 end
 
@@ -462,9 +461,9 @@ always_comb begin
             sa_local_v_per_output[out_port][per_output_index]
                   = sa_local_output_dir_oh[in_port][out_port];
             look_ahead_routing_per_output[out_port][per_output_index]
-                  = look_ahead_routing_per_input[in_port];
+                  = la_route_per_input[in_port];
             last_bits_per_output[out_port][per_output_index]
-                  = sa_local_sel_ctrl_head[in_port].last;
+                  = sa_local_sel_hdr[in_port].last;
 
             inport_id_oh_per_output_sa_stage[out_port][in_port]
                   = sa_global_dir_oh[out_port][per_output_index];
@@ -479,11 +478,11 @@ always_comb begin
           sa_local_v_per_output[out_port][per_output_index]
                 = sa_local_output_dir_oh[in_port][out_port];
           look_ahead_routing_per_output[out_port][per_output_index]
-                = look_ahead_routing_per_input[in_port];
+                = la_route_per_input[in_port];
           inport_id_oh_per_output_sa_stage[out_port][in_port]
                 = sa_global_dir_oh[out_port][per_output_index];
           last_bits_per_output[out_port][per_output_index]
-                = sa_local_sel_ctrl_head[in_port].last;
+                = sa_local_sel_hdr[in_port].last;
         end
       end
     end
@@ -501,7 +500,7 @@ if(SingleStage) begin : gen_no_stage_reg
   assign read_vc_id_oh_st_stage           = read_vc_id_oh_sa_stage;
   assign inport_id_oh_per_output_st_stage = inport_id_oh_per_output_sa_stage;
   assign data_v_o                         = outport_valid;
-  assign sel_ctrl_head_per_input_st_stage = sel_ctrl_head_per_input_sa_stage;
+  assign sel_ctrl_head_per_input_st_stage = sel_hdr_per_input_sa_stage;
   assign vc_assignment_id_st_stage        = vc_assignment_id;
   assign look_ahead_routing_sel_st_stage  = look_ahead_routing_sel;
   assign last_bits_sel_st_stage           = last_bits_sel;
@@ -515,17 +514,17 @@ end else begin : gen_sa_to_st_stage
 for (genvar port = 0; port < NumPorts; port++) begin : gen_hdr_ff
   // per in_port: will be assigned in switch
   `FF(sel_ctrl_head_per_input_st_stage[port].rob_req,
-      sel_ctrl_head_per_input_sa_stage[port].rob_req,    '0);
+      sel_hdr_per_input_sa_stage[port].rob_req,    '0);
   `FF(sel_ctrl_head_per_input_st_stage[port].rob_idx,
-      sel_ctrl_head_per_input_sa_stage[port].rob_idx,    '0);
+      sel_hdr_per_input_sa_stage[port].rob_idx,    '0);
   `FF(sel_ctrl_head_per_input_st_stage[port].dst_id,
-      sel_ctrl_head_per_input_sa_stage[port].dst_id,     '0);
+      sel_hdr_per_input_sa_stage[port].dst_id,     '0);
   `FF(sel_ctrl_head_per_input_st_stage[port].src_id,
-      sel_ctrl_head_per_input_sa_stage[port].src_id,     '0);
+      sel_hdr_per_input_sa_stage[port].src_id,     '0);
   `FF(sel_ctrl_head_per_input_st_stage[port].atop,
-      sel_ctrl_head_per_input_sa_stage[port].atop,       '0);
+      sel_hdr_per_input_sa_stage[port].atop,       '0);
   `FFNR(sel_ctrl_head_per_input_st_stage[port].axi_ch,
-      sel_ctrl_head_per_input_sa_stage[port].axi_ch, clk_i);
+      sel_hdr_per_input_sa_stage[port].axi_ch, clk_i);
   // already per out_port: assign directly
   `FF(vc_assignment_id_st_stage[port], vc_assignment_id[port], '0)
   `FF(look_ahead_routing_sel_st_stage[port], look_ahead_routing_sel[port], North)

@@ -980,9 +980,9 @@ module floo_vc_narrow_wide_chimney
     .NumAddrRules                   (NumAddrRules),
     .addr_rule_t                    (addr_rule_t)
   ) i_floo_req_look_ahead_routing (
-    .ctrl_head_i                    (floo_req_arb_sel_hdr),
-    .ctrl_head_o                    (floo_req_sel_hdr),
-    .look_ahead_routing_o           (floo_req_lookahead),
+    .hdr_i                    (floo_req_arb_sel_hdr),
+    .hdr_o                    (floo_req_sel_hdr),
+    .la_route_o           (floo_req_lookahead),
     .id_route_map_i,
     .xy_id_i                        (id_i),
     .clk_i,
@@ -998,9 +998,9 @@ module floo_vc_narrow_wide_chimney
     .NumAddrRules                   (NumAddrRules),
     .addr_rule_t                    (addr_rule_t)
   ) i_floo_rsp_look_ahead_routing (
-    .ctrl_head_i                    (floo_rsp_arb_sel_hdr),
-    .ctrl_head_o                    (floo_rsp_sel_hdr),
-    .look_ahead_routing_o           (floo_rsp_lookahead),
+    .hdr_i                    (floo_rsp_arb_sel_hdr),
+    .hdr_o                    (floo_rsp_sel_hdr),
+    .la_route_o           (floo_rsp_lookahead),
     .id_route_map_i,
     .xy_id_i                        (id_i),
     .clk_i,
@@ -1016,9 +1016,9 @@ module floo_vc_narrow_wide_chimney
     .NumAddrRules                   (NumAddrRules),
     .addr_rule_t                    (addr_rule_t)
   ) i_floo_wide_look_ahead_routing (
-    .ctrl_head_i                    (floo_wide_arb_sel_hdr),
-    .ctrl_head_o                    (floo_wide_sel_hdr),
-    .look_ahead_routing_o           (floo_wide_lookahead),
+    .hdr_i                    (floo_wide_arb_sel_hdr),
+    .hdr_o                    (floo_wide_sel_hdr),
+    .la_route_o           (floo_wide_lookahead),
     .id_route_map_i,
     .xy_id_i                        (id_i),
     .clk_i,
