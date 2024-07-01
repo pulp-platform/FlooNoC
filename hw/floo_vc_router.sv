@@ -105,7 +105,7 @@ hdr_t           [NumPorts-1:0]                                      sa_local_sel
 logic           [NumPorts-1:0][NumPorts-1:0]                        sa_local_v_per_output;
 
 logic           [NumPorts-1:0]                                      sa_global_v;
-logic           [NumPorts-1:0][NumPorts-1:0]                        sa_global_input_dir_oh;
+logic           [NumPorts-1:0][NumPorts-1:0]                        sa_global_dir_oh;
 
 route_direction_e [NumPorts-1:0]                                    look_ahead_routing_per_input;
 route_direction_e [NumPorts-1:0][NumPorts-1:0]                      look_ahead_routing_per_output;
@@ -120,7 +120,7 @@ logic           [NumPorts-1:0]                                      vc_assignmen
 logic           [NumPorts-1:0][NumVCWidthToOutMax-1:0]              vc_assignment_id;
 logic           [NumPorts-1:0][NumVCWidthToOutMax-1:0]              vc_assignment_id_st_stage;
 
-logic           [NumPorts-1:0]                                      outport_v;
+logic           [NumPorts-1:0]                                      outport_valid;
 
 logic           [NumPorts-1:0][NumPorts-1:0]        inport_id_oh_per_output_sa_stage;
 logic           [NumPorts-1:0][NumPorts-1:0]        inport_id_oh_per_output_sa_stage_transposed;
@@ -132,13 +132,13 @@ logic           [NumPorts-1:0][NumPorts-1:0]        last_bits_per_output;
 logic           [NumPorts-1:0]                      last_bits_sel;  // 1 bit/output
 logic           [NumPorts-1:0]                      last_bits_sel_st_stage;
 logic           [NumPorts-1:0]                      wormhole_detected; // per output
-logic           [NumPorts-1:0]                      wormhole_v; // per outport
+logic           [NumPorts-1:0]                      wh_valid; // per outport
 logic           [NumPorts-1:0]                      wormhole_v_d;
 logic           [NumPorts-1:0]                      wormhole_v_per_input; // per input
 logic           [NumPorts-1:0][NumPorts-1:0]        wormhole_required_sel_input;
 logic           [NumPorts-1:0][NumPorts-1:0]        wormhole_required_sel_input_transposed;
 logic           [NumPorts-1:0]                      wormhole_correct_input_sel;
-logic           [NumPorts-1:0][NumPorts-1:0]        wormhole_sa_global_input_dir_oh;
+logic           [NumPorts-1:0][NumPorts-1:0]        wh_sa_global_dir_oh;
 
 
 
@@ -210,23 +210,21 @@ end
 
 for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_sa_global
   floo_sa_global #(
-  .NumInputs                        (NumInputSaGlobal       [out_port])
+  .NumInputs  ( NumInputSaGlobal[out_port]  )
   ) i_sa_global (
-  // for each input: is their sa local in that dir valid
-  .sa_local_v_i                     (sa_local_v_per_output  [out_port]
-                                                            [NumInputSaGlobal[out_port]-1:0]),
-  .wormhole_sa_global_input_dir_oh_i(wormhole_sa_global_input_dir_oh[out_port]
-                                                            [NumInputSaGlobal[out_port]-1:0]),
-  .wormhole_v_i                     (wormhole_v             [out_port]),
-  .sa_global_v_o                    (sa_global_v            [out_port]),
-  .sa_global_input_dir_oh_o         (sa_global_input_dir_oh [out_port]
-                                                            [NumInputSaGlobal[out_port]-1:0]),
-  // update arbiter if allowed to update
-  .sent_i                           (outport_v              [out_port]),
-  .update_rr_arb_i                  ((outport_v[out_port] & last_bits_sel[out_port]) |
-                      (UpdateRRArbIfNotSent==1 & ~outport_v[out_port] & ~wormhole_v[out_port])),
-  .clk_i,
-  .rst_ni
+    .clk_i,
+    .rst_ni,
+    // for each input: is their sa local in that dir valid
+    .sa_local_valid_i       ( sa_local_v_per_output[out_port][NumInputSaGlobal[out_port]-1:0]),
+    .wh_sa_global_dir_oh_i  ( wh_sa_global_dir_oh[out_port][NumInputSaGlobal[out_port]-1:0]),
+    .wh_valid_i             ( wh_valid[out_port]),
+    .sa_global_valid_o      ( sa_global_v[out_port]),
+    .sa_global_dir_oh_o     ( sa_global_dir_oh [out_port][NumInputSaGlobal[out_port]-1:0]),
+    // update arbiter if allowed to update
+    .sent_i                 ( outport_valid[out_port]),
+    .update_rr_arb_i        ( (outport_valid[out_port] & last_bits_sel[out_port]) |
+                              (UpdateRRArbIfNotSent==1 & ~outport_valid[out_port] &
+                              ~wh_valid[out_port]))
 );
 end
 
@@ -272,7 +270,7 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_credit_co
     .rst_ni,
     .credit_valid_i         ( credit_v_i[out_port]                            ),
     .credit_id_i            ( credit_id_i[out_port][NumVCWidthToOutMax-1:0]   ),
-    .consume_credit_valid_i ( outport_v[out_port]                             ),
+    .consume_credit_valid_i ( outport_valid[out_port]                             ),
     .consume_credit_id_i    ( vc_assignment_id[out_port]                      ),
     .vc_not_full_o          ( vc_not_full[out_port][NumVCToOut[out_port]-1:0] )
   );
@@ -319,7 +317,7 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_vc_assign
   )
   i_floo_vc_assignment (
     .sa_global_v_i                  (sa_global_v            [out_port]),
-    .sa_global_input_dir_oh_i       (sa_global_input_dir_oh [out_port]
+    .sa_global_input_dir_oh_i       (sa_global_dir_oh [out_port]
                                                                 [NumInputSaGlobal[out_port]-1:0]),
     .look_ahead_routing_i           (look_ahead_routing_per_output[out_port]
                                                                 [NumInputSaGlobal[out_port]-1:0]),
@@ -328,7 +326,7 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_vc_assign
     .vc_not_full_i                  (vc_not_full            [out_port][NumVCToOut[out_port]-1:0]),
     // make sure correct vc is selected if not last or doing wormhole routing
     .require_wormhole_vc_i          (~last_bits_sel          [out_port]
-                                    | wormhole_v            [out_port]),
+                                    | wh_valid            [out_port]),
     .credit_v_i                     (credit_v_i             [out_port]),
     .credit_id_i                    (credit_id_i            [out_port][NumVCWidthToOutMax-1:0]),
     .vc_assignment_v_o              (vc_assignment_v        [out_port]),
@@ -355,7 +353,7 @@ for(genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_select_las
     .NumInputs(NumInputSaGlobal       [out_port]),
     .DataWidth(1)
   ) i_floo_mux_select_vc_id (
-    .sel_i    (sa_global_input_dir_oh [out_port][NumInputSaGlobal[out_port]-1:0]),
+    .sel_i    (sa_global_dir_oh [out_port][NumInputSaGlobal[out_port]-1:0]),
     .data_i   (last_bits_per_output   [out_port][NumInputSaGlobal[out_port]-1:0]),
     .data_o   (last_bits_sel          [out_port])
   );
@@ -369,15 +367,15 @@ end
 for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_wormhole_ff
   `FFL( wormhole_required_sel_input[out_port],
         inport_id_oh_per_output_sa_stage[out_port], wormhole_detected[out_port], '0)
-  `FFL( wormhole_sa_global_input_dir_oh[out_port],
-        sa_global_input_dir_oh[out_port], wormhole_detected[out_port], '0)
+  `FFL( wh_sa_global_dir_oh[out_port],
+        sa_global_dir_oh[out_port], wormhole_detected[out_port], '0)
 end
 
-assign outport_v = vc_assignment_v & (~wormhole_v | wormhole_correct_input_sel);
+assign outport_valid = vc_assignment_v & (~wh_valid | wormhole_correct_input_sel);
 
-assign wormhole_detected = ~last_bits_sel & outport_v;
-assign wormhole_v_d = wormhole_detected | (wormhole_v & ~(last_bits_sel & outport_v));
-`FF(wormhole_v, wormhole_v_d, '0)
+assign wormhole_detected = ~last_bits_sel & outport_valid;
+assign wormhole_v_d = wormhole_detected | (wh_valid & ~(last_bits_sel & outport_valid));
+`FF(wh_valid, wormhole_v_d, '0)
 
 for(genvar i = 0 ; i < NumPorts; i++) begin : gen_transpose_DataWidth
   for(genvar j = 0 ; j < NumPorts; j++) begin : gen_transpose_NumInputs
@@ -391,9 +389,9 @@ end
 // extract information
 for(genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_inport_read_enable
   assign read_enable_sa_stage[in_port] =
-      |(inport_id_oh_per_output_sa_stage_transposed[in_port] & outport_v);
+      |(inport_id_oh_per_output_sa_stage_transposed[in_port] & outport_valid);
   assign wormhole_v_per_input[in_port] =
-      |(wormhole_required_sel_input_transposed[in_port] & wormhole_v);
+      |(wormhole_required_sel_input_transposed[in_port] & wh_valid);
   assign read_vc_id_oh_sa_stage[in_port] = sa_local_vc_id_oh[in_port];
 end
 
@@ -469,7 +467,7 @@ always_comb begin
                   = sa_local_sel_ctrl_head[in_port].last;
 
             inport_id_oh_per_output_sa_stage[out_port][in_port]
-                  = sa_global_input_dir_oh[out_port][per_output_index];
+                  = sa_global_dir_oh[out_port][per_output_index];
         end
       end
     end
@@ -483,7 +481,7 @@ always_comb begin
           look_ahead_routing_per_output[out_port][per_output_index]
                 = look_ahead_routing_per_input[in_port];
           inport_id_oh_per_output_sa_stage[out_port][in_port]
-                = sa_global_input_dir_oh[out_port][per_output_index];
+                = sa_global_dir_oh[out_port][per_output_index];
           last_bits_per_output[out_port][per_output_index]
                 = sa_local_sel_ctrl_head[in_port].last;
         end
@@ -502,7 +500,7 @@ if(SingleStage) begin : gen_no_stage_reg
   assign read_enable_st_stage             = read_enable_sa_stage;
   assign read_vc_id_oh_st_stage           = read_vc_id_oh_sa_stage;
   assign inport_id_oh_per_output_st_stage = inport_id_oh_per_output_sa_stage;
-  assign data_v_o                         = outport_v;
+  assign data_v_o                         = outport_valid;
   assign sel_ctrl_head_per_input_st_stage = sel_ctrl_head_per_input_sa_stage;
   assign vc_assignment_id_st_stage        = vc_assignment_id;
   assign look_ahead_routing_sel_st_stage  = look_ahead_routing_sel;
@@ -512,7 +510,7 @@ end else begin : gen_sa_to_st_stage
 `FF(read_enable_st_stage, read_enable_sa_stage, '0)
 `FF(read_vc_id_oh_st_stage, read_vc_id_oh_sa_stage, '0)
 `FF(inport_id_oh_per_output_st_stage, inport_id_oh_per_output_sa_stage, '0)
-`FF(data_v_o, outport_v, '0)
+`FF(data_v_o, outport_valid, '0)
 
 for (genvar port = 0; port < NumPorts; port++) begin : gen_hdr_ff
   // per in_port: will be assigned in switch
