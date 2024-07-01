@@ -269,7 +269,7 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_credit_co
     .rst_ni,
     .credit_valid_i         ( credit_v_i[out_port]                            ),
     .credit_id_i            ( credit_id_i[out_port][NumVCWidthToOutMax-1:0]   ),
-    .consume_credit_valid_i ( outport_valid[out_port]                             ),
+    .consume_credit_valid_i ( outport_valid[out_port]                         ),
     .consume_credit_id_i    ( vc_assignment_id[out_port]                      ),
     .vc_not_full_o          ( vc_not_full[out_port][NumVCToOut[out_port]-1:0] )
   );
@@ -277,23 +277,21 @@ end
 
 
 // =============
-// 6 vc selection (runs parallel to sa local/global)
+// 6 VC Selection (runs parallel to sa local/global)
 // =============
 
 for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_vc_selection
-  floo_vc_selection
-  #(
-    .NumVC                          (NumVCToOut             [out_port]),
-    .NumVCWidthMax                  (NumVCWidthToOutMax),
-    .VCDepth                        (VCDepth),
-    .AllowVCOverflow                (AllowVCOverflow),
-    .AllowOverflowFromDeeperVC      (AllowOverflowFromDeeperVC),
-    .DeeperVCId                     (WormholeVCId          [out_port])
-  )
-  i_floo_vc_selection (
-    .vc_not_full_i                  (vc_not_full            [out_port][NumVCToOut[out_port]-1:0]),
-    .vc_selection_v_o               (vc_selection_v         [out_port][NumVCToOut[out_port]-1:0]),
-    .vc_selection_id_o              (vc_selection_id        [out_port][NumVCToOut[out_port]-1:0])
+  floo_vc_selection #(
+    .NumVC                      ( NumVCToOut[out_port]      ),
+    .NumVCWidthMax              ( NumVCWidthToOutMax        ),
+    .VCDepth                    ( VCDepth                   ),
+    .AllowVCOverflow            ( AllowVCOverflow           ),
+    .AllowOverflowFromDeeperVC  ( AllowOverflowFromDeeperVC ),
+    .DeeperVCId                 ( WormholeVCId[out_port]    )
+  ) i_floo_vc_selection (
+    .vc_not_full_i  ( vc_not_full[out_port][NumVCToOut[out_port]-1:0]     ),
+    .vc_sel_valid_o ( vc_selection_v[out_port][NumVCToOut[out_port]-1:0]  ),
+    .vc_sel_id_o    ( vc_selection_id[out_port][NumVCToOut[out_port]-1:0] )
   );
 end
 
