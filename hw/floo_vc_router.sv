@@ -9,32 +9,30 @@
 // a router with virtual channels in the design of "Simple virtual channel allocation for high throughput and high frequency on-chip routers"
 // using the FVADA VC selection algorithm also described in that paper
 module floo_vc_router import floo_pkg::*; #(
-  parameter int           NumPorts                    = 5, // phys channels are always in and output
-  parameter int           NumLocalPorts               = NumPorts - 4,
-  parameter int           NumVC           [NumPorts]  =
+  parameter int unsigned           NumPorts                    = 5, // phys channels are always in and output
+  parameter int unsigned           NumLocalPorts               = NumPorts - 4,
+  parameter int unsigned           NumVC           [NumPorts]  =
             {1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 4+NumLocalPorts-1},
             // Num VC from dir N,E,S,W,L0(,L1,L2,L3): 1313 for XY routing
-  parameter int           NumVCMax                    = NumPorts - 1,
+  parameter int unsigned           NumVCMax                    = NumPorts - 1,
   // NumVCWidth: needs to be 3 in routers with more than 1 local ports
-  parameter int           NumVCWidth                  = 2,
+  parameter int unsigned           NumVCWidth                  = 2,
   // set this to 3 towards routers with more than 1 local ports: towards N,E,S,W,L0(,L1,L2,L3)
-  parameter int           NumVCToOut      [NumPorts]  = {2,4,2,4,1},
-  parameter int           NumVCToOutMax               = 4,
-  parameter int           NumVCWidthToOutMax          = 2,
+  parameter int unsigned           NumVCToOut      [NumPorts]  = {2,4,2,4,1},
+  parameter int unsigned           NumVCToOutMax               = 4,
+  parameter int unsigned           NumVCWidthToOutMax          = 2,
 
-  parameter int           NumInputSaGlobal[NumPorts]  =
+  parameter int unsigned           NumInputSaGlobal[NumPorts]  =
     {3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 4+NumLocalPorts-1},
     // to dir N,E,S,W,L0(,L1,L2,L3)
-  parameter int           VCDepth                     = 2,
-  parameter int           VCDepthWidth                = $clog2(VCDepth+1),
-  parameter int           CreditShortcut              = 1, // not used if SingleStage=1
-  parameter int           AllowVCOverflow             = 1, // 1: FVADA, 0: fixed VC, direction based
+  parameter int unsigned           VCDepth                     = 2,
+  parameter bit           CreditShortcut              = 1'b1, // not used if SingleStage=1
+  parameter bit           AllowVCOverflow             = 1'b1, // 1: FVADA, 0: fixed VC, direction based
   // Idea behind this: need depth 3 for continuous flow, since xy-routing: usually flits traverse straight through -> make that vc deeper
-  parameter int           FixedWormholeVC             = 0, // send all Wormhole flits to same VC
-  parameter int           WormholeVCId    [NumPorts]  = {0,1,0,2,0}, // as seen from output port
-  parameter int           WormholeVCDepth             = 3,
-  parameter int           AllowOverflowFromDeeperVC   = 1, //if 1 but AllowVCOverflow=0, overwritten
-  parameter int           UpdateRRArbIfNotSent        = 0, //doesnt seem to work
+  parameter bit           FixedWormholeVC             = 1'b0, // send all Wormhole flits to same VC
+  parameter int unsigned           WormholeVCId    [NumPorts]  = {0,1,0,2,0}, // as seen from output port
+  parameter int unsigned           WormholeVCDepth             = 3,
+  parameter bit           AllowOverflowFromDeeperVC   = 1'b1, //if 1 but AllowVCOverflow=0, overwritten
   parameter bit           SingleStage                 = 1'b0, // 0: standard 2 stage, 1: single stage
   parameter type          flit_t                      = logic,
   parameter type          hdr_t                       = logic,
@@ -197,9 +195,7 @@ for (genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_sa_local
     .sa_local_output_dir_oh_o (sa_local_outdir_oh[in_port]                ),
     .sent_i                   (read_en_sa_stage[in_port]                  ),
     .update_rr_arb_i          ((read_en_sa_stage  [in_port] &
-                                sel_hdr_sa_stage[in_port].last) |
-                               (UpdateRRArbIfNotSent==1 & ~read_en_sa_stage [in_port] &
-                                ~wh_input_valid [in_port])              )
+                                sel_hdr_sa_stage[in_port].last)         )
   );
 end
 
@@ -222,9 +218,7 @@ for (genvar out_port = 0; out_port < NumPorts; out_port++) begin : gen_sa_global
     .sa_global_dir_oh_o     ( sa_global_dir_oh [out_port][NumInputSaGlobal[out_port]-1:0]),
     // update arbiter if allowed to update
     .sent_i                 ( outport_valid[out_port]),
-    .update_rr_arb_i        ( (outport_valid[out_port] & last_bits_sel[out_port]) |
-                              (UpdateRRArbIfNotSent==1 & ~outport_valid[out_port] &
-                              ~wh_valid[out_port]))
+    .update_rr_arb_i        ( (outport_valid[out_port] & last_bits_sel[out_port]))
 );
 end
 

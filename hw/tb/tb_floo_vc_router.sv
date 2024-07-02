@@ -73,7 +73,6 @@ floo_vc_router #(
   .payload_t          (payload_t),
   .id_t               (id_t),
   .FixedWormholeVC    (0), //without special features
-  .UpdateRRArbIfNotSent(0), //without special features
   .AllowVCOverflow    (1), //without special features
   .AllowOverflowFromDeeperVC (1), //without special features
   .WormholeVCDepth    (2), //without special features

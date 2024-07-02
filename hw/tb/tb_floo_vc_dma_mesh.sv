@@ -417,7 +417,6 @@ module tb_floo_vc_dma_mesh;
         .SingleStage                ( SingleStage             ),
         .WormholeVCDepth            ( WormholeVCDepth         ),
         .AllowOverflowFromDeeperVC  (AllowOverflowFromDeeperVC),
-        .UpdateRRArbIfNotSent       (UpdateRRArbIfNotSent     ),
         .WormholeVCId               ( Only1VC ?
             {int'(0),int'(0),int'(0),int'(0),int'(0)} : // no vc
             {int'(0),int'(1),int'(0),int'(2),int'(0)})  // straight on for xy routing
