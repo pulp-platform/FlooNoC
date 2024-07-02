@@ -293,10 +293,12 @@ module tb_floo_vc_router;
   collect_received_credits = 1;
   // Test connectivity
   if(Debug) $display("Testing connectivity from each vc in to each vc out");
-  // Explanation for batching: sending more than 2 directly consecutive messages to the same vc does not work due to buffer size
+  // Explanation for batching: sending more than 2 directly consecutive messages
+  // to the same vc does not work due to buffer size
   for(vc_id_t vc_out_batch = 0; vc_out_batch < num_vc_out; vc_out_batch += 2) begin
     for(vc_id_t vc_in = 0; vc_in < num_vc_in; vc_in ++) begin
-      for(vc_id_t vc_out = vc_out_batch; vc_out < vc_out_batch+2 && vc_out<num_vc_out; vc_out++) begin
+      for(vc_id_t vc_out = vc_out_batch;
+          vc_out < vc_out_batch+2 && vc_out<num_vc_out; vc_out++) begin
         get_direction_from_vc(next_in_port, vc_out, expected_lookahead);
         //input
         randomize_flit();
@@ -328,7 +330,7 @@ module tb_floo_vc_router;
     automatically_free_credits = 0; // dont send free credits messages anymore (still collect them)
     get_direction_from_vc(next_in_port, vc_out, expected_lookahead);
     get_dst_id(route_direction_e'(out_port), expected_lookahead, flit.hdr.dst_id);
-    for(int i = 0; i < 2* num_vc_out+4; i++) begin //use up all credits and then use up input buffers
+    for(int i = 0; i < 2* num_vc_out+4; i++) begin
       //input
       randomize_flit();
       flit.hdr.lookahead = route_direction_e'(out_port);
