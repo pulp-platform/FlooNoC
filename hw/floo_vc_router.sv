@@ -6,60 +6,68 @@
 
 `include "common_cells/registers.svh"
 
-// a router with virtual channels in the design of "Simple virtual channel allocation for high throughput and high frequency on-chip routers"
-// using the FVADA VC selection algorithm also described in that paper
+/// A router with virtual channels, using the FVADA VC selection algorithm
 module floo_vc_router import floo_pkg::*; #(
-  parameter int unsigned           NumPorts                    = 5, // phys channels are always in and output
-  parameter int unsigned           NumLocalPorts               = NumPorts - 4,
-  parameter int unsigned           NumVC           [NumPorts]  =
-            {1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 4+NumLocalPorts-1},
-            // Num VC from dir N,E,S,W,L0(,L1,L2,L3): 1313 for XY routing
-  parameter int unsigned           NumVCMax                    = NumPorts - 1,
+  /// Number of ports
+  parameter int unsigned NumPorts                   =  5,
+  /// Number of local prots
+  parameter int unsigned NumLocalPorts              =  NumPorts - 4,
+  // Number of VCs from each direction, 1313 for XY routing
+  parameter int unsigned NumVC[NumPorts]            = {
+    1+NumLocalPorts, // North
+    3+NumLocalPorts, // East
+    1+NumLocalPorts, // South
+    3+NumLocalPorts, // West
+    4+NumLocalPorts-1 // Local0
+  },
+  /// Number of maximum VCs
+  parameter int unsigned NumVCMax                   =  NumPorts - 1,
   // NumVCWidth: needs to be 3 in routers with more than 1 local ports
-  parameter int unsigned           NumVCWidth                  = 2,
-  // set this to 3 towards routers with more than 1 local ports: towards N,E,S,W,L0(,L1,L2,L3)
-  parameter int unsigned           NumVCToOut      [NumPorts]  = {2,4,2,4,1},
-  parameter int unsigned           NumVCToOutMax               = 4,
-  parameter int unsigned           NumVCWidthToOutMax          = 2,
-
-  parameter int unsigned           NumInputSaGlobal[NumPorts]  =
-    {3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 4+NumLocalPorts-1},
-    // to dir N,E,S,W,L0(,L1,L2,L3)
-  parameter int unsigned           VCDepth                     = 2,
-  parameter bit           CreditShortcut              = 1'b1, // not used if SingleStage=1
-  parameter bit           AllowVCOverflow             = 1'b1, // 1: FVADA, 0: fixed VC, direction based
-  // Idea behind this: need depth 3 for continuous flow, since xy-routing: usually flits traverse straight through -> make that vc deeper
-  parameter bit           FixedWormholeVC             = 1'b0, // send all Wormhole flits to same VC
-  parameter int unsigned           WormholeVCId    [NumPorts]  = {0,1,0,2,0}, // as seen from output port
-  parameter int unsigned           WormholeVCDepth             = 3,
-  parameter bit           AllowOverflowFromDeeperVC   = 1'b1, //if 1 but AllowVCOverflow=0, overwritten
-  parameter bit           SingleStage                 = 1'b0, // 0: standard 2 stage, 1: single stage
-  parameter type          flit_t                      = logic,
-  parameter type          hdr_t                       = logic,
-  parameter type          payload_t                   = logic,
-
+  parameter int unsigned NumVCWidth                 =  2,
+  // Set this to 3 towards routers with more than 1 local ports
+  parameter int unsigned NumVCToOut[NumPorts]       =  {2, 4, 2, 4, 1},
+  parameter int unsigned NumVCToOutMax              =  4,
+  parameter int unsigned NumVCWidthToOutMax         =  2,
+  parameter int unsigned NumInputSaGlobal[NumPorts] = {
+    3+NumLocalPorts, // North
+    1+NumLocalPorts, // East
+    3+NumLocalPorts, // South
+    1+NumLocalPorts, // West
+    4+NumLocalPorts-1 // Local0
+  },
+  parameter int unsigned VCDepth                    =  2,
+  parameter bit CreditShortcut                      =  1'b1, // not used if SingleStage is set
+  parameter bit AllowVCOverflow                     =  1'b1,
+  /// Make certain VCs deeper than others
+  /// Rationale: in XY-routing, flits usually traverse straight through
+  parameter bit FixedWormholeVC                     =  1'b0, // send all Wormhole flits to same VC
+  parameter int unsigned WormholeVCId[NumPorts]     = {0, 1, 0, 2, 0},
+  parameter int unsigned WormholeVCDepth            =  3,
+  parameter bit AllowOverflowFromDeeperVC           =  1'b1,
+  /// Use single stage
+  parameter bit SingleStage                         =  1'b0,
+  parameter type flit_t                             =  logic,
+  parameter type hdr_t                              =  logic,
+  parameter type payload_t                          =  logic,
   // Route Algorithm stuff
-  parameter route_algo_e  RouteAlgo                   = XYRouting,
+  parameter route_algo_e RouteAlgo                  =  XYRouting,
   /// Used for ID-based and XY routing
-  parameter int unsigned  IdWidth                     = 1,
-  parameter type          id_t                        = logic[IdWidth-1:0],
+  parameter int unsigned IdWidth                    =  1,
+  parameter type id_t                               =  logic[IdWidth-1:0],
   /// Used for ID-based routing
-  parameter int unsigned  NumAddrRules                = 0,
-  parameter type          addr_rule_t                 = logic
+  parameter int unsigned NumAddrRules               =  0,
+  parameter type addr_rule_t                        =  logic
 ) (
   input  logic                                        clk_i,
   input  logic                                        rst_ni,
-
-  input  id_t                                         xy_id_i,        // if unused assign to '0
-  input  addr_rule_t [NumAddrRules-1:0]               id_route_map_i, // if unused assign to '0
-
-  // contents from input port
+  input  id_t                                         xy_id_i,
+  input  addr_rule_t [NumAddrRules-1:0]               id_route_map_i,
+  /// Input Ports
   output logic    [NumPorts-1:0]                      credit_valid_o,
   output logic    [NumPorts-1:0][NumVCWidth-1:0]      credit_id_o,
   input  logic    [NumPorts-1:0]                      data_valid_i,
   input  flit_t   [NumPorts-1:0]                      data_i,
-
-  // contents from output port
+  /// Output Ports
   input logic     [NumPorts-1:0]                      credit_valid_i,
   input logic     [NumPorts-1:0][NumVCWidth-1:0]      credit_id_i,
   output  logic   [NumPorts-1:0]                      data_valid_o,
