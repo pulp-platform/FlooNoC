@@ -60,19 +60,19 @@ module tb_floo_vc_dma_mesh;
   /////////////////////
 
   axi_narrow_in_req_t   [NumX-1:0][NumY-1:0] narrow_man_req;
-  axi_narrow_in_rsp_t  [NumX-1:0][NumY-1:0] narrow_man_rsp;
+  axi_narrow_in_rsp_t   [NumX-1:0][NumY-1:0] narrow_man_rsp;
   axi_wide_in_req_t     [NumX-1:0][NumY-1:0] wide_man_req;
-  axi_wide_in_rsp_t    [NumX-1:0][NumY-1:0] wide_man_rsp;
+  axi_wide_in_rsp_t     [NumX-1:0][NumY-1:0] wide_man_rsp;
 
   axi_narrow_out_req_t  [NumX-1:0][NumY-1:0] narrow_sub_req;
-  axi_narrow_out_rsp_t [NumX-1:0][NumY-1:0] narrow_sub_rsp;
+  axi_narrow_out_rsp_t  [NumX-1:0][NumY-1:0] narrow_sub_rsp;
   axi_wide_out_req_t    [NumX-1:0][NumY-1:0] wide_sub_req;
-  axi_wide_out_rsp_t   [NumX-1:0][NumY-1:0] wide_sub_rsp;
+  axi_wide_out_rsp_t    [NumX-1:0][NumY-1:0] wide_sub_rsp;
 
   axi_narrow_out_req_t  [West:North][NumMax-1:0] narrow_hbm_req;
-  axi_narrow_out_rsp_t [West:North][NumMax-1:0] narrow_hbm_rsp;
+  axi_narrow_out_rsp_t  [West:North][NumMax-1:0] narrow_hbm_rsp;
   axi_wide_out_req_t    [West:North][NumMax-1:0] wide_hbm_req;
-  axi_wide_out_rsp_t   [West:North][NumMax-1:0] wide_hbm_rsp;
+  axi_wide_out_rsp_t    [West:North][NumMax-1:0] wide_hbm_rsp;
 
   /////////////////////
   //   NoC Signals   //
@@ -91,10 +91,10 @@ module tb_floo_vc_dma_mesh;
   floo_vc_rsp_t [NumX:0][NumY-1:0] rsp_hor_neg;
   floo_vc_rsp_t [NumY:0][NumX-1:0] rsp_ver_pos;
   floo_vc_rsp_t [NumY:0][NumX-1:0] rsp_ver_neg;
-  floo_vc_wide_t       [NumX:0][NumY-1:0] wide_hor_pos;
-  floo_vc_wide_t       [NumX:0][NumY-1:0] wide_hor_neg;
-  floo_vc_wide_t       [NumY:0][NumX-1:0] wide_ver_pos;
-  floo_vc_wide_t       [NumY:0][NumX-1:0] wide_ver_neg;
+  floo_vc_wide_t [NumX:0][NumY-1:0] wide_hor_pos;
+  floo_vc_wide_t [NumX:0][NumY-1:0] wide_hor_neg;
+  floo_vc_wide_t [NumY:0][NumX-1:0] wide_ver_pos;
+  floo_vc_wide_t [NumY:0][NumX-1:0] wide_ver_neg;
 
 
   logic [NumX-1:0][NumY-1:0][1:0] end_of_sim;
@@ -170,45 +170,45 @@ module tb_floo_vc_dma_mesh;
       for (genvar j = 0; j < NumChimneys; j++) begin : gen_hbm_chimney_xy_id
         assign xy_id_hbm[j] = '{x: j+1, y: NumY+1, port_id: 0};
       end
-      assign req_hbm_in  = req_ver_pos[NumY];
-      assign rsp_hbm_in  = rsp_ver_pos[NumY];
-      assign wide_hbm_in        = wide_ver_pos[NumY];
+      assign req_hbm_in = req_ver_pos[NumY];
+      assign rsp_hbm_in = rsp_ver_pos[NumY];
+      assign wide_hbm_in = wide_ver_pos[NumY];
       assign req_ver_neg[NumY] = req_hbm_out;
       assign rsp_ver_neg[NumY] = rsp_hbm_out;
-      assign wide_ver_neg[NumY]       = wide_hbm_out;
+      assign wide_ver_neg[NumY] = wide_hbm_out;
     end
     else if (i == South) begin : gen_south_hbm_chimneys
       for (genvar j = 0; j < NumChimneys; j++) begin : gen_hbm_chimney_xy_id
         assign xy_id_hbm[j] = '{x: j+1, y: 0, port_id: 0};
       end
-      assign req_hbm_in  = req_ver_neg[0];
-      assign rsp_hbm_in  = rsp_ver_neg[0];
-      assign wide_hbm_in        = wide_ver_neg[0];
+      assign req_hbm_in = req_ver_neg[0];
+      assign rsp_hbm_in = rsp_ver_neg[0];
+      assign wide_hbm_in = wide_ver_neg[0];
       assign req_ver_pos[0] = req_hbm_out;
       assign rsp_ver_pos[0] = rsp_hbm_out;
-      assign wide_ver_pos[0]       = wide_hbm_out;
+      assign wide_ver_pos[0] = wide_hbm_out;
     end
     else if (i == East) begin : gen_east_hbm_chimneys
       for (genvar j = 0; j < NumChimneys; j++) begin : gen_hbm_chimney_xy_id
         assign xy_id_hbm[j] = '{x: NumX+1, y: j+1, port_id: 0};
       end
-      assign req_hbm_in  = req_hor_pos[NumX];
-      assign rsp_hbm_in  = rsp_hor_pos[NumX];
-      assign wide_hbm_in        = wide_hor_pos[NumX];
+      assign req_hbm_in = req_hor_pos[NumX];
+      assign rsp_hbm_in = rsp_hor_pos[NumX];
+      assign wide_hbm_in = wide_hor_pos[NumX];
       assign req_hor_neg[NumX] = req_hbm_out;
       assign rsp_hor_neg[NumX] = rsp_hbm_out;
-      assign wide_hor_neg[NumX]       = wide_hbm_out;
+      assign wide_hor_neg[NumX] = wide_hbm_out;
     end
     else if (i == West) begin : gen_west_hbm_chimneys
       for (genvar j = 0; j < NumChimneys; j++) begin : gen_hbm_chimney_xy_id
         assign xy_id_hbm[j] = '{x: 0, y: j+1, port_id: 0};
       end
-      assign req_hbm_in  = req_hor_neg[0];
-      assign rsp_hbm_in  = rsp_hor_neg[0];
-      assign wide_hbm_in        = wide_hor_neg[0];
+      assign req_hbm_in = req_hor_neg[0];
+      assign rsp_hbm_in = rsp_hor_neg[0];
+      assign wide_hbm_in = wide_hor_neg[0];
       assign req_hor_pos[0] = req_hbm_out;
       assign rsp_hor_pos[0] = rsp_hbm_out;
-      assign wide_hor_pos[0]       = wide_hbm_out;
+      assign wide_hor_pos[0] = wide_hbm_out;
     end
 
     floo_vc_narrow_wide_chimney #(
@@ -397,19 +397,18 @@ module tb_floo_vc_dma_mesh;
       );
 
       floo_vc_narrow_wide_router #(
-        .NumPorts                   ( int'(NumDirections)     ),
+        .NumPorts                   ( int'(NumDirections)       ),
         .NumVC                      ( Only1VC ?
-              {int'(1), int'(1), int'(1), int'(1), NumVCLocal} : // no vc
-              {int'(2), int'(4), int'(2), int'(4), NumVCLocal}),
-        .RouteAlgo                  ( RouteAlgo               ),
-        .id_t                       ( id_t                    ),
-        .NumVCToOut                 ( Only1VC ?
-            {int'(1), int'(1), int'(1), int'(1), int'(1)} :   // no vc
-            {int'(y==NumY-1 ? 1 : 2),
-            int'(x==NumX-1 ? 1 : 4),
-            int'(y==0 ?      1 : 2),
-            int'(x==0 ?      1 : 4),
-            int'(1)}),      // only 1 towards hbm
+                                      {1, 1, 1, 1, NumVCLocal} :
+                                      {2, 4, 2, 4, NumVCLocal}  ),
+        .RouteAlgo                  ( RouteAlgo                 ),
+        .id_t                       ( id_t                      ),
+        .NumVCToOut                 ( Only1VC ? {1, 1, 1, 1, 1} :
+                                      {y==NumY-1 ? 1 : 2,
+                                      x==NumX-1 ? 1 : 4,
+                                      y==0 ?      1 : 2,
+                                      x==0 ?      1 : 4,
+                                      1}),      // only 1 towards hbm
         .VCDepth                    ( ChannelFifoDepth        ),
         .CreditShortcut             ( CreditShortcut          ),
         .AllowVCOverflow            ( AllowVCOverflow         ),
@@ -417,9 +416,9 @@ module tb_floo_vc_dma_mesh;
         .SingleStage                ( SingleStage             ),
         .WormholeVCDepth            ( WormholeVCDepth         ),
         .AllowOverflowFromDeeperVC  (AllowOverflowFromDeeperVC),
-        .WormholeVCId               ( Only1VC ?
-            {int'(0),int'(0),int'(0),int'(0),int'(0)} : // no vc
-            {int'(0),int'(1),int'(0),int'(2),int'(0)})  // straight on for xy routing
+        .WormholeVCId               ( Only1VC?
+                                      {0, 0, 0, 0, 0} :
+                                      {0, 1, 0, 2, 0}         )
       ) i_router (
         .clk_i          ( clk         ),
         .rst_ni         ( rst_n       ),
