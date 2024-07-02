@@ -36,11 +36,11 @@ class RouteAlgo(Enum):
 class XYDirections(Enum):
     """XY directions enum."""
 
-    EJECT = "Eject"
     NORTH = "North"
     EAST = "East"
     SOUTH = "South"
     WEST = "West"
+    EJECT = "Eject"
 
     def __str__(self):
         return self.name
@@ -104,33 +104,36 @@ class Coord(Id):
 
     x: int
     y: int
+    port_id: int = 0
 
     def __hash__(self):
-        return hash((self.x, self.y))
+        return hash((self.x, self.y, self.port_id))
 
     def __add__(self, other):
-        return Coord(x=self.x + other.x, y=self.y + other.y)
+        return Coord(x=self.x + other.x, y=self.y + other.y, port_id=self.port_id + other.port_id)
 
     def __sub__(self, other):
-        return Coord(x=self.x - other.x, y=self.y - other.y)
+        return Coord(x=self.x - other.x, y=self.y - other.y, port_id=self.port_id - other.port_id)
 
     def __lt__(self, other):
         if self.y < other.y:
             return True
         if self.y == other.y:
             return self.x < other.x
+        if self.x == other.x:
+            return self.port_id < other.port_id
         return False
 
     def render(self, as_index=False):
         """Render the SystemVerilog coordinate."""
         if not as_index:
-            return f"'{{x: {self.x}, y: {self.y}}}"
+            return f"'{{x: {self.x}, y: {self.y}, port_id: {self.port_id}}}"
         return f"[{self.x}][{self.y}]"
 
     @staticmethod
     def get_dir(node, neighbor) -> XYDirections:
         """Get the direction from node to neighbor."""
-        if node == neighbor:
+        if node.x == neighbor.x and node.y == neighbor.y:
             return XYDirections.EJECT
         if node.x == neighbor.x:
             if node.y > neighbor.y:
@@ -422,6 +425,8 @@ class Routing(BaseModel):
     num_route_bits: Optional[int] = None
     addr_width: Optional[int] = None
     rob_idx_bits: int = 4
+    port_id_bits: int = 2
+    num_vc_id_bits: int = 3
 
     @field_validator("route_algo", mode="before")
     @classmethod
@@ -461,11 +466,14 @@ class Routing(BaseModel):
         """Render the SystemVerilog typedefs."""
         string = ""
         string += sv_typedef("rob_idx_t", array_size=self.rob_idx_bits)
+        string += sv_typedef("port_id_t", array_size=self.port_id_bits)
         match self.route_algo:
             case RouteAlgo.XY:
                 string += sv_typedef("x_bits_t", array_size=self.num_x_bits)
                 string += sv_typedef("y_bits_t", array_size=self.num_y_bits)
-                string += sv_struct_typedef("id_t", {"x": "x_bits_t", "y": "y_bits_t"})
+                string += sv_struct_typedef("id_t", {"x": "x_bits_t",
+                                                     "y": "y_bits_t",
+                                                     "port_id": "port_id_t"})
                 string += sv_typedef("route_t", "logic")
             case RouteAlgo.ID:
                 string += sv_typedef("id_t", array_size=self.num_id_bits)
@@ -480,6 +488,7 @@ class Routing(BaseModel):
                 string += sv_typedef("dst_t", dtype="route_t")
             case _:
                 string += sv_typedef("dst_t", dtype="id_t")
+        string += sv_typedef("vc_id_t", array_size=self.num_vc_id_bits)
         return string
 
     def render_flit_header(self) -> str:
@@ -489,6 +498,8 @@ class Routing(BaseModel):
             "rob_idx": "rob_idx_t",
             "dst_id": "dst_t",
             "src_id": "id_t",
+            "lookahead": "route_direction_e",
+            "vc_id": "vc_id_t",
             "last": "logic",
             "atop": "logic",
             "axi_ch": "axi_ch_e",

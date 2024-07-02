@@ -63,6 +63,7 @@ deps
 # Auto generated sources
 generated
 *.png
+!util/traffic_visualizations/*.png
 hw/test/jobs
 
 # QuestaSim
@@ -78,6 +79,9 @@ verible*
 
 # spyglass
 scripts/spyglass/*
+
+# experiment outputs
+util/output/*
 
 # Misc
 *.csv

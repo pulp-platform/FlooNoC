@@ -6,8 +6,9 @@
 
 `include "common_cells/registers.svh"
 
-module floo_route_select import floo_pkg::*;
- #(
+module floo_route_select
+  import floo_pkg::*;
+#(
   parameter int unsigned NumRoutes     = 0,
   parameter type         flit_t        = logic,
   parameter route_algo_e RouteAlgo     = IdTable,
@@ -21,9 +22,9 @@ module floo_route_select import floo_pkg::*;
   /// Used for source-based routing
   parameter int unsigned RouteSelWidth = $clog2(NumRoutes)
 ) (
-  input  logic                         clk_i,
-  input  logic                         rst_ni,
-  input  logic                         test_enable_i,
+  input  logic                          clk_i,
+  input  logic                          rst_ni,
+  input  logic                          test_enable_i,
 
   input  id_t                           xy_id_i,
   input  addr_rule_t [NumAddrRules-1:0] id_route_map_i,
@@ -32,11 +33,12 @@ module floo_route_select import floo_pkg::*;
   input  logic                          valid_i,
   input  logic                          ready_i,
   output flit_t                         channel_o,
-  output logic       [   NumRoutes-1:0] route_sel_o // One-hot route
-
+  output logic [NumRoutes-1:0]          route_sel_o, // One-hot route
+  output logic [RouteSelWidth-1:0]      route_sel_id_o
 );
 
   logic [NumRoutes-1:0] route_sel;
+  logic [RouteSelWidth-1:0] route_sel_id;
 
   if (RouteAlgo == IdIsPort) begin : gen_id_is_port
     // Routing assuming the ID is the port to be taken
@@ -45,6 +47,7 @@ module floo_route_select import floo_pkg::*;
 
     // One-hot encoding of the decoded route
     always_comb begin : proc_route_sel
+      route_sel_id = channel_i.hdr.dst_id;
       route_sel = '0;
       route_sel[channel_i.hdr.dst_id] = 1'b1;
     end
@@ -53,9 +56,7 @@ module floo_route_select import floo_pkg::*;
     // Routing based on an ID table passed into the router (TBD parameter or signal)
     // Assumes an ID field present in the flit_t
 
-    typedef logic [$clog2(NumRoutes)-1:0] out_id_t;
-    out_id_t out_id;
-
+    logic [RouteSelWidth-1:0] id_table_result;
     assign channel_o = channel_i;
 
     addr_decode #(
@@ -67,7 +68,7 @@ module floo_route_select import floo_pkg::*;
     ) i_id_decode (
       .addr_i           ( channel_i.hdr.dst_id  ),
       .addr_map_i       ( id_route_map_i    ),
-      .idx_o            ( out_id            ),
+      .idx_o            ( id_table_result   ),
       .dec_valid_o      (),
       .dec_error_o      (),
       .default_idx_i    ('0),
@@ -76,15 +77,17 @@ module floo_route_select import floo_pkg::*;
 
     // One-hot encoding of the decoded route
     always_comb begin : proc_route_sel
+      route_sel_id = id_table_result;
       route_sel = '0;
-      route_sel[out_id] = 1'b1;
+      route_sel[id_table_result] = 1'b1;
     end
 
   end else if (RouteAlgo == SourceRouting) begin : gen_consumption
     // Routing based on a consumable header in the flit
     always_comb begin : proc_route_sel
+      route_sel_id = channel_i.hdr.dst_id[RouteSelWidth-1:0];
       route_sel = '0;
-      route_sel[channel_i.hdr.dst_id[RouteSelWidth-1:0]] = 1'b1;
+      route_sel[route_sel_id] = 1'b1;
       channel_o = channel_i;
       channel_o.hdr.dst_id = channel_i.hdr.dst_id >> RouteSelWidth;
     end
@@ -108,22 +111,24 @@ module floo_route_select import floo_pkg::*;
     assign id_in = id_t'(channel_i.hdr.dst_id);
 
     always_comb begin : proc_route_sel
-      route_sel = '0;
-      if (id_in == xy_id_i) begin
-        route_sel[Eject] = 1'b1;
+      route_sel_id = East;
+      if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
+        route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
       end else if (id_in.x == xy_id_i.x) begin
         if (id_in.y < xy_id_i.y) begin
-          route_sel[South] = 1'b1;
+          route_sel_id = South;
         end else begin
-          route_sel[North] = 1'b1;
+          route_sel_id = North;
         end
       end else begin
         if (id_in.x < xy_id_i.x) begin
-          route_sel[West] = 1'b1;
+          route_sel_id = West;
         end else begin
-          route_sel[East] = 1'b1;
+          route_sel_id = East;
         end
       end
+      route_sel = '0;
+      route_sel[route_sel_id] = 1'b1;
     end
 
     assign channel_o = channel_i;
@@ -137,29 +142,34 @@ module floo_route_select import floo_pkg::*;
 
   if (LockRouting) begin : gen_lock
     logic locked_route_d, locked_route_q;
-    logic [NumRoutes-1:0] route_sel_q;
-
-    assign route_sel_o = locked_route_q ? route_sel_q : route_sel;
 
     always_comb begin
       locked_route_d = locked_route_q;
 
       if (ready_i && valid_i) begin
         locked_route_d = ~channel_i.hdr.last;
-
       end
     end
 
-    always @(posedge clk_i) begin
-      if (ready_i && valid_i && locked_route_q && (route_sel_q != route_sel))
-        $warning("Mismatch in route selection!");
-    end
+    logic [NumRoutes-1:0] route_sel_q;
+    logic [RouteSelWidth-1:0] route_sel_id_q;
+
+    // Use previous route selection if locked
+    assign route_sel_o = locked_route_q ? route_sel_q : route_sel;
+    assign route_sel_id_o = locked_route_q ? route_sel_id_q : route_sel_id;
 
     `FF(locked_route_q, locked_route_d, '0)
     `FFL(route_sel_q, route_sel, ~locked_route_q, '0)
+    `FFL(route_sel_id_q, route_sel_id, ~locked_route_q, '0)
 
+    always @(posedge clk_i) begin
+      if (ready_i && valid_i && locked_route_q &&
+              ((route_sel_id_q != route_sel_id) || (route_sel_q != route_sel)))
+        $warning("Mismatch in route selection!");
+    end
   end else begin : gen_no_lock
     assign route_sel_o = route_sel;
+    assign route_sel_id_o = route_sel_id;
   end
 
 endmodule

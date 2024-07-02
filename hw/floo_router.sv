@@ -100,7 +100,8 @@ module floo_router import floo_pkg::*; #(
         .valid_i        ( in_valid      [in_route][v_chan] ),
         .ready_i        ( in_ready      [in_route][v_chan] ),
         .channel_o      ( in_routed_data[in_route][v_chan] ),
-        .route_sel_o    ( route_mask    [in_route][v_chan] )
+        .route_sel_o    ( route_mask    [in_route][v_chan] ),
+        .route_sel_id_o (                                  )
       );
 
     end
