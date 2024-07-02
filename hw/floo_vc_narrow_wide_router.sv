@@ -63,9 +63,9 @@ module floo_vc_narrow_wide_router
   floo_req_chan_t [NumPorts-1:0] req_in, req_out;
   floo_rsp_chan_t [NumPorts-1:0] rsp_in, rsp_out;
   floo_wide_chan_t [NumPorts-1:0] wide_in, wide_out;
-  logic [NumPorts-1:0]  req_v_in,   req_v_out,  req_credit_v_in,  req_credit_v_out,
-                        rsp_v_in,   rsp_v_out,  rsp_credit_v_in,  rsp_credit_v_out,
-                        wide_v_in,  wide_v_out, wide_credit_v_in, wide_credit_v_out;
+  logic [NumPorts-1:0]  req_v_in,   req_v_out,  req_credit_valid_in,  req_credit_valid_out,
+                        rsp_v_in,   rsp_v_out,  rsp_credit_valid_in,  rsp_credit_valid_out,
+                        wide_v_in,  wide_v_out, wide_credit_valid_in, wide_credit_valid_out;
   vc_id_t [NumPorts-1:0]  req_credit_id_in, req_credit_id_out,
                           rsp_credit_id_in, rsp_credit_id_out,
                           wide_credit_id_in, wide_credit_id_out;
@@ -73,29 +73,29 @@ module floo_vc_narrow_wide_router
   for (genvar i = 0; i < NumPorts; i++) begin : gen_connect_variables
     assign req_in[i] = floo_req_i[i].req;
     assign req_v_in[i] = floo_req_i[i].valid;
-    assign req_credit_v_in[i] = floo_req_i[i].credit_v;
+    assign req_credit_valid_in[i] = floo_req_i[i].credit_v;
     assign req_credit_id_in[i] = floo_req_i[i].credit_id;
     assign floo_req_o[i].req = req_out[i];
     assign floo_req_o[i].valid = req_v_out[i];
-    assign floo_req_o[i].credit_v = req_credit_v_out[i];
+    assign floo_req_o[i].credit_v = req_credit_valid_out[i];
     assign floo_req_o[i].credit_id = req_credit_id_out[i];
 
     assign rsp_in[i] = floo_rsp_i[i].rsp;
     assign rsp_v_in[i] = floo_rsp_i[i].valid;
-    assign rsp_credit_v_in[i] = floo_rsp_i[i].credit_v;
+    assign rsp_credit_valid_in[i] = floo_rsp_i[i].credit_v;
     assign rsp_credit_id_in[i] = floo_rsp_i[i].credit_id;
     assign floo_rsp_o[i].rsp = rsp_out[i];
     assign floo_rsp_o[i].valid = rsp_v_out[i];
-    assign floo_rsp_o[i].credit_v = rsp_credit_v_out[i];
+    assign floo_rsp_o[i].credit_v = rsp_credit_valid_out[i];
     assign floo_rsp_o[i].credit_id = rsp_credit_id_out[i];
 
     assign wide_in[i] = floo_wide_i[i].wide;
     assign wide_v_in[i] = floo_wide_i[i].valid;
-    assign wide_credit_v_in[i] = floo_wide_i[i].credit_v;
+    assign wide_credit_valid_in[i] = floo_wide_i[i].credit_v;
     assign wide_credit_id_in[i] = floo_wide_i[i].credit_id;
     assign floo_wide_o[i].wide = wide_out[i];
     assign floo_wide_o[i].valid = wide_v_out[i];
-    assign floo_wide_o[i].credit_v = wide_credit_v_out[i];
+    assign floo_wide_o[i].credit_v = wide_credit_valid_out[i];
     assign floo_wide_o[i].credit_id = wide_credit_id_out[i];
   end
 
@@ -132,13 +132,13 @@ module floo_vc_narrow_wide_router
     .rst_ni,
     .xy_id_i            (id_i),
     .id_route_map_i,
-    .credit_v_o         (req_credit_v_out),
+    .credit_valid_o         (req_credit_valid_out),
     .credit_id_o        (req_credit_id_out),
-    .data_v_i           (req_v_in),
+    .data_valid_i           (req_v_in),
     .data_i             (req_in),
-    .credit_v_i         (req_credit_v_in),
+    .credit_valid_i         (req_credit_valid_in),
     .credit_id_i        (req_credit_id_in),
-    .data_v_o           (req_v_out),
+    .data_valid_o           (req_v_out),
     .data_o             (req_out)
   );
 
@@ -176,13 +176,13 @@ module floo_vc_narrow_wide_router
     .rst_ni,
     .xy_id_i            (id_i),
     .id_route_map_i,
-    .credit_v_o         (rsp_credit_v_out),
+    .credit_valid_o         (rsp_credit_valid_out),
     .credit_id_o        (rsp_credit_id_out),
-    .data_v_i           (rsp_v_in),
+    .data_valid_i           (rsp_v_in),
     .data_i             (rsp_in),
-    .credit_v_i         (rsp_credit_v_in),
+    .credit_valid_i         (rsp_credit_valid_in),
     .credit_id_i        (rsp_credit_id_in),
-    .data_v_o           (rsp_v_out),
+    .data_valid_o           (rsp_v_out),
     .data_o             (rsp_out)
   );
 
@@ -220,13 +220,13 @@ module floo_vc_narrow_wide_router
     .rst_ni,
     .xy_id_i            (id_i),
     .id_route_map_i,
-    .credit_v_o         (wide_credit_v_out),
+    .credit_valid_o         (wide_credit_valid_out),
     .credit_id_o        (wide_credit_id_out),
-    .data_v_i           (wide_v_in),
+    .data_valid_i           (wide_v_in),
     .data_i             (wide_in),
-    .credit_v_i         (wide_credit_v_in),
+    .credit_valid_i         (wide_credit_valid_in),
     .credit_id_i        (wide_credit_id_in),
-    .data_v_o           (wide_v_out),
+    .data_valid_o           (wide_v_out),
     .data_o             (wide_out)
   );
 

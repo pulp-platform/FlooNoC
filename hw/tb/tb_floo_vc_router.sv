@@ -84,14 +84,14 @@ floo_vc_router #(
   .xy_id_i            (xy_id),
   .id_route_map_i     ('0),
   // contents from input port
-  .credit_v_o         (credit_v_o),
+  .credit_valid_o         (credit_v_o),
   .credit_id_o        (credit_id_o),
-  .data_v_i           (data_v_i),
+  .data_valid_i           (data_v_i),
   .data_i             (data_i),
   // contents from output port
-  .credit_v_i         (credit_v_i),
+  .credit_valid_i         (credit_v_i),
   .credit_id_i        (credit_id_i),
-  .data_v_o           (data_v_o),
+  .data_valid_o           (data_v_o),
   .data_o             (data_o)
 );
 
