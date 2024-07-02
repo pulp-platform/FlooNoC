@@ -182,9 +182,9 @@ module floo_vc_narrow_wide_chimney
   vc_id_t floo_req_vc_id, floo_rsp_vc_id, floo_wide_vc_id;
 
   // Wormhole detection
-  logic floo_req_wormhole_detected, floo_req_wormhole_v_d, floo_req_wormhole_v,
-        floo_rsp_wormhole_detected, floo_rsp_wormhole_v_d, floo_rsp_wormhole_v,
-        floo_wide_wormhole_detected, floo_wide_wormhole_v_d, floo_wide_wormhole_v;
+  logic floo_req_wh_detect, floo_req_wh_valid_d, floo_req_wh_valid,
+        floo_rsp_wormhole_detected, floo_rsp_wh_valid_d, floo_rsp_wh_valid,
+        floo_wide_wormhole_detected, floo_wide_wh_valid_d, floo_wide_wh_valid;
 
   // Flit unpacking
   axi_narrow_in_aw_chan_t axi_narrow_unpack_aw;
@@ -401,12 +401,6 @@ module floo_vc_narrow_wide_chimney
 
   end else begin : gen_no_rsp_cuts
     $fatal(1, "A credit based chimney requires a buffer");
-    // assign floo_req_in = floo_req_i.req;
-    // assign floo_rsp_in = floo_rsp_i.rsp;
-    // assign floo_wide_in = floo_wide_i.wide;
-    // assign floo_req_in_valid = floo_req_i.valid;
-    // assign floo_rsp_in_valid = floo_rsp_i.valid;
-    // assign floo_wide_in_valid = floo_wide_i.valid;
   end
 
   ///////////////////////
@@ -926,12 +920,12 @@ module floo_vc_narrow_wide_chimney
   ) i_req_wormhole_arbiter (
     .clk_i,
     .rst_ni,
-    .valid_i  ( floo_req_arb_req_in   ),
-    .data_i   ( floo_req_arb_in       ),
-    .ready_o  ( floo_req_arb_gnt_out  ),
-    .data_o   ( {floo_req_arb_sel_hdr, floo_req_o.req.generic.payload}),
-    .ready_i  ( floo_req_o.valid ),
-    .valid_o  ( floo_req_arb_v        )
+    .valid_i  ( floo_req_arb_req_in                                     ),
+    .data_i   ( floo_req_arb_in                                         ),
+    .ready_o  ( floo_req_arb_gnt_out                                    ),
+    .data_o   ( {floo_req_arb_sel_hdr, floo_req_o.req.generic.payload}  ),
+    .ready_i  ( floo_req_o.valid                                        ),
+    .valid_o  ( floo_req_arb_v                                          )
   );
 
   floo_wormhole_arbiter #(
@@ -940,12 +934,12 @@ module floo_vc_narrow_wide_chimney
   ) i_rsp_wormhole_arbiter (
     .clk_i,
     .rst_ni,
-    .valid_i  ( floo_rsp_arb_req_in   ),
-    .data_i   ( floo_rsp_arb_in       ),
-    .ready_o  ( floo_rsp_arb_gnt_out  ),
-    .data_o   ( {floo_rsp_arb_sel_hdr,floo_rsp_o.rsp.generic.payload}),
-    .ready_i  ( floo_rsp_o.valid ),
-    .valid_o  ( floo_rsp_arb_v        )
+    .valid_i  ( floo_rsp_arb_req_in                                   ),
+    .data_i   ( floo_rsp_arb_in                                       ),
+    .ready_o  ( floo_rsp_arb_gnt_out                                  ),
+    .data_o   ( {floo_rsp_arb_sel_hdr,floo_rsp_o.rsp.generic.payload} ),
+    .ready_i  ( floo_rsp_o.valid                                      ),
+    .valid_o  ( floo_rsp_arb_v                                        )
   );
 
   floo_wormhole_arbiter #(
@@ -954,78 +948,75 @@ module floo_vc_narrow_wide_chimney
   ) i_wide_wormhole_arbiter (
     .clk_i,
     .rst_ni,
-    .valid_i  ( floo_wide_arb_req_in  ),
-    .data_i   ( floo_wide_arb_in      ),
-    .ready_o  ( floo_wide_arb_gnt_out ),
-    .data_o   ( {floo_wide_arb_sel_hdr, floo_wide_o.wide.generic.payload}),
-    .ready_i  ( floo_wide_o.valid ),
-    .valid_o  ( floo_wide_arb_v       )
+    .valid_i  ( floo_wide_arb_req_in                                      ),
+    .data_i   ( floo_wide_arb_in                                          ),
+    .ready_o  ( floo_wide_arb_gnt_out                                     ),
+    .data_o   ( {floo_wide_arb_sel_hdr, floo_wide_o.wide.generic.payload} ),
+    .ready_i  ( floo_wide_o.valid                                         ),
+    .valid_o  ( floo_wide_arb_v                                           )
   );
 
-  assign floo_req_arb_gnt = floo_req_arb_gnt_out & {$bits(floo_req_arb_gnt_out){floo_req_o.valid}};
-  assign floo_rsp_arb_gnt = floo_rsp_arb_gnt_out & {$bits(floo_rsp_arb_gnt_out){floo_rsp_o.valid}};
-  assign floo_wide_arb_gnt= floo_wide_arb_gnt_out&{$bits(floo_wide_arb_gnt_out){floo_wide_o.valid}};
+  assign floo_req_arb_gnt = floo_req_arb_gnt_out & {4{floo_req_o.valid}};
+  assign floo_rsp_arb_gnt = floo_rsp_arb_gnt_out & {3{floo_rsp_o.valid}};
+  assign floo_wide_arb_gnt= floo_wide_arb_gnt_out & {3{floo_wide_o.valid}};
 
   ///////////////////////
   // LOOKAHEAD ROUTING //
   ///////////////////////
 
-  // calculate next hop on router
   floo_look_ahead_routing #(
-    .NumRoutes                      (NumRoutes),
-    .hdr_t                          (hdr_t),
-    .RouteAlgo                      (RouteAlgo),
-    .IdWidth                        (IdWidth),
-    .id_t                           (id_t),
-    .NumAddrRules                   (NumAddrRules),
-    .addr_rule_t                    (addr_rule_t)
+    .NumRoutes    ( NumRoutes     ),
+    .hdr_t        ( hdr_t         ),
+    .RouteAlgo    ( RouteAlgo     ),
+    .IdWidth      ( IdWidth       ),
+    .id_t         ( id_t          ),
+    .NumAddrRules ( NumAddrRules  ),
+    .addr_rule_t  ( addr_rule_t   )
   ) i_floo_req_look_ahead_routing (
-    .hdr_i                    (floo_req_arb_sel_hdr),
-    .hdr_o                    (floo_req_sel_hdr),
-    .la_route_o           (floo_req_lookahead),
-    .id_route_map_i,
-    .xy_id_i                        (id_i),
     .clk_i,
-    .rst_ni
+    .rst_ni,
+    .hdr_i      ( floo_req_arb_sel_hdr  ),
+    .hdr_o      ( floo_req_sel_hdr      ),
+    .la_route_o ( floo_req_lookahead    ),
+    .id_route_map_i,
+    .xy_id_i    ( id_i                  )
   );
-  // calculate next hop on router
+
   floo_look_ahead_routing #(
-    .NumRoutes                      (NumRoutes),
-    .hdr_t                          (hdr_t),
-    .RouteAlgo                      (RouteAlgo),
-    .IdWidth                        (IdWidth),
-    .id_t                           (id_t),
-    .NumAddrRules                   (NumAddrRules),
-    .addr_rule_t                    (addr_rule_t)
+    .NumRoutes    ( NumRoutes     ),
+    .hdr_t        ( hdr_t         ),
+    .RouteAlgo    ( RouteAlgo     ),
+    .IdWidth      ( IdWidth       ),
+    .id_t         ( id_t          ),
+    .NumAddrRules ( NumAddrRules  ),
+    .addr_rule_t  ( addr_rule_t   )
   ) i_floo_rsp_look_ahead_routing (
-    .hdr_i                    (floo_rsp_arb_sel_hdr),
-    .hdr_o                    (floo_rsp_sel_hdr),
-    .la_route_o           (floo_rsp_lookahead),
-    .id_route_map_i,
-    .xy_id_i                        (id_i),
     .clk_i,
-    .rst_ni
+    .rst_ni,
+    .hdr_i      ( floo_rsp_arb_sel_hdr  ),
+    .hdr_o      ( floo_rsp_sel_hdr      ),
+    .la_route_o ( floo_rsp_lookahead    ),
+    .id_route_map_i,
+    .xy_id_i    ( id_i                  )
   );
-  // calculate next hop on router
+
   floo_look_ahead_routing #(
-    .NumRoutes                      (NumRoutes),
-    .hdr_t                          (hdr_t),
-    .RouteAlgo                      (RouteAlgo),
-    .IdWidth                        (IdWidth),
-    .id_t                           (id_t),
-    .NumAddrRules                   (NumAddrRules),
-    .addr_rule_t                    (addr_rule_t)
+    .NumRoutes    ( NumRoutes     ),
+    .hdr_t        ( hdr_t         ),
+    .RouteAlgo    ( RouteAlgo     ),
+    .IdWidth      ( IdWidth       ),
+    .id_t         ( id_t          ),
+    .NumAddrRules ( NumAddrRules  ),
+    .addr_rule_t  ( addr_rule_t)
   ) i_floo_wide_look_ahead_routing (
-    .hdr_i                    (floo_wide_arb_sel_hdr),
-    .hdr_o                    (floo_wide_sel_hdr),
-    .la_route_o           (floo_wide_lookahead),
-    .id_route_map_i,
-    .xy_id_i                        (id_i),
     .clk_i,
-    .rst_ni
+    .rst_ni,
+    .hdr_i      ( floo_wide_arb_sel_hdr ),
+    .hdr_o      ( floo_wide_sel_hdr     ),
+    .la_route_o ( floo_wide_lookahead   ),
+    .id_route_map_i,
+    .xy_id_i    ( id_i                  )
   );
-
-
 
   /////////////////////
   // CREDIT COUNTING //
@@ -1167,7 +1158,7 @@ module floo_vc_narrow_wide_chimney
           floo_req_lookahead==South ? (OutputDir==East ? 1 : 2) :
           OutputDir==East ? 2 : 1) % NumVC;
   always_comb begin
-    if(FixedWormholeVC==1 && (~floo_req_arb_sel_hdr.last | floo_req_wormhole_v)) begin
+    if(FixedWormholeVC==1 && (~floo_req_arb_sel_hdr.last | floo_req_wh_valid)) begin
       floo_req_vc_id = WormholeVCId;
       floo_req_o.valid = floo_req_arb_v & (floo_req_vc_not_full[WormholeVCId] |
           (CreditShortcut==1 && floo_req_i.credit_v && floo_req_i.credit_id == WormholeVCId));
@@ -1180,7 +1171,7 @@ module floo_vc_narrow_wide_chimney
           {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_req_vc_selection_id[floo_req_pref_vc_id]};
         // need the assigned vc_id to be the preffered one if not last or wormhole
         floo_req_o.valid  = floo_req_vc_selection_v[floo_req_pref_vc_id] & floo_req_arb_v
-            & (FixedWormholeVC==1 | ~(~floo_req_arb_sel_hdr.last | floo_req_wormhole_v) |
+            & (FixedWormholeVC==1 | ~(~floo_req_arb_sel_hdr.last | floo_req_wh_valid) |
             (floo_req_vc_id == floo_req_pref_vc_id));
       end
     end
@@ -1195,7 +1186,7 @@ module floo_vc_narrow_wide_chimney
           floo_rsp_lookahead==South ? (OutputDir==East ? 1 : 2) :
           OutputDir==East ? 2 : 1) % NumVC;
   always_comb begin
-    if(FixedWormholeVC==1 && (~floo_rsp_arb_sel_hdr.last | floo_rsp_wormhole_v)) begin
+    if(FixedWormholeVC==1 && (~floo_rsp_arb_sel_hdr.last | floo_rsp_wh_valid)) begin
       floo_rsp_vc_id = WormholeVCId;
       floo_rsp_o.valid = floo_rsp_arb_v & (floo_rsp_vc_not_full[WormholeVCId] |
           (CreditShortcut==1 && floo_rsp_i.credit_v && floo_rsp_i.credit_id == WormholeVCId));
@@ -1208,7 +1199,7 @@ module floo_vc_narrow_wide_chimney
           {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_rsp_vc_selection_id[floo_rsp_pref_vc_id]};
         // need the assigned vc_id to be the preffered one if not last or wormhole
         floo_rsp_o.valid  = floo_rsp_vc_selection_v[floo_rsp_pref_vc_id] & floo_rsp_arb_v
-            & (FixedWormholeVC==1 | ~(~floo_rsp_arb_sel_hdr.last | floo_rsp_wormhole_v) |
+            & (FixedWormholeVC==1 | ~(~floo_rsp_arb_sel_hdr.last | floo_rsp_wh_valid) |
             (floo_rsp_vc_id == floo_rsp_pref_vc_id));
       end
     end
@@ -1223,7 +1214,7 @@ module floo_vc_narrow_wide_chimney
           floo_wide_lookahead==South ? (OutputDir==East ? 1 : 2) :
           OutputDir==East ? 2 : 1) % NumVC;
   always_comb begin
-    if(FixedWormholeVC==1 && (~floo_wide_arb_sel_hdr.last | floo_wide_wormhole_v)) begin
+    if(FixedWormholeVC==1 && (~floo_wide_arb_sel_hdr.last | floo_wide_wh_valid)) begin
       floo_wide_vc_id = WormholeVCId;
       floo_wide_o.valid = floo_wide_arb_v & (floo_wide_vc_not_full[WormholeVCId] |
           (CreditShortcut==1 && floo_wide_i.credit_v && floo_wide_i.credit_id == WormholeVCId));
@@ -1236,13 +1227,11 @@ module floo_vc_narrow_wide_chimney
           {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_wide_vc_selection_id[floo_wide_pref_vc_id]};
         // need the assigned vc_id to be the preffered one if not last or wormhole
         floo_wide_o.valid  = floo_wide_vc_selection_v[floo_wide_pref_vc_id] & floo_wide_arb_v
-            & (FixedWormholeVC==1 | ~(~floo_wide_arb_sel_hdr.last | floo_wide_wormhole_v) |
+            & (FixedWormholeVC==1 | ~(~floo_wide_arb_sel_hdr.last | floo_wide_wh_valid) |
             (floo_wide_vc_id == floo_wide_pref_vc_id));
       end
     end
   end
-
-
 
   //////////////////
   // WRITE HEADER //
@@ -1262,24 +1251,22 @@ module floo_vc_narrow_wide_chimney
     floo_wide_o.wide.generic.hdr.vc_id    = floo_wide_vc_id;
   end
 
-
-
   ////////////////////////
   // WORMHOLE DETECTION //
   ////////////////////////
 
-  assign floo_req_wormhole_detected = ~floo_req_o.req.generic.hdr.last & floo_req_o.valid;
-  assign floo_req_wormhole_v_d = floo_req_wormhole_detected | (floo_req_wormhole_v &
+  assign floo_req_wh_detect = ~floo_req_o.req.generic.hdr.last & floo_req_o.valid;
+  assign floo_req_wh_valid_d = floo_req_wh_detect | (floo_req_wh_valid &
                                 ~(floo_req_o.req.generic.hdr.last & floo_req_o.valid));
   assign floo_rsp_wormhole_detected = ~floo_rsp_o.rsp.generic.hdr.last & floo_rsp_o.valid;
-  assign floo_rsp_wormhole_v_d = floo_rsp_wormhole_detected | (floo_rsp_wormhole_v &
+  assign floo_rsp_wh_valid_d = floo_rsp_wormhole_detected | (floo_rsp_wh_valid &
                                 ~(floo_rsp_o.rsp.generic.hdr.last & floo_rsp_o.valid));
   assign floo_wide_wormhole_detected = ~floo_wide_o.wide.generic.hdr.last & floo_wide_o.valid;
-  assign floo_wide_wormhole_v_d = floo_wide_wormhole_detected | (floo_wide_wormhole_v &
+  assign floo_wide_wh_valid_d = floo_wide_wormhole_detected | (floo_wide_wh_valid &
                                 ~(floo_wide_o.wide.generic.hdr.last & floo_wide_o.valid));
-  `FF(floo_req_wormhole_v, floo_req_wormhole_v_d, '0)
-  `FF(floo_rsp_wormhole_v, floo_rsp_wormhole_v_d, '0)
-  `FF(floo_wide_wormhole_v, floo_wide_wormhole_v_d, '0)
+  `FF(floo_req_wh_valid, floo_req_wh_valid_d, '0)
+  `FF(floo_rsp_wh_valid, floo_rsp_wh_valid_d, '0)
+  `FF(floo_wide_wh_valid, floo_wide_wh_valid_d, '0)
 
   ////////////////////
   // FLIT UNPACKER  //
