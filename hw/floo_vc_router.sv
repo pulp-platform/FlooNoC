@@ -365,7 +365,7 @@ module floo_vc_router import floo_pkg::*; #(
     for (int out_port = 0; out_port < NumPorts; out_port++) begin : gen_transform_sa_results
       if (RouteAlgo == XYRouting) begin : gen_reduce_sa_global_input_size_if_xyrouting
         // to N/S has inputs S/N,E,W,L, to E/W has inputs W/E,L
-        for (int in_port = 0; in_port < NumPorts; in_port++) begin : gen_red_sa_glb_xyrouting_in_port
+        for (int in_port = 0; in_port < NumPorts; in_port++) begin : gen_in_port
           if(!(in_port == out_port ||
             (out_port == East && (in_port == South || in_port == North)) ||
             (out_port == West && (in_port == South || in_port == North))
@@ -388,7 +388,7 @@ module floo_vc_router import floo_pkg::*; #(
       end
       // if not XY Routing: just transpose the matrix and leave out this dim
       else begin : gen_transpose_sa_results
-        for (int in_port = 0; in_port < NumPorts; in_port++) begin : gen_transp_sa_results_in_port
+        for (int in_port = 0; in_port < NumPorts; in_port++) begin : gen_in_port
           if(in_port != out_port) begin : gen_transp_sa_results_in_port_ne_out_port
             automatic int per_output_index = in_port < out_port ? in_port : in_port - 1;
             sa_local_out_valid[out_port][per_output_index]
