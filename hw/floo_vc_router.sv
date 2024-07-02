@@ -132,9 +132,7 @@ logic           [NumPorts-1:0]                      last_bits_sel_st_stage;
 logic           [NumPorts-1:0]                      wh_detect; // per output
 logic           [NumPorts-1:0]                      wh_valid; // per outport
 logic           [NumPorts-1:0]                      wh_valid_d;
-logic           [NumPorts-1:0]                      wh_input_valid; // per input
 logic           [NumPorts-1:0][NumPorts-1:0]        wh_required_sel;
-logic           [NumPorts-1:0][NumPorts-1:0]        wh_required_sel_t;
 logic           [NumPorts-1:0]                      wh_correct_sel;
 logic           [NumPorts-1:0][NumPorts-1:0]        wh_sa_global_dir_oh;
 
@@ -366,8 +364,6 @@ for(genvar i = 0 ; i < NumPorts; i++) begin : gen_transpose_DataWidth
   for(genvar j = 0 ; j < NumPorts; j++) begin : gen_transpose_NumInputs
     assign output_id_oh_sa_stage_t[i][j] =
                       output_id_oh_sa_stage[j][i];
-    assign wh_required_sel_t[i][j] =
-                      wh_required_sel[j][i];
   end
 end
 
@@ -375,8 +371,6 @@ end
 for(genvar in_port = 0; in_port < NumPorts; in_port++) begin : gen_inport_read_enable
   assign read_en_sa_stage[in_port] =
       |(output_id_oh_sa_stage_t[in_port] & outport_valid);
-  assign wh_input_valid[in_port] =
-      |(wh_required_sel_t[in_port] & wh_valid);
   assign read_vc_id_oh_sa_stage[in_port] = sa_local_vc_id_oh[in_port];
 end
 
