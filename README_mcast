@@ -1,0 +1,13 @@
+This is README file for multicast function verification.
+
+1. File replacement:
+As the checkout repositories are not updated, please replace the axi_test.sv in axi repo with axi_test.sv and replace the multiaddr_decode.sv in commoncell repo with multiaddr_decode.sv.
+
+2. Verification:
+As the floogen has not been extended to generate multicast packages, we have two package files for the two test environments.
+
+2.1. 1 router 4 endpoints (r1e4):
+Rename floo_narrow_wide_pkg.sv.r1e4 as floo_narrow_wide_pkg.sv. Then launch simulation with "make run-compile" and "make run-sim VSIM_TB_DUT=tb_r1e4".
+
+2.2 4x4 mesh (1 master):
+Rename floo_narrow_wide_pkg.sv.mesh as floo_narrow_wide_pkg.sv. Then launch simulation with "make run-compile" and "make run-sim VSIM_TB_DUT=tb_floo_mcast_mesh".
