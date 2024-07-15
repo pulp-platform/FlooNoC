@@ -10,6 +10,7 @@
 ##########
 
 MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
+# MAKEFILE_LIST
 MKFILE_DIR  := $(dir $(MKFILE_PATH))
 
 .PHONY: all clean
@@ -41,7 +42,7 @@ VSIM_TB_DUT ?= floo_noc_router_test
 
 VSIM_FLAGS += -64
 VSIM_FLAGS += -t 1ps
-VSIM_FLAGS += -sv_seed 0
+# VSIM_FLAGS += -sv_seed 0
 
 # Set the job name and directory if specified
 ifdef JOB_NAME
