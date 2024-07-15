@@ -21,7 +21,8 @@ module floo_narrow_wide_router
     parameter type         id_t             = logic[IdWidth-1:0],
     /// Used for ID-based routing
     parameter int unsigned NumAddrRules     = 0,
-    parameter type         addr_rule_t      = logic
+    parameter type         addr_rule_t      = logic,
+    parameter  bit         Mesh             = 1'b1
 ) (
   input  logic   clk_i,
   input  logic   rst_ni,
@@ -90,7 +91,8 @@ module floo_narrow_wide_router
     .IdWidth          ( IdWidth                 ),
     .id_t             ( id_t                    ),
     .NumAddrRules     ( NumAddrRules            ),
-    .addr_rule_t      ( addr_rule_t             )
+    .addr_rule_t      ( addr_rule_t             ),
+    .Mesh             ( Mesh                    )
   ) i_req_floo_router (
     .clk_i,
     .rst_ni,
@@ -119,7 +121,8 @@ module floo_narrow_wide_router
     .flit_t           ( floo_rsp_generic_flit_t ),
     .id_t             ( id_t                    ),
     .NumAddrRules     ( NumAddrRules            ),
-    .addr_rule_t      ( addr_rule_t             )
+    .addr_rule_t      ( addr_rule_t             ),
+    .Mesh             ( Mesh                    )
   ) i_rsp_floo_router (
     .clk_i,
     .rst_ni,
@@ -147,7 +150,8 @@ module floo_narrow_wide_router
     .IdWidth          ( IdWidth                   ),
     .id_t             ( id_t                      ),
     .NumAddrRules     ( NumAddrRules              ),
-    .addr_rule_t      ( addr_rule_t               )
+    .addr_rule_t      ( addr_rule_t               ),
+    .Mesh             ( Mesh                      )
   ) i_wide_req_floo_router (
     .clk_i,
     .rst_ni,

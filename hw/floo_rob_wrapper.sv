@@ -7,9 +7,11 @@
 /// A wrapper of all available reorder buffers
 module floo_rob_wrapper
   import floo_pkg::*;
+  import floo_narrow_wide_pkg::*;
 #(
   /// Type of reorder buffer to use
   parameter rob_type_e   RoBType = NormalRoB,
+  // parameter axi_ch_e     AxiChannel = NarrowB,
   /// Maximum number of transactions in flight per ID which *require* reordering
   parameter int unsigned MaxRoTxnsPerId = 32'd32,
   /// If the response only consists of small metadata i.e. B channel
@@ -18,6 +20,8 @@ module floo_rob_wrapper
   parameter bit          OnlyMetaData = 1'b0,
   /// Size of the reorder buffer
   parameter int unsigned ReorderBufferSize = 32'd64,
+  parameter int unsigned NumAddrRules = 0,
+  parameter bit          McastBFifo = 1'b0,
   /// Data type of response to be reordered
   parameter type         ax_len_t   = logic,
   parameter type         ax_id_t    = logic,
@@ -26,8 +30,9 @@ module floo_rob_wrapper
   parameter type         rsp_meta_t = logic,
   parameter type         rob_idx_t  = logic,
   parameter type         dest_t     = logic,
+  parameter type         select_t   = logic,
   // Type for implementation inputs and outputs
-  parameter type         sram_cfg_t = logic
+  parameter type         sram_cfg_t = logic   
 ) (
   input  logic      clk_i,
   input  logic      rst_ni,
@@ -36,7 +41,10 @@ module floo_rob_wrapper
   output logic      ax_ready_o,
   input  ax_len_t   ax_len_i,
   input  ax_id_t    ax_id_i,
+  input  logic      mcast_flag_i,
   input  dest_t     ax_dest_i,
+  input  select_t   ax_select_i,
+  input  logic [$clog2(NumAddrRules):0] rep_coeff_i,
   output logic      ax_valid_o,
   input  logic      ax_ready_i,
   output logic      ax_rob_req_o,
@@ -133,11 +141,13 @@ module floo_rob_wrapper
     logic counter_full;
     logic in_flight;
     dest_t prev_dest;
+    select_t prev_dest_mcast;
+    logic rsp_valid_mcast;
 
     // A new transaction can be pushed if it is the first one
     // i.e. `in_flight` is not set or if the previous transaction
     // has the same destination
-    assign push = ax_valid_i && (!in_flight || ax_dest_i == prev_dest) && !counter_full;
+    assign push = ax_valid_i && (!in_flight || (!mcast_flag_i && ax_dest_i == prev_dest) || (mcast_flag_i && ax_select_i == prev_dest_mcast)) && !counter_full;
     // Whenever a response arrives we can pop the transaction
     assign pop = rsp_valid_i && rsp_last_i;
 
@@ -148,28 +158,35 @@ module floo_rob_wrapper
     assign ax_rob_idx_o = '0;
 
     assign rsp_ready_o = rsp_ready_i;
-    assign rsp_valid_o = rsp_valid_i;
+    assign rsp_valid_o = (McastBFifo) ? rsp_valid_mcast : rsp_valid_i; 
     assign rsp_o = rsp_i;
 
 
-    axi_demux_id_counters #(
+    axi_mcast_demux_id_counters #(
       .AxiIdBits          ( AxiIdBits     ),
       .CounterWidth       ( CounterWidth  ),
-      .mst_port_select_t  ( dest_t        )
+      .NumAddrRules       ( NumAddrRules  ),
+      .McastBFifo         ( McastBFifo    ),
+      .mst_port_select_t  ( dest_t        ),
+      .mcast_select_t     ( select_t      )
     ) i_axi_demux_id_counters (
       .clk_i,
       .rst_ni,
       .lookup_axi_id_i              ( ax_id_i             ),
       .lookup_mst_select_o          ( prev_dest           ),
+      .lookup_mcast_select_o        ( prev_dest_mcast     ),
       .lookup_mst_select_occupied_o ( in_flight           ),
       .full_o                       ( counter_full        ),
       .push_axi_id_i                ( ax_id_i             ),
       .push_mst_select_i            ( ax_dest_i           ),
+      .push_mcast_select_i          ( ax_select_i         ),
       .push_i                       ( push && ax_ready_i  ),  // Only push on handshake
+      .rep_coeff_i                  ( rep_coeff_i         ),
       .inject_axi_id_i              ( '0                  ),
       .inject_i                     ( 1'b0                ),
       .pop_axi_id_i                 ( rsp_i.id            ),
-      .pop_i                        ( pop && rsp_ready_i  )  // Only pop on handshake
+      .pop_i                        ( pop && rsp_ready_i  ),  // Only pop on handshake
+      .merged_pop_o                 ( rsp_valid_mcast     )
     );
 
   end else begin : gen_error

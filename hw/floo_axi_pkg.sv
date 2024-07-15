@@ -81,8 +81,10 @@ package floo_axi_pkg;
 
 
   typedef struct packed {
+    logic mcast_flag;
     logic rob_req;
     rob_idx_t rob_idx;
+    id_t dst_mask_id;
     dst_t dst_id;
     id_t src_id;
     logic last;
