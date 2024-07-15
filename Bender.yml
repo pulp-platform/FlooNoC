@@ -9,9 +9,9 @@ package:
     - "Tim Fischer <fischeti@iis.ee.ethz.ch>"
 
 dependencies:
-  common_cells: { git: "https://github.com/pulp-platform/common_cells.git", version: 1.32.0 }
+  common_cells: { git: "https://github.com/pulp-platform/common_cells.git", rev: "multicast-xbar" }
   common_verification: { git: "https://github.com/pulp-platform/common_verification.git", version: 0.2 }
-  axi: { git: "https://github.com/pulp-platform/axi.git", version: 0.39.1 }
+  axi: { git: "https://github.com/pulp-platform/axi.git", rev: "feature/multicast-xbar" }
   axi_riscv_atomics: { git: "https://github.com/pulp-platform/axi_riscv_atomics.git", version: 0.8.2 }
   idma: { git: "https://github.com/pulp-platform/iDMA.git", version: 0.5.1 }
 
@@ -35,12 +35,16 @@ sources:
   - hw/floo_rob.sv
   - hw/floo_rob_wrapper.sv
   - hw/floo_meta_buffer.sv
+  - hw/axi_mcast_demux_id_counters.sv
   # Level 2
   - hw/floo_narrow_wide_join.sv
   - hw/floo_axi_chimney.sv
   - hw/floo_narrow_wide_chimney.sv
   - hw/floo_router.sv
   - hw/floo_narrow_wide_router.sv
+  - hw/mcast_dst_conversion.sv
+  - hw/router1_endpoint4_floo_noc.sv
+  - hw/mcast_mesh_floo_noc.sv
 
   - target: test
     include_dirs:
@@ -60,7 +64,20 @@ sources:
       - hw/tb/tb_floo_axi_chimney.sv
       - hw/tb/tb_floo_narrow_wide_chimney.sv
       - hw/tb/tb_floo_router.sv
-      - hw/tb/tb_floo_rob.sv
+      # - hw/tb/tb_floo_rob.sv
       - hw/tb/tb_floo_dma_chimney.sv
       - hw/tb/tb_floo_dma_nw_chimney.sv
       - hw/tb/tb_floo_dma_mesh.sv
+      - hw/tb/tb_r1e4.sv
+      - hw/tb/tb_floo_mcast_mesh.sv
+
+  # - target: any(synthesis,spyglass)
+  #   files:
+  #     # Level 0
+  #     - hw/test/floo_test_pkg.sv
+  #     # Level 1
+  #     - hw/synth/floo_synth_axi_chimney.sv
+  #     - hw/synth/floo_synth_narrow_wide_chimney.sv
+  #     - hw/synth/floo_synth_router.sv
+  #     - hw/synth/floo_synth_narrow_wide_router.sv
+  #     - hw/synth/floo_synth_endpoint.sv
