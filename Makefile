@@ -33,6 +33,9 @@ BENDER_FLAGS += -t rtl
 BENDER_FLAGS += -t test
 BENDER_FLAGS += -t snitch_cluster
 BENDER_FLAGS += -t idma_test
+ifdef VC
+	BENDER_FLAGS += -t vc_router
+endif
 
 VLOG_ARGS += -suppress vlog-2583
 VLOG_ARGS += -suppress vlog-13314
