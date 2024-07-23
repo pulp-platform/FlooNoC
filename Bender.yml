@@ -56,6 +56,7 @@ sources:
       - hw/vc_router_util/floo_vc_assignment.sv
       - hw/vc_router_util/floo_vc_router_switch.sv
       - hw/vc_router_util/floo_vc_selection.sv
+      - hw/floo_vc_axi_pkg.sv
       - hw/floo_vc_narrow_wide_pkg.sv
       # Level 2
       - hw/floo_vc_narrow_wide_chimney.sv

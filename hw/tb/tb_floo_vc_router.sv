@@ -8,7 +8,7 @@
 module tb_floo_vc_router;
 
   import floo_pkg::*;
-  import floo_axi_pkg::*;
+  import floo_vc_axi_pkg::*;
 
   localparam time CyclTime = 10ns;
   localparam time ApplTime = 2ns;

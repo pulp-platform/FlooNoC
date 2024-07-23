@@ -20,7 +20,7 @@ from floogen.model.graph import Graph
 from floogen.model.endpoint import EndpointDesc, Endpoint
 from floogen.model.router import RouterDesc, NarrowWideRouter, NarrowWideXYRouter
 from floogen.model.connection import ConnectionDesc
-from floogen.model.link import NarrowWideLink, NarrowWideVCLink, XYLinks, NarrowLink
+from floogen.model.link import NarrowWideLink, NarrowWideVCLink, XYLinks, NarrowLink, NarrowVCLink
 from floogen.model.network_interface import NarrowWideAxiNI
 from floogen.model.protocol import AXI4, AXI4Bus
 from floogen.utils import clog2
@@ -625,7 +625,10 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             else:
                 axi_type, link_type = "narrow_wide", NarrowWideLink
         else:
-            axi_type, link_type = "axi", NarrowLink
+            if self.routing.num_vc_id_bits > 0:
+                axi_type, link_type = "vc_axi", NarrowVCLink
+            else:
+                axi_type, link_type = "axi", NarrowLink
 
         return axi_type, self.tpl_pkg.render(name=axi_type, noc=self, link=link_type)
 

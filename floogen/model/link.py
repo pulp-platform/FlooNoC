@@ -253,3 +253,18 @@ class NarrowLink(Link):
     def render_ports(self):
         """Declare the ports of the link."""
         raise NotImplementedError
+
+class NarrowVCLink(NarrowLink):
+    '''Link class to describe a NarrowVCLink.'''
+
+    @classmethod
+    def render_link_typedefs(cls) -> str:
+        """Render the typedefs of the protocol."""
+        string = ""
+        for phys_ch in cls.channel_mapping:
+            struct_dict = {"valid": "logic",
+                           "credit_v": "logic",
+                           "credit_id": "vc_id_t",
+                           phys_ch: f"floo_{phys_ch}_chan_t"}
+            string += sv_struct_typedef(f"floo_vc_{phys_ch}_t", struct_dict)
+        return string
