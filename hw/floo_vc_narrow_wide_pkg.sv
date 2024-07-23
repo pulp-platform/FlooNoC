@@ -6,7 +6,7 @@
 
 `include "axi/typedef.svh"
 
-package floo_narrow_wide_pkg;
+package floo_vc_narrow_wide_pkg;
 
   import floo_pkg::*;
 
@@ -107,15 +107,18 @@ package floo_narrow_wide_pkg;
 
 
   typedef logic [0:0] rob_idx_t;
+  typedef logic [1:0] port_id_t;
   typedef logic [2:0] x_bits_t;
   typedef logic [2:0] y_bits_t;
   typedef struct packed {
-    x_bits_t x;
-    y_bits_t y;
+    x_bits_t  x;
+    y_bits_t  y;
+    port_id_t port_id;
   } id_t;
 
   typedef logic route_t;
   typedef id_t dst_t;
+  typedef logic [2:0] vc_id_t;
 
 
   typedef struct packed {
@@ -126,6 +129,8 @@ package floo_narrow_wide_pkg;
     logic last;
     logic atop;
     axi_ch_e axi_ch;
+    vc_id_t vc_id;
+    route_direction_e lookahead;
   } hdr_t;
 
 
@@ -253,21 +258,24 @@ package floo_narrow_wide_pkg;
 
   typedef struct packed {
     logic valid;
-    logic ready;
+    logic credit_v;
+    vc_id_t credit_id;
     floo_req_chan_t req;
-  } floo_req_t;
+  } floo_vc_req_t;
 
   typedef struct packed {
     logic valid;
-    logic ready;
+    logic credit_v;
+    vc_id_t credit_id;
     floo_rsp_chan_t rsp;
-  } floo_rsp_t;
+  } floo_vc_rsp_t;
 
   typedef struct packed {
     logic valid;
-    logic ready;
+    logic credit_v;
+    vc_id_t credit_id;
     floo_wide_chan_t wide;
-  } floo_wide_t;
+  } floo_vc_wide_t;
 
 
 endpackage

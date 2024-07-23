@@ -10,7 +10,7 @@
 module tb_floo_vc_dma_mesh;
 
   import floo_pkg::*;
-  import floo_narrow_wide_pkg::*;
+  import floo_vc_narrow_wide_pkg::*;
 
   localparam time CyclTime = 10ns;
   localparam time ApplTime = 2ns;

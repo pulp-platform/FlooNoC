@@ -1,0 +1,51 @@
+# Copyright 2024 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+
+name: "narrow_wide"
+description: "flit configuration for narrow and wide AXI4 interfaces"
+
+routing:
+  route_algo: "XY"
+  use_id_table: false
+  addr_offset_bits: 16
+  num_x_bits: 3
+  num_y_bits: 3
+  port_id_bits: 2
+  num_vc_id_bits: 3
+
+protocols:
+  - name: "narrow"
+    type: "AXI4"
+    direction: "manager"
+    data_width: 64
+    addr_width: 48
+    id_width: 4
+    user_width: 1
+  - name: "narrow"
+    type: "AXI4"
+    direction: "subordinate"
+    data_width: 64
+    addr_width: 48
+    id_width: 2
+    user_width: 1
+  - name: "wide"
+    type: "AXI4"
+    direction: "manager"
+    data_width: 512
+    addr_width: 48
+    id_width: 3
+    user_width: 1
+  - name: "wide"
+    type: "AXI4"
+    direction: "subordinate"
+    data_width: 512
+    addr_width: 48
+    id_width: 1
+    user_width: 1
+
+endpoints: []
+
+routers: []
+
+connections: []

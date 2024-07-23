@@ -12,7 +12,7 @@
 /// A bidirectional network interface for connecting narrow & wide AXI Buses to the multi-link NoC
 module floo_vc_narrow_wide_chimney
   import floo_pkg::*;
-  import floo_narrow_wide_pkg::*;
+  import floo_vc_narrow_wide_pkg::*;
 #(
   /// FlooNoC defines subordinate ports as requests that go out
   /// of the NoC to AXI subordinates (i.e. memories) that return

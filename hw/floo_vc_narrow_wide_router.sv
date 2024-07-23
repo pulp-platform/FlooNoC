@@ -8,7 +8,7 @@
 /// Wrapper of a multi-link router for narrow and wide links
 module floo_vc_narrow_wide_router
   import floo_pkg::*;
-  import floo_narrow_wide_pkg::*;
+  import floo_vc_narrow_wide_pkg::*;
   #(
     parameter int           NumPorts                    = 5,
     parameter int           NumLocalPorts               = NumPorts - 4,
