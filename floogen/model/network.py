@@ -471,6 +471,10 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         """Wrapper function to generate all the routing info for the network,
         for a specific routing algorithm."""
         self.routing.num_endpoints = len(self.graph.get_ni_nodes())
+        if self.routing.num_endpoints == 0:
+            raise ValueError(
+                "No endpoints found in the network. Use the `only_pkg` flag for package generation."
+            )
         self.routing.num_id_bits = clog2(len(self.graph.get_ni_nodes()))
         match self.routing.route_algo:
             case RouteAlgo.XY:
