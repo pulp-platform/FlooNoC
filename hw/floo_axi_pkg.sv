@@ -69,11 +69,13 @@ package floo_axi_pkg;
 
 
   typedef logic [0:0] rob_idx_t;
+  typedef logic [0:0] port_id_t;
   typedef logic [2:0] x_bits_t;
   typedef logic [2:0] y_bits_t;
   typedef struct packed {
-    x_bits_t x;
-    y_bits_t y;
+    x_bits_t  x;
+    y_bits_t  y;
+    port_id_t port_id;
   } id_t;
 
   typedef logic route_t;

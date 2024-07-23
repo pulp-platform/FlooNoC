@@ -425,7 +425,7 @@ class Routing(BaseModel):
     num_route_bits: Optional[int] = None
     addr_width: Optional[int] = None
     rob_idx_bits: int = 1
-    port_id_bits: int = 0
+    port_id_bits: int = 1
     num_vc_id_bits: int = 0
 
     @field_validator("route_algo", mode="before")
