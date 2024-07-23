@@ -137,12 +137,6 @@ class Link(BaseModel, ABC):
                            "ready": "logic",
                            phys_ch: f"floo_{phys_ch}_chan_t"}
             string += sv_struct_typedef(f"floo_{phys_ch}_t", struct_dict)
-        for phys_ch in cls.channel_mapping:
-            struct_dict = {"valid": "logic",
-                           "credit_v": "logic",
-                           "credit_id": "vc_id_t", # defined in routing.py
-                           phys_ch: f"floo_{phys_ch}_chan_t"}
-            string += sv_struct_typedef(f"floo_vc_{phys_ch}_t", struct_dict)
         return string
 
 
@@ -223,6 +217,20 @@ class NarrowWideLink(Link):
             )
         return ports
 
+class NarrowWideVCLink(NarrowWideLink):
+    '''Link class to describe a NarrowWideVCLink.'''
+
+    @classmethod
+    def render_link_typedefs(cls) -> str:
+        """Render the typedefs of the protocol."""
+        string = ""
+        for phys_ch in cls.channel_mapping:
+            struct_dict = {"valid": "logic",
+                           "credit_v": "logic",
+                           "credit_id": "vc_id_t",
+                           phys_ch: f"floo_{phys_ch}_chan_t"}
+            string += sv_struct_typedef(f"floo_vc_{phys_ch}_t", struct_dict)
+        return string
 
 class NarrowLink(Link):
     """
