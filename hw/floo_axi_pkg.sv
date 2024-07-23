@@ -68,19 +68,16 @@ package floo_axi_pkg;
   localparam int unsigned IdAddrOffset = 0;
 
 
-  typedef logic [3:0] rob_idx_t;
-  typedef logic [1:0] port_id_t;
+  typedef logic [0:0] rob_idx_t;
   typedef logic [2:0] x_bits_t;
   typedef logic [2:0] y_bits_t;
   typedef struct packed {
-    x_bits_t  x;
-    y_bits_t  y;
-    port_id_t port_id;
+    x_bits_t x;
+    y_bits_t y;
   } id_t;
 
   typedef logic route_t;
   typedef id_t dst_t;
-  typedef logic [2:0] vc_id_t;
 
 
   typedef struct packed {
@@ -88,8 +85,6 @@ package floo_axi_pkg;
     rob_idx_t rob_idx;
     dst_t dst_id;
     id_t src_id;
-    route_direction_e lookahead;
-    vc_id_t vc_id;
     logic last;
     logic atop;
     axi_ch_e axi_ch;
@@ -185,20 +180,6 @@ package floo_axi_pkg;
     logic ready;
     floo_rsp_chan_t rsp;
   } floo_rsp_t;
-
-  typedef struct packed {
-    logic valid;
-    logic credit_v;
-    vc_id_t credit_id;
-    floo_req_chan_t req;
-  } floo_vc_req_t;
-
-  typedef struct packed {
-    logic valid;
-    logic credit_v;
-    vc_id_t credit_id;
-    floo_rsp_chan_t rsp;
-  } floo_vc_rsp_t;
 
 
 endpackage
