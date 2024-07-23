@@ -25,7 +25,7 @@ collect-bender-sources:
 compile-vsim:
   stage: build
   script:
-    - make compile-sim | tee compile.log 2>&1
+    - make compile-sim VC=true | tee compile.log 2>&1
     - '! grep "Error: " compile.log'
   needs:
     - collect-bender-sources
@@ -47,6 +47,7 @@ run-vsim:
     matrix:
       - VSIM_TB_DUT:
         - tb_floo_router
+        - tb_floo_vc_router
         - tb_floo_axi_chimney
         - tb_floo_narrow_wide_chimney
         - tb_floo_rob
@@ -61,11 +62,11 @@ run-vsim:
 run-traffic:
   stage: run
   variables:
-    VSIM_TB_DUT: tb_floo_dma_mesh
     JOB_NAME: mesh
   parallel:
     matrix:
-      - TRAFFIC_TYPE: [random, hbm, onehop]
+      - VSIM_TB_DUT: [tb_floo_dma_mesh, tb_floo_vc_dma_mesh]
+        TRAFFIC_TYPE: [random, hbm, onehop, bit_complement, bit_reverse, bit_rotation, neighbor, shuffle, transpose, tornado, single_dest_boundary, single_dest_center]
         TRAFFIC_RW: [read, write]
   needs:
     - collect-bender-sources

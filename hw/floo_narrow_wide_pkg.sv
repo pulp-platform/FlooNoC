@@ -106,12 +106,14 @@ package floo_narrow_wide_pkg;
   localparam int unsigned IdAddrOffset = 0;
 
 
-  typedef logic [3:0] rob_idx_t;
+  typedef logic [0:0] rob_idx_t;
+  typedef logic [0:0] port_id_t;
   typedef logic [2:0] x_bits_t;
   typedef logic [2:0] y_bits_t;
   typedef struct packed {
-    x_bits_t x;
-    y_bits_t y;
+    x_bits_t  x;
+    y_bits_t  y;
+    port_id_t port_id;
   } id_t;
 
   typedef logic route_t;
@@ -199,19 +201,22 @@ package floo_narrow_wide_pkg;
     logic [58:0] rsvd;
   } floo_wide_r_flit_t;
 
+  typedef logic [87:0] floo_req_payload_t;
   typedef struct packed {
     hdr_t hdr;
-    logic [87:0] rsvd;
+    floo_req_payload_t payload;
   } floo_req_generic_flit_t;
 
+  typedef logic [71:0] floo_rsp_payload_t;
   typedef struct packed {
     hdr_t hdr;
-    logic [71:0] rsvd;
+    floo_rsp_payload_t payload;
   } floo_rsp_generic_flit_t;
 
+  typedef logic [577:0] floo_wide_payload_t;
   typedef struct packed {
     hdr_t hdr;
-    logic [577:0] rsvd;
+    floo_wide_payload_t payload;
   } floo_wide_generic_flit_t;
 
 

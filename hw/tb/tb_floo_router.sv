@@ -116,7 +116,7 @@ module tb_floo_router;
               rand_data.data_mod_id_c.constraint_mode(1);
               if (rand_data.randomize()) begin
                 automatic floo_req_generic_flit_t next_flit = '0;
-                next_flit.rsvd = rand_data.data;
+                next_flit.payload = rand_data.data;
                 next_flit.hdr.src_id = port;
                 next_flit.hdr.dst_id = stimuli.id;
                 next_flit.hdr.last = j == stimuli.len-1;
@@ -343,7 +343,7 @@ module tb_floo_router;
         golden = golden_queue[result.hdr.src_id][virt_channel][port].pop_front();
       end
 
-      if (result.rsvd != golden.rsvd) begin
+      if (result.payload != golden.payload) begin
         $error("ERROR! Mismatch for port %d channel %d (from %d, target port %d)",
                port, virt_channel, result.hdr.src_id, result.hdr.dst_id);
       end

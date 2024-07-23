@@ -2,8 +2,23 @@ CAPI=2:
 # Created by bender from the available manifest file.
 
 
-name: pulp-platform.org::floo_noc:0.3.0
+name: '::floo_noc:'
 filesets:
+  spyglass_or_synthesis:
+    file_type: systemVerilogSource
+    files:
+    - hw/test/floo_test_pkg.sv
+    - hw/synth/floo_synth_axi_chimney.sv
+    - hw/synth/floo_synth_narrow_wide_chimney.sv
+    - hw/synth/floo_synth_router.sv
+    - hw/synth/floo_synth_narrow_wide_router.sv
+    - hw/synth/floo_synth_endpoint.sv
+    depend:
+    - ::idma:0.6.0
+    - pulp-platform.org::common_cells:1.33.1
+    - pulp-platform.org::common_verification:0.2.3
+    - pulp-platform.org::axi:0.39.2
+    - ::axi_riscv_atomics:0.8.2
   files_rtl:
     file_type: systemVerilogSource
     files:
@@ -21,18 +36,34 @@ filesets:
     - hw/floo_rob.sv
     - hw/floo_rob_wrapper.sv
     - hw/floo_meta_buffer.sv
+    - hw/vc_router_util/floo_credit_counter.sv
+    - hw/vc_router_util/floo_input_fifo.sv
+    - hw/vc_router_util/floo_input_port.sv
+    - hw/vc_router_util/floo_look_ahead_routing.sv
+    - hw/vc_router_util/floo_mux.sv
+    - hw/vc_router_util/floo_rr_arbiter.sv
+    - hw/vc_router_util/floo_sa_global.sv
+    - hw/vc_router_util/floo_sa_local.sv
+    - hw/vc_router_util/floo_vc_assignment.sv
+    - hw/vc_router_util/floo_vc_router_switch.sv
+    - hw/vc_router_util/floo_vc_selection.sv
+    - hw/floo_narrow_wide_join.sv
     - hw/floo_axi_chimney.sv
     - hw/floo_narrow_wide_chimney.sv
+    - hw/floo_vc_narrow_wide_chimney.sv
     - hw/floo_router.sv
+    - hw/floo_vc_router.sv
     - hw/floo_narrow_wide_router.sv
+    - hw/floo_vc_narrow_wide_router.sv
     - hw/include/floo_noc/typedef.svh:
         is_include_file: true
         include_path: hw/include
     depend:
-    - pulp-platform.org::common_cells:1.32.0
+    - ::idma:0.6.0
+    - pulp-platform.org::common_cells:1.33.1
     - pulp-platform.org::common_verification:0.2.3
-    - pulp-platform.org::axi:0.39.1
-    - pulp-platform.org::idma:0.5.1
+    - pulp-platform.org::axi:0.39.2
+    - ::axi_riscv_atomics:0.8.2
   test:
     file_type: systemVerilogSource
     files:
@@ -47,35 +78,24 @@ filesets:
     - hw/tb/tb_floo_axi_chimney.sv
     - hw/tb/tb_floo_narrow_wide_chimney.sv
     - hw/tb/tb_floo_router.sv
+    - hw/tb/tb_floo_vc_router.sv
     - hw/tb/tb_floo_rob.sv
     - hw/tb/tb_floo_dma_chimney.sv
     - hw/tb/tb_floo_dma_nw_chimney.sv
     - hw/tb/tb_floo_dma_mesh.sv
-    - hw/test/include/axi_print_txns.svh:
-        is_include_file: true
-        include_path: hw/test
+    - hw/tb/tb_floo_vc_dma_mesh.sv
     - hw/test/include/tb_tasks.svh:
         is_include_file: true
         include_path: hw/test
+    - hw/test/include/axi_print_txns.svh:
+        is_include_file: true
+        include_path: hw/test
     depend:
-    - pulp-platform.org::common_cells:1.32.0
+    - ::idma:0.6.0
+    - pulp-platform.org::common_cells:1.33.1
     - pulp-platform.org::common_verification:0.2.3
-    - pulp-platform.org::axi:0.39.1
-    - pulp-platform.org::idma:0.5.1
-  spyglass_or_synthesis:
-    file_type: systemVerilogSource
-    files:
-    - hw/test/floo_test_pkg.sv
-    - hw/synth/floo_synth_axi_chimney.sv
-    - hw/synth/floo_synth_narrow_wide_chimney.sv
-    - hw/synth/floo_synth_router.sv
-    - hw/synth/floo_synth_narrow_wide_router.sv
-    - hw/synth/floo_synth_endpoint.sv
-    depend:
-    - pulp-platform.org::common_cells:1.32.0
-    - pulp-platform.org::common_verification:0.2.3
-    - pulp-platform.org::axi:0.39.1
-    - pulp-platform.org::idma:0.5.1
+    - pulp-platform.org::axi:0.39.2
+    - ::axi_riscv_atomics:0.8.2
 targets:
   default:
     filesets:

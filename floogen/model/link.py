@@ -9,7 +9,7 @@ from typing import ClassVar, List, Union, Dict, Optional, NamedTuple
 from abc import ABC, abstractmethod
 from pydantic import BaseModel
 
-from floogen.utils import snake_to_camel, sv_struct_typedef, clog2
+from floogen.utils import snake_to_camel, sv_typedef, sv_struct_typedef, clog2
 
 
 class Link(BaseModel, ABC):
@@ -107,9 +107,10 @@ class Link(BaseModel, ABC):
                     string += sv_struct_typedef(f"floo_{p.name}_{axi_ch}_flit_t", struct_dict)
 
         for phys_ch, size in link_sizes.items():
+            string += sv_typedef(f"floo_{phys_ch}_payload_t", "logic", size)
             struct_dict = {
                 "hdr": "hdr_t",
-                "rsvd": f"logic[{size-1}:0]",
+                "payload": f"floo_{phys_ch}_payload_t",
             }
             string += sv_struct_typedef(f"floo_{phys_ch}_generic_flit_t", struct_dict)
         return string
@@ -132,7 +133,9 @@ class Link(BaseModel, ABC):
         """Render the typedefs of the protocol."""
         string = ""
         for phys_ch in cls.channel_mapping:
-            struct_dict = {"valid": "logic", "ready": "logic", phys_ch: f"floo_{phys_ch}_chan_t"}
+            struct_dict = {"valid": "logic",
+                           "ready": "logic",
+                           phys_ch: f"floo_{phys_ch}_chan_t"}
             string += sv_struct_typedef(f"floo_{phys_ch}_t", struct_dict)
         return string
 
@@ -140,11 +143,11 @@ class Link(BaseModel, ABC):
 class XYLinks(NamedTuple):
     """Class to describe the directed links of a router."""
 
-    EJECT: Optional[Link] = None
     EAST: Optional[Link] = None
     NORTH: Optional[Link] = None
     SOUTH: Optional[Link] = None
     WEST: Optional[Link] = None
+    EJECT: Optional[Link] = None
 
 
 class NarrowWideLink(Link):
@@ -214,6 +217,20 @@ class NarrowWideLink(Link):
             )
         return ports
 
+class NarrowWideVCLink(NarrowWideLink):
+    '''Link class to describe a NarrowWideVCLink.'''
+
+    @classmethod
+    def render_link_typedefs(cls) -> str:
+        """Render the typedefs of the protocol."""
+        string = ""
+        for phys_ch in cls.channel_mapping:
+            struct_dict = {"valid": "logic",
+                           "credit_v": "logic",
+                           "credit_id": "vc_id_t",
+                           phys_ch: f"floo_{phys_ch}_chan_t"}
+            string += sv_struct_typedef(f"floo_vc_{phys_ch}_t", struct_dict)
+        return string
 
 class NarrowLink(Link):
     """
@@ -236,3 +253,18 @@ class NarrowLink(Link):
     def render_ports(self):
         """Declare the ports of the link."""
         raise NotImplementedError
+
+class NarrowVCLink(NarrowLink):
+    '''Link class to describe a NarrowVCLink.'''
+
+    @classmethod
+    def render_link_typedefs(cls) -> str:
+        """Render the typedefs of the protocol."""
+        string = ""
+        for phys_ch in cls.channel_mapping:
+            struct_dict = {"valid": "logic",
+                           "credit_v": "logic",
+                           "credit_id": "vc_id_t",
+                           phys_ch: f"floo_{phys_ch}_chan_t"}
+            string += sv_struct_typedef(f"floo_vc_{phys_ch}_t", struct_dict)
+        return string

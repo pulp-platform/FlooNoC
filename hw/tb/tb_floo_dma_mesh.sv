@@ -34,7 +34,7 @@ module tb_floo_dma_mesh;
 
   // Narrow Wide Chimney parameters
   localparam bit CutAx = 1'b1;
-  localparam bit CutRsp = 1'b0;
+  localparam bit CutRsp = 1'b1;
   localparam int unsigned NarrowMaxTxnsPerId = 4;
   localparam int unsigned NarrowReorderBufferSize = 32'd256;
   localparam int unsigned WideMaxTxnsPerId = 32;
@@ -42,7 +42,7 @@ module tb_floo_dma_mesh;
   localparam int unsigned NarrowMaxTxns = 32;
   localparam int unsigned WideMaxTxns = 32;
   localparam int unsigned ChannelFifoDepth = 2;
-  localparam int unsigned OutputFifoDepth = 32;
+  localparam int unsigned OutputFifoDepth = 2;
 
   logic clk, rst_n;
 
@@ -313,7 +313,7 @@ module tb_floo_dma_mesh;
       ) i_axi_narrow_bw_monitor (
         .clk_i        ( clk                   ),
         .en_i         ( rst_n                 ),
-        .end_of_sim_i ( &end_of_sim           ),
+        .end_of_sim_i ( end_of_sim[x][y][0]   ),
         .req_i        ( narrow_man_req[x][y]  ),
         .rsp_i        ( narrow_man_rsp[x][y]  ),
         .ar_in_flight_o(                      ),
@@ -328,7 +328,7 @@ module tb_floo_dma_mesh;
       ) i_axi_wide_bw_monitor (
         .clk_i        ( clk                 ),
         .en_i         ( rst_n               ),
-        .end_of_sim_i ( &end_of_sim         ),
+        .end_of_sim_i ( end_of_sim[x][y][1] ),
         .req_i        ( wide_man_req[x][y]  ),
         .rsp_i        ( wide_man_rsp[x][y]  ),
         .ar_in_flight_o(                    ),
@@ -432,7 +432,7 @@ module tb_floo_dma_mesh;
   initial begin
     wait(&end_of_sim);
     // Wait for some time
-    #100ns;
+    repeat (2) @(posedge clk);
     // Stop the simulation
     $stop;
   end

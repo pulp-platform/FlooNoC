@@ -405,7 +405,7 @@ module tb_floo_dma_nw_chimney;
   initial begin
     wait(&end_of_sim);
     // Wait for some time
-    #100ns;
+    repeat (2) @(posedge clk);
     // Stop the simulation
     $stop;
   end

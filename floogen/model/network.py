@@ -20,7 +20,7 @@ from floogen.model.graph import Graph
 from floogen.model.endpoint import EndpointDesc, Endpoint
 from floogen.model.router import RouterDesc, NarrowWideRouter, NarrowWideXYRouter
 from floogen.model.connection import ConnectionDesc
-from floogen.model.link import NarrowWideLink, XYLinks, NarrowLink
+from floogen.model.link import NarrowWideLink, NarrowWideVCLink, XYLinks, NarrowLink, NarrowVCLink
 from floogen.model.network_interface import NarrowWideAxiNI
 from floogen.model.protocol import AXI4, AXI4Bus
 from floogen.utils import clog2
@@ -320,7 +320,10 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 "dest_type": self.graph.nodes[edge[1]]["type"],
                 "is_bidirectional": is_bidirectional,
             }
-            self.graph.set_edge_obj(edge, NarrowWideLink(**link))
+            if self.routing.num_vc_id_bits > 0:
+                self.graph.set_edge_obj(edge, NarrowWideVCLink(**link))
+            else:
+                self.graph.set_edge_obj(edge, NarrowWideLink(**link))
 
     def compile_routers(self):
         """Infer the router type from the network."""
@@ -468,6 +471,10 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         """Wrapper function to generate all the routing info for the network,
         for a specific routing algorithm."""
         self.routing.num_endpoints = len(self.graph.get_ni_nodes())
+        if self.routing.num_endpoints == 0:
+            raise ValueError(
+                "No endpoints found in the network. Use the `only_pkg` flag for package generation."
+            )
         self.routing.num_id_bits = clog2(len(self.graph.get_ni_nodes()))
         match self.routing.route_algo:
             case RouteAlgo.XY:
@@ -613,9 +620,15 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         """Render the link configuration file"""
         prot_names = [prot.name for prot in self.protocols]
         if "wide" in prot_names and "narrow" in prot_names:
-            axi_type, link_type = "narrow_wide", NarrowWideLink
+            if self.routing.num_vc_id_bits > 0:
+                axi_type, link_type = "vc_narrow_wide", NarrowWideVCLink
+            else:
+                axi_type, link_type = "narrow_wide", NarrowWideLink
         else:
-            axi_type, link_type = "axi", NarrowLink
+            if self.routing.num_vc_id_bits > 0:
+                axi_type, link_type = "vc_axi", NarrowVCLink
+            else:
+                axi_type, link_type = "axi", NarrowLink
 
         return axi_type, self.tpl_pkg.render(name=axi_type, noc=self, link=link_type)
 

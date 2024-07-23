@@ -79,6 +79,19 @@ module floo_dma_test_node  #(
   // AXI typedef
   `AXI_TYPEDEF_ALL(axi_xbar, addr_t, id_out_t, data_t, strb_t, user_t)
 
+  typedef struct packed {
+    axi_xbar_ar_chan_t ar_chan;
+  } axi_xbar_read_meta_channel_t;
+  typedef union packed {
+    axi_xbar_read_meta_channel_t axi;
+  } read_meta_channel_t;
+  typedef struct packed {
+    axi_xbar_aw_chan_t aw_chan;
+  } axi_xbar_write_meta_channel_t;
+  typedef union packed {
+    axi_xbar_write_meta_channel_t axi;
+  } write_meta_channel_t;
+
   // iDMA request / response types
   `IDMA_TYPEDEF_FULL_REQ_T(idma_req_t, id_out_t, addr_t, tf_len_t)
   `IDMA_TYPEDEF_FULL_RSP_T(idma_rsp_t, addr_t)
@@ -109,8 +122,8 @@ module floo_dma_test_node  #(
   axi_xbar_resp_t [1:0]  xbar_out_rsp;
 
   // AXI4 master
-  axi_xbar_req_t axi_dma_req;
-  axi_xbar_resp_t axi_dma_rsp;
+  axi_xbar_req_t axi_dma_req, axi_dma_read_req, axi_dma_write_req;
+  axi_xbar_resp_t axi_dma_rsp, axi_dma_read_rsp, axi_dma_write_rsp;
 
   // AXI4 slave
   axi_xbar_req_t axi_mem_req;
@@ -149,7 +162,7 @@ module floo_dma_test_node  #(
   //--------------------------------------
   // DMA
   //--------------------------------------
-  idma_backend #(
+  idma_backend_rw_axi #(
     .DataWidth           ( DataWidth              ),
     .AddrWidth           ( AddrWidth              ),
     .AxiIdWidth          ( AxiIdOutWidth          ),
@@ -168,11 +181,11 @@ module floo_dma_test_node  #(
     .idma_rsp_t          ( idma_rsp_t             ),
     .idma_eh_req_t       ( idma_eh_req_t          ),
     .idma_busy_t         ( idma_busy_t            ),
-    .protocol_req_t      ( axi_xbar_req_t         ),
-    .protocol_rsp_t      ( axi_xbar_resp_t        ),
-    .aw_chan_t           ( axi_xbar_aw_chan_t     ),
-    .ar_chan_t           ( axi_xbar_ar_chan_t     )
-  ) i_idma_backend  (
+    .axi_req_t           ( axi_xbar_req_t         ),
+    .axi_rsp_t           ( axi_xbar_resp_t        ),
+    .write_meta_channel_t( write_meta_channel_t   ),
+    .read_meta_channel_t ( read_meta_channel_t    )
+  ) i_idma_backend (
     .clk_i          ( clk_i           ),
     .rst_ni         ( rst_ni          ),
     .testmode_i     ( 1'b0            ),
@@ -185,10 +198,27 @@ module floo_dma_test_node  #(
     .idma_eh_req_i  ( idma_eh_req     ),
     .eh_req_valid_i ( eh_req_valid    ),
     .eh_req_ready_o ( eh_req_ready    ),
-    .protocol_req_o ( axi_dma_req     ),
-    .protocol_rsp_i ( axi_dma_rsp     ),
+    .axi_read_req_o (axi_dma_read_req ),
+    .axi_read_rsp_i (axi_dma_read_rsp ),
+    .axi_write_req_o(axi_dma_write_req),
+    .axi_write_rsp_i(axi_dma_write_rsp),
     .busy_o         ( busy            )
   );
+
+  // Read Write Join
+  axi_rw_join #(
+    .axi_req_t        ( axi_xbar_req_t ),
+    .axi_resp_t       ( axi_xbar_resp_t )
+) i_axi_rw_join (
+    .clk_i,
+    .rst_ni,
+    .slv_read_req_i   ( axi_dma_read_req  ),
+    .slv_read_resp_o  ( axi_dma_read_rsp  ),
+    .slv_write_req_i  ( axi_dma_write_req ),
+    .slv_write_resp_o ( axi_dma_write_rsp ),
+    .mst_req_o        ( axi_dma_req       ),
+    .mst_resp_i       ( axi_dma_rsp       )
+);
 
   axi_xbar #(
     .Cfg          ( XbarCfg             ),
@@ -320,7 +350,7 @@ module floo_dma_test_node  #(
   tb_dma_job_t req_jobs [$];
   tb_dma_job_t rsp_jobs [$];
 
-  `include "include/tb_tasks.svh"
+  `include "tb_tasks.svh"
 
   //--------------------------------------
     // Read Job queue from File
@@ -366,7 +396,7 @@ module floo_dma_test_node  #(
     // print a job summary
     print_summary(req_jobs);
     // wait some additional time
-    #100ns;
+    #2ns;
 
     // run all requests in queue
     while (req_jobs.size() != 0) begin
@@ -379,12 +409,15 @@ module floo_dma_test_node  #(
                       now.length,
                       now.src_addr,
                       now.dst_addr,
+                      now.src_protocol,
+                      now.dst_protocol,
                       now.aw_decoupled,
                       now.rw_decoupled,
                       $clog2(now.max_src_len),
                       $clog2(now.max_dst_len),
                       now.max_src_len != 'd256,
-                      now.max_dst_len != 'd256
+                      now.max_dst_len != 'd256,
+                      now.id
                     );
     end
     // once done: launched all transfers
@@ -408,8 +441,6 @@ initial begin
         $display("[DMA%0d] Burst Address: 0x%0h", JobId + 1, burst_addr);
       end
   end
-  // wait for some time
-  #100ns;
   // stop simulation
   end_of_sim_o = 1'b1;
 end
