@@ -295,7 +295,7 @@ class RouteTable(BaseModel):
         string += sv_param_decl(f"{snake_to_camel(self.name)}NumRoutes", len(self.routes)) + "\n"
         for i, rule in enumerate(self.routes):
             rules_str += f"{rule.render(num_route_bits)}"
-            rules_str += ',' if i != len(self.routes) - 1 else ' '
+            rules_str += "," if i != len(self.routes) - 1 else " "
             if rule.desc is not None:
                 rules_str += f"// {rule.desc}"
             rules_str += "\n"
@@ -305,7 +305,7 @@ class RouteTable(BaseModel):
             f"{snake_to_camel(self.name)}",
             value="'{\n" + rules_str + "\n}",
             dtype="route_t",
-            array_size=f"{snake_to_camel(self.name)}NumRoutes-1"
+            array_size=f"{snake_to_camel(self.name)}NumRoutes-1",
         )
         return string
 
