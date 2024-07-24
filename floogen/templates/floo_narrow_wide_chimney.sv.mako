@@ -1,13 +1,14 @@
 <%! from floogen.utils import snake_to_camel %>\
 <% actual_xy_id = ni.id - ni.routing.id_offset if ni.routing.id_offset is not None else ni.id %>\
 
-% if ni.routing.route_algo.value == 'SourceRouting':
-  ${ni.table.render(num_route_bits=ni.routing.num_route_bits)}
-% endif
-
 floo_narrow_wide_chimney  #(
 % if ni.routing.route_algo.value == 'SourceRouting':
   .NumRoutes(${len(ni.table)}),
+% endif
+% if ni.routing.use_id_table:
+  .SamNumRules(${len(ni.routing.sam)}),
+  .sam_rule_t(sam_rule_t),
+  .Sam(Sam),
 % endif
 % if ni.sbr_narrow_port is None:
   .EnNarrowSbrPort(1'b0),
@@ -68,7 +69,7 @@ floo_narrow_wide_chimney  #(
   .id_i             ( id_t'(${ni.id.render()}) ),
 % endif
 % if ni.routing.route_algo.value == 'SourceRouting':
-  .route_table_i    ( ${snake_to_camel(ni.table.name)}  ),
+  .route_table_i    ( RoutingTables[${snake_to_camel(ni.name)}]  ),
 % else:
   .route_table_i    ( '0                          ),
 % endif

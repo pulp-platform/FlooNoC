@@ -23,7 +23,7 @@ from floogen.model.connection import ConnectionDesc
 from floogen.model.link import NarrowWideLink, NarrowWideVCLink, XYLinks, NarrowLink, NarrowVCLink
 from floogen.model.network_interface import NarrowWideAxiNI
 from floogen.model.protocol import AXI4, AXI4Bus
-from floogen.utils import clog2
+from floogen.utils import clog2, sv_enum_typedef, sv_param_decl, snake_to_camel
 import floogen.templates
 
 
@@ -541,6 +541,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     or (ni_src.is_only_mgr() and ni_dst.is_only_mgr())
                     or (ni_src.is_only_sbr() and ni_dst.is_only_sbr())
                 ):
+                    routes.append(RouteRule(route=None, id=ni_dst.id, desc=f"-> {ni_dst.name}"))
                     continue
                 route = nx.shortest_path(self.graph, ni_src.name, ni_dst.name)
                 max_route_bits = 0
@@ -605,12 +606,35 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             string += rt.render()
         return string
 
+    def render_ni_tables(self):
+        """Render the network interfaces tables in the generated code."""
+        string = ""
+        sorted_ni_list = sorted(self.graph.get_ni_nodes(), key=lambda ni: ni.id.id, reverse=True)
+        max_id = sorted_ni_list[0].id.id
+        for ni in sorted_ni_list:
+            string += ni.table.render(num_route_bits=self.routing.num_route_bits, no_decl=True)
+            string += ",\n"
+        string = "'{\n" + string[:-2] + "}\n"
+        return sv_param_decl(
+            name="RoutingTables",
+            value=string,
+            dtype="route_t",
+            array_size=["NumEndpoints-1", "NumEndpoints-1"],
+        )
+
     def render_nis(self):
         """Render the network interfaces in the generated code."""
         string = ""
         for ni in self.graph.get_ni_nodes():
             string += ni.render(noc=self)
         return string
+
+    def render_ep_enum(self):
+        """Render the endpoint enum in the generated code."""
+        fields_dict = {ep.name: ep.id.id for ep in self.graph.get_ni_nodes()}
+        fields_dict = dict(sorted(fields_dict.items(), key=lambda item: item[1]))
+        fields_dict["num_endpoints"] = len(fields_dict)
+        return sv_enum_typedef(name="ep_id_e", fields_dict=fields_dict)
 
     def render_network(self):
         """Render the network in the generated code."""
