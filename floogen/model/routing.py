@@ -281,7 +281,7 @@ class RouteTable(BaseModel):
                 self.routes.insert(i, RouteRule(route=None, id=SimpleId(id=i)))
         return self.routes.reverse()
 
-    def render(self, num_route_bits):
+    def render(self, num_route_bits, no_decl=False):
         """Render the SystemVerilog route table."""
         string = ""
         rules_str = ""
@@ -299,6 +299,8 @@ class RouteTable(BaseModel):
             if rule.desc is not None:
                 rules_str += f"// {rule.desc}"
             rules_str += "\n"
+        if no_decl:
+            return "'{\n" + rules_str + "}"
         string += sv_param_decl(
             f"{snake_to_camel(self.name)}",
             value="'{\n" + rules_str + "\n}",
