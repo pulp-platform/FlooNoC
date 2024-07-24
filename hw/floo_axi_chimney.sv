@@ -44,6 +44,12 @@ module floo_axi_chimney
   parameter bit CutRsp                      = 1'b1,
   /// Type for implementation inputs and outputs
   parameter type sram_cfg_t                 = logic,
+  /// Number of System Address Map Rules
+  parameter int unsigned SamNumRules        = 0,
+  /// Type of System Address Map Rule
+  parameter type sam_rule_t                 = logic,
+  /// System Address Map
+  parameter sam_rule_t [SamNumRules-1:0] Sam  = '0,
   /// Number of rules in the address map
   parameter int unsigned NumRoutes          = 0
 ) (
