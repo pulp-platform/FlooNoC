@@ -89,6 +89,25 @@ def sv_struct_typedef(name: str, fields: dict, union=False) -> str:
     typedef += f"}} {name};\n\n"
     return typedef
 
+def sv_enum_typedef(name: str, fields_dict: dict=None, fields_list: list=None) -> str:
+    """Declare a SystemVerilog enum typedef."""
+    if fields_dict is not None:
+        bitwidth = clog2(max(fields_dict.values()) + 1)
+        typedef = f"typedef enum logic[{bitwidth-1}:0] {{\n"
+        for field, value in fields_dict.items():
+            typedef += f"    {snake_to_camel(field)} = {value},\n"
+        typedef = typedef[:-2] + f"}} {name};\n\n"
+    elif fields_list is not None:
+        bitwidth = clog2(len(fields_list))
+        typedef = f"typedef enum logic[{bitwidth-1}:0] {{\n"
+        for i, field in enumerate(fields_list):
+            typedef += f"    {snake_to_camel(field)} = {i},\n"
+        typedef += f"}} {name};\n\n"
+    else:
+        raise ValueError("fields_dict or fields_list must be provided.")
+    return typedef
+
+
 def verible_format(string: str) -> str:
     """Format the string using verible-verilog-format."""
     if shutil.which("verible-verilog-format") is None:
