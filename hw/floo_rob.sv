@@ -15,7 +15,7 @@ module floo_rob #(
   /// metadata will be stored in normal FFs
   parameter bit          OnlyMetaData = 1'b0,
   /// Size of the reorder buffer
-  parameter int unsigned ReorderBufferSize = 32'd64,
+  parameter int unsigned RoBDepth = 32'd64,
   /// Data type of response to be reordered
   parameter type         ax_len_t   = logic,
   parameter type         ax_id_t    = logic,
@@ -54,7 +54,7 @@ module floo_rob #(
   localparam int unsigned NumIds = 2**AxiIdWidth;
   typedef logic[AxiIdWidth-1:0] axi_id_t;
   typedef logic[$clog2(NumIds)-1:0] num_id_t;
-  typedef logic[ReorderBufferSize-1:0] rob_flag_t;
+  typedef logic[RoBDepth-1:0] rob_flag_t;
 
   /////////////////////////
   //  Transaction Table  //
@@ -121,10 +121,10 @@ module floo_rob #(
 
   if (!OnlyMetaData) begin : gen_rob_sram
     tc_sram_impl #(
-      .NumWords   (ReorderBufferSize),
-      .DataWidth  ($bits(rsp_data_t)),
-      .NumPorts   ( 1               ),
-      .impl_in_t  ( sram_cfg_t      )
+      .NumWords   ( RoBDepth          ),
+      .DataWidth  ( $bits(rsp_data_t) ),
+      .NumPorts   ( 1                 ),
+      .impl_in_t  ( sram_cfg_t        )
     ) i_reorder_buffer (
       .clk_i    ( clk_i       ),
       .rst_ni   ( rst_ni      ),
@@ -141,7 +141,7 @@ module floo_rob #(
     assign rob_rdata = '0;
   end
 
-  rsp_meta_t  [ReorderBufferSize-1:0] rob_meta_q, rob_meta_d;
+  rsp_meta_t  [RoBDepth-1:0] rob_meta_q, rob_meta_d;
   rob_flag_t rob_valid_q, rob_valid_d;
   rob_flag_t rob_alloc_q, rob_alloc_d;
   rob_idx_t rob_free_space;
@@ -152,11 +152,11 @@ module floo_rob #(
   `FF(rsp_out_valid_q, rsp_out_valid_d, '0)
   `FFL(rob_meta_q, rob_meta_d, rob_req && rob_wen, '0)
 
-  assign rob_next_free_idx = ReorderBufferSize - rob_free_space;
+  assign rob_next_free_idx = RoBDepth - rob_free_space;
 
   lzc #(
-    .WIDTH  ( ReorderBufferSize ),
-    .MODE   ( 1'b1              )
+    .WIDTH  ( RoBDepth ),
+    .MODE   ( 1'b1     )
   ) i_lzc (
     .in_i     ( rob_alloc_q     ),
     .cnt_o    ( rob_free_space  ),
@@ -277,7 +277,9 @@ module floo_rob #(
 
         // If the peeked ID has a valid entry and there is data in the RoB,
         // we can release the response from the RoB to make place for new requests
-        if (st_peek_valid && rob_valid_q[st_peek_rob_idx + read_rob_idx_offset_q[st_rob_peek_id_q]]) begin
+        if (st_peek_valid && rob_valid_q[st_peek_rob_idx +
+            read_rob_idx_offset_q[st_rob_peek_id_q]])
+        begin
           rob_state_d = RoBRead;
           // Don't forward the current response, since we are releasing one from the RoB
           rsp_valid_o = 1'b0;
@@ -322,7 +324,8 @@ module floo_rob #(
             rsp_ready_o = 1'b1;
             rob_valid_d[rob_addr] = 1'b1;
             rob_meta_d[rob_addr] = rob_meta;
-            write_rob_idx_offset_d[st_rsp_out_id] = (rsp_last_i)? '0 : write_rob_idx_offset_q[st_rsp_out_id] + 1;
+            write_rob_idx_offset_d[st_rsp_out_id] = (rsp_last_i)?
+              '0 : write_rob_idx_offset_q[st_rsp_out_id] + 1;
           end
         end
       end

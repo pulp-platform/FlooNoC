@@ -13,6 +13,8 @@ import math
 MEM_SIZE = 2**16
 NUM_X = 4
 NUM_Y = 4
+XY_ADDR_OFFSET_X = 16
+XY_ADDR_OFFSET_Y = 20
 
 data_widths = {"wide": 512, "narrow": 64}
 
@@ -25,7 +27,7 @@ def clog2(x: int):
 def get_xy_base_addr(x: int, y: int):
     """Get the address of a tile in the mesh."""
     assert x <= NUM_X+1 and y <= NUM_Y+1
-    return (x + 2 ** clog2(NUM_X + 2) * y) * MEM_SIZE
+    return (x << XY_ADDR_OFFSET_X) + (y << XY_ADDR_OFFSET_Y)
 
 
 def gen_job_str(

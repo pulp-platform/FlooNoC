@@ -72,15 +72,10 @@ endif
 ###########
 
 FLOOGEN ?= floogen
+FLOO_CFG_DIR ?= $(MKFILE_DIR)floogen/examples
+FLOOGEN_CFG ?= $(FLOO_CFG_DIR)/single_cluster.yml
 
 FLOOGEN_OUT_DIR ?= $(MKFILE_DIR)generated
-FLOOGEN_PKG_OUT_DIR ?= $(MKFILE_DIR)hw
-FLOOGEN_CFG_DIR ?= $(MKFILE_DIR)floogen/examples
-FLOOGEN_TPL_DIR ?= $(MKFILE_DIR)floogen/templates
-
-FLOOGEN_PKG_CFG ?= $(shell find $(FLOOGEN_CFG_DIR) -name "*_pkg.yml")
-FLOOGEN_PKG_SRC ?= $(patsubst $(FLOOGEN_CFG_DIR)/%_pkg.yml,$(FLOOGEN_PKG_OUT_DIR)/floo_%_pkg.sv,$(FLOOGEN_PKG_CFG))
-FLOOGEN_TPL ?= $(shell find $(FLOOGEN_TPL_DIR) -name "*.mako")
 
 .PHONY: install-floogen pkg-sources sources clean-sources
 
@@ -90,12 +85,8 @@ check-floogen:
 install-floogen:
 	@which $(FLOOGEN) > /dev/null || (echo "Installing floogen..." && pip install .)
 
-pkg-sources: check-floogen $(FLOOGEN_PKG_SRC)
-$(FLOOGEN_PKG_OUT_DIR)/floo_%_pkg.sv: $(FLOOGEN_CFG_DIR)/%_pkg.yml $(FLOOGEN_TPL)
-	$(FLOOGEN) -c $< --only-pkg --pkg-outdir $(FLOOGEN_PKG_OUT_DIR) $(FLOOGEN_ARGS)
-
 sources: check-floogen
-	$(FLOOGEN) -c $(FLOOGEN_CFG) -o $(FLOOGEN_OUT_DIR) --pkg-outdir $(FLOOGEN_PKG_OUT_DIR) $(FLOOGEN_ARGS)
+	$(FLOOGEN) -c $(FLOOGEN_CFG) -o $(FLOOGEN_OUT_DIR) $(FLOOGEN_ARGS)
 
 clean-sources:
 	rm -rf $(FLOOGEN_OUT_DIR)

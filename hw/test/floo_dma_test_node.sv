@@ -15,12 +15,7 @@ module floo_dma_test_node  #(
   parameter time         TT                   = 9ns,
   parameter int unsigned BufferDepth          = 16,
   parameter int unsigned NumAxInFlight        = 16,
-  parameter int unsigned DataWidth            = 32,
-  parameter int unsigned AddrWidth            = 32,
-  parameter int unsigned UserWidth            = 1,
-  parameter int unsigned AxiIdWidth           = 2,
-  parameter int unsigned AxiIdInWidth         = AxiIdWidth,
-  parameter int unsigned AxiIdOutWidth        = AxiIdWidth,
+  parameter floo_pkg::axi_cfg_t AxiCfg = '{default:0},
   parameter type axi_req_t                    = logic,
   parameter type axi_rsp_t                    = logic,
   parameter type axi_in_req_t                 = axi_req_t,
@@ -29,8 +24,8 @@ module floo_dma_test_node  #(
   parameter type axi_out_rsp_t                = axi_rsp_t,
   parameter int unsigned TFLenWidth           = 32,
   parameter int unsigned MemSysDepth          = 0,
-  parameter logic [AddrWidth-1:0] MemBaseAddr = 32'h0,
-  parameter logic [AddrWidth-1:0] MemSize     = 32'h10000,
+  parameter logic [AxiCfg.AddrWidth-1:0] MemBaseAddr = 32'h0,
+  parameter logic [AxiCfg.AddrWidth-1:0] MemSize     = 32'h10000,
   parameter bit          MaskInvalidData      = 1,
   parameter bit          RAWCouplingAvail     = 1,
   parameter bit          HardwareLegalizer    = 1,
@@ -56,7 +51,7 @@ module floo_dma_test_node  #(
   localparam bit PrintFifoInfo = 1'b0;
 
   // dependent parameters
-  localparam int unsigned StrbWidth       = DataWidth / 8;
+  localparam int unsigned StrbWidth       = AxiCfg.DataWidth / 8;
   localparam int unsigned OffsetWidth     = $clog2(StrbWidth);
 
   // parse error handling caps
@@ -67,12 +62,12 @@ module floo_dma_test_node  #(
   typedef logic [7:0] byte_t;
 
   // dependent typed
-  typedef logic [AddrWidth-1:0]     addr_t;
-  typedef logic [DataWidth-1:0]     data_t;
+  typedef logic [AxiCfg.AddrWidth-1:0]     addr_t;
+  typedef logic [AxiCfg.DataWidth-1:0]     data_t;
   typedef logic [StrbWidth-1:0]     strb_t;
-  typedef logic [UserWidth-1:0]     user_t;
-  typedef logic [AxiIdInWidth-1:0]  id_in_t;
-  typedef logic [AxiIdOutWidth-1:0] id_out_t;
+  typedef logic [AxiCfg.UserWidth-1:0]     user_t;
+  typedef logic [AxiCfg.InIdWidth-1:0]  id_in_t;
+  typedef logic [AxiCfg.OutIdWidth-1:0] id_out_t;
   typedef logic [OffsetWidth-1:0]   offset_t;
   typedef logic [TFLenWidth-1:0]    tf_len_t;
 
@@ -134,8 +129,8 @@ module floo_dma_test_node  #(
 
   typedef struct packed {
     logic [31:0] idx;
-    logic [AddrWidth-1:0] start_addr;
-    logic [AddrWidth-1:0] end_addr;
+    logic [AxiCfg.AddrWidth-1:0] start_addr;
+    logic [AxiCfg.AddrWidth-1:0] end_addr;
   } xbar_rule_t;
 
   xbar_rule_t [0:0] XbarAddrMap;
@@ -150,11 +145,11 @@ module floo_dma_test_node  #(
     MaxMstTrans:        128,
     FallThrough:        1,
     LatencyMode:        axi_pkg::CUT_ALL_PORTS,
-    AxiIdWidthSlvPorts: AxiIdOutWidth,
-    AxiIdUsedSlvPorts:  AxiIdOutWidth,
+    AxiIdWidthSlvPorts: AxiCfg.OutIdWidth,
+    AxiIdUsedSlvPorts:  AxiCfg.OutIdWidth,
     UniqueIds:          0,
-    AxiAddrWidth:       AddrWidth,
-    AxiDataWidth:       DataWidth,
+    AxiAddrWidth:       AxiCfg.AddrWidth,
+    AxiDataWidth:       AxiCfg.DataWidth,
     NoAddrRules:        1,
     PipelineStages:     0
   };
@@ -163,10 +158,10 @@ module floo_dma_test_node  #(
   // DMA
   //--------------------------------------
   idma_backend_rw_axi #(
-    .DataWidth           ( DataWidth              ),
-    .AddrWidth           ( AddrWidth              ),
-    .AxiIdWidth          ( AxiIdOutWidth          ),
-    .UserWidth           ( UserWidth              ),
+    .DataWidth           ( AxiCfg.DataWidth       ),
+    .AddrWidth           ( AxiCfg.AddrWidth       ),
+    .AxiIdWidth          ( AxiCfg.OutIdWidth      ),
+    .UserWidth           ( AxiCfg.UserWidth       ),
     .TFLenWidth          ( TFLenWidth             ),
     .MaskInvalidData     ( MaskInvalidData        ),
     .BufferDepth         ( BufferDepth            ),
@@ -252,11 +247,7 @@ module floo_dma_test_node  #(
   );
 
   floo_axi_rand_slave #(
-    .AxiAddrWidth ( AddrWidth                 ),
-    .AxiDataWidth ( DataWidth                 ),
-    .AxiIdWidth   ( AxiIdOutWidth             ),
-    .AxiUserWidth ( UserWidth                 ),
-    .AxiStrbWidth ( StrbWidth                 ),
+    .AxiCfg       ( AxiCfg                    ),
     .ApplTime     ( TA                        ),
     .TestTime     ( TT                        ),
     .SlaveType    ( floo_test_pkg::FastSlave  ),
@@ -273,17 +264,13 @@ module floo_dma_test_node  #(
   );
 
   floo_axi_rand_slave #(
-    .AxiAddrWidth ( AddrWidth                 ),
-    .AxiDataWidth ( DataWidth                 ),
-    .AxiIdWidth   ( AxiIdInWidth              ),
-    .AxiUserWidth ( UserWidth                 ),
-    .AxiStrbWidth ( StrbWidth                 ),
-    .ApplTime     ( TA                        ),
-    .TestTime     ( TT                        ),
-    .SlaveType    ( floo_test_pkg::FastSlave  ),
-    .NumSlaves    ( 1                         ),
-    .axi_req_t    ( axi_in_req_t              ),
-    .axi_rsp_t    ( axi_in_rsp_t              )
+    .AxiCfg       ( floo_pkg::axi_cfg_swap_iw(AxiCfg) ),
+    .ApplTime     ( TA                                ),
+    .TestTime     ( TT                                ),
+    .SlaveType    ( floo_test_pkg::FastSlave          ),
+    .NumSlaves    ( 1                                 ),
+    .axi_req_t    ( axi_in_req_t                      ),
+    .axi_rsp_t    ( axi_in_rsp_t                      )
   ) i_sink_in_mem (
     .clk_i              ( clk_i         ),
     .rst_ni             ( rst_ni        ),
@@ -305,22 +292,22 @@ module floo_dma_test_node  #(
   //--------------------------------------
   // virtual interface definition
   IDMA_DV #(
-    .DataWidth  ( DataWidth     ),
-    .AddrWidth  ( AddrWidth     ),
-    .UserWidth  ( UserWidth     ),
-    .AxiIdWidth ( AxiIdOutWidth ),
-    .TFLenWidth ( TFLenWidth    )
+    .DataWidth  ( AxiCfg.DataWidth  ),
+    .AddrWidth  ( AxiCfg.AddrWidth  ),
+    .UserWidth  ( AxiCfg.UserWidth  ),
+    .AxiIdWidth ( AxiCfg.OutIdWidth ),
+    .TFLenWidth ( TFLenWidth        )
   ) idma_dv (clk_i);
 
   // DMA driver type
   typedef idma_test::idma_driver #(
-      .DataWidth  ( DataWidth     ),
-      .AddrWidth  ( AddrWidth     ),
-      .UserWidth  ( UserWidth     ),
-      .AxiIdWidth ( AxiIdOutWidth ),
-      .TFLenWidth ( TFLenWidth    ),
-      .TA         ( TA            ),
-      .TT         ( TT            )
+      .DataWidth  ( AxiCfg.DataWidth  ),
+      .AddrWidth  ( AxiCfg.AddrWidth  ),
+      .UserWidth  ( AxiCfg.UserWidth  ),
+      .AxiIdWidth ( AxiCfg.OutIdWidth ),
+      .TFLenWidth ( TFLenWidth        ),
+      .TA         ( TA                ),
+      .TT         ( TT                )
   ) drv_t;
 
   // instantiation of the driver
@@ -343,7 +330,7 @@ module floo_dma_test_node  #(
   //--------------------------------------
   // job type definition
   typedef idma_test::idma_job #(
-      .AddrWidth   ( AddrWidth )
+      .AddrWidth   ( AxiCfg.AddrWidth )
   ) tb_dma_job_t;
 
   // request and response queues
@@ -403,7 +390,7 @@ module floo_dma_test_node  #(
         // pop front to get a job
         automatic tb_dma_job_t now = req_jobs.pop_front();
         // print job to terminal
-        if (EnableDebug) $display("[DMA%0d]%s", JobId + 1, now.pprint());
+        if (EnableDebug) $display("[DMA%0d]%s", JobId, now.pprint());
         // launch DUT
         drv.launch_tf(
                       now.length,

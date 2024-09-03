@@ -7,13 +7,15 @@
 `include "common_cells/assertions.svh"
 
 /// A simple router with configurable number of ports, physical and virtual channels, and input/output buffers
-module floo_router import floo_pkg::*; #(
+module floo_router
+  import floo_pkg::*;
+#(
   parameter int unsigned NumRoutes        = 0,
   parameter int unsigned NumVirtChannels  = 0,
   parameter int unsigned NumPhysChannels  = 1,
   parameter type         flit_t           = logic,
-  parameter int unsigned ChannelFifoDepth = 0,
-  parameter int unsigned OutputFifoDepth  = 0,
+  parameter int unsigned InFifoDepth      = 0,
+  parameter int unsigned OutFifoDepth     = 0,
   parameter route_algo_e RouteAlgo        = IdTable,
   /// Used for ID-based and XY routing
   parameter int unsigned IdWidth          = 0,
@@ -65,7 +67,7 @@ module floo_router import floo_pkg::*; #(
 
       (* ungroup *)
       stream_fifo_optimal_wrap #(
-        .Depth  ( ChannelFifoDepth ),
+        .Depth  ( InFifoDepth ),
         .type_t ( flit_t           )
       ) i_stream_fifo (
         .clk_i      ( clk_i         ),
@@ -169,10 +171,10 @@ module floo_router import floo_pkg::*; #(
         .data_o  ( out_data [out_route][v_chan] )
       );
 
-      if (OutputFifoDepth > 0) begin : gen_out_fifo
+      if (OutFifoDepth > 0) begin : gen_out_fifo
         (* ungroup *)
         stream_fifo_optimal_wrap #(
-          .Depth  ( OutputFifoDepth ),
+          .Depth  ( OutFifoDepth ),
           .type_t ( flit_t           )
         ) i_stream_fifo (
           .clk_i      ( clk_i         ),

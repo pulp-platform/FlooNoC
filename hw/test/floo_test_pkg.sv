@@ -8,8 +8,6 @@
 
 package floo_test_pkg;
 
-  import floo_pkg::*;
-
   typedef enum {
     FastSlave,
     SlowSlave,
@@ -25,20 +23,49 @@ package floo_test_pkg;
   localparam int unsigned ChannelFifoDepth  = 2;
   localparam int unsigned OutputFifoDepth   = 2;
 
-  // Chimney parameters
-  localparam bit CutAx = 1'b1;
-  localparam bit CutRsp = 1'b0;
-  localparam int unsigned MaxTxnsPerId = 16;
-  localparam rob_type_e RoBType = NormalRoB;
-  localparam int unsigned ReorderBufferSize = 32'd64;
+  // Default route config for testing
+  localparam floo_pkg::route_cfg_t RouteCfg = '{
+    RouteAlgo: floo_pkg::XYRouting,
+    UseIdTable: 0,
+    XYAddrOffsetX: 16,
+    XYAddrOffsetY: 20,
+    IdAddrOffset: 0,
+    NumAddrRules: 0,
+    SamNumRules: 0,
+    NumRoutes: 0
+  };
 
-  // Narrow Wide Chimney parameters
-  localparam bit NarrowRoBSimple = 1'b1;
-  localparam int unsigned NarrowMaxTxnsPerId = 4;
-  localparam rob_type_e NarrowRoBType = NoRoB;
-  localparam int unsigned NarrowReorderBufferSize = 32'd256;
-  localparam int unsigned WideMaxTxnsPerId = 32;
-  localparam rob_type_e WideRoBType = NoRoB;
-  localparam int unsigned WideReorderBufferSize = 32'd128;
+  // Common chimney parameters
+  localparam bit AtopSupport = 1'b1;
+  localparam int unsigned MaxAtomicTxns = 4;
+
+  // Axi chimney parameters
+  localparam floo_pkg::axi_cfg_t AxiCfg = '{
+    AddrWidth: 32,
+    DataWidth: 64,
+    UserWidth: 1,
+    InIdWidth: 3,
+    OutIdWidth: 3
+  };
+
+  localparam floo_pkg::axi_cfg_t AxiCfgN = '{
+    AddrWidth: 48,
+    DataWidth: 64,
+    UserWidth: 5,
+    InIdWidth: 4,
+    OutIdWidth: 2
+  };
+
+  // AXI nw_chimney parameters
+  localparam floo_pkg::axi_cfg_t AxiCfgW = '{
+    AddrWidth: 48,
+    DataWidth: 512,
+    UserWidth: 1,
+    InIdWidth: 3,
+    OutIdWidth: 1
+  };
+
+  // Default chimney config for testing
+  localparam floo_pkg::chimney_cfg_t ChimneyCfg = floo_pkg::ChimneyDefaultCfg;
 
 endpackage

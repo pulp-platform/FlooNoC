@@ -11,7 +11,7 @@
 /// This module is intended to be used for instance in front
 /// of an HBM controller to enable access from both the
 /// narrow and the wide AXI bus.
-module floo_narrow_wide_join #(
+module floo_nw_join #(
   /// Filter Atops on the Narrow AXI bus
   parameter bit FilterNarrowAtops                     = 1'b0,
   /// Filter Atops on the Wide AXI bus

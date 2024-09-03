@@ -4,13 +4,12 @@
 //
 // Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
+`include "axi/typedef.svh"
 `include "floo_noc/typedef.svh"
-`include "common_cells/assertions.svh"
 
 module tb_floo_dma_mesh;
 
   import floo_pkg::*;
-  import floo_narrow_wide_pkg::*;
 
   localparam time CyclTime = 10ns;
   localparam time ApplTime = 2ns;
@@ -20,29 +19,22 @@ module tb_floo_dma_mesh;
   localparam int unsigned NumY = 4;
   localparam int unsigned NumMax = (NumX > NumY) ? NumX : NumY;
 
+  typedef logic[$clog2(NumX+2)-1:0] x_bits_t;
+  typedef logic[$clog2(NumY+2)-1:0] y_bits_t;
+  `FLOO_TYPEDEF_XY_NODE_ID_T(id_t, x_bits_t, y_bits_t, logic)
+  `FLOO_TYPEDEF_HDR_T(hdr_t, id_t, id_t, floo_pkg::nw_ch_e, logic)
+  `FLOO_TYPEDEF_AXI_FROM_CFG(axi_narrow, floo_test_pkg::AxiCfgN)
+  `FLOO_TYPEDEF_AXI_FROM_CFG(axi_wide, floo_test_pkg::AxiCfgW)
+  `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow_in, axi_wide_in,
+      floo_test_pkg::AxiCfgN, floo_test_pkg::AxiCfgW, hdr_t)
+  `FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, req, rsp, wide)
+
   localparam int unsigned HBMLatency = 100;
-  localparam axi_narrow_in_addr_t HBMSize = 48'h10000; // 64KB
-  localparam axi_narrow_in_addr_t MemSize = HBMSize;
+  localparam axi_narrow_addr_t HBMSize = 48'h10000; // 64KB
+  localparam axi_narrow_addr_t MemSize = HBMSize;
 
-  if (RouteAlgo == XYRouting) begin : gen_asserts
-  `ASSERT_INIT(NotEnoughXBits, $clog2(NumX + 2) <= $bits(x_bits_t))
-  `ASSERT_INIT(NotEnoughYBits, $clog2(NumY + 2) <= $bits(y_bits_t))
-  `ASSERT_INIT(NotEnoughAddrOffset, $clog2(HBMSize) <= XYAddrOffsetX)
-  end else begin : gen_error
-    $fatal(1, "This testbench only supports XYRouting");
-  end
-
-  // Narrow Wide Chimney parameters
-  localparam bit CutAx = 1'b1;
-  localparam bit CutRsp = 1'b1;
-  localparam int unsigned NarrowMaxTxnsPerId = 4;
-  localparam int unsigned NarrowReorderBufferSize = 32'd256;
-  localparam int unsigned WideMaxTxnsPerId = 32;
-  localparam int unsigned WideReorderBufferSize = 32'd64;
-  localparam int unsigned NarrowMaxTxns = 32;
-  localparam int unsigned WideMaxTxns = 32;
-  localparam int unsigned ChannelFifoDepth = 2;
-  localparam int unsigned OutputFifoDepth = 2;
+  localparam int unsigned InFifoDepth = 2;
+  localparam int unsigned OutFifoDepth = 2;
 
   logic clk, rst_n;
 
@@ -72,7 +64,7 @@ module tb_floo_dma_mesh;
 
   floo_req_t [NumX-1:0][NumY-1:0] narrow_chimney_man_req, narrow_chimney_sub_req;
   floo_rsp_t [NumX-1:0][NumY-1:0] narrow_chimney_man_rsp, narrow_chimney_sub_rsp;
-  floo_wide_t       [NumX-1:0][NumY-1:0] wide_chimney_man, wide_chimney_sub;
+  floo_wide_t [NumX-1:0][NumY-1:0] wide_chimney_man, wide_chimney_sub;
 
   floo_req_t [NumX:0][NumY-1:0] req_hor_pos;
   floo_req_t [NumX:0][NumY-1:0] req_hor_neg;
@@ -82,10 +74,10 @@ module tb_floo_dma_mesh;
   floo_rsp_t [NumX:0][NumY-1:0] rsp_hor_neg;
   floo_rsp_t [NumY:0][NumX-1:0] rsp_ver_pos;
   floo_rsp_t [NumY:0][NumX-1:0] rsp_ver_neg;
-  floo_wide_t       [NumX:0][NumY-1:0] wide_hor_pos;
-  floo_wide_t       [NumX:0][NumY-1:0] wide_hor_neg;
-  floo_wide_t       [NumY:0][NumX-1:0] wide_ver_pos;
-  floo_wide_t       [NumY:0][NumX-1:0] wide_ver_neg;
+  floo_wide_t [NumX:0][NumY-1:0] wide_hor_pos;
+  floo_wide_t [NumX:0][NumY-1:0] wide_hor_neg;
+  floo_wide_t [NumY:0][NumX-1:0] wide_ver_pos;
+  floo_wide_t [NumY:0][NumX-1:0] wide_ver_neg;
 
 
   logic [NumX-1:0][NumY-1:0][1:0] end_of_sim;
@@ -103,21 +95,21 @@ module tb_floo_dma_mesh;
   ////////////////////////////////
 
   floo_hbm_model #(
-    .TA           ( ApplTime                ),
-    .TT           ( TestTime                ),
-    .Latency      ( HBMLatency              ),
-    .NumChannels  ( 1                       ),
-    .AddrWidth    ( AxiWideOutAddrWidth     ),
-    .DataWidth    ( AxiWideOutDataWidth     ),
-    .UserWidth    ( AxiWideOutUserWidth     ),
-    .IdWidth      ( AxiWideOutIdWidth       ),
-    .axi_req_t    ( axi_wide_out_req_t      ),
-    .axi_rsp_t    ( axi_wide_out_rsp_t      ),
-    .aw_chan_t    ( axi_wide_out_aw_chan_t  ),
-    .w_chan_t     ( axi_wide_out_w_chan_t   ),
-    .b_chan_t     ( axi_wide_out_b_chan_t   ),
-    .ar_chan_t    ( axi_wide_out_ar_chan_t  ),
-    .r_chan_t     ( axi_wide_out_r_chan_t   )
+    .TA           ( ApplTime                          ),
+    .TT           ( TestTime                          ),
+    .Latency      ( HBMLatency                        ),
+    .NumChannels  ( 1                                 ),
+    .AddrWidth    ( floo_test_pkg::AxiCfgW.AddrWidth  ),
+    .DataWidth    ( floo_test_pkg::AxiCfgW.DataWidth  ),
+    .UserWidth    ( floo_test_pkg::AxiCfgW.UserWidth  ),
+    .IdWidth      ( floo_test_pkg::AxiCfgW.OutIdWidth ),
+    .axi_req_t    ( axi_wide_out_req_t                ),
+    .axi_rsp_t    ( axi_wide_out_rsp_t                ),
+    .aw_chan_t    ( axi_wide_out_aw_chan_t            ),
+    .w_chan_t     ( axi_wide_out_w_chan_t             ),
+    .b_chan_t     ( axi_wide_out_b_chan_t             ),
+    .ar_chan_t    ( axi_wide_out_ar_chan_t            ),
+    .r_chan_t     ( axi_wide_out_r_chan_t             )
   ) i_floo_wide_hbm_model [West:North][NumMax-1:0] (
     .clk_i      ( clk           ),
     .rst_ni     ( rst_n         ),
@@ -126,21 +118,21 @@ module tb_floo_dma_mesh;
   );
 
   floo_hbm_model #(
-    .TA           ( ApplTime                  ),
-    .TT           ( TestTime                  ),
-    .Latency      ( HBMLatency                ),
-    .NumChannels  ( 1                         ),
-    .AddrWidth    ( AxiNarrowOutAddrWidth     ),
-    .DataWidth    ( AxiNarrowOutDataWidth     ),
-    .UserWidth    ( AxiNarrowOutUserWidth     ),
-    .IdWidth      ( AxiNarrowOutIdWidth       ),
-    .axi_req_t    ( axi_narrow_out_req_t      ),
-    .axi_rsp_t    ( axi_narrow_out_rsp_t      ),
-    .aw_chan_t    ( axi_narrow_out_aw_chan_t  ),
-    .w_chan_t     ( axi_narrow_out_w_chan_t   ),
-    .b_chan_t     ( axi_narrow_out_b_chan_t   ),
-    .ar_chan_t    ( axi_narrow_out_ar_chan_t  ),
-    .r_chan_t     ( axi_narrow_out_r_chan_t   )
+    .TA           ( ApplTime                          ),
+    .TT           ( TestTime                          ),
+    .Latency      ( HBMLatency                        ),
+    .NumChannels  ( 1                                 ),
+    .AddrWidth    ( floo_test_pkg::AxiCfgN.AddrWidth  ),
+    .DataWidth    ( floo_test_pkg::AxiCfgN.DataWidth  ),
+    .UserWidth    ( floo_test_pkg::AxiCfgN.UserWidth  ),
+    .IdWidth      ( floo_test_pkg::AxiCfgN.OutIdWidth ),
+    .axi_req_t    ( axi_narrow_out_req_t              ),
+    .axi_rsp_t    ( axi_narrow_out_rsp_t              ),
+    .aw_chan_t    ( axi_narrow_out_aw_chan_t          ),
+    .w_chan_t     ( axi_narrow_out_w_chan_t           ),
+    .b_chan_t     ( axi_narrow_out_b_chan_t           ),
+    .ar_chan_t    ( axi_narrow_out_ar_chan_t          ),
+    .r_chan_t     ( axi_narrow_out_r_chan_t           )
   ) i_floo_narrow_hbm_model [West:North][NumMax-1:0] (
     .clk_i      ( clk             ),
     .rst_ni     ( rst_n           ),
@@ -159,7 +151,7 @@ module tb_floo_dma_mesh;
 
     if (i == North) begin : gen_north_hbm_chimneys
       for (genvar j = 0; j < NumChimneys; j++) begin : gen_hbm_chimney_xy_id
-        assign xy_id_hbm[j] = '{x: j+1, y: NumY+1};
+        assign xy_id_hbm[j] = '{x: j+1, y: NumY+1, port_id: 0};
       end
       assign req_hbm_in  = req_ver_pos[NumY];
       assign rsp_hbm_in  = rsp_ver_pos[NumY];
@@ -170,7 +162,7 @@ module tb_floo_dma_mesh;
     end
     else if (i == South) begin : gen_south_hbm_chimneys
       for (genvar j = 0; j < NumChimneys; j++) begin : gen_hbm_chimney_xy_id
-        assign xy_id_hbm[j] = '{x: j+1, y: 0};
+        assign xy_id_hbm[j] = '{x: j+1, y: 0, port_id: 0};
       end
       assign req_hbm_in  = req_ver_neg[0];
       assign rsp_hbm_in  = rsp_ver_neg[0];
@@ -181,7 +173,7 @@ module tb_floo_dma_mesh;
     end
     else if (i == East) begin : gen_east_hbm_chimneys
       for (genvar j = 0; j < NumChimneys; j++) begin : gen_hbm_chimney_xy_id
-        assign xy_id_hbm[j] = '{x: NumX+1, y: j+1};
+        assign xy_id_hbm[j] = '{x: NumX+1, y: j+1, port_id: 0};
       end
       assign req_hbm_in  = req_hor_pos[NumX];
       assign rsp_hbm_in  = rsp_hor_pos[NumX];
@@ -192,7 +184,7 @@ module tb_floo_dma_mesh;
     end
     else if (i == West) begin : gen_west_hbm_chimneys
       for (genvar j = 0; j < NumChimneys; j++) begin : gen_hbm_chimney_xy_id
-        assign xy_id_hbm[j] = '{x: 0, y: j+1};
+        assign xy_id_hbm[j] = '{x: 0, y: j+1, port_id: 0};
       end
       assign req_hbm_in  = req_hor_neg[0];
       assign rsp_hbm_in  = rsp_hor_neg[0];
@@ -202,13 +194,25 @@ module tb_floo_dma_mesh;
       assign wide_hor_pos[0]       = wide_hbm_out;
     end
 
-    floo_narrow_wide_chimney #(
-      .NarrowMaxTxns            ( NarrowMaxTxns           ),
-      .WideMaxTxns              ( WideMaxTxns             ),
-      .NarrowReorderBufferSize  ( NarrowReorderBufferSize ),
-      .WideReorderBufferSize    ( WideReorderBufferSize   ),
-      .CutAx                    ( CutAx                   ),
-      .CutRsp                   ( CutRsp                  )
+    floo_nw_chimney #(
+      .AxiCfgN              ( floo_test_pkg::AxiCfgN    ),
+      .AxiCfgW              ( floo_test_pkg::AxiCfgW    ),
+      .ChimneyCfgN          ( floo_test_pkg::ChimneyCfg ),
+      .ChimneyCfgW          ( floo_test_pkg::ChimneyCfg ),
+      .RouteCfg             ( floo_test_pkg::RouteCfg   ),
+      .hdr_t                ( hdr_t                     ),
+      .id_t                 ( id_t                      ),
+      .axi_narrow_in_req_t  ( axi_narrow_in_req_t       ),
+      .axi_narrow_in_rsp_t  ( axi_narrow_in_rsp_t       ),
+      .axi_narrow_out_req_t ( axi_narrow_out_req_t      ),
+      .axi_narrow_out_rsp_t ( axi_narrow_out_rsp_t      ),
+      .axi_wide_in_req_t    ( axi_wide_in_req_t         ),
+      .axi_wide_in_rsp_t    ( axi_wide_in_rsp_t         ),
+      .axi_wide_out_req_t   ( axi_wide_out_req_t        ),
+      .axi_wide_out_rsp_t   ( axi_wide_out_rsp_t        ),
+      .floo_req_t           ( floo_req_t                ),
+      .floo_rsp_t           ( floo_rsp_t                ),
+      .floo_wide_t          ( floo_wide_t               )
     ) i_hbm_chimney [NumChimneys-1:0] (
       .clk_i                ( clk               ),
       .rst_ni               ( rst_n             ),
@@ -249,26 +253,23 @@ module tb_floo_dma_mesh;
       floo_wide_t       [NumDirections-1:0] wide_out, wide_in;
 
       localparam int unsigned Index = y * NumX + x+1;
-      localparam logic [AxiNarrowInAddrWidth-1:0] MemBaseAddr =
-          (x+1) << XYAddrOffsetX | (y+1) << XYAddrOffsetY;
-      assign current_id = '{x: x+1, y: y+1};
+      localparam axi_narrow_addr_t MemBaseAddr =
+          (x+1) << floo_test_pkg::RouteCfg.XYAddrOffsetX |
+          (y+1) << floo_test_pkg::RouteCfg.XYAddrOffsetY;
+      assign current_id = '{x: x+1, y: y+1, port_id: 0};
 
       floo_dma_test_node #(
-        .TA             ( ApplTime              ),
-        .TT             ( TestTime              ),
-        .DataWidth      ( AxiNarrowInDataWidth  ),
-        .AddrWidth      ( AxiNarrowInAddrWidth  ),
-        .UserWidth      ( AxiNarrowInUserWidth  ),
-        .AxiIdInWidth   ( AxiNarrowOutIdWidth   ),
-        .AxiIdOutWidth  ( AxiNarrowInIdWidth    ),
-        .MemBaseAddr    ( MemBaseAddr           ),
-        .MemSize        ( MemSize               ),
-        .NumAxInFlight  ( 2*NarrowMaxTxnsPerId  ),
-        .axi_in_req_t   ( axi_narrow_out_req_t  ),
-        .axi_in_rsp_t   ( axi_narrow_out_rsp_t  ),
-        .axi_out_req_t  ( axi_narrow_in_req_t   ),
-        .axi_out_rsp_t  ( axi_narrow_in_rsp_t   ),
-        .JobId          ( 100 + Index           )
+        .TA             ( ApplTime                                  ),
+        .TT             ( TestTime                                  ),
+        .AxiCfg         ( axi_cfg_swap_iw(floo_test_pkg::AxiCfgN)   ),
+        .MemBaseAddr    ( MemBaseAddr                               ),
+        .MemSize        ( MemSize                                   ),
+        .NumAxInFlight  ( 2*floo_test_pkg::ChimneyCfg.MaxTxnsPerId  ),
+        .axi_in_req_t   ( axi_narrow_out_req_t                      ),
+        .axi_in_rsp_t   ( axi_narrow_out_rsp_t                      ),
+        .axi_out_req_t  ( axi_narrow_in_req_t                       ),
+        .axi_out_rsp_t  ( axi_narrow_in_rsp_t                       ),
+        .JobId          ( 100 + Index                               )
       ) i_narrow_dma_node (
         .clk_i          ( clk                   ),
         .rst_ni         ( rst_n                 ),
@@ -280,21 +281,17 @@ module tb_floo_dma_mesh;
       );
 
       floo_dma_test_node #(
-        .TA             ( ApplTime            ),
-        .TT             ( TestTime            ),
-        .DataWidth      ( AxiWideInDataWidth  ),
-        .AddrWidth      ( AxiWideInAddrWidth  ),
-        .UserWidth      ( AxiWideInUserWidth  ),
-        .AxiIdInWidth   ( AxiWideOutIdWidth   ),
-        .AxiIdOutWidth  ( AxiWideInIdWidth    ),
-        .MemBaseAddr    ( MemBaseAddr         ),
-        .MemSize        ( MemSize             ),
-        .NumAxInFlight  ( 2*WideMaxTxnsPerId  ),
-        .axi_in_req_t   ( axi_wide_out_req_t  ),
-        .axi_in_rsp_t   ( axi_wide_out_rsp_t  ),
-        .axi_out_req_t  ( axi_wide_in_req_t   ),
-        .axi_out_rsp_t  ( axi_wide_in_rsp_t   ),
-        .JobId          ( Index               )
+        .TA             ( ApplTime                                  ),
+        .TT             ( TestTime                                  ),
+        .AxiCfg         ( axi_cfg_swap_iw(floo_test_pkg::AxiCfgW)   ),
+        .MemBaseAddr    ( MemBaseAddr                               ),
+        .MemSize        ( MemSize                                   ),
+        .NumAxInFlight  ( 2*floo_test_pkg::ChimneyCfg.MaxTxnsPerId  ),
+        .axi_in_req_t   ( axi_wide_out_req_t                        ),
+        .axi_in_rsp_t   ( axi_wide_out_rsp_t                        ),
+        .axi_out_req_t  ( axi_wide_in_req_t                         ),
+        .axi_out_rsp_t  ( axi_wide_in_rsp_t                         ),
+        .JobId          ( Index                                     )
       ) i_wide_dma_node (
         .clk_i          ( clk                 ),
         .rst_ni         ( rst_n               ),
@@ -306,10 +303,10 @@ module tb_floo_dma_mesh;
       );
 
       axi_bw_monitor #(
-        .req_t      ( axi_narrow_in_req_t ),
-        .rsp_t      ( axi_narrow_in_rsp_t ),
-        .AxiIdWidth ( AxiNarrowInIdWidth  ),
-        .Name       ( NarrowDmaName       )
+        .req_t      ( axi_narrow_in_req_t               ),
+        .rsp_t      ( axi_narrow_in_rsp_t               ),
+        .AxiIdWidth ( floo_test_pkg::AxiCfgN.InIdWidth  ),
+        .Name       ( NarrowDmaName                     )
       ) i_axi_narrow_bw_monitor (
         .clk_i        ( clk                   ),
         .en_i         ( rst_n                 ),
@@ -321,10 +318,10 @@ module tb_floo_dma_mesh;
         );
 
       axi_bw_monitor #(
-        .req_t      ( axi_wide_in_req_t ),
-        .rsp_t      ( axi_wide_in_rsp_t ),
-        .AxiIdWidth ( AxiWideInIdWidth  ),
-        .Name       ( WideDmaName       )
+        .req_t      ( axi_wide_in_req_t                 ),
+        .rsp_t      ( axi_wide_in_rsp_t                 ),
+        .AxiIdWidth ( floo_test_pkg::AxiCfgW.InIdWidth  ),
+        .Name       ( WideDmaName                       )
       ) i_axi_wide_bw_monitor (
         .clk_i        ( clk                 ),
         .en_i         ( rst_n               ),
@@ -335,13 +332,25 @@ module tb_floo_dma_mesh;
         .aw_in_flight_o(                    )
         );
 
-      floo_narrow_wide_chimney #(
-        .NarrowMaxTxns            ( NarrowMaxTxns           ),
-        .WideMaxTxns              ( WideMaxTxns             ),
-        .NarrowReorderBufferSize  ( NarrowReorderBufferSize ),
-        .WideReorderBufferSize    ( WideReorderBufferSize   ),
-        .CutAx                    ( CutAx                   ),
-        .CutRsp                   ( CutRsp                  )
+      floo_nw_chimney #(
+        .AxiCfgN              ( floo_test_pkg::AxiCfgN    ),
+        .AxiCfgW              ( floo_test_pkg::AxiCfgW    ),
+        .ChimneyCfgN          ( floo_test_pkg::ChimneyCfg ),
+        .ChimneyCfgW          ( floo_test_pkg::ChimneyCfg ),
+        .RouteCfg             ( floo_test_pkg::RouteCfg   ),
+        .hdr_t                ( hdr_t                     ),
+        .id_t                 ( id_t                      ),
+        .axi_narrow_in_req_t  ( axi_narrow_in_req_t       ),
+        .axi_narrow_in_rsp_t  ( axi_narrow_in_rsp_t       ),
+        .axi_narrow_out_req_t ( axi_narrow_out_req_t      ),
+        .axi_narrow_out_rsp_t ( axi_narrow_out_rsp_t      ),
+        .axi_wide_in_req_t    ( axi_wide_in_req_t         ),
+        .axi_wide_in_rsp_t    ( axi_wide_in_rsp_t         ),
+        .axi_wide_out_req_t   ( axi_wide_out_req_t        ),
+        .axi_wide_out_rsp_t   ( axi_wide_out_rsp_t        ),
+        .floo_req_t           ( floo_req_t                ),
+        .floo_rsp_t           ( floo_rsp_t                ),
+        .floo_wide_t          ( floo_wide_t               )
       ) i_dma_chimney (
         .clk_i                ( clk                           ),
         .rst_ni               ( rst_n                         ),
@@ -365,13 +374,19 @@ module tb_floo_dma_mesh;
         .floo_wide_o          ( wide_chimney_man[x][y]        )
       );
 
-      floo_narrow_wide_router #(
-        .NumRoutes        ( NumDirections     ),
-        .ChannelFifoDepth ( ChannelFifoDepth  ),
-        .OutputFifoDepth  ( OutputFifoDepth   ),
-        .RouteAlgo        ( RouteAlgo         ),
-        .XYRouteOpt       ( 1'b0              ),
-        .id_t             ( id_t              )
+      floo_nw_router #(
+        .AxiCfgN          ( floo_test_pkg::AxiCfgN            ),
+        .AxiCfgW          ( floo_test_pkg::AxiCfgW            ),
+        .NumRoutes        ( NumDirections                     ),
+        .InFifoDepth      ( InFifoDepth                       ),
+        .OutFifoDepth     ( OutFifoDepth                      ),
+        .RouteAlgo        ( floo_test_pkg::RouteCfg.RouteAlgo ),
+        .XYRouteOpt       ( 1'b0                              ),
+        .id_t             ( id_t                              ),
+        .hdr_t            ( hdr_t                             ),
+        .floo_req_t       ( floo_req_t                        ),
+        .floo_rsp_t       ( floo_rsp_t                        ),
+        .floo_wide_t      ( floo_wide_t                       )
       ) i_router (
         .clk_i          ( clk         ),
         .rst_ni         ( rst_n       ),

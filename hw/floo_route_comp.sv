@@ -9,23 +9,9 @@
 module floo_route_comp
   import floo_pkg::*;
 #(
-  /// The type of routing algorithms to use
-  parameter route_algo_e RouteAlgo = IdTable,
-  /// Whether to use a routing table with address decoder
-  /// In case of XY Routing or the coordinates should be
-  /// directly read from the request address
-  parameter bit UseIdTable = 1'b1,
-  /// The offset bit to read the X coordinate from
-  parameter int unsigned XYAddrOffsetX = 0,
-  /// The offset bit to read the Y coordinate from
-  parameter int unsigned XYAddrOffsetY = 0,
-  /// The offset bit to read the ID from
-  parameter int unsigned IdAddrOffset = 0,
-  /// The number of possible rules
-  parameter int unsigned NumAddrRules = 0,
-  /// The number of possible routes
-  parameter int unsigned NumRoutes = 0,
-  /// The type of the coordinates or IDs
+  /// The route config
+  parameter floo_pkg::route_cfg_t RouteCfg = '0,
+  parameter bit UseIdTable = RouteCfg.UseIdTable,
   parameter type id_t = logic,
   /// The type of the address
   parameter type addr_t = logic,
@@ -38,8 +24,8 @@ module floo_route_comp
   input  logic  rst_ni,
   input  id_t   id_i,
   input  addr_t addr_i,
-  input  addr_rule_t [NumAddrRules-1:0] addr_map_i,
-  input  route_t [NumRoutes-1:0] route_table_i,
+  input  addr_rule_t [RouteCfg.NumAddrRules-1:0] addr_map_i,
+  input  route_t [RouteCfg.NumRoutes-1:0] route_table_i,
   output route_t route_o,
   output id_t id_o
 );
@@ -51,9 +37,9 @@ module floo_route_comp
   // The reason for that is that a request destination is given by a physical address, while the
   // response destination is given by the ID of the source.
   if (UseIdTable &&
-    ((RouteAlgo == IdTable) ||
-     (RouteAlgo == XYRouting) ||
-     (RouteAlgo == SourceRouting)))
+    ((RouteCfg.RouteAlgo == IdTable) ||
+     (RouteCfg.RouteAlgo == XYRouting) ||
+     (RouteCfg.RouteAlgo == SourceRouting)))
   begin : gen_table_routing
     logic dec_error;
 
@@ -63,7 +49,7 @@ module floo_route_comp
 
     addr_decode #(
       .NoIndices  ( MaxPossibleId ),
-      .NoRules    ( NumAddrRules  ),
+      .NoRules    ( RouteCfg.NumAddrRules  ),
       .addr_t     ( addr_t        ),
       .rule_t     ( addr_rule_t   ),
       .idx_t      ( id_t          )
@@ -78,18 +64,18 @@ module floo_route_comp
     );
 
     `ASSERT(DecodeError, !dec_error)
-  end else if (RouteAlgo == XYRouting) begin : gen_xy_bits_routing
+  end else if (RouteCfg.RouteAlgo == XYRouting) begin : gen_xy_bits_routing
     assign id_o.port_id = '0;
-    assign id_o.x = addr_i[XYAddrOffsetX +: $bits(id_o.x)];
-    assign id_o.y = addr_i[XYAddrOffsetY +: $bits(id_o.y)];
-  end else if (RouteAlgo == IdTable) begin : gen_id_bits_routing
-    assign id_o = addr_i[IdAddrOffset +: $bits(id_o)];
-  end else if (RouteAlgo == SourceRouting) begin : gen_source_routing
+    assign id_o.x = addr_i[RouteCfg.XYAddrOffsetX +: $bits(id_o.x)];
+    assign id_o.y = addr_i[RouteCfg.XYAddrOffsetY +: $bits(id_o.y)];
+  end else if (RouteCfg.RouteAlgo == IdTable) begin : gen_id_bits_routing
+    assign id_o = addr_i[RouteCfg.IdAddrOffset +: $bits(id_o)];
+  end else if (RouteCfg.RouteAlgo == SourceRouting) begin : gen_source_routing
     // Nothing to do here
   end else begin : gen_error
     $fatal(1, "Routing algorithm not implemented");
   end
-  if (RouteAlgo == SourceRouting) begin : gen_route
+  if (RouteCfg.RouteAlgo == SourceRouting) begin : gen_route
     assign route_o = (UseIdTable)? route_table_i[id_o] : route_table_i[id_i];
   end else begin : gen_no_route
     assign route_o = '0;

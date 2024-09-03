@@ -156,7 +156,7 @@ module floo_mesh_ruche
         .NumRoutes       ( NumRoutes       ),
         .flit_t          ( flit_t          ),
         .RouteAlgo       ( RouteAlgo       ),
-        .ChannelFifoDepth( 2               ),
+        .InFifoDepth( 2               ),
         .IdWidth         ( $bits(xy_id_t)  ),
         .id_t            ( xy_id_t         ),
         .addr_rule_t     ( logic           ),

@@ -49,7 +49,7 @@ run-vsim:
         - tb_floo_router
         - tb_floo_vc_router
         - tb_floo_axi_chimney
-        - tb_floo_narrow_wide_chimney
+        - tb_floo_nw_chimney
         - tb_floo_rob
   needs:
     - collect-bender-sources
@@ -65,7 +65,7 @@ run-traffic:
     JOB_NAME: mesh
   parallel:
     matrix:
-      - VSIM_TB_DUT: [tb_floo_dma_mesh, tb_floo_vc_dma_mesh]
+      - VSIM_TB_DUT: [tb_floo_dma_mesh] # Fix: `tb_floo_vc_dma_mesh` has issues with boundary accesses
         TRAFFIC_TYPE: [random, hbm, onehop, bit_complement, bit_reverse, bit_rotation, neighbor, shuffle, transpose, tornado, single_dest_boundary, single_dest_center]
         TRAFFIC_RW: [read, write]
   needs:

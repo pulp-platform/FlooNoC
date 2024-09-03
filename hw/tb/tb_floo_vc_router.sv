@@ -8,14 +8,21 @@
 module tb_floo_vc_router;
 
   import floo_pkg::*;
-  import floo_vc_axi_pkg::*;
 
   localparam time CyclTime = 10ns;
   localparam time ApplTime = 2ns;
   localparam time TestTime = 8ns;
 
+  typedef logic [2:0] x_bits_t;
+  typedef logic [2:0] y_bits_t;
+  typedef logic [1:0] port_id_t;
+  typedef logic [2:0] vc_id_t;
+  typedef logic [63:0] payload_t;
+  `FLOO_TYPEDEF_XY_NODE_ID_T(id_t, x_bits_t, y_bits_t, port_id_t)
+  `FLOO_TYPEDEF_VC_HDR_T(hdr_t, id_t, id_t, logic, logic, vc_id_t)
+  `FLOO_TYPEDEF_GENERIC_FLIT_T(req, hdr_t, payload_t)
+
   localparam type flit_t = floo_req_generic_flit_t;
-  localparam type payload_t = floo_req_payload_t;
   localparam int NumVCWidth = 2;
   localparam int NumPorts = 5;
   localparam int Debug = 0;

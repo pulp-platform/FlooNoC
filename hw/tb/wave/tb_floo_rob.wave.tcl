@@ -8,9 +8,8 @@ floo_wave_init
 
 floo_axi_chimney_wave tb_floo_rob/i_floo_axi_chimney [list MstChimney]
 
-for {set i 1} {$i <= 4} {incr i} {
-    set id [expr $i - 1]
-    set groups [list SlvChimney${id}]
+for {set i 0} {$i < 4} {incr i} {
+    set groups [list SlvChimney${i}]
     floo_axi_chimney_wave tb_floo_rob/gen_slaves[${i}]/i_floo_axi_chimney $groups 0
 }
 

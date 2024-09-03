@@ -17,7 +17,7 @@ module floo_rob_wrapper
   /// metadata will be stored in normal FFs
   parameter bit          OnlyMetaData = 1'b0,
   /// Size of the reorder buffer
-  parameter int unsigned ReorderBufferSize = 32'd64,
+  parameter int unsigned RoBDepth = 32'd64,
   /// Data type of response to be reordered
   parameter type         ax_len_t   = logic,
   parameter type         ax_id_t    = logic,
@@ -54,17 +54,17 @@ module floo_rob_wrapper
 
   if (RoBType == NormalRoB) begin : gen_normal_rob
     floo_rob #(
-      .ReorderBufferSize  ( ReorderBufferSize ),
-      .MaxRoTxnsPerId     ( MaxRoTxnsPerId    ),
-      .OnlyMetaData       ( OnlyMetaData      ),
-      .ax_len_t           ( ax_len_t          ),
-      .ax_id_t            ( ax_id_t           ),
-      .rsp_chan_t         ( rsp_chan_t        ),
-      .rsp_data_t         ( rsp_data_t        ),
-      .rsp_meta_t         ( rsp_meta_t        ),
-      .rob_idx_t          ( rob_idx_t         ),
-      .dest_t             ( dest_t            ),
-      .sram_cfg_t         ( sram_cfg_t        )
+      .RoBDepth       ( RoBDepth       ),
+      .MaxRoTxnsPerId ( MaxRoTxnsPerId ),
+      .OnlyMetaData   ( OnlyMetaData   ),
+      .ax_len_t       ( ax_len_t       ),
+      .ax_id_t        ( ax_id_t        ),
+      .rsp_chan_t     ( rsp_chan_t     ),
+      .rsp_data_t     ( rsp_data_t     ),
+      .rsp_meta_t     ( rsp_meta_t     ),
+      .rob_idx_t      ( rob_idx_t      ),
+      .dest_t         ( dest_t         ),
+      .sram_cfg_t     ( sram_cfg_t     )
     ) i_rob (
       .clk_i,
       .rst_ni,
@@ -91,16 +91,16 @@ module floo_rob_wrapper
 
   end else if (RoBType == SimpleRoB) begin : gen_simpl_rob
     floo_simple_rob #(
-      .ReorderBufferSize  ( ReorderBufferSize ),
-      .MaxRoTxnsPerId     ( MaxRoTxnsPerId    ),
-      .OnlyMetaData       ( OnlyMetaData      ),
-      .ax_len_t           ( ax_len_t          ),
-      .rsp_chan_t         ( rsp_chan_t        ),
-      .rsp_data_t         ( rsp_data_t        ),
-      .rsp_meta_t         ( rsp_meta_t        ),
-      .rob_idx_t          ( rob_idx_t         ),
-      .dest_t             ( dest_t            ),
-      .sram_cfg_t         ( sram_cfg_t        )
+      .RoBDepth       ( RoBDepth        ),
+      .MaxRoTxnsPerId ( MaxRoTxnsPerId  ),
+      .OnlyMetaData   ( OnlyMetaData    ),
+      .ax_len_t       ( ax_len_t        ),
+      .rsp_chan_t     ( rsp_chan_t      ),
+      .rsp_data_t     ( rsp_data_t      ),
+      .rsp_meta_t     ( rsp_meta_t      ),
+      .rob_idx_t      ( rob_idx_t       ),
+      .dest_t         ( dest_t          ),
+      .sram_cfg_t     ( sram_cfg_t      )
     ) i_rob (
       .clk_i,
       .rst_ni,

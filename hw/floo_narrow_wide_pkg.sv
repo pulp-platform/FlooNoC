@@ -97,25 +97,17 @@ package floo_narrow_wide_pkg;
   //   Header Typedefs   //
   /////////////////////////
 
-  localparam route_algo_e RouteAlgo = XYRouting;
-  localparam bit UseIdTable = 1'b0;
-  localparam int unsigned NumXBits = 3;
-  localparam int unsigned NumYBits = 3;
-  localparam int unsigned XYAddrOffsetX = 16;
-  localparam int unsigned XYAddrOffsetY = 19;
+  localparam route_algo_e RouteAlgo = IdTable;
+  localparam bit UseIdTable = 1'b1;
+  localparam int unsigned NumIdBits = 3;
+  localparam int unsigned XYAddrOffsetX = 0;
+  localparam int unsigned XYAddrOffsetY = 0;
   localparam int unsigned IdAddrOffset = 0;
 
 
   typedef logic [0:0] rob_idx_t;
   typedef logic [0:0] port_id_t;
-  typedef logic [2:0] x_bits_t;
-  typedef logic [2:0] y_bits_t;
-  typedef struct packed {
-    x_bits_t  x;
-    y_bits_t  y;
-    port_id_t port_id;
-  } id_t;
-
+  typedef logic [2:0] id_t;
   typedef logic route_t;
   typedef id_t dst_t;
 

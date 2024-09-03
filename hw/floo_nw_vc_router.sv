@@ -5,46 +5,55 @@
 // Tim Fischer <fischeti@iis.ee.ethz.ch>
 // Lukas Berner <bernerl@student.ethz.ch>
 
+`include "axi/typedef.svh"
+`include "floo_noc/typedef.svh"
+
 /// Wrapper of a multi-link router for narrow and wide links
-module floo_vc_narrow_wide_router
+module floo_nw_vc_router
   import floo_pkg::*;
-  import floo_vc_narrow_wide_pkg::*;
-  #(
-    parameter int           NumPorts                    = 5,
-    parameter int           NumLocalPorts               = NumPorts - 4,
-    parameter int           NumVC           [NumPorts]  =
-            {1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 4+NumLocalPorts-1},
-            // Num VC from dir N,E,S,W,L0(,L1,L2,L3): 1313 for XY routing
-    parameter int           NumVCMax                    = NumPorts - 1,
-    // NumVCWidth: needs to be 3 in routers with more than 1 local ports
-    parameter int           NumVCWidth                  = 3,
-    // set this to 3 towards routers with more than 1 local ports: towards N,E,S,W,L0(,L1,L2,L3)
-    parameter int           NumVCToOut      [NumPorts]  = {2,4,2,4,1},
-    parameter int           NumVCToOutMax               = 4,
-    parameter int           NumVCWidthToOutMax          = 2,
+#(
+  parameter floo_pkg::axi_cfg_t AxiCfgN       = '0,
+  parameter floo_pkg::axi_cfg_t AxiCfgW       = '0,
+  parameter int NumPorts                    = 5,
+  parameter int NumLocalPorts               = NumPorts - 4,
+  parameter int NumVC           [NumPorts]  =
+    {1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 4+NumLocalPorts-1},
+          // Num VC from dir N,E,S,W,L0(,L1,L2,L3): 1313 for XY routing
+  parameter int NumVCMax                    = NumPorts - 1,
+  // NumVCWidth: needs to be 3 in routers with more than 1 local ports
+  parameter int NumVCWidth                  = 3,
+  // set this to 3 towards routers with more than 1 local ports: towards N,E,S,W,L0(,L1,L2,L3)
+  parameter int NumVCToOut      [NumPorts]  = {2,4,2,4,1},
+  parameter int NumVCToOutMax               = 4,
+  parameter int NumVCWidthToOutMax          = 2,
 
-    parameter int           NumInputSaGlobal[NumPorts]  =
-      {3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 4+NumLocalPorts-1},
-      // to dir N,E,S,W,L0(,L1,L2,L3)
-    parameter int           VCDepth                     = 2,
-    parameter int           VCDepthWidth                = $clog2(VCDepth+1),
-    parameter int           CreditShortcut              = 1, // not used if SingleStage
-    parameter int           AllowVCOverflow             = 1, // 1: FVADA, 0: fixed VC per direction
-    parameter int           FixedWormholeVC             = 1,
-    parameter int           WormholeVCId    [NumPorts]  = {0,1,0,2,0}, // as seen from output port
-    parameter int           WormholeVCDepth             = 3,
-    parameter int           AllowOverflowFromDeeperVC   = 1, //overriden if AllowVCOverflow is 0
-    parameter int           UpdateRRArbIfNotSent        = 0,
-    parameter int           SingleStage                 = 0, // 0: standard 2 stage, 1: single stage
+  parameter int NumInputSaGlobal[NumPorts]  =
+    {3+NumLocalPorts, 1+NumLocalPorts, 3+NumLocalPorts, 1+NumLocalPorts, 4+NumLocalPorts-1},
+    // to dir N,E,S,W,L0(,L1,L2,L3)
+  parameter int VCDepth                     = 2,
+  parameter int VCDepthWidth                = $clog2(VCDepth+1),
+  parameter int CreditShortcut              = 1, // not used if SingleStage
+  parameter int AllowVCOverflow             = 1, // 1: FVADA, 0: fixed VC per direction
+  parameter int FixedWormholeVC             = 1,
+  parameter int WormholeVCId    [NumPorts]  = {0,1,0,2,0}, // as seen from output port
+  parameter int WormholeVCDepth             = 3,
+  parameter int AllowOverflowFromDeeperVC   = 1, //overriden if AllowVCOverflow is 0
+  parameter int UpdateRRArbIfNotSent        = 0,
+  parameter int SingleStage                 = 0, // 0: standard 2 stage, 1: single stage
 
-    // Route Algorithm stuff
-    parameter route_algo_e  RouteAlgo                   = XYRouting,
-    /// Used for ID-based and XY routing
-    parameter int unsigned  IdWidth                     = 1,
-    parameter type          id_t                        = logic[IdWidth-1:0],
-    /// Used for ID-based routing
-    parameter int unsigned  NumAddrRules                = 0,
-    parameter type          addr_rule_t                 = logic
+  // Route Algorithm stuff
+  parameter route_algo_e  RouteAlgo         = XYRouting,
+  /// Used for ID-based and XY routing
+  parameter int unsigned  IdWidth           = 1,
+  parameter type          id_t              = logic[IdWidth-1:0],
+  parameter type          hdr_t             = logic,
+  parameter type          vc_id_t           = logic,
+  /// Used for ID-based routing
+  parameter int unsigned  NumAddrRules      = 0,
+  parameter type          addr_rule_t       = logic,
+  parameter type floo_vc_req_t              = logic,
+  parameter type floo_vc_rsp_t              = logic,
+  parameter type floo_vc_wide_t             = logic
 ) (
   input  logic   clk_i,
   input  logic   rst_ni,
@@ -59,6 +68,23 @@ module floo_vc_narrow_wide_router
   input   floo_vc_wide_t  [NumPorts-1:0] floo_wide_i,
   output  floo_vc_wide_t  [NumPorts-1:0] floo_wide_o
 );
+
+  typedef logic [AxiCfgN.AddrWidth-1:0] axi_addr_t;
+  typedef logic [AxiCfgN.InIdWidth-1:0] axi_narrow_in_id_t;
+  typedef logic [AxiCfgN.UserWidth-1:0] axi_narrow_user_t;
+  typedef logic [AxiCfgN.DataWidth-1:0] axi_narrow_data_t;
+  typedef logic [AxiCfgN.DataWidth/8-1:0] axi_narrow_strb_t;
+  typedef logic [AxiCfgW.InIdWidth-1:0] axi_wide_in_id_t;
+  typedef logic [AxiCfgW.UserWidth-1:0] axi_wide_user_t;
+  typedef logic [AxiCfgW.DataWidth-1:0] axi_wide_data_t;
+  typedef logic [AxiCfgW.DataWidth/8-1:0] axi_wide_strb_t;
+
+  // (Re-) definitons of `axi_in` and `floo` types, for transport
+  `AXI_TYPEDEF_ALL_CT(axi_narrow, axi_narrow_req_t, axi_narrow_rsp_t, axi_addr_t,
+      axi_narrow_in_id_t, axi_narrow_data_t, axi_narrow_strb_t, axi_narrow_user_t)
+  `AXI_TYPEDEF_ALL_CT(axi_wide, axi_wide_req_t, axi_wide_rsp_t, axi_addr_t,
+      axi_wide_in_id_t, axi_wide_data_t, axi_wide_strb_t, axi_wide_user_t)
+  `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow, axi_wide, AxiCfgN, AxiCfgW, hdr_t)
 
   floo_req_chan_t [NumPorts-1:0] req_in, req_out;
   floo_rsp_chan_t [NumPorts-1:0] rsp_in, rsp_out;
