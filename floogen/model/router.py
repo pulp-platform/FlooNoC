@@ -26,6 +26,7 @@ class RouterDesc(BaseModel):
     tree: Optional[List[int]] = None
     id_offset: Optional[Id] = None
     auto_connect: Optional[bool] = True
+    degree: Optional[int] = None
 
     @field_validator("array", mode="before")
     @classmethod

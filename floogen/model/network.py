@@ -327,7 +327,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     def compile_routers(self):
         """Infer the router type from the network."""
-        for rt_name, _ in self.graph.get_rt_nodes(with_name=True):
+        for rt_name, rt_desc in self.graph.get_rt_nodes(with_name=True):
             match self.routing.route_algo:
                 case RouteAlgo.XY:
                     rt_id = self.graph.get_node_id(rt_name)
@@ -357,9 +357,13 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                         "name": rt_name,
                         "incoming": self.graph.get_edges_to(rt_name),
                         "outgoing": self.graph.get_edges_from(rt_name),
-                        "degree": len(set(self.graph.neighbors(rt_name))),
                         "route_algo": self.routing.route_algo,
                     }
+                    # Set the degree of the router
+                    if rt_desc.degree is not None:
+                        router_dict["degree"] = rt_desc.degree
+                    else:
+                        router_dict["degree"] = len(set(self.graph.neighbors(rt_name)))
                     self.graph.set_node_obj(rt_name, NarrowWideRouter(**router_dict))
 
     def compile_endpoints(self):
