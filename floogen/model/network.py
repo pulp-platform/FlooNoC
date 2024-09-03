@@ -431,14 +431,16 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                         raise ValueError("Use 2D arrays for XY routing")
                     node_idx = self.graph.get_node_arr_idx(ni_name)[0]
                     ni_dict["arr_idx"] = SimpleId(id=node_idx)
-                    ni_dict["addr_range"] = ep_desc.addr_range.model_copy().set_idx(node_idx)
+                    if ep_desc.is_sbr():
+                        ni_dict["addr_range"] = ep_desc.addr_range.model_copy().set_idx(node_idx)
 
                 # 2D array case
                 case (_, n):
                     x, y = self.graph.get_node_arr_idx(ni_name)
                     idx = x * n + y
                     ni_dict["arr_idx"] = Coord(x=x, y=y)
-                    ni_dict["addr_range"] = ep_desc.addr_range.model_copy().set_idx(idx)
+                    if ep_desc.is_sbr():
+                        ni_dict["addr_range"] = ep_desc.addr_range.model_copy().set_idx(idx)
 
                 # Invalid case
                 case _:
