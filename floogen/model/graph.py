@@ -11,8 +11,8 @@ import networkx as nx
 
 from floogen.model.routing import XYDirections
 
-class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
 
+class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
     """Network graph class."""
 
     def __init__(self):
@@ -32,9 +32,7 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
     def add_edge(self, u_of_edge: str, v_of_edge: str, **attr):
         """Add an edge to the graph."""
         if self.has_edge(u_of_edge, v_of_edge):
-            raise ValueError(
-                f"Edge ({u_of_edge}, {v_of_edge}) already exists in the graph."
-            )
+            raise ValueError(f"Edge ({u_of_edge}, {v_of_edge}) already exists in the graph.")
         assert "type" in attr, "Edge type not provided"
         if "obj" not in attr:
             attr["obj"] = None
@@ -43,7 +41,7 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
     def add_edge_bidir(self, u_of_edge: str, v_of_edge: str, **attr):
         """Add a bidirectional edge to the graph."""
         self.add_edge(u_of_edge, v_of_edge, **attr)
-        self.add_edge(v_of_edge, u_of_edge, **attr) # pylint: disable=arguments-out-of-order
+        self.add_edge(v_of_edge, u_of_edge, **attr)  # pylint: disable=arguments-out-of-order
 
     def get_node_obj(self, node):
         """Return the node object."""
@@ -196,7 +194,7 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
         tree: List[int],
         node_type: str,
         edge_type: str,
-        lvl: int=0,
+        lvl: int = 0,
         node_obj=None,
         edge_obj=None,
         connect=True,
@@ -223,7 +221,7 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
         node_obj=None,
         edge_obj=None,
         connect=True,
-    ): # pylint: disable=too-many-arguments
+    ):  # pylint: disable=too-many-arguments
         """Add nodes as an array."""
         match array:
             case [n]:
@@ -279,7 +277,6 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
         """Return the endpoint id."""
         ep_nodes = [name for name, _ in self.get_ep_nodes(with_name=True)]
         return sorted(ep_nodes).index(node)
-
 
     def get_node_id(self, node):
         """Return the node id."""
