@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        examples: ["single_cluster", "occamy_mesh", "occamy_tree"]
+        examples: ["single_cluster", "occamy_mesh", "occamy_tree", "occamy_mesh_src", "terapool"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python
