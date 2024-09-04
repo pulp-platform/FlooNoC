@@ -111,21 +111,21 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
         """Return the outgoing edges from the node."""
         if filters is None:
             filters = []
-        filters.append(lambda e: e[0] == node)
+        filters = [lambda e: e[0] == node] + filters
         return self.get_edges(filters=filters, with_name=with_name)
 
     def get_edges_to(self, node, filters=None, with_name=False):
         """Return the incoming edges to the node."""
         if filters is None:
             filters = []
-        filters.append(lambda e: e[1] == node)
+        filters = [lambda e: e[1] == node] + filters
         return self.get_edges(filters=filters, with_name=with_name)
 
     def get_edges_of(self, node, filters=None, with_name=False):
         """Return the edges of the node."""
         if filters is None:
             filters = []
-        filters.append(lambda e: node in e)
+        filters = [lambda e: node in e] + filters
         return self.get_edges(filters=filters, with_name=with_name)
 
     def get_ni_nodes(self, with_name=False):
