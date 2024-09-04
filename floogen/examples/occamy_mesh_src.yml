@@ -2,7 +2,7 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-name: occamy_mesh
+name: occamy_mesh_src
 description: "Occamy mesh configuration for FlooGen with source-based routing"
 
 routing:
@@ -85,6 +85,7 @@ endpoints:
 routers:
   - name: "router"
     array: [3, 8]
+    degree: 5
 
 connections:
   - src: "cluster"
@@ -95,7 +96,6 @@ connections:
     dst_range:
     - [0, 2]
     - [0, 7]
-    bidirectional: true
   - src: "hbm"
     dst: "router"
     src_range:
@@ -103,7 +103,6 @@ connections:
     dst_range:
     - [0, 0]
     - [0, 7]
-    bidirectional: true
   - src: "serial_link"
     dst: "router"
     src_range:
@@ -111,12 +110,9 @@ connections:
     dst_range:
     - [0, 2]
     - [0, 0]
-    bidirectional: true
   - src: "cva6"
     dst: "router"
     dst_idx: [0, 7]
-    bidirectional: true
   - src: "peripherals"
     dst: "router"
     dst_idx: [1, 7]
-    bidirectional: true

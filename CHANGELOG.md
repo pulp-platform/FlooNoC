@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Added virtual channel router `floo_vc_router` and corresponding `floo_vc_narrow_wide_chimney`. Currently only supports XY-Routing and mesh topologies.
 - Preliminary support for multiple local ports in the routers.
 - Additional traffic pattern generation and visualization.
+- Added option in `floogen` to define the direction of `connections` to/from routers with `dst_dir` and `src_dir` flags. This replaces the previous `id_offset` flag for that purpose. Specifying the direction of the connection is useful for mesh topologies with `XYRouting`, but also for tile-based implementation, where the order of the ports matters resp. needs to be known.
+- `routers` in `floogen`  can no be configured with `degree` to overwrite the number of ports. This is manily useful for tile-based implementations, where all tiles should have identical routers.
 
 ### Changed
 
@@ -24,6 +26,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Bumped `idma` dependency to `0.6`
 - Renamed `rsvd` field in flits to `payload` to better reflect its purpose.
 - Reordered directions in `route_direction_e` to better support multiple local ports.
+- Moved all system related rendered parameters from the flit package to its own package in `my_system_floo_noc.sv`. This allows to use the auto-generated routing information for tile-based implementations, that are assembled by hand.
+- The `bidirectional` flag for `connections` in `floogen` is set to `true` by default, since uni-directional links are currently not supported.
+- The System Address now needs to be passed as a parameter in the `chimneys`, since it is not part of the flit packages anymore.
 
 ### Fixed
 

@@ -85,16 +85,11 @@ routers:
 connections:
   - src: "cluster"
     dst: "router"
-    bidirectional: true
   - src: "hbm"
     dst: "router"
-    bidirectional: true
   - src: "serial_link"
     dst: "router"
-    bidirectional: true
   - src: "cva6"
     dst: "router"
-    bidirectional: true
   - src: "peripherals"
     dst: "router"
-    bidirectional: true

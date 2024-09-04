@@ -37,7 +37,7 @@ def clog2(x: int):
 
 
 def gen_mesh_traffic():
-    # pylint: disable=too-many-arguments, too-many-locals, too-many-branches, too-many-statements
+    # pylint: disable=too-many-arguments, too-many-locals, too-many-branches, too-many-statements, duplicate-code
     """Generate Mesh traffic."""
     jobs = []
     for x in range(1, NUM_X + 1):

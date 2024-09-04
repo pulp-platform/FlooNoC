@@ -5,8 +5,10 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from typing import Optional, List, Tuple, Dict
+from typing import Optional, List, Tuple
 from pydantic import BaseModel, field_validator, model_validator
+
+from floogen.model.routing import XYDirections
 
 
 class ConnectionDesc(BaseModel):
@@ -21,9 +23,10 @@ class ConnectionDesc(BaseModel):
     dst_idx: Optional[List[int]] = None
     src_lvl: Optional[int] = None
     dst_lvl: Optional[int] = None
-    coord_offset: Optional[Dict] = None
+    dst_dir: Optional[int] = None
+    src_dir: Optional[int] = None
     allow_multi: Optional[bool] = False
-    bidirectional: Optional[bool] = False
+    bidirectional: Optional[bool] = True
 
     @field_validator("src_idx", "dst_idx", mode="before")
     @classmethod
@@ -41,3 +44,19 @@ class ConnectionDesc(BaseModel):
         if self.dst_idx and self.dst_lvl:
             raise ValueError("dst_idx and dst_lvl are mutually exclusive")
         return self
+
+    @field_validator("src_dir", "dst_dir", mode="before")
+    @classmethod
+    def str_to_int(cls, v):
+        """Convert str to int."""
+        if isinstance(v, str):
+            return XYDirections[v.upper()].value
+        return v
+
+    @field_validator("bidirectional", mode="after")
+    @classmethod
+    def check_bidirectional(cls, v):
+        """Check if bidirectional is valid."""
+        if not v:
+            raise NotImplementedError("Unidirectional connections are not supported yet.")
+        return v

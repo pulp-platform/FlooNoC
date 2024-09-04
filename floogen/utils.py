@@ -8,7 +8,7 @@
 import math
 import shutil
 import subprocess
-from typing import Union
+from typing import Union, List
 
 
 def cdiv(x, y) -> int:
@@ -51,15 +51,23 @@ def sv_param_decl(
     value: Union[int, str],
     ptype: str = "localparam",
     dtype: str = "int unsigned",
-    array_size: Union[int, str] = None,
+    array_size: Union[int, str, List[Union[int, str]]] = None,
 ) -> str:
     """Declare a SystemVerilog parameter."""
     assert ptype in ["localparam", "parameter"]
+    def _array_fmt(size):
+        if isinstance(size, int):
+            return f"[{size-1}:0]"
+        return f"[{size}:0]"
+
     if array_size is None:
         return f"{ptype} {dtype} {name} = {value};\n"
-    if isinstance(array_size, int):
-        return f"{ptype} {dtype}[{array_size-1}:0] {name} = {value};\n"
-    return f"{ptype} {dtype}[{array_size}:0] {name} = {value};\n"
+    if isinstance(array_size, (int, str)):
+        return f"{ptype} {dtype}{_array_fmt(array_size)} {name} = {value};\n"
+    if isinstance(array_size, list):
+        array_fmt = "".join([_array_fmt(size) for size in array_size])
+        return f"{ptype} {dtype}{array_fmt} {name} = {value};\n"
+    raise ValueError("array_size must be int, str, or list.")
 
 
 def sv_typedef(name: str, dtype: str = "logic", array_size: int = None) -> str:
@@ -80,6 +88,25 @@ def sv_struct_typedef(name: str, fields: dict, union=False) -> str:
         typedef += f"    {dtype} {field};\n"
     typedef += f"}} {name};\n\n"
     return typedef
+
+def sv_enum_typedef(name: str, fields_dict: dict=None, fields_list: list=None) -> str:
+    """Declare a SystemVerilog enum typedef."""
+    if fields_dict is not None:
+        bitwidth = clog2(max(fields_dict.values()) + 1)
+        typedef = f"typedef enum logic[{bitwidth-1}:0] {{\n"
+        for field, value in fields_dict.items():
+            typedef += f"    {snake_to_camel(field)} = {value},\n"
+        typedef = typedef[:-2] + f"}} {name};\n\n"
+    elif fields_list is not None:
+        bitwidth = clog2(len(fields_list))
+        typedef = f"typedef enum logic[{bitwidth-1}:0] {{\n"
+        for i, field in enumerate(fields_list):
+            typedef += f"    {snake_to_camel(field)} = {i},\n"
+        typedef += f"}} {name};\n\n"
+    else:
+        raise ValueError("fields_dict or fields_list must be provided.")
+    return typedef
+
 
 def verible_format(string: str) -> str:
     """Format the string using verible-verilog-format."""

@@ -91,19 +91,15 @@ connections:
     - [0, 3]
     dst_lvl: 1
     allow_multi: true
-    bidirectional: true
   - src: "router"
     dst: "hbm"
     dst_range:
     - [0, 7]
     src_lvl: 0
     allow_multi: true
-    bidirectional: true
   - src: "router"
     dst: "serial_link"
     src_lvl: 0
-    bidirectional: true
   - src: "router"
     dst: "peripherals"
     src_lvl: 0
-    bidirectional: true

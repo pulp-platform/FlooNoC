@@ -5,7 +5,7 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from typing import ClassVar, List, Union, Dict, Optional, NamedTuple
+from typing import ClassVar, List, Union, Dict
 from abc import ABC, abstractmethod
 from pydantic import BaseModel
 
@@ -138,16 +138,6 @@ class Link(BaseModel, ABC):
                            phys_ch: f"floo_{phys_ch}_chan_t"}
             string += sv_struct_typedef(f"floo_{phys_ch}_t", struct_dict)
         return string
-
-
-class XYLinks(NamedTuple):
-    """Class to describe the directed links of a router."""
-
-    EAST: Optional[Link] = None
-    NORTH: Optional[Link] = None
-    SOUTH: Optional[Link] = None
-    WEST: Optional[Link] = None
-    EJECT: Optional[Link] = None
 
 
 class NarrowWideLink(Link):

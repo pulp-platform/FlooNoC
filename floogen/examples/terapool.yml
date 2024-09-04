@@ -2,11 +2,11 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-name: occamy_mesh
-description: "Occamy mesh configuration for FlooGen"
+name: terapool
+description: "Terapool AXI NoC"
 
 routing:
-  route_algo: "XY"
+  route_algo: "SRC"
   use_id_table: true
 
 protocols:
@@ -40,84 +40,86 @@ protocols:
     user_width: 1
 
 endpoints:
-  - name: "cluster"
-    array: [3, 8]
-    addr_range:
-      base: 0x0000_1000_0000
-      size: 0x0000_0004_0000
+  - name: "group"
+    array: [4, 4]
     mgr_port_protocol:
-      - "narrow"
-      - "wide"
-    sbr_port_protocol:
-      - "narrow"
       - "wide"
   - name: "hbm"
-    array: [8]
+    array: [16]
     addr_range:
       base: 0x0000_8000_0000
       size: 0x0000_4000_0000
     sbr_port_protocol:
-      - "narrow"
       - "wide"
-  - name: "serial_link"
-    array: [3]
-    addr_range:
-      base: 0x0100_0000_0000
-      size: 0x0010_000_0000
-    mgr_port_protocol:
-      - "narrow"
-      - "wide"
-    sbr_port_protocol:
-      - "narrow"
-      - "wide"
-  - name: "cva6"
-    mgr_port_protocol:
-      - "narrow"
   - name: "peripherals"
     addr_range:
       start: 0x0000_0000_0000
       end: 0x0000_0fff_ffff
     mgr_port_protocol:
-      - "narrow"
+      - "wide"
     sbr_port_protocol:
-      - "narrow"
+      - "wide"
 
 routers:
-  - name: "router"
-    array: [3, 8]
+  - name: "group_router"
+    array: [4, 4]
     degree: 5
+  - name: "periph_router"
 
 connections:
-  - src: "cluster"
-    dst: "router"
+  - src: "group"
+    dst: "group_router"
     src_range:
-    - [0, 2]
-    - [0, 7]
+    - [0, 3]
+    - [0, 3]
     dst_range:
-    - [0, 2]
-    - [0, 7]
+    - [0, 3]
+    - [0, 3]
     dst_dir: "Eject"
+  # HBM West
   - src: "hbm"
-    dst: "router"
+    dst: "group_router"
     src_range:
-    - [0, 7]
+    - [0, 3]
     dst_range:
     - [0, 0]
-    - [0, 7]
+    - [0, 3]
     dst_dir: "West"
-  - src: "serial_link"
-    dst: "router"
+  # HBM South
+  - src: "hbm"
+    dst: "group_router"
     src_range:
-    - [0, 2]
+    - [4, 7]
     dst_range:
-    - [0, 2]
+    - [0, 3]
     - [0, 0]
     dst_dir: "South"
-  - src: "cva6"
-    dst: "router"
-    dst_idx: [0, 7]
+  # HBM East
+  - src: "hbm"
+    dst: "group_router"
+    src_range:
+    - [8, 11]
+    dst_range:
+    - [3, 3]
+    - [0, 3]
+    dst_dir: "East"
+  # HBM North
+  - src: "hbm"
+    dst: "group_router"
+    src_range:
+    - [12, 14]
+    dst_range:
+    - [0, 2]
+    - [3, 3]
     dst_dir: "North"
-  - src: "peripherals"
-    dst: "router"
-    dst_idx: [1, 7]
+  # Attach special peripheral/HBM router to the mesh
+  - src: "periph_router"
+    dst: "group_router"
+    dst_idx: [3, 3]
     dst_dir: "North"
+  # Attach last HBM channel and peripherals to the special router
+  - src: "periph_router"
+    dst: "hbm"
+    dst_idx: [15]
+  - src: "periph_router"
+    dst: "peripherals"

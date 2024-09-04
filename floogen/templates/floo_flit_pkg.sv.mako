@@ -33,18 +33,6 @@ package floo_${name}_pkg;
 
   ${noc.routing.render_flit_header()}
 
-  /////////////////////
-  //   Address Map   //
-  /////////////////////
-
-% if noc.routing.use_id_table:
-  ${noc.routing.sam.render(aw=noc.routing.addr_width)}
-% else:
-  localparam int unsigned SamNumRules = 1;
-  typedef logic sam_rule_t;
-  localparam sam_rule_t Sam = '0;
-% endif
-
   ////////////////////////
   //   Flits Typedefs   //
   ////////////////////////

@@ -62,8 +62,6 @@ module floo_vc_narrow_wide_chimney
   parameter bit CutRsp                           = 1'b1,
   /// Type for implementation inputs and outputs
   parameter type sram_cfg_t                      = logic,
-  /// Number of routes in the routing table
-  parameter int unsigned NumRoutes               = 0,
    /// Used for ID-based and XY routing
   parameter int unsigned IdWidth                 = 0,
   //on which port the chimney is connected to the router (as seen from the router)
@@ -80,7 +78,15 @@ module floo_vc_narrow_wide_chimney
   parameter int WormholeVCDepth                  = 3,
   /// Used for ID-based routing
   parameter int unsigned NumAddrRules            = 0,
-  parameter type         addr_rule_t             = logic
+  parameter type         addr_rule_t             = logic,
+  /// Number of System Address Map Rules
+  parameter int unsigned SamNumRules             = 0,
+  /// Type of System Address Map Rule
+  parameter type sam_rule_t                      = logic,
+  /// System Address Map
+  parameter sam_rule_t [SamNumRules-1:0] Sam     = '0,
+  /// Number of routes in the routing table
+  parameter int unsigned NumRoutes               = 0
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -970,8 +976,8 @@ module floo_vc_narrow_wide_chimney
     .RouteAlgo    ( RouteAlgo     ),
     .IdWidth      ( IdWidth       ),
     .id_t         ( id_t          ),
-    .NumAddrRules ( NumAddrRules  ),
-    .addr_rule_t  ( addr_rule_t   )
+    .NumAddrRules ( SamNumRules   ),
+    .addr_rule_t  ( sam_rule_t    )
   ) i_floo_req_look_ahead_routing (
     .clk_i,
     .rst_ni,
@@ -988,8 +994,8 @@ module floo_vc_narrow_wide_chimney
     .RouteAlgo    ( RouteAlgo     ),
     .IdWidth      ( IdWidth       ),
     .id_t         ( id_t          ),
-    .NumAddrRules ( NumAddrRules  ),
-    .addr_rule_t  ( addr_rule_t   )
+    .NumAddrRules ( SamNumRules   ),
+    .addr_rule_t  ( sam_rule_t    )
   ) i_floo_rsp_look_ahead_routing (
     .clk_i,
     .rst_ni,
@@ -1006,8 +1012,8 @@ module floo_vc_narrow_wide_chimney
     .RouteAlgo    ( RouteAlgo     ),
     .IdWidth      ( IdWidth       ),
     .id_t         ( id_t          ),
-    .NumAddrRules ( NumAddrRules  ),
-    .addr_rule_t  ( addr_rule_t)
+    .NumAddrRules ( SamNumRules   ),
+    .addr_rule_t  ( sam_rule_t    )
   ) i_floo_wide_look_ahead_routing (
     .clk_i,
     .rst_ni,

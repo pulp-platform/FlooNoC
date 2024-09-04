@@ -1,39 +1,63 @@
+<%!
+    from floogen.model.routing import XYDirections, RouteAlgo
+%>\
 <% def camelcase(s):
   return ''.join(x.capitalize() or '_' for x in s.split('_'))
 %>\
-% if router.route_algo.value == 'IdTable':
+<% req_type = next(d for d in router.incoming if d is not None).req_type %>\
+<% rsp_type = next(d for d in router.incoming if d is not None).rsp_type %>\
+<% wide_type = next(d for d in router.incoming if d is not None).wide_type %>\
+% if router.route_algo == RouteAlgo.ID:
 ${router.table.render()}
 % endif
 
-${router.incoming[0].req_type} [${len(router.incoming)-1}:0] ${router.name}_req_in;
-${router.incoming[0].rsp_type} [${len(router.incoming)-1}:0] ${router.name}_rsp_out;
-${router.outgoing[0].req_type} [${len(router.outgoing)-1}:0] ${router.name}_req_out;
-${router.outgoing[0].rsp_type} [${len(router.outgoing)-1}:0] ${router.name}_rsp_in;
-${router.incoming[0].wide_type} [${len(router.incoming)-1}:0] ${router.name}_wide_in;
-${router.outgoing[0].wide_type} [${len(router.outgoing)-1}:0] ${router.name}_wide_out;
+${req_type} [${len(router.incoming)-1}:0] ${router.name}_req_in;
+${rsp_type} [${len(router.incoming)-1}:0] ${router.name}_rsp_out;
+${req_type} [${len(router.outgoing)-1}:0] ${router.name}_req_out;
+${rsp_type} [${len(router.outgoing)-1}:0] ${router.name}_rsp_in;
+${wide_type} [${len(router.incoming)-1}:0] ${router.name}_wide_in;
+${wide_type} [${len(router.outgoing)-1}:0] ${router.name}_wide_out;
 
 % for i, link in enumerate(router.incoming):
-  assign ${router.name}_req_in[${i}] = ${link.req_name()};
-% endfor
-
-% for i, link in enumerate(router.incoming):
-  assign ${link.rsp_name()} = ${router.name}_rsp_out[${i}];
-% endfor
-
-% for i, link in enumerate(router.outgoing):
-  assign ${link.req_name()} = ${router.name}_req_out[${i}];
-% endfor
-
-% for i, link in enumerate(router.outgoing):
-  assign ${router.name}_rsp_in[${i}] = ${link.rsp_name()};
+  % if link is not None:
+    assign ${router.name}_req_in[${i}] = ${link.req_name()};
+  % else:
+    assign ${router.name}_req_in[${i}] = '0;
+  % endif
 % endfor
 
 % for i, link in enumerate(router.incoming):
-  assign ${router.name}_wide_in[${i}] = ${link.wide_name()};
+  % if link is not None:
+    assign ${link.rsp_name()} = ${router.name}_rsp_out[${i}];
+  % endif
 % endfor
 
 % for i, link in enumerate(router.outgoing):
-  assign ${link.wide_name()} = ${router.name}_wide_out[${i}];
+  % if link is not None:
+    assign ${link.req_name()} = ${router.name}_req_out[${i}];
+  % endif
+% endfor
+
+% for i, link in enumerate(router.outgoing):
+  % if link is not None:
+    assign ${router.name}_rsp_in[${i}] = ${link.rsp_name()};
+  % else:
+    assign ${router.name}_rsp_in[${i}] = '0;
+  % endif
+% endfor
+
+% for i, link in enumerate(router.incoming):
+  % if link is not None:
+    assign ${router.name}_wide_in[${i}] = ${link.wide_name()};
+  % else:
+    assign ${router.name}_wide_in[${i}] = '0;
+  % endif
+% endfor
+
+% for i, link in enumerate(router.outgoing):
+  % if link is not None:
+    assign ${link.wide_name()} = ${router.name}_wide_out[${i}];
+  % endif
 % endfor
 
 floo_narrow_wide_router #(
@@ -43,7 +67,7 @@ floo_narrow_wide_router #(
   .ChannelFifoDepth (2),
   .OutputFifoDepth (2),
   .id_t(id_t),
-% if router.route_algo.value == 'IdTable':
+% if router.route_algo == RouteAlgo.ID:
   .NumAddrRules (${len(router.table.rules)}),
   .addr_rule_t (${router.name}_map_rule_t),
 % endif
@@ -52,8 +76,12 @@ floo_narrow_wide_router #(
   .clk_i,
   .rst_ni,
   .test_enable_i,
+% if router.route_algo == RouteAlgo.XY:
+  .id_i (${router.id.render()}),
+% else:
   .id_i ('0),
-% if router.route_algo.value == 'IdTable':
+% endif
+% if router.route_algo == RouteAlgo.ID:
   .id_route_map_i (${camelcase(router.name + "_map")}),
 % else:
   .id_route_map_i ('0),

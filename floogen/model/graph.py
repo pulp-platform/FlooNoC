@@ -9,8 +9,10 @@ from typing import List, Tuple
 
 import networkx as nx
 
+from floogen.model.routing import XYDirections
 
-class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
+
+class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
     """Network graph class."""
 
     def __init__(self):
@@ -30,9 +32,7 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
     def add_edge(self, u_of_edge: str, v_of_edge: str, **attr):
         """Add an edge to the graph."""
         if self.has_edge(u_of_edge, v_of_edge):
-            raise ValueError(
-                f"Edge ({u_of_edge}, {v_of_edge}) already exists in the graph."
-            )
+            raise ValueError(f"Edge ({u_of_edge}, {v_of_edge}) already exists in the graph.")
         assert "type" in attr, "Edge type not provided"
         if "obj" not in attr:
             attr["obj"] = None
@@ -41,7 +41,7 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
     def add_edge_bidir(self, u_of_edge: str, v_of_edge: str, **attr):
         """Add a bidirectional edge to the graph."""
         self.add_edge(u_of_edge, v_of_edge, **attr)
-        self.add_edge(v_of_edge, u_of_edge, **attr) # pylint: disable=arguments-out-of-order
+        self.add_edge(v_of_edge, u_of_edge, **attr)  # pylint: disable=arguments-out-of-order
 
     def get_node_obj(self, node):
         """Return the node object."""
@@ -111,21 +111,21 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
         """Return the outgoing edges from the node."""
         if filters is None:
             filters = []
-        filters.append(lambda e: e[0] == node)
+        filters = [lambda e: e[0] == node] + filters
         return self.get_edges(filters=filters, with_name=with_name)
 
     def get_edges_to(self, node, filters=None, with_name=False):
         """Return the incoming edges to the node."""
         if filters is None:
             filters = []
-        filters.append(lambda e: e[1] == node)
+        filters = [lambda e: e[1] == node] + filters
         return self.get_edges(filters=filters, with_name=with_name)
 
     def get_edges_of(self, node, filters=None, with_name=False):
         """Return the edges of the node."""
         if filters is None:
             filters = []
-        filters.append(lambda e: node in e)
+        filters = [lambda e: node in e] + filters
         return self.get_edges(filters=filters, with_name=with_name)
 
     def get_ni_nodes(self, with_name=False):
@@ -194,7 +194,7 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
         tree: List[int],
         node_type: str,
         edge_type: str,
-        lvl: int=0,
+        lvl: int = 0,
         node_obj=None,
         edge_obj=None,
         connect=True,
@@ -206,8 +206,12 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
             node = f"{parent}_{i}"
             self.add_node(node, type=node_type, lvl=lvl, obj=node_obj)
             if connect and lvl > 0:
-                self.add_edge(parent, node, type=edge_type, obj=edge_obj)
-                self.add_edge(node, parent, type=edge_type, obj=edge_obj)
+                self.add_edge(
+                    parent, node, type=edge_type, obj=edge_obj, src_dir=None, dst_dir=None
+                )
+                self.add_edge(
+                    node, parent, type=edge_type, obj=edge_obj, src_dir=None, dst_dir=None
+                )
             self.add_nodes_as_tree(
                 node, tree, node_type, edge_type, lvl + 1, node_obj, edge_obj, connect
             )
@@ -221,7 +225,7 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
         node_obj=None,
         edge_obj=None,
         connect=True,
-    ): # pylint: disable=too-many-arguments
+    ):  # pylint: disable=too-many-arguments
         """Add nodes as an array."""
         match array:
             case [n]:
@@ -238,17 +242,37 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
                         self.add_node(node, type=node_type, arr_idx=(i, j), obj=node_obj)
                         if i > 0 and connect:
                             self.add_edge(
-                                node, f"{name}_{i-1}_{j}", type=edge_type, obj=edge_obj
+                                node,
+                                f"{name}_{i-1}_{j}",
+                                type=edge_type,
+                                obj=edge_obj,
+                                src_dir=XYDirections.WEST.value,
+                                dst_dir=XYDirections.EAST.value,
                             )
                             self.add_edge(
-                                f"{name}_{i-1}_{j}", node, type=edge_type, obj=edge_obj
+                                f"{name}_{i-1}_{j}",
+                                node,
+                                type=edge_type,
+                                obj=edge_obj,
+                                src_dir=XYDirections.EAST.value,
+                                dst_dir=XYDirections.WEST.value,
                             )
                         if j > 0 and connect:
                             self.add_edge(
-                                node, f"{name}_{i}_{j-1}", type=edge_type, obj=edge_obj
+                                node,
+                                f"{name}_{i}_{j-1}",
+                                type=edge_type,
+                                obj=edge_obj,
+                                src_dir=XYDirections.SOUTH.value,
+                                dst_dir=XYDirections.NORTH.value,
                             )
                             self.add_edge(
-                                f"{name}_{i}_{j-1}", node, type=edge_type, obj=edge_obj
+                                f"{name}_{i}_{j-1}",
+                                node,
+                                type=edge_type,
+                                obj=edge_obj,
+                                src_dir=XYDirections.NORTH.value,
+                                dst_dir=XYDirections.SOUTH.value,
                             )
             case _:
                 raise NotImplementedError(f"Unsupported array {array}")
@@ -257,7 +281,6 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
         """Return the endpoint id."""
         ep_nodes = [name for name, _ in self.get_ep_nodes(with_name=True)]
         return sorted(ep_nodes).index(node)
-
 
     def get_node_id(self, node):
         """Return the node id."""

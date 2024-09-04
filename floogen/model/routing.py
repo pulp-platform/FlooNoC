@@ -36,15 +36,33 @@ class RouteAlgo(Enum):
 class XYDirections(Enum):
     """XY directions enum."""
 
-    NORTH = "North"
-    EAST = "East"
-    SOUTH = "South"
-    WEST = "West"
-    EJECT = "Eject"
+    NORTH = 0
+    EAST = 1
+    SOUTH = 2
+    WEST = 3
+    EJECT = 4
+
+    @classmethod
+    def reverse(cls, direction: int):
+        """Reverse the direction."""
+        return (direction + 2) % 4 if direction != 4 else 4
+
+    @classmethod
+    def to_coords(cls, direction: int):
+        """Convert the direction to coordinates."""
+        return {
+            cls.NORTH.value: Coord(x=0, y=1),
+            cls.EAST.value: Coord(x=1, y=0),
+            cls.SOUTH.value: Coord(x=0, y=-1),
+            cls.WEST.value: Coord(x=-1, y=0),
+            cls.EJECT.value: Coord(x=0, y=0),
+        }[direction]
 
     def __str__(self):
         return self.name
 
+    def __int__(self):
+        return self.value
 
 class Id(BaseModel, ABC):
     """ID class."""
@@ -281,7 +299,7 @@ class RouteTable(BaseModel):
                 self.routes.insert(i, RouteRule(route=None, id=SimpleId(id=i)))
         return self.routes.reverse()
 
-    def render(self, num_route_bits):
+    def render(self, num_route_bits, no_decl=False):
         """Render the SystemVerilog route table."""
         string = ""
         rules_str = ""
@@ -295,15 +313,17 @@ class RouteTable(BaseModel):
         string += sv_param_decl(f"{snake_to_camel(self.name)}NumRoutes", len(self.routes)) + "\n"
         for i, rule in enumerate(self.routes):
             rules_str += f"{rule.render(num_route_bits)}"
-            rules_str += ',' if i != len(self.routes) - 1 else ' '
+            rules_str += "," if i != len(self.routes) - 1 else " "
             if rule.desc is not None:
                 rules_str += f"// {rule.desc}"
             rules_str += "\n"
+        if no_decl:
+            return "'{\n" + rules_str + "}"
         string += sv_param_decl(
             f"{snake_to_camel(self.name)}",
             value="'{\n" + rules_str + "\n}",
             dtype="route_t",
-            array_size=f"{snake_to_camel(self.name)}NumRoutes-1"
+            array_size=f"{snake_to_camel(self.name)}NumRoutes-1",
         )
         return string
 
