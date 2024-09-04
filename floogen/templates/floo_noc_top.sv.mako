@@ -15,7 +15,9 @@ package ${noc.name}_floo_noc_pkg;
   //   Address Map   //
   /////////////////////
 
+% if noc.routing.route_algo.value != "XYRouting":
   ${noc.render_ep_enum()}
+% endif
 
 % if noc.routing.use_id_table:
   ${noc.routing.sam.render(aw=noc.routing.addr_width)}
