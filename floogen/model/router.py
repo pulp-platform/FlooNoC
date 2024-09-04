@@ -64,13 +64,11 @@ class Router(BaseModel, ABC):
     def check_links(self):
         """Check if the number of links is correct."""
         if len(self.incoming) != self.degree:
-            raise ValueError(
-                f"Router {self.name} has {self.incoming} incoming links but should have {self.degree}"
-            )
+            raise ValueError(f"Router {self.name} has {self.incoming} " +
+                             f"incoming links but should have {self.degree}")
         if len(self.outgoing) != self.degree:
-            raise ValueError(
-                f"Router {self.name} has {self.outgoing} outgoing links but should have {self.degree}"
-            )
+            raise ValueError(f"Router {self.name} has {self.outgoing} " +
+                             f"outgoing links but should have {self.degree}")
         return self
 
 class NarrowWideRouter(Router):

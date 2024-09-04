@@ -206,8 +206,12 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
             node = f"{parent}_{i}"
             self.add_node(node, type=node_type, lvl=lvl, obj=node_obj)
             if connect and lvl > 0:
-                self.add_edge(parent, node, type=edge_type, obj=edge_obj, src_dir=None, dst_dir=None)
-                self.add_edge(node, parent, type=edge_type, obj=edge_obj, src_dir=None, dst_dir=None)
+                self.add_edge(
+                    parent, node, type=edge_type, obj=edge_obj, src_dir=None, dst_dir=None
+                )
+                self.add_edge(
+                    node, parent, type=edge_type, obj=edge_obj, src_dir=None, dst_dir=None
+                )
             self.add_nodes_as_tree(
                 node, tree, node_type, edge_type, lvl + 1, node_obj, edge_obj, connect
             )

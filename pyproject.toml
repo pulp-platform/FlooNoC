@@ -63,7 +63,6 @@ suggestion-mode = 'yes'
 [tool.pylint.disable]
 disable = [
     "C0114",  # Missing module docstring
-    "R0801"   # Similar lines in 2 files, TODO: Remove this once FlooGen is integrated into FlooNoC
 ]
 
 [tool.black]

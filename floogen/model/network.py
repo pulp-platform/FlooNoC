@@ -276,9 +276,11 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
             # Add edges between the nodes
             for src, dst in zip(srcs, dsts):
-                self.graph.add_edge(src, dst, type="link", src_dir=con.src_dir, dst_dir=con.dst_dir)
+                self.graph.add_edge(src, dst, type="link",
+                                    src_dir=con.src_dir, dst_dir=con.dst_dir)
                 if con.bidirectional:
-                    self.graph.add_edge(dst, src, type="link", src_dir=con.dst_dir, dst_dir=con.src_dir)
+                    self.graph.add_edge(dst, src, type="link",
+                                        src_dir=con.dst_dir, dst_dir=con.src_dir)
 
     def compile_ids(self):
         """Infer the id type from the network."""
@@ -298,13 +300,15 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                             # If it has a directed edge, we can derive the coordinate from there
                             edge = self.graph.edges[(node_name, neighbor)]
                             if edge["dst_dir"] is not None:
-                                node_id = self.graph.nodes[neighbor]["id"] + \
-                                    XYDirections.to_coords(edge["dst_dir"])
+                                node_id = self.graph.nodes[neighbor]["id"] + XYDirections.to_coords(
+                                    edge["dst_dir"]
+                                )
                                 break
                             edge = self.graph.edges[(neighbor, node_name)]
                             if edge["src_dir"] is not None:
-                                node_id = self.graph.nodes[neighbor]["id"] + \
-                                    XYDirections.to_coords(edge["src_dir"])
+                                node_id = self.graph.nodes[neighbor]["id"] + XYDirections.to_coords(
+                                    edge["src_dir"]
+                                )
                                 break
                     assert node_id is not None
                     if node.id_offset is not None:
@@ -336,21 +340,17 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             else:
                 self.graph.set_edge_obj(edge, NarrowWideLink(**link))
 
-    def compile_routers(self):
+    def compile_routers(self): # pylint: disable=too-many-branches, too-many-locals
         """Infer the router type from the network."""
         for rt_name, rt_obj in self.graph.get_rt_nodes(with_name=True):
-            dir_in_edges = self.graph.get_edges_to(
-                rt_name, filters=[lambda e: self.graph.edges[e]["dst_dir"] is not None], with_name=True
-            )
-            dir_out_edges = self.graph.get_edges_from(
-                rt_name, filters=[lambda e: self.graph.edges[e]["src_dir"] is not None], with_name=True
-            )
-            non_dir_in_edges = self.graph.get_edges_to(
-                rt_name, filters=[lambda e: self.graph.edges[e]["dst_dir"] is None]
-            )
-            non_dir_out_edges = self.graph.get_edges_from(
-                rt_name, filters=[lambda e: self.graph.edges[e]["src_dir"] is None]
-            )
+            dir_in_edges = self.graph.get_edges_to(rt_name,
+                filters=[lambda e: self.graph.edges[e]["dst_dir"] is not None], with_name=True)
+            dir_out_edges = self.graph.get_edges_from(rt_name,
+                filters=[lambda e: self.graph.edges[e]["src_dir"] is not None], with_name=True)
+            non_dir_in_edges = self.graph.get_edges_to(rt_name,
+                filters=[lambda e: self.graph.edges[e]["dst_dir"] is None])
+            non_dir_out_edges = self.graph.get_edges_from(rt_name,
+                filters=[lambda e: self.graph.edges[e]["src_dir"] is None])
             if rt_obj.degree is not None:
                 num_edges = rt_obj.degree
             else:
@@ -647,7 +647,6 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         """Render the network interfaces tables in the generated code."""
         string = ""
         sorted_ni_list = sorted(self.graph.get_ni_nodes(), key=lambda ni: ni.id.id, reverse=True)
-        max_id = sorted_ni_list[0].id.id
         for ni in sorted_ni_list:
             string += ni.table.render(num_route_bits=self.routing.num_route_bits, no_decl=True)
             string += ",\n"

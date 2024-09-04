@@ -5,7 +5,7 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from typing import ClassVar, List, Union, Dict, Optional, NamedTuple
+from typing import ClassVar, List, Union, Dict
 from abc import ABC, abstractmethod
 from pydantic import BaseModel
 
