@@ -8,6 +8,8 @@
 from typing import Optional, List, Tuple, Dict
 from pydantic import BaseModel, field_validator, model_validator
 
+from floogen.model.routing import XYDirections
+
 
 class ConnectionDesc(BaseModel):
     """Connection class to describe a connection between routers and endpoints."""
@@ -42,6 +44,14 @@ class ConnectionDesc(BaseModel):
         if self.dst_idx and self.dst_lvl:
             raise ValueError("dst_idx and dst_lvl are mutually exclusive")
         return self
+
+    @field_validator("src_dir", "dst_dir", mode="before")
+    @classmethod
+    def str_to_int(cls, v):
+        """Convert str to int."""
+        if isinstance(v, str):
+            return XYDirections[v.upper()].value
+        return v
 
     @field_validator("bidirectional", mode="after")
     @classmethod
