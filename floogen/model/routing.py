@@ -36,15 +36,33 @@ class RouteAlgo(Enum):
 class XYDirections(Enum):
     """XY directions enum."""
 
-    NORTH = "North"
-    EAST = "East"
-    SOUTH = "South"
-    WEST = "West"
-    EJECT = "Eject"
+    NORTH = 0
+    EAST = 1
+    SOUTH = 2
+    WEST = 3
+    EJECT = 4
+
+    @classmethod
+    def reverse(cls, direction: int):
+        """Reverse the direction."""
+        return (direction + 2) % 4 if direction != 4 else 4
+
+    @classmethod
+    def to_coords(cls, direction: int):
+        """Convert the direction to coordinates."""
+        return {
+            cls.NORTH.value: Coord(x=0, y=1),
+            cls.EAST.value: Coord(x=1, y=0),
+            cls.SOUTH.value: Coord(x=0, y=-1),
+            cls.WEST.value: Coord(x=-1, y=0),
+            cls.EJECT.value: Coord(x=0, y=0),
+        }[direction]
 
     def __str__(self):
         return self.name
 
+    def __int__(self):
+        return self.value
 
 class Id(BaseModel, ABC):
     """ID class."""
