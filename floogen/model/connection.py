@@ -41,3 +41,11 @@ class ConnectionDesc(BaseModel):
         if self.dst_idx and self.dst_lvl:
             raise ValueError("dst_idx and dst_lvl are mutually exclusive")
         return self
+
+    @field_validator("bidirectional", mode="after")
+    @classmethod
+    def check_bidirectional(cls, v):
+        """Check if bidirectional is valid."""
+        if not v:
+            raise NotImplementedError("Unidirectional connections are not supported yet.")
+        return v

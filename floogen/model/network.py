@@ -308,11 +308,6 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         for edge, _ in self.graph.get_link_edges(with_name=True):
             # Check if link is bidirectional
             is_bidirectional = self.graph.has_edge(edge[1], edge[0])
-            if not is_bidirectional:
-                raise NotImplementedError(
-                    "Only bidirectional links are \
-                    supported yet inside the network"
-                )
             link = {
                 "source": edge[0],
                 "dest": edge[1],
