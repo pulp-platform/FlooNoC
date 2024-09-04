@@ -85,6 +85,7 @@ endpoints:
 routers:
   - name: "router"
     array: [3, 8]
+    degree: 5
 
 connections:
   - src: "cluster"
