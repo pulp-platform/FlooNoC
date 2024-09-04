@@ -110,7 +110,6 @@ connections:
     dst_range:
     - [0, 2]
     - [0, 7]
-    bidirectional: true
   - src: "hbm"
     dst: "router"
     src_range:
@@ -119,7 +118,6 @@ connections:
     dst_range:
     - [0, 0]
     - [0, 7]
-    bidirectional: true
   - src: "serial_link"
     dst: "router"
     src_range:
@@ -128,12 +126,9 @@ connections:
     dst_range:
     - [0, 2]
     - [0, 0]
-    bidirectional: true
   - src: "cva6"
     dst: "router"
     dst_idx: [0, 7]
-    bidirectional: true
   - src: "peripherals"
     dst: "router"
     dst_idx: [1, 7]
-    bidirectional: true

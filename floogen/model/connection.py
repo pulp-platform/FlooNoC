@@ -23,7 +23,7 @@ class ConnectionDesc(BaseModel):
     dst_lvl: Optional[int] = None
     coord_offset: Optional[Dict] = None
     allow_multi: Optional[bool] = False
-    bidirectional: Optional[bool] = False
+    bidirectional: Optional[bool] = True
 
     @field_validator("src_idx", "dst_idx", mode="before")
     @classmethod
