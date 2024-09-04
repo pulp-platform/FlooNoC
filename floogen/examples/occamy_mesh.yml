@@ -51,9 +51,6 @@ endpoints:
     sbr_port_protocol:
       - "narrow"
       - "wide"
-    id_offset:
-      x: 0
-      y: 0
   - name: "hbm"
     array: [1, 8]
     addr_range:
@@ -62,9 +59,6 @@ endpoints:
     sbr_port_protocol:
       - "narrow"
       - "wide"
-    id_offset:
-      x: -1
-      y: 0
   - name: "serial_link"
     array: [3, 1]
     addr_range:
@@ -76,22 +70,13 @@ endpoints:
     sbr_port_protocol:
       - "narrow"
       - "wide"
-    id_offset:
-      x: 0
-      y: -1
   - name: "cva6"
     mgr_port_protocol:
       - "narrow"
-    id_offset:
-      x: 0
-      y: 8
   - name: "peripherals"
     addr_range:
       start: 0x0000_0000_0000
       end: 0x0000_0fff_ffff
-    id_offset:
-      x: 1
-      y: 8
     mgr_port_protocol:
       - "narrow"
     sbr_port_protocol:
@@ -110,6 +95,7 @@ connections:
     dst_range:
     - [0, 2]
     - [0, 7]
+    dst_dir: "Eject"
   - src: "hbm"
     dst: "router"
     src_range:
@@ -118,6 +104,7 @@ connections:
     dst_range:
     - [0, 0]
     - [0, 7]
+    dst_dir: "West"
   - src: "serial_link"
     dst: "router"
     src_range:
@@ -126,9 +113,12 @@ connections:
     dst_range:
     - [0, 2]
     - [0, 0]
+    dst_dir: "South"
   - src: "cva6"
     dst: "router"
     dst_idx: [0, 7]
+    dst_dir: "North"
   - src: "peripherals"
     dst: "router"
     dst_idx: [1, 7]
+    dst_dir: "North"
