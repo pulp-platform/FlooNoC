@@ -21,7 +21,6 @@ class ConnectionDesc(BaseModel):
     dst_idx: Optional[List[int]] = None
     src_lvl: Optional[int] = None
     dst_lvl: Optional[int] = None
-    coord_offset: Optional[Dict] = None
     dst_dir: Optional[int] = None
     src_dir: Optional[int] = None
     allow_multi: Optional[bool] = False
