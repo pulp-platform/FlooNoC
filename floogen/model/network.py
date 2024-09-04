@@ -15,15 +15,15 @@ from mako.lookup import Template
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from floogen.model.routing import Routing, RouteAlgo, RouteMapRule, RouteRule, RouteMap, RouteTable
-from floogen.model.routing import Coord, SimpleId, AddrRange
+from floogen.model.routing import Coord, SimpleId, AddrRange, XYDirections
 from floogen.model.graph import Graph
 from floogen.model.endpoint import EndpointDesc, Endpoint
-from floogen.model.router import RouterDesc, NarrowWideRouter, NarrowWideXYRouter
+from floogen.model.router import RouterDesc, NarrowWideRouter
 from floogen.model.connection import ConnectionDesc
-from floogen.model.link import NarrowWideLink, NarrowWideVCLink, XYLinks, NarrowLink, NarrowVCLink
+from floogen.model.link import NarrowWideLink, NarrowWideVCLink, NarrowLink, NarrowVCLink
 from floogen.model.network_interface import NarrowWideAxiNI
 from floogen.model.protocol import AXI4, AXI4Bus
-from floogen.utils import clog2, sv_enum_typedef, sv_param_decl, snake_to_camel
+from floogen.utils import clog2, sv_enum_typedef, sv_param_decl
 import floogen.templates
 
 
@@ -120,7 +120,6 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                         node_obj=rt_desc,
                         connect=rt_desc.auto_connect,
                     )
-                    # rt.id = Coord(x=x, y=y)
                 # tree case
                 case (None, tree_list):
                     self.graph.add_nodes_as_tree(
@@ -285,12 +284,29 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         """Infer the id type from the network."""
         match self.routing.route_algo:
             case RouteAlgo.XY:
-                for node_name, node in self.graph.get_nodes(with_name=True):
-                    if "arr_idx" in self.graph.nodes[node_name]:
-                        x, y = self.graph.get_node_arr_idx(node_name)
-                    else:
-                        x, y = 0, 0
+                # 1st stage: Get all router nodes
+                for node_name, node in self.graph.get_rt_nodes(with_name=True):
+                    x, y = self.graph.get_node_arr_idx(node_name)
                     node_id = Coord(x=x, y=y)
+                    if node.id_offset is not None:
+                        node_id += node.id_offset
+                    self.graph.nodes[node_name]["id"] = node_id
+                for node_name, node in self.graph.get_ni_nodes(with_name=True):
+                    # Search for a neighbor node *with* an array index
+                    for neighbor in self.graph.neighbors(node_name):
+                        if self.graph.nodes[neighbor].get("id") is not None:
+                            # If it has a directed edge, we can derive the coordinate from there
+                            edge = self.graph.edges[(node_name, neighbor)]
+                            if edge["dst_dir"] is not None:
+                                node_id = self.graph.nodes[neighbor]["id"] + \
+                                    XYDirections.to_coords(edge["dst_dir"])
+                                break
+                            edge = self.graph.edges[(neighbor, node_name)]
+                            if edge["src_dir"] is not None:
+                                node_id = self.graph.nodes[neighbor]["id"] + \
+                                    XYDirections.to_coords(edge["src_dir"])
+                                break
+                    assert node_id is not None
                     if node.id_offset is not None:
                         node_id += node.id_offset
                     self.graph.nodes[node_name]["id"] = node_id
@@ -322,44 +338,67 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     def compile_routers(self):
         """Infer the router type from the network."""
-        for rt_name, rt_desc in self.graph.get_rt_nodes(with_name=True):
-            match self.routing.route_algo:
-                case RouteAlgo.XY:
-                    rt_id = self.graph.get_node_id(rt_name)
-                    incoming, outgoing = {}, {}
-                    for edge in self.graph.get_edges_to(rt_name):
-                        neighbor_id = self.graph.get_node_id(edge.source)
-                        incoming_dir = str(Coord.get_dir(rt_id, neighbor_id))
-                        if incoming_dir in incoming:
-                            raise ValueError("Incoming direction is already defined")
-                        incoming[incoming_dir] = edge
-                    for edge in self.graph.get_edges_from(rt_name):
-                        neighbor_id = self.graph.get_node_id(edge.dest)
-                        outgoing_dir = str(Coord.get_dir(rt_id, neighbor_id))
-                        if outgoing_dir in outgoing:
-                            raise ValueError("Outgoing direction is already defined")
-                        outgoing[outgoing_dir] = edge
-                    router_dict = {
-                        "name": rt_name,
-                        "incoming": XYLinks(**incoming),
-                        "outgoing": XYLinks(**outgoing),
-                        "id": rt_id,
-                    }
-                    self.graph.set_node_obj(rt_name, NarrowWideXYRouter(**router_dict))
+        for rt_name, rt_obj in self.graph.get_rt_nodes(with_name=True):
+            dir_in_edges = self.graph.get_edges_to(
+                rt_name, filters=[lambda e: self.graph.edges[e]["dst_dir"] is not None], with_name=True
+            )
+            dir_out_edges = self.graph.get_edges_from(
+                rt_name, filters=[lambda e: self.graph.edges[e]["src_dir"] is not None], with_name=True
+            )
+            non_dir_in_edges = self.graph.get_edges_to(
+                rt_name, filters=[lambda e: self.graph.edges[e]["dst_dir"] is None]
+            )
+            non_dir_out_edges = self.graph.get_edges_from(
+                rt_name, filters=[lambda e: self.graph.edges[e]["src_dir"] is None]
+            )
+            if rt_obj.degree is not None:
+                num_edges = rt_obj.degree
+            else:
+                num_edges = len(dir_in_edges) + len(non_dir_in_edges)
 
-                case RouteAlgo.ID | RouteAlgo.SRC:
-                    router_dict = {
-                        "name": rt_name,
-                        "incoming": self.graph.get_edges_to(rt_name),
-                        "outgoing": self.graph.get_edges_from(rt_name),
-                        "route_algo": self.routing.route_algo,
-                    }
-                    # Set the degree of the router
-                    if rt_desc.degree is not None:
-                        router_dict["degree"] = rt_desc.degree
-                    else:
-                        router_dict["degree"] = len(set(self.graph.neighbors(rt_name)))
-                    self.graph.set_node_obj(rt_name, NarrowWideRouter(**router_dict))
+            incoming, outgoing = [None] * num_edges, [None] * num_edges
+            # First, add the directed edges to in_dir_edges and out_dir_edges edges
+            for edge, edge_obj in dir_in_edges:
+                in_dir = self.graph.edges[edge]["dst_dir"]
+                if incoming[in_dir] is not None:
+                    raise ValueError(
+                        f"Trying to set incoming link #{in_dir} of {rt_name} " +
+                        f"to ({edge[0]} -> {edge[1]}), already taken by " +
+                        f"({incoming[in_dir].source} -> {incoming[in_dir].dest})")
+                incoming[in_dir] = edge_obj
+            for edge, edge_obj in dir_out_edges:
+                out_dir = self.graph.edges[edge]["src_dir"]
+                if outgoing[out_dir] is not None:
+                    raise ValueError(
+                        f"Trying to set outgoing link #{out_dir} of {rt_name} " +
+                        f"to ({edge[0]} -> {edge[1]}), already taken by " +
+                        f"({outgoing[out_dir].source} -> {outgoing[out_dir].dest})")
+                outgoing[out_dir] = edge_obj
+            # Second, add the undirected edges to in_dir_edges and out_dir_edges edges
+            for i, in_edge in enumerate(incoming):
+                if non_dir_in_edges == []:
+                    break
+                if in_edge is None:
+                    incoming[i] = non_dir_in_edges.pop(0)
+            for i, out_edge in enumerate(outgoing):
+                if non_dir_out_edges == []:
+                    break
+                if out_edge is None:
+                    outgoing[i] = non_dir_out_edges.pop(0)
+
+            assert non_dir_in_edges == []
+            assert non_dir_out_edges == []
+
+            router_dict = {
+                "name": rt_name,
+                "incoming": incoming,
+                "outgoing": outgoing,
+                "degree": num_edges,
+                "route_algo": self.routing.route_algo,
+            }
+            if self.routing.route_algo == RouteAlgo.XY:
+                router_dict["id"] = self.graph.get_node_id(rt_name)
+            self.graph.set_node_obj(rt_name, NarrowWideRouter(**router_dict))
 
     def compile_endpoints(self):
         """Infer the endpoint type from the network."""
@@ -422,10 +461,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
                 # 1D array case
                 case (_,):
-                    if self.routing.route_algo == RouteAlgo.XY:
-                        raise ValueError("Use 2D arrays for XY routing")
                     node_idx = self.graph.get_node_arr_idx(ni_name)[0]
-                    ni_dict["arr_idx"] = SimpleId(id=node_idx)
                     if ep_desc.is_sbr():
                         ni_dict["addr_range"] = ep_desc.addr_range.model_copy().set_idx(node_idx)
 

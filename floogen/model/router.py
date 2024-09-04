@@ -10,11 +10,11 @@ from typing import Optional, List, ClassVar, Tuple, Union
 from importlib.resources import files, as_file
 from abc import ABC, abstractmethod
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 from mako.lookup import Template
 
 from floogen.model.routing import RouteMap, Id, Coord, RouteAlgo
-from floogen.model.link import Link, XYLinks
+from floogen.model.link import Link
 import floogen.templates
 
 
@@ -49,50 +49,35 @@ class Router(BaseModel, ABC):
     """Abstract router class of an actual router"""
 
     name: str
-    incoming: List[Link]
-    outgoing: List[Link]
+    incoming: List[Optional[Link]]
+    outgoing: List[Optional[Link]]
     degree: int
     route_algo: RouteAlgo
     table: Optional[RouteMap] = None
+    id: Optional[Coord] = None
 
     @abstractmethod
     def render(self):
         """Declare the router in the generated code."""
 
-
-class XYRouter(BaseModel, ABC):
-    """Abstract router class of an actual router"""
-
-    name: str
-    incoming: XYLinks
-    outgoing: XYLinks
-    degree: int = 5  # XY router always has 5 links
-    route_algo: RouteAlgo = RouteAlgo.XY
-    id: Coord
-
-    @abstractmethod
-    def render(self):
-        """Declare the router in the generated code."""
-
+    @model_validator(mode="after")
+    def check_links(self):
+        """Check if the number of links is correct."""
+        if len(self.incoming) != self.degree:
+            raise ValueError(
+                f"Router {self.name} has {self.incoming} incoming links but should have {self.degree}"
+            )
+        if len(self.outgoing) != self.degree:
+            raise ValueError(
+                f"Router {self.name} has {self.outgoing} outgoing links but should have {self.degree}"
+            )
+        return self
 
 class NarrowWideRouter(Router):
     """Router class to describe a narrow-wide router"""
 
     with as_file(
         files(floogen.templates).joinpath("floo_narrow_wide_router.sv.mako")
-    ) as _tpl_path:
-        _tpl: ClassVar = Template(filename=str(_tpl_path))
-
-    def render(self):
-        """Declare the router in the generated code."""
-        return self._tpl.render(router=self) + "\n"
-
-
-class NarrowWideXYRouter(XYRouter):
-    """Router class to describe a narrow-wide router"""
-
-    with as_file(
-        files(floogen.templates).joinpath("floo_narrow_wide_xy_router.sv.mako")
     ) as _tpl_path:
         _tpl: ClassVar = Template(filename=str(_tpl_path))
 

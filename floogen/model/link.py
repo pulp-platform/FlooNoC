@@ -140,16 +140,6 @@ class Link(BaseModel, ABC):
         return string
 
 
-class XYLinks(NamedTuple):
-    """Class to describe the directed links of a router."""
-
-    EAST: Optional[Link] = None
-    NORTH: Optional[Link] = None
-    SOUTH: Optional[Link] = None
-    WEST: Optional[Link] = None
-    EJECT: Optional[Link] = None
-
-
 class NarrowWideLink(Link):
     """Link class to describe a NarrowWidelink."""
 
