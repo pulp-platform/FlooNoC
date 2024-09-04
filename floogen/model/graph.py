@@ -9,8 +9,10 @@ from typing import List, Tuple
 
 import networkx as nx
 
+from floogen.model.routing import XYDirections
 
 class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
+
     """Network graph class."""
 
     def __init__(self):
@@ -206,8 +208,8 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
             node = f"{parent}_{i}"
             self.add_node(node, type=node_type, lvl=lvl, obj=node_obj)
             if connect and lvl > 0:
-                self.add_edge(parent, node, type=edge_type, obj=edge_obj)
-                self.add_edge(node, parent, type=edge_type, obj=edge_obj)
+                self.add_edge(parent, node, type=edge_type, obj=edge_obj, src_dir=None, dst_dir=None)
+                self.add_edge(node, parent, type=edge_type, obj=edge_obj, src_dir=None, dst_dir=None)
             self.add_nodes_as_tree(
                 node, tree, node_type, edge_type, lvl + 1, node_obj, edge_obj, connect
             )
@@ -238,17 +240,37 @@ class Graph(nx.DiGraph): # pylint: disable=too-many-public-methods
                         self.add_node(node, type=node_type, arr_idx=(i, j), obj=node_obj)
                         if i > 0 and connect:
                             self.add_edge(
-                                node, f"{name}_{i-1}_{j}", type=edge_type, obj=edge_obj
+                                node,
+                                f"{name}_{i-1}_{j}",
+                                type=edge_type,
+                                obj=edge_obj,
+                                src_dir=XYDirections.WEST.value,
+                                dst_dir=XYDirections.EAST.value,
                             )
                             self.add_edge(
-                                f"{name}_{i-1}_{j}", node, type=edge_type, obj=edge_obj
+                                f"{name}_{i-1}_{j}",
+                                node,
+                                type=edge_type,
+                                obj=edge_obj,
+                                src_dir=XYDirections.EAST.value,
+                                dst_dir=XYDirections.WEST.value,
                             )
                         if j > 0 and connect:
                             self.add_edge(
-                                node, f"{name}_{i}_{j-1}", type=edge_type, obj=edge_obj
+                                node,
+                                f"{name}_{i}_{j-1}",
+                                type=edge_type,
+                                obj=edge_obj,
+                                src_dir=XYDirections.SOUTH.value,
+                                dst_dir=XYDirections.NORTH.value,
                             )
                             self.add_edge(
-                                f"{name}_{i}_{j-1}", node, type=edge_type, obj=edge_obj
+                                f"{name}_{i}_{j-1}",
+                                node,
+                                type=edge_type,
+                                obj=edge_obj,
+                                src_dir=XYDirections.NORTH.value,
+                                dst_dir=XYDirections.SOUTH.value,
                             )
             case _:
                 raise NotImplementedError(f"Unsupported array {array}")

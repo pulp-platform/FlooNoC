@@ -277,9 +277,9 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
             # Add edges between the nodes
             for src, dst in zip(srcs, dsts):
-                self.graph.add_edge(src, dst, type="link")
+                self.graph.add_edge(src, dst, type="link", src_dir=con.src_dir, dst_dir=con.dst_dir)
                 if con.bidirectional:
-                    self.graph.add_edge(dst, src, type="link")
+                    self.graph.add_edge(dst, src, type="link", src_dir=con.dst_dir, dst_dir=con.src_dir)
 
     def compile_ids(self):
         """Infer the id type from the network."""
