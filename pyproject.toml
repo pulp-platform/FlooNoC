@@ -23,8 +23,6 @@ dependencies = [
   "matplotlib",
   "mako",
   "ruamel.yaml",
-  "hjson",
-  "jsonref",
   "click",
   "pylint",
   "pytest",
