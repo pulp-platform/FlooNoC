@@ -52,8 +52,8 @@ repo_name: pulp-platform/FlooNoC
 nav:
 - Home:
   - index.md
-  - Getting Started: getting_started.md
   - Repository Structure: repository_structure.md
+- Getting Started: getting_started.md
 - Hardware IPs:
   - Overview: hw/overview.md
   - Links: hw/links.md
