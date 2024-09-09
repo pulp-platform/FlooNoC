@@ -52,7 +52,6 @@ site_url: https://pulp-platform.github.io/FlooNoC
 
 plugins:
   - social:
-      cards_layout: default
   - git-revision-date-localized:
       enable_creation_date: true
   - git-committers:
