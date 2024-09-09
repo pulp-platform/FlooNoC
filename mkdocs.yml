@@ -22,5 +22,19 @@ nav:
   - index.md
   - Getting Started: getting_started.md
   - Repository Structure: repository_structure.md
+- Hardware IPs:
+  - Overview: hw/overview.md
+  - Links: hw/links.md
+  - Router: hw/router.md
+  - Network Interfaces: hw/chimneys.md
+  - Common IPs: hw/common.md
+  - Verification IPs: hw/vips.md
 - FlooGen:
-  - floogen.md
+  - Overview: floogen/overview.md
+  - Routing: floogen/routing.md
+  - Protocols: floogen/protocols.md
+  - Endpoints: floogen/endpoints.md
+  - Routers: floogen/routers.md
+  - Connections: floogen/connections.md
+  - CLI: floogen/cli.md
+  - Known Issues: floogen/known_issues.md
