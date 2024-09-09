@@ -40,6 +40,8 @@ theme:
     repo: fontawesome/brands/github
   features:
     - navigation.expand
+    - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.tracking
     - navigation.sections
     - navigation.indexes
