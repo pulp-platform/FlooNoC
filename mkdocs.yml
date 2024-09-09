@@ -3,8 +3,37 @@
 # SPDX-License-Identifier: Apache-2.0
 
 site_name: FlooNoC
+
+extra_css:
+  - stylesheets/extra.css
+
 theme:
   name: material
+  palette:
+
+    # Default palette
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - scheme: default
+      media: "(prefers-color-scheme: light)"
+      primary: custom
+      accent: light green
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      media: "(prefers-color-scheme: dark)"
+      primary: custom
+      accent: light green
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
   icon:
     repo: fontawesome/brands/github
   features:
