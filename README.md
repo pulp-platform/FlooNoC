@@ -9,7 +9,7 @@
 <img src="docs/img/pulp_logo_icon.svg" alt="Logo" width="100" align="right">
 </a>
 
-This repository provides modules for the FlooNoC, a Network-on-Chip (NoC) which is part of the [PULP (Parallel Ultra-Low Power) Platform](https://pulp-platform.org/). The repository includes Network Interface IPs (named chimneys), Routers and further NoC components to build a complete NoC. FlooNoC mainly supports [AXI4+ATOPs](https://github.com/pulp-platform/axi/tree/master), but can be easily extended to other On-Chip protocols. Arbitrary topologies are supported with several routing algorithms. FlooNoC is designed to be scalable and modular, and can be easily extended with new components. Additionally, FlooNoC provides a generation framework for creating customized NoC configurations.
+_FlooNoC_, is a Network-on-Chip (NoC) research project, which is part of the [PULP (Parallel Ultra-Low Power) Platform](https://pulp-platform.org/). The main idea behind _FlooNoC_ is to provide a scalable high-performance NoC for non-coherent systems. _FlooNoC_ was mainly designed to interface with [AXI4+ATOPs](https://github.com/pulp-platform/axi/tree/master), but can easily be extended to other On-Chip protocols. _FlooNoC_ already provides network interface IPs (named chimneys) for AXI4 protocol, which converts to a custom-link level protocol that provides significantly better scalability than AXI4. _FlooNoC_ also includes protocol-agnostic routers based on the custom link-level protocol to transport payloads. Finally, _FlooNoC_ also include additional NoC components to assemble a complete NoC in a modular fashion. _FlooNoC_ is also highly flexible and supports a wide variety of topologies and routing algorithms. A Network generation framework called _FlooGen_ makes it possible to easily generate entire networks based on a simple configuration file.
 
 <div align="center">
 
@@ -29,13 +29,18 @@ This repository provides modules for the FlooNoC, a Network-on-Chip (NoC) which 
 
 ## 💡 Design Principles
 
-Our NoC design is grounded in the following key principles:
+_FlooNoC_ design is based on the following key principles:
 
-1. **Full AXI4 Support**: Our design fully supports AXI4+ATOPs from AXI5 as outlined [here](https://github.com/pulp-platform/axi/tree/master), particularly multiple outstanding burst transactions. It utilizes low-complexity routers and a decoupled link-level protocol to ensure scalability, thereby enabling tolerance to high-latency off-chip accesses.
-1. **Decoupled Links and Networks**: We use a link-level protocol that is decoupled from the network-level protocol. This allows us to move the complexity of the network-level protocol into the network interfaces, while deploying low-complexity routers in the network, that enable better scalability.
-1. **Wide Physical Channels**: We incorporate wide physical channels in order to meet the high-bandwidth requirements at network endpoints without being constrained by the operating frequency. This is in contrast to the traditional narrow link approach. Further, the NoC avoids any kind of serialization and sends entire messages in a single flit including header and tail information.
-1. **Separation of traffic**: Our design acknowledges the diversity in traffic patterns, as it decouples links and networks to handle wide, high-bandwidth, burst-based traffic and narrow, latency-sensitive traffic with separate physical channels.
-1. **Modularity:** Our design principles also emphasize modularity. We have developed a set of IPs that can be instantiated together to build a NoC. This approach not only promotes reusability but also facilitates flexibility in designing custom NoCs to cater to a variety of specific system requirements.
+1. **Full AXI4 Support**: _FlooNoC_ fully supports AXI4+ATOPs from AXI5 as outlined [here](https://github.com/pulp-platform/axi/tree/master), providing a high-bandwidth and latency-tolerant solution. _FlooNoC_ achieves this with full support for bursts and multiple outstanding transactions.
+
+1. **Decoupled Links and Networks**: _FlooNoC_ uses a link-level protocol that is decoupled from the network-level protocol. This allows us to move the complexity of the network-level protocol into the network interfaces, while deploying low-complexity routers in the network, that enable better scalability than multi-layer AXI networks.
+
+1. **Wide Physical Channels**: _FlooNoC_ uses wide physical channels to meet the high-bandwidth requirements at network endpoints without being constrained by the operating frequency. In contrast to traditional NoCs which use serialization with header and tail flits to transport a message, _FlooNoC_ avoids any kind of serialization and sends entire messages in a single flit including header and tail information.
+
+1. **Separation of traffic**: _FlooNoC_ addresses diverse types of traffic that can occur in non-coherent systems, by decoupling multiple links to handle wide, high-bandwidth, burst-based traffic and narrow, latency-sensitive traffic with separate physical channels.
+
+1. **Modularity:** The _FlooNoC_ architecture is designed with modularity in mind. It includes a set of IPs that can be instantiated together to build a NoC. This approach not only promotes reusability but also facilitates flexibility in designing custom NoCs to cater to a variety of specific system requirements.
+
 
 ## 🔮 Origin of the name
 
