@@ -48,6 +48,7 @@ theme:
 
 repo_url: https://github.com/pulp-platform/FlooNoC
 repo_name: pulp-platform/FlooNoC
+site_url: https://pulp-platform.github.io/FlooNoC
 
 plugins:
   - social:
