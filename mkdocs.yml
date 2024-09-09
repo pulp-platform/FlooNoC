@@ -49,6 +49,9 @@ theme:
 repo_url: https://github.com/pulp-platform/FlooNoC
 repo_name: pulp-platform/FlooNoC
 
+plugins:
+  - social:
+      cards_layout: default
 nav:
 - Home:
   - index.md
