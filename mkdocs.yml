@@ -52,6 +52,11 @@ repo_name: pulp-platform/FlooNoC
 plugins:
   - social:
       cards_layout: default
+  - git-revision-date-localized:
+      enable_creation_date: true
+  - git-committers:
+      repository: pulp-platform/FlooNoC
+      branch: main
 nav:
 - Home:
   - index.md
