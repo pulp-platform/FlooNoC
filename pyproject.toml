@@ -28,7 +28,9 @@ dependencies = [
 [project.optional-dependencies]
 docs = [
   "mkdocs",
-  "mkdocs-material"
+  "mkdocs-material",
+  "pillow",
+  "cairosvg"
 ]
 dev = [
   "black",
