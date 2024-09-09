@@ -14,7 +14,7 @@ theme:
     - navigation.indexes
     - navigation.footer
 
-repo_url: https://github.com/pulp-platform/FlooNoC
+repo_url: https://github.com/pulp-platform/floo_noc
 repo_name: pulp-platform/FlooNoC
 
 nav:
