@@ -20,6 +20,7 @@ repo_name: pulp-platform/FlooNoC
 nav:
 - Home:
   - index.md
-  - Getting Started: gs.md
+  - Getting Started: getting_started.md
+  - Repository Structure: repository_structure.md
 - FlooGen:
   - floogen.md

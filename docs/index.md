@@ -5,16 +5,3 @@ _FlooNoC_, is a Network-on-Chip (NoC) research project, which is part of the [PU
 ## Getting Started
 
 Check out our getting started [guide](https://pulp-platform.github.io/FlooNoC/getting_started/)
-
-## Directory structure
-
-- `docs`: Contains the documentation of the project
-- `hw`: Contains all SystemVerilog files for the hardware implementation
-  - `test`: Contains verification IPs (VIPs) for testing
-  - `tb`: Contains testbenches for module verification
-  - `include`: Contains macros for _FlooNoC_ typedefs
-- `floogen`: Contains the _FlooGen_ network generation framework
-  - `examples`: Contains example network configurations
-  - `model`: Contains the _FlooGen_ models for the network components such as network interfaces, routers and endpoints.
-  - `tempaltes`: Contains the `mako` templates to render the SV components
-  - `test`: Contains tests for the _FlooGen_ framework
