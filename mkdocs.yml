@@ -8,6 +8,8 @@ extra_css:
   - stylesheets/extra.css
 
 theme:
+  logo: img/floo_noc_material_logo.png
+  favicon: img/floo_noc_favicon_logo.png
   name: material
   palette:
 
