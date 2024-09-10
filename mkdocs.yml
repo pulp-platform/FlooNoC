@@ -54,9 +54,6 @@ plugins:
   - social:
   - git-revision-date-localized:
       enable_creation_date: true
-  - git-committers:
-      repository: pulp-platform/FlooNoC
-      branch: main
 nav:
 - Home:
   - index.md
