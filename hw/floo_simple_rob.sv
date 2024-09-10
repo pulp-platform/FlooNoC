@@ -8,6 +8,8 @@
 `include "common_cells/assertions.svh"
 
 /// A simplistic low-complexity Reorder Buffer, similar to a FIFO
+/// WARNING: The implementation has a known bug for burst support,
+/// and is therefore only advised to be used for B responses.
 module floo_simple_rob #(
   /// Maximum number of transactions in flight per ID which *require* reordering
   /// Not used in the simple RoB
@@ -150,6 +152,11 @@ module floo_simple_rob #(
           rob_addr = rsp_rob_idx_i + rsp_burst_cnt_q;
           rob_meta_d[rob_addr] = rob_meta;
           rob_valid_d[rob_addr] = 1'b1;
+          // WARNING: This implementation does not support interleaved
+          // bursts with different IDs. Each burst would need its own
+          // `rsp_burst_cnt` counter which is currently not implemented.
+          // The way to implement this would be to increment `rsp_rob_idx_i`
+          // at the endpoint which issues the responses.
           rsp_burst_cnt_d = (rsp_last_i)? '0 : rsp_burst_cnt_q + 1'b1;
         end
 
@@ -208,5 +215,8 @@ module floo_simple_rob #(
   `FFL(rob_meta_q, rob_meta_d, rob_req && rob_wen, '0)
   `FF(rob_state_q, rob_state_d, RoBWrite)
   `FF(rsp_out_valid_q, rsp_out_valid_d, '0)
+
+  // This module currently does not handle interleaved burst responses correctly
+  `ASSERT(NoBurstSupport, rsp_last_i == 1'b1)
 
 endmodule
