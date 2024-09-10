@@ -45,6 +45,7 @@ theme:
     - navigation.tracking
     - navigation.indexes
     - navigation.footer
+    - content.code.copy
 
 repo_url: https://github.com/pulp-platform/FlooNoC
 repo_name: pulp-platform/FlooNoC
@@ -54,6 +55,12 @@ plugins:
   - social:
   - git-revision-date-localized:
       enable_creation_date: true
+
+markdown_extensions:
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
 nav:
 - Home:
   - index.md
