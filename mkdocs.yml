@@ -60,11 +60,18 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - md_in_html
 
 nav:
 - Home:
   - index.md
   - Repository Structure: repository_structure.md
+  - License: license.md
+  - Contributing: contributing.md
 - Getting Started: getting_started.md
 - Hardware IPs:
   - Overview: hw/overview.md
@@ -75,7 +82,7 @@ nav:
   - Verification IPs: hw/vips.md
 - FlooGen:
   - Overview: floogen/overview.md
-  - Routing: floogen/routing.md
+  - Routing & Topologies: floogen/routing.md
   - Protocols: floogen/protocols.md
   - Endpoints: floogen/endpoints.md
   - Routers: floogen/routers.md
