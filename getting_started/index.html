@@ -517,18 +517,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#tools" class="md-nav__link">
+  <a href="#simulation-tools" class="md-nav__link">
     <span class="md-ellipsis">
-      Tools
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#optional-dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      Optional dependencies
+      Simulation Tools
     </span>
   </a>
   
@@ -536,6 +527,57 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#running-the-testbenches" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running the Testbenches
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generating-a-floonoc-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      Generating a FlooNoC Network
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optional-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Optional dependencies
+    </span>
+  </a>
   
 </li>
       
@@ -1038,18 +1080,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#tools" class="md-nav__link">
+  <a href="#simulation-tools" class="md-nav__link">
     <span class="md-ellipsis">
-      Tools
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#optional-dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      Optional dependencies
+      Simulation Tools
     </span>
   </a>
   
@@ -1057,6 +1090,57 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#running-the-testbenches" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running the Testbenches
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generating-a-floonoc-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      Generating a FlooNoC Network
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optional-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Optional dependencies
+    </span>
+  </a>
   
 </li>
       
@@ -1096,13 +1180,29 @@
 </div>
 <p>Make sure that the Bender binary directory is in your <code>PATH</code>, or set the <code>BENDER</code> environment variable to the path of the Bender binary.</p>
 <h3 id="python">Python</h3>
-<p><em>FlooGen</em> is a python framework that requires Python 3.10 or later. <em>FlooGen</em> and its dependencies can be installed using pip:</p>
+<p>Some parts of <em>FlooNoC</em> including the <em>FlooGen</em> generator are written in Python. The required Python version is 3.10 or higher. You can install Python from the <a href="https://www.python.org/downloads/">official website</a>.</p>
+<h3 id="simulation-tools">Simulation Tools</h3>
+<p>Currently, we don't provide any open-source simulation setup such as Verilator. <em>FlooNoC</em> was internally tested and verified with QuestaSim-2023.4. To run the RTL simulations you need to have QuestaSim installed. By default, <em>FlooNoC</em> uses the <code>vsim</code> command to run the simulations, which can be overridden by setting the <code>VSIM</code> environment variable.</p>
+<h2 id="installation">Installation</h2>
+<p>Clone the repository from GitHub:</p>
+<p><div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/pulp-platform/FlooNoC.git
+</code></pre></div>
+Install the python dependencies and <em>FlooGen</em>:</p>
 <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>.
 </code></pre></div>
-<h3 id="tools">Tools</h3>
-<p>Currently, we don't provide any open-source simulation setup such as Verilator. <em>FlooNoC</em> was internally tested and verified with QuestaSim-2023.4. To run the RTL simulations you need to have QuestaSim installed. By default, <em>FlooNoC</em> uses the <code>vsim</code> command to run the simulations, which can be overridden by setting the <code>VSIM</code> environment variable.</p>
-<h3 id="optional-dependencies">Optional dependencies</h3>
-<p>For the development with <em>FlooGen</em>, it is recommended to install the <code>dev</code> dependencies for python linting and testing:</p>
+<h2 id="usage">Usage</h2>
+<h3 id="running-the-testbenches">Running the Testbenches</h3>
+<p>Now you can compile and run the testbenches with the following command:</p>
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>compile-sim
+make<span class="w"> </span>run-sim<span class="w"> </span><span class="nv">VSIM_TB_DUT</span><span class="o">=</span>tb_floo_dut
+</code></pre></div>
+<h3 id="generating-a-floonoc-network">Generating a <em>FlooNoC</em> Network</h3>
+<p>where you replace <code>tb_floo_dut</code> with the testbench that you want to simulate.</p>
+<p>To generate a <em>FlooNoC</em> network using the <em>FlooGen</em> generator, you can use the following command:</p>
+<div class="highlight"><pre><span></span><code>floogen<span class="w"> </span>-c<span class="w"> </span>examples/floo_dut.yaml<span class="w"> </span>-o<span class="w"> </span>generated
+</code></pre></div>
+<h2 id="optional-dependencies">Optional dependencies</h2>
+<p>For the development on <em>FlooGen</em>, it is recommended to install the <code>dev</code> dependencies for python linting and testing:</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">bash</label><label for="__tabbed_2_2">zsh</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -1150,7 +1250,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 10, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 11, 2024</span>
   </span>
 
     
