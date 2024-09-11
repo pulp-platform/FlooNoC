@@ -13,12 +13,6 @@ theme:
   name: material
   palette:
 
-    # Default palette
-    - media: "(prefers-color-scheme)"
-      toggle:
-        icon: material/brightness-auto
-        name: Switch to light mode
-
     # Palette toggle for light mode
     - scheme: default
       media: "(prefers-color-scheme: light)"
