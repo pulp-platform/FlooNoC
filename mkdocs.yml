@@ -70,10 +70,12 @@ nav:
 - Hardware IPs:
   - Overview: hw/overview.md
   - Links: hw/links.md
-  - Router: hw/router.md
+  - Routing Algorithms: hw/route_algos.md
   - Network Interfaces: hw/chimneys.md
-  - Common IPs: hw/common.md
+  - Router: hw/routers.md
+  - Common IPs: hw/commons.md
   - Verification IPs: hw/vips.md
+  - Tips & Tricks: hw/tips.md
 - FlooGen:
   - Overview: floogen/overview.md
   - Routing & Topologies: floogen/routing.md
