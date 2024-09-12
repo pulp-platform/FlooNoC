@@ -1,0 +1,115 @@
+# Copyright 2023 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+
+name: dual_cluster
+description: "Dual Cluster Configuration for FlooGen"
+
+routing:
+  route_algo: "ID"
+  use_id_table: true
+
+protocols:
+  - name: "axi"
+    type: "AXI4"
+    direction: "manager"
+    data_width: 64
+    addr_width: 48
+    id_width: 2
+    user_width: 10
+  - name: "axi"
+    type: "AXI4"
+    direction: "subordinate"
+    data_width: 64
+    addr_width: 48
+    id_width: 11
+    user_width: 10
+
+endpoints:
+  - name: "cluster_0"
+    addr_range:
+        base: 0x0000_5000_0000
+        size: 0x0000_0080_0000
+    mgr_port_protocol:
+      - "axi"
+    sbr_port_protocol:
+      - "axi"
+  - name: "cluster_1"
+    addr_range:
+        base: 0x0000_5080_0000
+        size: 0x0000_0080_0000
+    mgr_port_protocol:
+      - "axi"
+    sbr_port_protocol:
+      - "axi"
+  - name: "dram"
+    addr_range:
+      base: 0x0000_8000_0000
+      size: 0x0020_0000_0000
+    sbr_port_protocol:
+      - "axi"
+  - name: "l2_port0"
+    addr_range:
+      base: 0x0000_7800_0000
+      size: 0x0000_0020_0000
+    sbr_port_protocol:
+      - "axi"
+  - name: "l2_port1"
+    addr_range:
+      base: 0x0000_7820_0000
+      size: 0x0000_0020_0000
+    sbr_port_protocol:
+      - "axi"
+  - name: "cheshire"
+    addr_range:
+      base: 0x0000_0000_0000
+      size: 0x0000_2000_0000
+    mgr_port_protocol:
+      - "axi"
+    sbr_port_protocol:
+      - "axi"
+  - name: "opentitan_main"
+    mgr_port_protocol:
+      - "axi"
+  - name: "opentitan_dma"
+    mgr_port_protocol:
+      - "axi"
+  - name: "peripherals"
+    addr_range:
+      start: 0x0000_2000_0000
+      size: 0x0000_2000_0000
+    mgr_port_protocol:
+      - "axi"
+    sbr_port_protocol:
+      - "axi"
+  - name: "mbox"
+    addr_range:
+      base: 0x0000_4000_0000
+      size: 0x0000_0000_3000
+    sbr_port_protocol:
+      - "axi"
+
+routers:
+  - name: "router"
+
+connections:
+  - src: "cluster_0"
+    dst: "router"
+  - src: "cluster_1"
+    dst: "router"
+  - src: "router"
+    dst: "dram"
+  - src: "router"
+    dst: "l2_port0"
+  - src: "router"
+    dst: "l2_port1"
+  - src: "cheshire"
+    dst: "router"
+  - src: "opentitan_main"
+    dst: "router"
+  - src: "opentitan_dma"
+    dst: "router"
+  - src: "router"
+    dst: "peripherals"
+  - src: "mbox"
+    dst: "router"
