@@ -11,9 +11,6 @@
 /// WARNING: The implementation has a known bug for burst support,
 /// and is therefore only advised to be used for B responses.
 module floo_simple_rob #(
-  /// Maximum number of transactions in flight per ID which *require* reordering
-  /// Not used in the simple RoB
-  parameter int unsigned MaxRoTxnsPerId = 32'd32,
   /// If the response only consists of small metadata i.e. B channel
   /// In this case no SRAM will be instantied and the response will be
   /// metadata will be stored in SCMs

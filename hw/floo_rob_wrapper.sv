@@ -92,7 +92,6 @@ module floo_rob_wrapper
   end else if (RoBType == SimpleRoB) begin : gen_simpl_rob
     floo_simple_rob #(
       .RoBDepth       ( RoBDepth        ),
-      .MaxRoTxnsPerId ( MaxRoTxnsPerId  ),
       .OnlyMetaData   ( OnlyMetaData    ),
       .ax_len_t       ( ax_len_t        ),
       .rsp_chan_t     ( rsp_chan_t      ),
