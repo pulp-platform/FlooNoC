@@ -82,7 +82,6 @@ package floo_pkg;
     int unsigned XYAddrOffsetX;
     int unsigned XYAddrOffsetY;
     int unsigned IdAddrOffset;
-    int unsigned NumAddrRules;
     int unsigned NumSamRules;
     int unsigned NumRoutes;
   } route_cfg_t;
@@ -121,7 +120,6 @@ package floo_pkg;
     XYAddrOffsetX: 0,
     XYAddrOffsetY: 0,
     IdAddrOffset: 0,
-    NumAddrRules: 0,
     NumSamRules: 0,
     NumRoutes: 0
   };

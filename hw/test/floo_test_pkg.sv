@@ -30,7 +30,6 @@ package floo_test_pkg;
     XYAddrOffsetX: 16,
     XYAddrOffsetY: 20,
     IdAddrOffset: 0,
-    NumAddrRules: 0,
     NumSamRules: 0,
     NumRoutes: 0
   };
