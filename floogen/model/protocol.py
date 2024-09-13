@@ -7,25 +7,18 @@
 
 from typing import Optional, List, TypeVar, Union
 from typing_extensions import Annotated
-from pydantic import BaseModel, StringConstraints, model_validator
+from pydantic import BaseModel, StringConstraints
 
-from floogen.utils import short_dir, snake_to_camel, sv_param_decl, sv_typedef
+from floogen.utils import snake_to_camel, sv_param_decl, sv_typedef, sv_struct_render
 
 class ProtocolDesc(BaseModel):
     """Protocol class to describe a protocol."""
 
     name: str
     description: Optional[str] = ""
-    type: str
-    direction: Annotated[str, StringConstraints(pattern=r"manager|subordinate")]
-    svdirection: str
-
-    @model_validator(mode="before")
-    def set_svdirection(self):
-        """Set the SystemVerilog direction."""
-        self["svdirection"] = "input" if self["direction"] == "manager" else "output"
-        return self
-
+    protocol: Annotated[str, StringConstraints(pattern=r"AXI4")]
+    type: Annotated[str, StringConstraints(pattern=r"narrow|wide")]
+    direction: Optional[str] = None
 
 class AXI4(ProtocolDesc):
     """AXI4 protocol class."""
@@ -34,46 +27,13 @@ class AXI4(ProtocolDesc):
     addr_width: int
     id_width: int
     user_width: int
+    type_prefix: Optional[str] = "axi"
 
-    def get_axi_channel_sizes(self) -> dict:  # pylint: disable=too-many-locals
-        """Return the sizes of each of the AXI channels."""
-
-        burst = 2
-        resp = 2
-        cache = 4
-        prot = 3
-        qos = 4
-        region = 4
-        length = 8
-        size = 3
-        atop = 6
-        last = 1
-        lock = 1
-
-        # Variable widths
-        iw = self.id_width
-        aw = self.addr_width
-        dw = self.data_width
-        uw = self.user_width
-
-        axi_ch_size = {}
-        axi_ch_size["aw"] = (
-            iw + aw + length + size + burst + lock + cache + prot + qos + region + atop + uw
-        )
-        axi_ch_size["w"] = dw + dw // 8 + last + uw
-        axi_ch_size["b"] = iw + resp + uw
-        axi_ch_size["ar"] = (
-            iw + aw + length + size + burst + lock + cache + prot + qos + region + uw
-        )
-        axi_ch_size["r"] = iw + dw + resp + last + uw
-
-        return axi_ch_size
-
-    def full_name(self) -> str:
-        """Return the name of the protocol."""
-        if "axi" in self.name:
-            return f"{self.name}_{short_dir(self.svdirection)}"
-        return f"axi_{self.name}_{short_dir(self.svdirection)}"
+    def type_name(self) -> str:
+        """Return the full name of the protocol."""
+        if self.type_prefix is not None:
+            return f"{self.type_prefix}_{self.name}"
+        return self.name
 
     def render_params(self) -> str:
         """Render the parameters of the protocol."""
@@ -86,21 +46,33 @@ class AXI4(ProtocolDesc):
 
     def render_typedefs(self) -> str:
         """Render the typedefs of the protocol."""
-        full_name = self.full_name()
-        string = sv_typedef(full_name + "_addr_t", array_size=self.addr_width)
-        string += sv_typedef(full_name + "_data_t", array_size=self.data_width)
-        string += sv_typedef(full_name + "_strb_t", array_size=self.data_width // 8)
-        string += sv_typedef(full_name + "_id_t", array_size=self.id_width)
-        string += sv_typedef(full_name + "_user_t", array_size=self.user_width)
-        string += f"`AXI_TYPEDEF_ALL_CT({full_name}, \
-            {full_name}_req_t, \
-            {full_name}_rsp_t, \
-            {full_name}_addr_t, \
-            {full_name}_id_t, \
-            {full_name}_data_t, \
-            {full_name}_strb_t, \
-            {full_name}_user_t)\n\n"
+        name_t = self.type_name()
+        string = sv_typedef(name_t + "_addr_t", array_size=self.addr_width)
+        string += sv_typedef(name_t + "_data_t", array_size=self.data_width)
+        string += sv_typedef(name_t + "_strb_t", array_size=self.data_width // 8)
+        string += sv_typedef(name_t + "_id_t", array_size=self.id_width)
+        string += sv_typedef(name_t + "_user_t", array_size=self.user_width)
+        string += f"`AXI_TYPEDEF_ALL_CT({name_t}, \
+            {name_t}_req_t, \
+            {name_t}_rsp_t, \
+            {name_t}_addr_t, \
+            {name_t}_id_t, \
+            {name_t}_data_t, \
+            {name_t}_strb_t, \
+            {name_t}_user_t)\n\n"
         return string
+
+    @classmethod
+    def render_cfg(cls, name, mgr_axi, sbr_axi) -> str:
+        """Render the configuration of the protocol."""
+        fields = {
+            "AddrWidth": mgr_axi.addr_width,
+            "DataWidth": mgr_axi.data_width,
+            "UserWidth": mgr_axi.user_width,
+            "InIdWidth": mgr_axi.id_width,
+            "OutIdWidth": sbr_axi.id_width,
+        }
+        return sv_param_decl(name, sv_struct_render(fields), dtype="axi_cfg_t")
 
 
 class AXI4Bus(AXI4):
@@ -113,15 +85,10 @@ class AXI4Bus(AXI4):
     arr_idx: Optional[List[int]] = None
     is_declared: bool = False
     subtype: str = ""
-    type_prefix: str = "axi"
 
     def _invert_dir(self):
-        """Invert the direction of the protocol."""
-        return "input" if self.svdirection == "output" else "output"
-
-    def _type_name(self):
-        """Return the type name of the protocol."""
-        return f"{self.type_prefix}_{self.name}_{short_dir(self.svdirection)}"
+        """Returns the inverted direction of the protocol port."""
+        return "input" if self.direction == "output" else "output"
 
     def _array_to_sv_array(self):
         """Convert the array to a SystemVerilog array."""
@@ -139,30 +106,19 @@ class AXI4Bus(AXI4):
             return string
         return ""
 
-    def typedef(self) -> str:
-        """Return the typedef of the protocol."""
-        return f"`AXI_TYPEDEF_ALL_CT({self._type_name()}, \
-            {self._type_name()}_req_t, \
-            {self._type_name()}_rsp_t, \
-            logic[{self.addr_width-1}:0], \
-            logic[{self.id_width-1}:0], \
-            logic[{self.data_width-1}:0], \
-            logic[{self.data_width//8-1}:0], \
-            logic[{self.user_width-1}:0])"
-
     def req_type(self) -> str:
         """Return the request type of the protocol."""
-        return f"{self._type_name()}_req_t"
+        return f"{self.type_name()}_req_t"
 
     def rsp_type(self) -> str:
         """Return the response type of the protocol."""
-        return f"{self._type_name()}_rsp_t"
+        return f"{self.type_name()}_rsp_t"
 
     def req_name(self, port=False, idx=False) -> str:
         """Return the request name of the protocol."""
         idx = self._idx_to_sv_idx() if idx else ""
         if port:
-            return f"{self.base_name}_req_{self.svdirection[0]}{idx}"
+            return f"{self.base_name}_req_{self.direction[0]}{idx}"
         return f"{self.source}_to_{self.dest}_req"
 
     def rsp_name(self, port=False, idx=False) -> str:
