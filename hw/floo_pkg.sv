@@ -152,6 +152,12 @@ package floo_pkg;
     };
   endfunction
 
+  function automatic chimney_cfg_t set_ports(chimney_cfg_t cfg, bit en_sbr, bit en_mgr);
+    cfg.EnSbrPort = en_sbr;
+    cfg.EnMgrPort = en_mgr;
+    return cfg;
+  endfunction
+
   function automatic int unsigned get_axi_chan_width(axi_cfg_t cfg, axi_ch_e ch);
     case (ch)
       AxiAw: return axi_pkg::aw_width(cfg.AddrWidth, cfg.InIdWidth, cfg.UserWidth);
