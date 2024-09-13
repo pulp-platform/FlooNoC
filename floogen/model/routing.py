@@ -525,8 +525,10 @@ class Routing(BaseModel):
             "RouteAlgo": self.route_algo.value,
             "UseIdTable": bool_to_sv(self.use_id_table),
             "XYAddrOffsetX": self.addr_offset_bits if self.route_algo == RouteAlgo.XY else 0,
-            "XYAddrOffsetY": self.addr_offset_bits + self.num_x_bits if self.route_algo == RouteAlgo.XY else 0,
-            "IdAddrOffset": self.addr_offset_bits if self.route_algo == RouteAlgo.ID and not self.use_id_table else 0,
+            "XYAddrOffsetY": self.addr_offset_bits + self.num_x_bits if
+                                self.route_algo == RouteAlgo.XY else 0,
+            "IdAddrOffset": self.addr_offset_bits if
+                                self.route_algo == RouteAlgo.ID and not self.use_id_table else 0,
             "NumSamRules": len(self.sam),
             "NumRoutes": len(self.table) if self.table is not None else 0,
         }
