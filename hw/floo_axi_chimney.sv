@@ -618,6 +618,8 @@ module floo_axi_chimney #(
 
   if (ChimneyCfg.EnSbrPort) begin : gen_mgr_port
     floo_meta_buffer #(
+      .InIdWidth      ( AxiCfg.InIdWidth        ),
+      .OutIdWidth     ( AxiCfg.OutIdWidth       ),
       .MaxTxns        ( ChimneyCfg.MaxTxns      ),
       .MaxUniqueIds   ( ChimneyCfg.MaxUniqueIds ),
       .AtopSupport    ( AtopSupport             ),

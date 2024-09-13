@@ -1064,6 +1064,8 @@ module floo_nw_chimney #(
 
   if (ChimneyCfgN.EnSbrPort) begin : gen_narrow_mgr_port
     floo_meta_buffer #(
+      .InIdWidth      ( AxiCfgN.InIdWidth         ),
+      .OutIdWidth     ( AxiCfgN.OutIdWidth        ),
       .MaxTxns        ( ChimneyCfgN.MaxTxns       ),
       .MaxUniqueIds   ( ChimneyCfgN.MaxUniqueIds  ),
       .AtopSupport    ( AtopSupport               ),
@@ -1106,6 +1108,8 @@ module floo_nw_chimney #(
 
   if (ChimneyCfgW.EnSbrPort) begin : gen_wide_mgr_port
     floo_meta_buffer #(
+      .InIdWidth      ( AxiCfgW.InIdWidth         ),
+      .OutIdWidth     ( AxiCfgW.OutIdWidth        ),
       .MaxTxns        ( ChimneyCfgW.MaxTxns       ),
       .MaxUniqueIds   ( ChimneyCfgW.MaxUniqueIds  ),
       .AtopSupport    ( 1'b0                      ),
