@@ -90,11 +90,11 @@ class Endpoint(EndpointDesc):
         """Create an endpoint from a description."""
         return cls(**desc.model_dump(), mgr_ports=mgr_ports, sbr_ports=sbr_ports)
 
-    def render_ports(self):
+    def render_ports(self, pkg_name=""):
         """Render the ports of the endpoint."""
         ports = []
         for port in self.mgr_ports:
-            ports += port.render_port()
+            ports += port.render_port(pkg_name)
         for port in self.sbr_ports:
-            ports += port.render_port()
+            ports += port.render_port(pkg_name)
         return ports

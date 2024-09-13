@@ -178,16 +178,16 @@ class AXI4Bus(AXI4):
         string += f"{self.rsp_type()} {self.rsp_name()};\n"
         return string + "\n"
 
-    def render_port(self) -> List[str]:
+    def render_port(self, pkg_name="") -> List[str]:
         """Render the port of the protocol."""
         rev_direction = self._invert_dir()
         ports = []
         ports.append(
-            f"{self.svdirection} {self.req_type()} \
+            f"{self.direction} {pkg_name}{self.req_type()} \
             {self._array_to_sv_array()} {self.req_name(port=True)}"
         )
         ports.append(
-            f"{rev_direction} {self.rsp_type()} \
+            f"{rev_direction} {pkg_name}{self.rsp_type()} \
             {self._array_to_sv_array()} {self.rsp_name(port=True)}"
         )
         return ports

@@ -620,13 +620,13 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             addr_table.append(addr_rule)
         return RouteMap(name="sam", rules=addr_table)
 
-    def render_ports(self):
+    def render_ports(self, pkg_name=""):
         """Render the ports in the generated code."""
         ports, declared_ports = [], []
         for ep in self.graph.get_ep_nodes():
             if ep.name in declared_ports:
                 continue
-            ports += ep.render_ports()
+            ports += ep.render_ports(pkg_name=pkg_name)
             declared_ports.append(ep.name)
         port_string = ",\n  ".join(ports) + "\n"
         return port_string
