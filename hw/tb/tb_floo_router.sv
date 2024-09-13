@@ -227,19 +227,19 @@ module tb_floo_router;
 
 
   floo_router #(
-    .NumRoutes       ( NumPorts        ),
-    .NumVirtChannels ( NumVirtChannels ),
-    .flit_t          ( floo_req_generic_flit_t     ),
-    .InFifoDepth( 4               ),
-    .RouteAlgo       ( IdIsPort        ),
-    .IdWidth         ( IdWidth         )
+    .NumRoutes        ( NumPorts                ),
+    .NumVirtChannels  ( NumVirtChannels         ),
+    .flit_t           ( floo_req_generic_flit_t ),
+    .InFifoDepth      ( 4                       ),
+    .RouteAlgo        ( SourceRouting           ),
+    .IdWidth          ( IdWidth                 )
   ) i_dut (
     .clk_i         ( clk   ),
     .rst_ni        ( rst_n ),
     .test_enable_i ( '0 ),
 
-    .xy_id_i       ( '0 ), // Unused for IdIsPort
-    .id_route_map_i( '0 ), // Unused for IdIsPort
+    .xy_id_i       ( '0 ), // Unused for `SourceRouting`
+    .id_route_map_i( '0 ), // Unused for `SourceRouting`
 
     .valid_i       ( valid_in  ),
     .ready_o       ( ready_in  ),

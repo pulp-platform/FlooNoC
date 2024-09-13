@@ -40,19 +40,7 @@ module floo_route_select
   logic [NumRoutes-1:0] route_sel;
   logic [RouteSelWidth-1:0] route_sel_id;
 
-  if (RouteAlgo == IdIsPort) begin : gen_id_is_port
-    // Routing assuming the ID is the port to be taken
-
-    assign channel_o = channel_i;
-
-    // One-hot encoding of the decoded route
-    always_comb begin : proc_route_sel
-      route_sel_id = channel_i.hdr.dst_id;
-      route_sel = '0;
-      route_sel[channel_i.hdr.dst_id] = 1'b1;
-    end
-
-  end else if (RouteAlgo == IdTable) begin : gen_id_table
+if (RouteAlgo == IdTable) begin : gen_id_table
     // Routing based on an ID table passed into the router (TBD parameter or signal)
     // Assumes an ID field present in the flit_t
 

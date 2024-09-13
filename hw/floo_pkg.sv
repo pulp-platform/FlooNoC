@@ -11,7 +11,6 @@ package floo_pkg;
 
   // Support Routing Algorithms
   typedef enum logic[1:0] {
-    IdIsPort,
     IdTable,
     SourceRouting,
     XYRouting
