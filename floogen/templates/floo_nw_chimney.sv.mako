@@ -21,19 +21,19 @@ floo_nw_chimney  #(
   .Sam(Sam),
 % if has_narrow_mgr:
   .axi_narrow_in_req_t(${ni.mgr_narrow_port.type_name()}_req_t),
-  .axi_narrow_in_req_t(${ni.mgr_narrow_port.type_name()}_rsp_t),
+  .axi_narrow_in_rsp_t(${ni.mgr_narrow_port.type_name()}_rsp_t),
 % endif
 % if has_narrow_sbr:
   .axi_narrow_out_req_t(${ni.sbr_narrow_port.type_name()}_req_t),
-  .axi_narrow_out_req_t(${ni.sbr_narrow_port.type_name()}_rsp_t),
+  .axi_narrow_out_rsp_t(${ni.sbr_narrow_port.type_name()}_rsp_t),
 % endif
 % if has_wide_mgr:
   .axi_wide_in_req_t(${ni.mgr_wide_port.type_name()}_req_t),
-  .axi_wide_in_req_t(${ni.mgr_wide_port.type_name()}_rsp_t),
+  .axi_wide_in_rsp_t(${ni.mgr_wide_port.type_name()}_rsp_t),
 % endif
 % if has_wide_sbr:
   .axi_wide_out_req_t(${ni.sbr_wide_port.type_name()}_req_t),
-  .axi_wide_out_req_t(${ni.sbr_wide_port.type_name()}_rsp_t),
+  .axi_wide_out_rsp_t(${ni.sbr_wide_port.type_name()}_rsp_t),
 % endif
   .floo_req_t(floo_req_t),
   .floo_rsp_t(floo_rsp_t),
