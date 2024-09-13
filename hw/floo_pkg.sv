@@ -180,11 +180,11 @@ package floo_pkg;
     /// The type of Reoder Buffer (RoB) that is used for B responses.
     rob_type_e BRoBType;
     /// The depth of the RoB for B responses. Only used if `BRoBType != NoRoB`.
-    int unsigned BRoBDepth;
+    int unsigned BRoBSize;
     /// The type of Reoder Buffer (RoB) that is used for R responses.
     rob_type_e RRoBType;
     /// The depth of the RoB for R responses. Only used if `RRoBType != NoRoB`.
-    int unsigned RRoBDepth;
+    int unsigned RRoBSize;
     /// Whether to buffer incoming AXI requests at the network interface,
     /// to ease timing closure.
     bit CutAx;
@@ -200,9 +200,9 @@ package floo_pkg;
     MaxUniqueIds: 1,
     MaxTxnsPerId: 32,
     BRoBType: NoRoB,
-    BRoBDepth: 0,
+    BRoBSize: 0,
     RRoBType: NoRoB,
-    RRoBDepth: 0,
+    RRoBSize: 0,
     CutAx: 1'b0,
     CutRsp: 1'b0
   };

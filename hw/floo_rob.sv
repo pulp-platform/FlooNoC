@@ -15,7 +15,7 @@ module floo_rob #(
   /// metadata will be stored in normal FFs
   parameter bit          OnlyMetaData = 1'b0,
   /// Size of the reorder buffer
-  parameter int unsigned RoBDepth = 32'd64,
+  parameter int unsigned RoBSize = 32'd64,
   /// Data type of response to be reordered
   parameter type         ax_len_t   = logic,
   parameter type         ax_id_t    = logic,
@@ -54,7 +54,7 @@ module floo_rob #(
   localparam int unsigned NumIds = 2**AxiIdWidth;
   typedef logic[AxiIdWidth-1:0] axi_id_t;
   typedef logic[$clog2(NumIds)-1:0] num_id_t;
-  typedef logic[RoBDepth-1:0] rob_flag_t;
+  typedef logic[RoBSize-1:0] rob_flag_t;
 
   /////////////////////////
   //  Transaction Table  //
@@ -121,7 +121,7 @@ module floo_rob #(
 
   if (!OnlyMetaData) begin : gen_rob_sram
     tc_sram_impl #(
-      .NumWords   ( RoBDepth          ),
+      .NumWords   ( RoBSize           ),
       .DataWidth  ( $bits(rsp_data_t) ),
       .NumPorts   ( 1                 ),
       .impl_in_t  ( sram_cfg_t        )
@@ -141,7 +141,7 @@ module floo_rob #(
     assign rob_rdata = '0;
   end
 
-  rsp_meta_t  [RoBDepth-1:0] rob_meta_q, rob_meta_d;
+  rsp_meta_t  [RoBSize-1:0] rob_meta_q, rob_meta_d;
   rob_flag_t rob_valid_q, rob_valid_d;
   rob_flag_t rob_alloc_q, rob_alloc_d;
   rob_idx_t rob_free_space;
@@ -152,11 +152,11 @@ module floo_rob #(
   `FF(rsp_out_valid_q, rsp_out_valid_d, '0)
   `FFL(rob_meta_q, rob_meta_d, rob_req && rob_wen, '0)
 
-  assign rob_next_free_idx = RoBDepth - rob_free_space;
+  assign rob_next_free_idx = RoBSize - rob_free_space;
 
   lzc #(
-    .WIDTH  ( RoBDepth ),
-    .MODE   ( 1'b1     )
+    .WIDTH  ( RoBSize ),
+    .MODE   ( 1'b1    )
   ) i_lzc (
     .in_i     ( rob_alloc_q     ),
     .cnt_o    ( rob_free_space  ),

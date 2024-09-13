@@ -286,7 +286,7 @@ module floo_axi_chimney #(
 
   floo_rob_wrapper #(
     .RoBType        ( ChimneyCfg.BRoBType     ),
-    .RoBDepth       ( ChimneyCfg.BRoBDepth    ),
+    .RoBSize        ( ChimneyCfg.BRoBSize     ),
     .MaxRoTxnsPerId ( ChimneyCfg.MaxTxnsPerId ),
     .OnlyMetaData   ( 1'b1                    ),
     .ax_len_t       ( axi_pkg::len_t          ),
@@ -330,7 +330,7 @@ module floo_axi_chimney #(
 
   floo_rob_wrapper #(
     .RoBType        ( ChimneyCfg.RRoBType     ),
-    .RoBDepth       ( ChimneyCfg.RRoBDepth    ),
+    .RoBSize        ( ChimneyCfg.RRoBSize     ),
     .MaxRoTxnsPerId ( ChimneyCfg.MaxTxnsPerId ),
     .OnlyMetaData   ( 1'b0                    ),
     .ax_len_t       ( axi_pkg::len_t          ),

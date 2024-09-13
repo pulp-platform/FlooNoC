@@ -491,7 +491,7 @@ module floo_nw_vc_chimney #(
 
   floo_rob_wrapper #(
     .RoBType            ( ChimneyCfgN.BRoBType      ),
-    .RoBDepth           ( ChimneyCfgN.BRoBDepth     ),
+    .RoBSize            ( ChimneyCfgN.BRoBSize      ),
     .MaxRoTxnsPerId     ( ChimneyCfgN.MaxTxnsPerId  ),
     .OnlyMetaData       ( 1'b1                      ),
     .ax_len_t           ( axi_pkg::len_t            ),
@@ -534,7 +534,7 @@ module floo_nw_vc_chimney #(
 
   floo_rob_wrapper #(
     .RoBType            ( ChimneyCfgW.BRoBType      ),
-    .RoBDepth           ( ChimneyCfgW.BRoBDepth     ),
+    .RoBSize            ( ChimneyCfgW.BRoBSize      ),
     .MaxRoTxnsPerId     ( ChimneyCfgW.MaxTxnsPerId  ),
     .OnlyMetaData       ( 1'b1                      ),
     .ax_len_t           ( axi_pkg::len_t            ),
@@ -591,7 +591,7 @@ module floo_nw_vc_chimney #(
 
   floo_rob_wrapper #(
     .RoBType            ( ChimneyCfgN.RRoBType      ),
-    .RoBDepth           ( ChimneyCfgN.RRoBDepth     ),
+    .RoBSize            ( ChimneyCfgN.RRoBSize      ),
     .MaxRoTxnsPerId     ( ChimneyCfgN.MaxTxnsPerId  ),
     .OnlyMetaData       ( 1'b0                      ),
     .ax_len_t           ( axi_pkg::len_t            ),
@@ -635,7 +635,7 @@ module floo_nw_vc_chimney #(
 
   floo_rob_wrapper #(
     .RoBType            ( ChimneyCfgW.RRoBType      ),
-    .RoBDepth           ( ChimneyCfgW.RRoBDepth     ),
+    .RoBSize            ( ChimneyCfgW.RRoBSize      ),
     .MaxRoTxnsPerId     ( ChimneyCfgW.MaxTxnsPerId  ),
     .OnlyMetaData       ( 1'b0                      ),
     .ax_len_t           ( axi_pkg::len_t            ),

@@ -16,17 +16,17 @@ module floo_simple_rob #(
   /// metadata will be stored in SCMs
   parameter bit          OnlyMetaData = 1'b0,
   /// Size of the reorder buffer
-  parameter int unsigned RoBDepth = 32'd64,
+  parameter int unsigned RoBSize = 32'd64,
   /// Data type of response to be reordered
   parameter type         ax_len_t   = logic,
   parameter type         rsp_chan_t = logic,
   parameter type         rsp_data_t = logic,
   parameter type         rsp_meta_t = logic,
-  parameter type         rob_idx_t  = logic[$clog2(RoBDepth)-1:0],
+  parameter type         rob_idx_t  = logic[$clog2(RoBSize)-1:0],
   parameter type         dest_t     = logic,
   parameter type         sram_cfg_t = logic,
   // Dependent parameters, DO NOT OVERRIDE!
-  localparam type rob_flag_t        = logic[RoBDepth-1:0]
+  localparam type rob_flag_t        = logic[RoBSize-1:0]
 ) (
   input  logic      clk_i,
   input  logic      rst_ni,
@@ -52,9 +52,9 @@ module floo_simple_rob #(
 
   rob_idx_t read_pointer_q, read_pointer_d;
   rob_idx_t write_pointer_q, write_pointer_d;
-  logic [$clog2(RoBDepth):0] status_cnt_q, status_cnt_d;
-  logic [$clog2(RoBDepth):0] free_entries;
-  rsp_meta_t  [RoBDepth-1:0] rob_meta_q, rob_meta_d;
+  logic [$clog2(RoBSize):0] status_cnt_q, status_cnt_d;
+  logic [$clog2(RoBSize):0] free_entries;
+  rsp_meta_t  [RoBSize-1:0] rob_meta_q, rob_meta_d;
   rsp_meta_t rob_meta;
   rob_idx_t rsp_burst_cnt_q, rsp_burst_cnt_d;
   rob_flag_t rob_valid_q, rob_valid_d;
@@ -77,7 +77,7 @@ module floo_simple_rob #(
 
   if (!OnlyMetaData) begin : gen_rob_sram
     tc_sram_impl #(
-      .NumWords   ( RoBDepth          ),
+      .NumWords   ( RoBSize           ),
       .DataWidth  ( $bits(rsp_data_t) ),
       .NumPorts   ( 1                 ),
       .impl_in_t  ( sram_cfg_t        )
@@ -98,7 +98,7 @@ module floo_simple_rob #(
   end
 
 
-  assign free_entries = RoBDepth - status_cnt_q;
+  assign free_entries = RoBSize - status_cnt_q;
   assign ax_len = (OnlyMetaData)? 1 : ax_len_i + 1'b1;
 
   always_comb begin
@@ -129,8 +129,8 @@ module floo_simple_rob #(
       if (ax_ready_i) begin
         ax_ready_o = 1'b1;
         // Increment write and status counter
-        if (write_pointer_q + ax_len >= RoBDepth) begin
-          write_pointer_d = write_pointer_q + ax_len - RoBDepth;
+        if (write_pointer_q + ax_len >= RoBSize) begin
+          write_pointer_d = write_pointer_q + ax_len - RoBSize;
         end else begin
           write_pointer_d = write_pointer_q + ax_len;
         end
@@ -169,8 +169,8 @@ module floo_simple_rob #(
           rsp_out_valid_d = 1'b1;
           if (rsp_valid_o && rsp_ready_i) begin
             rob_valid_d[read_pointer_q] = 1'b0;
-            if (read_pointer_q + 1'b1 >= RoBDepth) begin
-              read_pointer_d = read_pointer_q + 1'b1 - RoBDepth;
+            if (read_pointer_q + 1'b1 >= RoBSize) begin
+              read_pointer_d = read_pointer_q + 1'b1 - RoBSize;
             end else begin
               read_pointer_d = read_pointer_q + 1'b1;
             end

@@ -27,15 +27,15 @@ module tb_floo_rob;
   function automatic chimney_cfg_t gen_rob_chimney_cfg();
     chimney_cfg_t cfg = ChimneyDefaultCfg;
     cfg.BRoBType = SimpleRoB;
-    cfg.BRoBDepth = 64;
+    cfg.BRoBSize = 64;
     cfg.RRoBType = NoRoB;
-    cfg.RRoBDepth = 64;
+    cfg.RRoBSize = 64;
     return cfg;
   endfunction
 
   // Default chimney config with RoB for testing
   localparam chimney_cfg_t RoBChimneyCfg = gen_rob_chimney_cfg();
-  typedef logic [$clog2(RoBChimneyCfg.BRoBDepth)-1:0] rob_idx_t;
+  typedef logic [$clog2(RoBChimneyCfg.BRoBSize)-1:0] rob_idx_t;
 
   typedef logic [1:0] x_bits_t;
   typedef logic [1:0] y_bits_t;
