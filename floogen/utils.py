@@ -89,6 +89,13 @@ def sv_struct_typedef(name: str, fields: dict, union=False) -> str:
     typedef += f"}} {name};\n\n"
     return typedef
 
+def sv_struct_render(fields: dict) -> str:
+    """Declare a SystemVerilog struct."""
+    decl = "'{"
+    for field, value in fields.items():
+        decl += f"    {field}: {value},\n"
+    return decl[:-2] + "}"
+
 def sv_enum_typedef(name: str, fields_dict: dict=None, fields_list: list=None) -> str:
     """Declare a SystemVerilog enum typedef."""
     if fields_dict is not None:
