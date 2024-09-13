@@ -8,6 +8,7 @@
 // AUTOMATICALLY GENERATED! DO NOT EDIT!
 
 `include "axi/typedef.svh"
+`include "floo_noc/typedef.svh"
 
 package floo_${noc.name}_noc_pkg;
 
