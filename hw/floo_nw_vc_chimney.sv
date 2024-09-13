@@ -45,6 +45,7 @@ module floo_nw_vc_chimney #(
   parameter type vc_id_t                                = logic,
   parameter type route_t                                = logic,
   parameter type addr_rule_t                            = logic,
+  parameter int unsigned NumAddrRules                   = 0,
   parameter type floo_vc_req_t                          = logic,
   parameter type floo_vc_rsp_t                          = logic,
   parameter type floo_vc_wide_t                         = logic,
@@ -79,7 +80,7 @@ module floo_nw_vc_chimney #(
   input  id_t id_i,
   /// Routing table for the current tile
   input  route_t [RouteCfg.NumRoutes-1:0] route_table_i,
-  input  addr_rule_t [RouteCfg.NumAddrRules-1:0] id_route_map_i,
+  input  addr_rule_t [NumAddrRules-1:0] id_route_map_i,
   /// Output to NoC
   output floo_vc_req_t   floo_req_o,
   output floo_vc_rsp_t   floo_rsp_o,
