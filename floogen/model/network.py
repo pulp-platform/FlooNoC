@@ -604,7 +604,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 rule = RouteRule(route=port_lst, id=ni_dst.id, desc=f"-> {ni_dst.name}")
                 routes.append(rule)
                 self.routing.num_route_bits = max(self.routing.num_route_bits, max_route_bits)
-            ni_src.table = RouteTable(name=ni_src.name + "_table", routes=routes)
+            ni_src.routing.table = RouteTable(name=ni_src.name + "_table", routes=routes)
 
     def gen_sam(self):
         """Generate the system address map, which is used by the network interfaces
