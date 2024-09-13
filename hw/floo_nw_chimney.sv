@@ -30,7 +30,7 @@ module floo_nw_chimney #(
   /// Type for implementation inputs and outputs
   parameter type sam_rule_t                             = logic,
   parameter type hdr_t                                  = logic,
-  parameter sam_rule_t [RouteCfg.SamNumRules-1:0] Sam   = '0,
+  parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam   = '0,
   parameter type axi_narrow_in_req_t                    = logic,
   parameter type axi_narrow_in_rsp_t                    = logic,
   parameter type axi_narrow_out_req_t                   = logic,

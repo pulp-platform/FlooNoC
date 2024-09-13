@@ -31,7 +31,7 @@ module floo_nw_vc_chimney #(
   /// Type for implementation inputs and outputs
   parameter type sam_rule_t                             = logic,
   parameter type hdr_t                                  = logic,
-  parameter sam_rule_t [RouteCfg.SamNumRules-1:0] Sam   = '0,
+  parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam   = '0,
   parameter type axi_narrow_in_req_t                    = logic,
   parameter type axi_narrow_in_rsp_t                    = logic,
   parameter type axi_narrow_out_req_t                   = logic,
@@ -954,7 +954,7 @@ module floo_nw_vc_chimney #(
     .hdr_t        ( hdr_t                 ),
     .RouteAlgo    ( RouteCfg.RouteAlgo    ),
     .id_t         ( id_t                  ),
-    .NumAddrRules ( RouteCfg.SamNumRules  ),
+    .NumAddrRules ( RouteCfg.NumSamRules  ),
     .addr_rule_t  ( sam_rule_t            )
   ) i_floo_req_look_ahead_routing (
     .clk_i,
@@ -971,7 +971,7 @@ module floo_nw_vc_chimney #(
     .hdr_t        ( hdr_t                 ),
     .RouteAlgo    ( RouteCfg.RouteAlgo    ),
     .id_t         ( id_t                  ),
-    .NumAddrRules ( RouteCfg.SamNumRules  ),
+    .NumAddrRules ( RouteCfg.NumSamRules  ),
     .addr_rule_t  ( sam_rule_t            )
   ) i_floo_rsp_look_ahead_routing (
     .clk_i,
@@ -988,7 +988,7 @@ module floo_nw_vc_chimney #(
     .hdr_t        ( hdr_t                 ),
     .RouteAlgo    ( RouteCfg.RouteAlgo    ),
     .id_t         ( id_t                  ),
-    .NumAddrRules ( RouteCfg.SamNumRules  ),
+    .NumAddrRules ( RouteCfg.NumSamRules  ),
     .addr_rule_t  ( sam_rule_t            )
   ) i_floo_wide_look_ahead_routing (
     .clk_i,

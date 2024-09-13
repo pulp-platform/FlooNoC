@@ -24,7 +24,7 @@ module floo_route_comp
   input  logic  rst_ni,
   input  id_t   id_i,
   input  addr_t addr_i,
-  input  addr_rule_t [RouteCfg.NumAddrRules-1:0] addr_map_i,
+  input  addr_rule_t [RouteCfg.NumSamRules-1:0] addr_map_i,
   input  route_t [RouteCfg.NumRoutes-1:0] route_table_i,
   output route_t route_o,
   output id_t id_o
@@ -48,11 +48,11 @@ module floo_route_comp
     localparam int unsigned MaxPossibleId = 1 << $bits(id_o);
 
     addr_decode #(
-      .NoIndices  ( MaxPossibleId ),
-      .NoRules    ( RouteCfg.NumAddrRules  ),
-      .addr_t     ( addr_t        ),
-      .rule_t     ( addr_rule_t   ),
-      .idx_t      ( id_t          )
+      .NoIndices  ( MaxPossibleId        ),
+      .NoRules    ( RouteCfg.NumSamRules ),
+      .addr_t     ( addr_t               ),
+      .rule_t     ( addr_rule_t          ),
+      .idx_t      ( id_t                 )
     ) i_addr_dst_decode (
       .addr_i           ( addr_i      ),
       .addr_map_i       ( addr_map_i  ),

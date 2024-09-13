@@ -27,7 +27,7 @@ module floo_axi_chimney #(
   // All the types
   parameter type sam_rule_t                 = logic,
   parameter type hdr_t                      = logic,
-  parameter sam_rule_t [RouteCfg.SamNumRules-1:0] Sam  = '0,
+  parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam  = '0,
   parameter type axi_in_req_t               = logic,
   parameter type axi_in_rsp_t               = logic,
   parameter type axi_out_req_t              = logic,
