@@ -146,7 +146,7 @@
 `define FLOO_TYPEDEF_AXI_FROM_CFG(name, cfg)                                                                                                                        \
   typedef logic [cfg.AddrWidth-1:0] ``name``_addr_t;                                                                                                                \
   typedef logic [cfg.InIdWidth-1:0] ``name``_in_id_t;                                                                                                               \
-  typedef logic [cfg.OutIdWidth-1:0] ``name``_out_id_t;                                                                                                              \
+  typedef logic [cfg.OutIdWidth-1:0] ``name``_out_id_t;                                                                                                             \
   typedef logic [cfg.UserWidth-1:0] ``name``_user_t;                                                                                                                \
   typedef logic [cfg.DataWidth-1:0] ``name``_data_t;                                                                                                                \
   typedef logic [cfg.DataWidth/8-1:0] ``name``_strb_t;                                                                                                              \
@@ -173,27 +173,27 @@
 // `FLOO_TYPEDEF_HDR_T(hdr_t, ...)
 // `FLOO_TYPEDEF_AXI_FROM_CFG(my_axi, AxiCfg)
 // `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, my_axi, AxiCfg, hdr_t)
-`define FLOO_TYPEDEF_AXI_CHAN_ALL(name, req, rsp, axi_name, cfg, hdr_t)                                                               \
-  `FLOO_TYPEDEF_FLIT_T(``name``_aw, hdr_t, ``axi_name``_aw_chan_t, floo_pkg::get_axi_rsvd_bits(cfg, floo_pkg::AxiAw))       \
-  `FLOO_TYPEDEF_FLIT_T(``name``_w, hdr_t, ``axi_name``_w_chan_t, floo_pkg::get_axi_rsvd_bits(cfg, floo_pkg::AxiW))          \
-  `FLOO_TYPEDEF_FLIT_T(``name``_ar, hdr_t, ``axi_name``_ar_chan_t, floo_pkg::get_axi_rsvd_bits(cfg, floo_pkg::AxiAr))       \
-  `FLOO_TYPEDEF_GENERIC_FLIT_T(req, hdr_t, logic [floo_pkg::get_max_axi_payload_bits(cfg, floo_pkg::FlooReq)-1:0])          \
-                                                                                                                            \
-  `FLOO_TYPEDEF_FLIT_T(``name``_b, hdr_t, ``axi_name``_b_chan_t, floo_pkg::get_axi_rsvd_bits(cfg, floo_pkg::AxiB))          \
-  `FLOO_TYPEDEF_FLIT_T(``name``_r, hdr_t, ``axi_name``_r_chan_t, floo_pkg::get_axi_rsvd_bits(cfg, floo_pkg::AxiR))          \
-  `FLOO_TYPEDEF_GENERIC_FLIT_T(rsp, hdr_t, logic [floo_pkg::get_max_axi_payload_bits(cfg, floo_pkg::FlooRsp)-1:0])          \
-                                                                                                                            \
-  typedef union packed {                                                                                                    \
-    floo_``name``_aw_flit_t axi_aw;                                                                                         \
-    floo_``name``_w_flit_t axi_w;                                                                                           \
-    floo_``name``_ar_flit_t axi_ar;                                                                                         \
-    floo_``req``_generic_flit_t generic;                                                                                        \
-  } floo_``req``_chan_t;                                                                                                        \
-                                                                                                                            \
-  typedef union packed {                                                                                                    \
-    floo_``name``_b_flit_t axi_b;                                                                                           \
-    floo_``name``_r_flit_t axi_r;                                                                                           \
-    floo_``rsp``_generic_flit_t generic;                                                                                        \
+`define FLOO_TYPEDEF_AXI_CHAN_ALL(name, req, rsp, axi_name, cfg, hdr_t)                                               \
+  `FLOO_TYPEDEF_FLIT_T(``name``_aw, hdr_t, ``axi_name``_aw_chan_t, floo_pkg::get_axi_rsvd_bits(cfg, floo_pkg::AxiAw)) \
+  `FLOO_TYPEDEF_FLIT_T(``name``_w, hdr_t, ``axi_name``_w_chan_t, floo_pkg::get_axi_rsvd_bits(cfg, floo_pkg::AxiW))    \
+  `FLOO_TYPEDEF_FLIT_T(``name``_ar, hdr_t, ``axi_name``_ar_chan_t, floo_pkg::get_axi_rsvd_bits(cfg, floo_pkg::AxiAr)) \
+  `FLOO_TYPEDEF_GENERIC_FLIT_T(req, hdr_t, logic [floo_pkg::get_max_axi_payload_bits(cfg, floo_pkg::FlooReq)-1:0])    \
+                                                                                                                      \
+  `FLOO_TYPEDEF_FLIT_T(``name``_b, hdr_t, ``axi_name``_b_chan_t, floo_pkg::get_axi_rsvd_bits(cfg, floo_pkg::AxiB))    \
+  `FLOO_TYPEDEF_FLIT_T(``name``_r, hdr_t, ``axi_name``_r_chan_t, floo_pkg::get_axi_rsvd_bits(cfg, floo_pkg::AxiR))    \
+  `FLOO_TYPEDEF_GENERIC_FLIT_T(rsp, hdr_t, logic [floo_pkg::get_max_axi_payload_bits(cfg, floo_pkg::FlooRsp)-1:0])    \
+                                                                                                                      \
+  typedef union packed {                                                                                              \
+    floo_``name``_aw_flit_t axi_aw;                                                                                   \
+    floo_``name``_w_flit_t axi_w;                                                                                     \
+    floo_``name``_ar_flit_t axi_ar;                                                                                   \
+    floo_``req``_generic_flit_t generic;                                                                              \
+  } floo_``req``_chan_t;                                                                                              \
+                                                                                                                      \
+  typedef union packed {                                                                                              \
+    floo_``name``_b_flit_t axi_b;                                                                                     \
+    floo_``name``_r_flit_t axi_r;                                                                                     \
+    floo_``rsp``_generic_flit_t generic;                                                                              \
   } floo_``rsp``_chan_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -248,21 +248,21 @@
     floo_``name``_narrow_w_flit_t narrow_w;                                                                                                                                               \
     floo_``name``_narrow_ar_flit_t narrow_ar;                                                                                                                                             \
     floo_``name``_wide_ar_flit_t wide_ar;                                                                                                                                                 \
-    floo_``req``_generic_flit_t generic;                                                                                                                                                      \
-  } floo_``req``_chan_t;                                                                                                                                                                      \
+    floo_``req``_generic_flit_t generic;                                                                                                                                                  \
+  } floo_``req``_chan_t;                                                                                                                                                                  \
                                                                                                                                                                                           \
   typedef union packed {                                                                                                                                                                  \
     floo_``name``_narrow_b_flit_t narrow_b;                                                                                                                                               \
     floo_``name``_narrow_r_flit_t narrow_r;                                                                                                                                               \
     floo_``name``_wide_b_flit_t wide_b;                                                                                                                                                   \
-    floo_``rsp``_generic_flit_t generic;                                                                                                                                                      \
-  } floo_``rsp``_chan_t;                                                                                                                                                                      \
+    floo_``rsp``_generic_flit_t generic;                                                                                                                                                  \
+  } floo_``rsp``_chan_t;                                                                                                                                                                  \
                                                                                                                                                                                           \
   typedef union packed {                                                                                                                                                                  \
     floo_``name``_wide_aw_flit_t wide_aw;                                                                                                                                                 \
     floo_``name``_wide_w_flit_t wide_w;                                                                                                                                                   \
     floo_``name``_wide_r_flit_t wide_r;                                                                                                                                                   \
-    floo_``wide``_generic_flit_t generic;                                                                                                                                                     \
+    floo_``wide``_generic_flit_t generic;                                                                                                                                                 \
   } floo_``wide``_chan_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -349,9 +349,9 @@
 // `FLOO_TYPEDEF_AXI_FROM_CFG(my_wide_axi, AxiCfgW)
 // `FLOO_TYPEDEF_NW_CHAN_ALL(axi, my_req, my_rsp, my_wide, my_axi_narrow_in, my_axi_wide_in, AxiCfgN, AxiCfgW, hdr_t)
 // `FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, my_req, my_rsp, my_wide)
-`define FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, req_chan, rsp_chan, wide_chan)  \
-  `FLOO_TYPEDEF_LINK_T(req, req_chan)                       \
-  `FLOO_TYPEDEF_LINK_T(rsp, rsp_chan)                       \
+`define FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, req_chan, rsp_chan, wide_chan) \
+  `FLOO_TYPEDEF_LINK_T(req, req_chan)                                           \
+  `FLOO_TYPEDEF_LINK_T(rsp, rsp_chan)                                           \
   `FLOO_TYPEDEF_LINK_T(wide, wide_chan)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
