@@ -11,30 +11,30 @@ routing:
 
 
 protocols:
-  - name: "narrow"
-    type: "AXI4"
-    direction: "manager"
+  - name: "narrow_in"
+    protocol: "AXI4"
+    type: "narrow"
     data_width: 64
     addr_width: 48
     id_width: 4
     user_width: 1
-  - name: "narrow"
-    type: "AXI4"
-    direction: "subordinate"
+  - name: "narrow_out"
+    protocol: "AXI4"
+    type: "narrow"
     data_width: 64
     addr_width: 48
     id_width: 2
     user_width: 1
-  - name: "wide"
-    type: "AXI4"
-    direction: "manager"
+  - name: "wide_in"
+    protocol: "AXI4"
+    type: "wide"
     data_width: 512
     addr_width: 48
     id_width: 3
     user_width: 1
-  - name: "wide"
-    type: "AXI4"
-    direction: "subordinate"
+  - name: "wide_out"
+    protocol: "AXI4"
+    type: "wide"
     data_width: 512
     addr_width: 48
     id_width: 1
@@ -47,37 +47,37 @@ endpoints:
       base: 0x0000_1000_0000
       size: 0x0000_0004_0000
     mgr_port_protocol:
-      - "narrow"
-      - "wide"
+      - "narrow_in"
+      - "wide_in"
     sbr_port_protocol:
-      - "narrow"
-      - "wide"
+      - "narrow_out"
+      - "wide_out"
   - name: "hbm"
     array: [8]
     addr_range:
       base: 0x0000_8000_0000
       size: 0x0000_4000_0000
     sbr_port_protocol:
-      - "narrow"
-      - "wide"
+      - "narrow_out"
+      - "wide_out"
   - name: "serial_link"
     addr_range:
       start: 0x0100_0000_0000
       end: 0x01ff_ffff_ffff
     mgr_port_protocol:
-      - "narrow"
-      - "wide"
+      - "narrow_in"
+      - "wide_in"
     sbr_port_protocol:
-      - "narrow"
-      - "wide"
+      - "narrow_out"
+      - "wide_out"
   - name: "peripherals"
     addr_range:
       start: 0x0000_0000_0000
       end: 0x0000_0fff_ffff
     mgr_port_protocol:
-      - "narrow"
+      - "narrow_in"
     sbr_port_protocol:
-      - "narrow"
+      - "narrow_out"
 
 routers:
   - name: "router"
