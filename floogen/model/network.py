@@ -88,11 +88,21 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     @field_validator("protocols")
     @classmethod
-    def validate_addr_width(cls, protocols):
-        """Check that all protocols have the same address width."""
-        addr_widths = [prot.addr_width for prot in protocols]
-        if len(set(addr_widths)) != 1:
+    def validate_protocols(cls, protocols):
+        """Check that names are unique and parameters are compatible."""
+        # Check that address width is unique among all protocols
+        if len(set(prot.addr_width for prot in protocols)) != 1:
             raise ValueError("All protocols must have the same address width")
+        # Check that `narrow` and `wide` protocols have the same data width
+        if len(set(prot.data_width for prot in protocols if prot.type == "narrow")) != 1:
+            raise ValueError("All `narrow` protocols must have the same data width")
+        if len(set(prot.data_width for prot in protocols if prot.type == "wide")) != 1:
+            raise ValueError("All `wide` protocols must have the same data width")
+        # Check that `narrow` and `wide` protocols have the same user width
+        if len(set(prot.user_width for prot in protocols if prot.type == "narrow")) != 1:
+            raise ValueError("All `narrow` protocols must have the same user width")
+        if len(set(prot.user_width for prot in protocols if prot.type == "wide")) != 1:
+            raise ValueError("All `wide` protocols must have the same user width")
         return protocols
 
     @model_validator(mode="after")
