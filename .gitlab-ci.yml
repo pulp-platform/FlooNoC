@@ -26,7 +26,7 @@ compile-vsim:
   stage: build
   script:
     - make compile-sim VC=true | tee compile.log 2>&1
-    - '! grep "Error: " compile.log'
+    - '! grep "\*\* Error" compile.log'
   needs:
     - collect-bender-sources
   artifacts:
