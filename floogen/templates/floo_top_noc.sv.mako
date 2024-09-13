@@ -7,9 +7,9 @@
 
 // AUTOMATICALLY GENERATED! DO NOT EDIT!
 
-package ${noc.name}_floo_noc_pkg;
+package floo_${noc.name}_noc_pkg;
 
-  import floo_narrow_wide_pkg::*;
+  import floo_pkg::*;
 
   /////////////////////
   //   Address Map   //
@@ -18,6 +18,8 @@ package ${noc.name}_floo_noc_pkg;
 % if noc.routing.route_algo.value != "XYRouting":
   ${noc.render_ep_enum()}
 % endif
+
+  ${noc.routing.render_typedefs()}
 
 % if noc.routing.use_id_table:
   ${noc.routing.sam.render(aw=noc.routing.addr_width)}
@@ -31,12 +33,20 @@ package ${noc.name}_floo_noc_pkg;
   ${noc.render_ni_tables()}
 % endif
 
+  ${noc.routing.render_route_cfg(name="RouteCfg")}
+
+% for prot in noc.protocols:
+  ${prot.render_typedefs()}
+% endfor
+
+  ${noc.routing.render_hdr_typedef()}
+  ${noc.render_link_typedefs()}
+
 endpackage
 
-module ${noc.name}_floo_noc
+module floo_${noc.name}_noc
   import floo_pkg::*;
-  import floo_narrow_wide_pkg::*;
-  import ${noc.name}_floo_noc_pkg::*;
+  import floo_${noc.name}_noc_pkg::*;
 (
   input logic clk_i,
   input logic rst_ni,

@@ -1,35 +1,43 @@
-<%! from floogen.utils import snake_to_camel %>\
+<%! from floogen.utils import snake_to_camel, bool_to_sv %>\
 <% actual_xy_id = ni.id - ni.routing.id_offset if ni.routing.id_offset is not None else ni.id %>\
+<% has_narrow_sbr = ni.sbr_narrow_port is not None %>\
+<% has_narrow_mgr = ni.mgr_narrow_port is not None %>\
+<% has_wide_sbr = ni.sbr_wide_port is not None %>\
+<% has_wide_mgr = ni.mgr_wide_port is not None %>\
 
-floo_narrow_wide_chimney  #(
+floo_nw_chimney  #(
+  .AxiCfgN(AxiCfgN),
+  .AxiCfgW(AxiCfgW),
+  .ChimneyCfgN(set_ports(ChimneyDefaultCfg, ${bool_to_sv(has_narrow_sbr)}, ${bool_to_sv(has_narrow_mgr)})),
+  .ChimneyCfgW(set_ports(ChimneyDefaultCfg, ${bool_to_sv(has_wide_sbr)}, ${bool_to_sv(has_wide_mgr)})),
+  .RouteCfg(RouteCfg),
+  .id_t(id_t),
+  .rob_idx_t(rob_idx_t),
 % if ni.routing.route_algo.value == 'SourceRouting':
-  .NumRoutes(${len(ni.table)}),
+  .route_t (route_t),
 % endif
-% if ni.routing.use_id_table:
-  .SamNumRules(${len(ni.routing.sam)}),
+  .hdr_t  (hdr_t),
   .sam_rule_t(sam_rule_t),
   .Sam(Sam),
+% if has_narrow_mgr:
+  .axi_narrow_in_req_t(${ni.mgr_narrow_port.type_name()}_req_t),
+  .axi_narrow_in_req_t(${ni.mgr_narrow_port.type_name()}_rsp_t),
 % endif
-% if ni.sbr_narrow_port is None:
-  .EnNarrowSbrPort(1'b0),
-% else:
-  .EnNarrowSbrPort(1'b1),
+% if has_narrow_sbr:
+  .axi_narrow_out_req_t(${ni.sbr_narrow_port.type_name()}_req_t),
+  .axi_narrow_out_req_t(${ni.sbr_narrow_port.type_name()}_rsp_t),
 % endif
-% if ni.mgr_narrow_port is None:
-  .EnNarrowMgrPort(1'b0),
-% else:
-  .EnNarrowMgrPort(1'b1),
+% if has_wide_mgr:
+  .axi_wide_in_req_t(${ni.mgr_wide_port.type_name()}_req_t),
+  .axi_wide_in_req_t(${ni.mgr_wide_port.type_name()}_rsp_t),
 % endif
-% if ni.sbr_wide_port is None:
-  .EnWideSbrPort(1'b0),
-% else:
-  .EnWideSbrPort(1'b1),
+% if has_wide_sbr:
+  .axi_wide_out_req_t(${ni.sbr_wide_port.type_name()}_req_t),
+  .axi_wide_out_req_t(${ni.sbr_wide_port.type_name()}_rsp_t),
 % endif
-% if ni.mgr_wide_port is None:
-  .EnWideMgrPort(1'b0)
-% else:
-  .EnWideMgrPort(1'b1)
-% endif
+  .floo_req_t(floo_req_t),
+  .floo_rsp_t(floo_rsp_t),
+  .floo_wide_t(floo_wide_t)
 ) ${ni.name} (
   .clk_i,
   .rst_ni,

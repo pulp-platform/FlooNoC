@@ -75,7 +75,7 @@ class NarrowWideRouter(Router):
     """Router class to describe a narrow-wide router"""
 
     with as_file(
-        files(floogen.templates).joinpath("floo_narrow_wide_router.sv.mako")
+        files(floogen.templates).joinpath("floo_nw_router.sv.mako")
     ) as _tpl_path:
         _tpl: ClassVar = Template(filename=str(_tpl_path))
 

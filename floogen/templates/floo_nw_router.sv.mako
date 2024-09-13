@@ -60,18 +60,24 @@ ${wide_type} [${len(router.outgoing)-1}:0] ${router.name}_wide_out;
   % endif
 % endfor
 
-floo_narrow_wide_router #(
+floo_nw_router #(
+  .AxiCfgN(AxiCfgN),
+  .AxiCfgW(AxiCfgW),
+  .RouteAlgo (${router.route_algo.value}),
   .NumRoutes (${router.degree}),
   .NumInputs (${len(router.incoming)}),
   .NumOutputs (${len(router.outgoing)}),
-  .ChannelFifoDepth (2),
-  .OutputFifoDepth (2),
+  .InFifoDepth (2),
+  .OutFifoDepth (2),
   .id_t(id_t),
+  .hdr_t(hdr_t),
 % if router.route_algo == RouteAlgo.ID:
   .NumAddrRules (${len(router.table.rules)}),
   .addr_rule_t (${router.name}_map_rule_t),
 % endif
-  .RouteAlgo (${router.route_algo.value})
+  .floo_req_t(floo_req_t),
+  .floo_rsp_t(floo_rsp_t),
+  .floo_wide_t(floo_wide_t)
 ) ${router.name} (
   .clk_i,
   .rst_ni,
