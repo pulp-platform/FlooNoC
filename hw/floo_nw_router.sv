@@ -9,33 +9,52 @@
 
 /// Wrapper of a multi-link router for narrow and wide links
 module floo_nw_router #(
+  /// Config of the narrow AXI interfaces (see floo_pkg::axi_cfg_t for details)
   parameter floo_pkg::axi_cfg_t AxiCfgN       = '0,
+  /// Config of the wide AXI interfaces (see floo_pkg::axi_cfg_t for details)
   parameter floo_pkg::axi_cfg_t AxiCfgW       = '0,
+  /// Routing algorithm
   parameter floo_pkg::route_algo_e RouteAlgo  = floo_pkg::XYRouting,
+  /// Number of input/output ports
   parameter int unsigned NumRoutes            = 0,
+  /// Number of input ports
   parameter int unsigned NumInputs            = NumRoutes,
+  /// Number of output ports
   parameter int unsigned NumOutputs           = NumRoutes,
+  /// Input buffer depth
   parameter int unsigned InFifoDepth          = 0,
+  /// Output buffer depth
   parameter int unsigned OutFifoDepth         = 0,
+  /// Disable illegal connections in router
+  /// (only applies for `RouteAlgo == XYRouting`)
   parameter bit          XYRouteOpt           = 1'b1,
-  /// Used for ID-based and XY routing
-  parameter int unsigned IdWidth              = 0,
-  parameter type id_t                         = logic[IdWidth-1:0],
+  /// Node ID type
+  parameter type id_t                         = logic,
+  /// Header type
   parameter type hdr_t                        = logic,
-  /// Used for ID-based routing
+  /// Number of rules in the route table
+  /// (only used for `RouteAlgo == IdTable`)
   parameter int unsigned NumAddrRules         = 0,
-  parameter type         addr_rule_t          = logic,
+  /// Address rule type
+  /// (only used for `RouteAlgo == IdTable`)
+  parameter type addr_rule_t                  = logic,
+  /// Floo `req` link type
   parameter type floo_req_t                   = logic,
+  /// Floo `rsp` link type
   parameter type floo_rsp_t                   = logic,
+  /// Floo `wide` link type
   parameter type floo_wide_t                  = logic
 ) (
   input  logic   clk_i,
   input  logic   rst_ni,
   input  logic   test_enable_i,
-
+  /// Coordinate of the current node
+  /// (only used for `RouteAlgo == XYRouting`)
   input  id_t id_i,
+  /// Routing table
+  /// (only used for `RouteAlgo == IdTable`)
   input  addr_rule_t [NumAddrRules-1:0] id_route_map_i,
-
+  /// Input and output links
   input   floo_req_t [NumInputs-1:0] floo_req_i,
   input   floo_rsp_t [NumOutputs-1:0] floo_rsp_i,
   output  floo_req_t [NumOutputs-1:0] floo_req_o,
@@ -110,7 +129,6 @@ module floo_nw_router #(
     .OutFifoDepth     ( OutFifoDepth            ),
     .RouteAlgo        ( RouteAlgo               ),
     .XYRouteOpt       ( XYRouteOpt              ),
-    .IdWidth          ( IdWidth                 ),
     .id_t             ( id_t                    ),
     .NumAddrRules     ( NumAddrRules            ),
     .addr_rule_t      ( addr_rule_t             )
@@ -138,7 +156,6 @@ module floo_nw_router #(
     .OutFifoDepth     ( OutFifoDepth            ),
     .RouteAlgo        ( RouteAlgo               ),
     .XYRouteOpt       ( XYRouteOpt              ),
-    .IdWidth          ( IdWidth                 ),
     .flit_t           ( floo_rsp_generic_flit_t ),
     .id_t             ( id_t                    ),
     .NumAddrRules     ( NumAddrRules            ),
@@ -167,7 +184,6 @@ module floo_nw_router #(
     .OutFifoDepth     ( OutFifoDepth              ),
     .RouteAlgo        ( RouteAlgo                 ),
     .XYRouteOpt       ( XYRouteOpt                ),
-    .IdWidth          ( IdWidth                   ),
     .id_t             ( id_t                      ),
     .NumAddrRules     ( NumAddrRules              ),
     .addr_rule_t      ( addr_rule_t               )

@@ -9,13 +9,39 @@
 /// Currently only contains useful functions and some constants and typedefs
 package floo_pkg;
 
-  // Support Routing Algorithms
+  /// Currently Supported Routing Algorithms
   typedef enum logic[1:0] {
+    /// `IdTable` routing uses a table of routing rules to determine to
+    /// which output port a packet should be routed, based on the
+    /// destination ID encoded in the header of the flit. Every router
+    /// needs its own table, that is passed to `id_route_map_i`. The
+    /// network interface only needs to convert the physical address to
+    /// the destination ID, that is later used by the routers.
     IdTable,
+    /// `SourceRouting` calculates the route to the destination in the
+    /// source itself (i.e. the network interfaces). The route is encoded
+    /// as a sequence of router ports that the packet should traverse. At
+    /// every router hop, a port is popped from the route list. The routes
+    /// need to be passed to the network interfaces `route_table_i`, whic
+    /// is a table of routes that can be indexed with the destination ID.
+    /// This algorithm is mainly useful for smaller networks with fewer
+    /// hops where the encoding size of the route does not become too large.
     SourceRouting,
+    /// `XYRouting` is a simple routing algorithm that routes packets
+    /// based on the XY coordinates of current and destination node. Every
+    /// router needs to be aware of its own XY coordinates and forwards
+    /// packets based on the difference of the coordinates. The network
+    /// interface needs to convert the physical address to the destination
+    ///  XY coordinates, which can be done with addressoffsets `XYAddrOffsetX`
+    /// and `XYAddrOffsetY`, or by indexing the system address map `Sam`. This
+    /// is controlled with the `UseIdTable` parameter.
     XYRouting
   } route_algo_e;
 
+  /// The directions in a 2D mesh network, mainly useful for indexing
+  /// multi-directional arrays. If a router has more than one local
+  /// port, the additional ports can be defined as `Eject+p`, where `p`
+  /// is the local port index
   typedef enum logic[2:0] {
     North = 3'd0, // y increasing
     East  = 3'd1, // x increasing
@@ -25,6 +51,7 @@ package floo_pkg;
     NumDirections
   } route_direction_e;
 
+  /// Additional directions for the Ruche network
   typedef enum  {
     RucheNorth = 'd5,
     RucheEast  = 'd6,
@@ -32,12 +59,29 @@ package floo_pkg;
     RucheWest  = 'd8
   } ruche_direction_e;
 
+  /// The types of Reorder Buffers (RoBs) that can be used in the network interface
   typedef enum logic [1:0] {
+    /// The most performant but also most complex RoB, which supports reodering
+    /// of responses. This reorder buffer retains the out-of-order nature of
+    /// AXI transactions with different IDs. Supports multiple outstanding
+    /// transactions and bursts.
     NormalRoB,
+    /// Simpler FIFO-like RoB, which does not support reordering of responses with
+    /// the same AXI txnID. Transactions with different txnIDs are effectively
+    /// serialized. Supports multiple outstanding transactions but currently does
+    /// not support burst transactions. Mainly useful for B-responses which are
+    /// single transactions.
     SimpleRoB,
+    /// No RoB, which stalls transactions of the same ID going to different destinations
+    /// until the previous transaction is completed. This is option is useful if the
+    /// ordering of transactions is handled downstream, e.g. in the DMA by issuing AXI
+    /// transactions with different txnIDs. The overhead of this RoB is very low, since
+    /// it only requires counters for tracking the number of outstanding transactions of
+    /// each txnID.
     NoRoB
   } rob_type_e;
 
+  /// The types of AXI channels in single AXI network interfaces
   typedef enum logic [2:0] {
     AxiAw = 3'd0,
     AxiW = 3'd1,
@@ -47,6 +91,7 @@ package floo_pkg;
     NumAxiChannels = 3'd5
   } axi_ch_e;
 
+  /// The types of AXI channels in narrow-wide AXI network interfaces
   typedef enum logic [3:0] {
     NarrowAw = 4'd0,
     NarrowW = 4'd1,
@@ -61,44 +106,93 @@ package floo_pkg;
     NumNWAxiChannels = 4'd10
   } nw_ch_e;
 
+  /// The link types in the Floo network
   typedef enum logic [1:0] {
+    /// Request link of `AR, AW, W` type
     FlooReq = 2'd0,
+    /// Response link of `R, B` type
     FlooRsp = 2'd1,
+    /// Additional wide link for narrow-wide AXI interfaces
     FlooWide = 2'd2
   } floo_chan_e;
 
+  /// Configuration for a bidirectional AXI interface
   typedef struct packed {
+    /// Width of the address
     int unsigned AddrWidth;
+    /// Width of the data
     int unsigned DataWidth;
+    /// Width of the user signals
     int unsigned UserWidth;
+    /// Width of the incoming txnID (i.e. the txnID of a manager port)
     int unsigned InIdWidth;
+    /// Width of the outgoing txnID (i.e. the txnID of a subordinate port)
     int unsigned OutIdWidth;
   } axi_cfg_t;
 
+  /// Configuration to pass routing information to the routers
+  /// as well as network interfaces
   typedef struct packed {
+    /// The routing algorithm that is used
     route_algo_e RouteAlgo;
+    /// Whether to calculate the destination ID based based on
+    /// the system address map or with XY offset values.
     bit UseIdTable;
+    /// The offset of the X coordinate in request address,
+    /// if `!UseIdTable && RouteAlgo == XYRouting`
     int unsigned XYAddrOffsetX;
+    /// The offset of the Y coordinate in request address
+    /// if `!UseIdTable && RouteAlgo == XYRouting`
     int unsigned XYAddrOffsetY;
+    /// The offset of the id in the request address
+    /// if `!UseIdTable && RouteAlgo != XYRouting`
     int unsigned IdAddrOffset;
+    /// The number of endpoints in the System Address Map,
+    /// Only used if `UseIdTable` is set
     int unsigned NumSamRules;
+    /// The number of routes for every routing table,
+    /// Only used if `RouteAlgo == SourceRouting`
     int unsigned NumRoutes;
   } route_cfg_t;
 
+  /// Configuration for the network interface (chimney)
   typedef struct packed {
+    /// Whether an AXI subordinate is attached to the network interfaces
+    /// (e.g. a DRAM memory)
     bit EnSbrPort;
+    /// Whether an AXI manager is attached to the network interfaces
+    /// (e.g. a host core)
     bit EnMgrPort;
+    /// The number of both incoming and outgoing transactions that can be
+    /// handled by the network interface.
     int unsigned MaxTxns;
+    /// The number of unique transaction IDs that can be issued by the network
+    /// to AXI subordinates downstream. By default the network interface issues
+    /// with a single txnID, effectively serializing incoming transactions from
+    /// all managers in the entire system. If multiple txnIDs are used, incoming
+    /// transactions with different TxnIDs _might_ not be serialized. This is results
+    /// in more complex logic in the network interfaces, but might be useful for
+    /// downstream AXI networks that can handle out-of-order transactions.
     int unsigned MaxUniqueIds;
+    /// Number of outstanding transactions per txnID. Only used if
+    /// `RoBType == NormalRoB`.
     int unsigned MaxTxnsPerId;
+    /// The type of Reoder Buffer (RoB) that is used for B responses.
     rob_type_e BRoBType;
+    /// The depth of the RoB for B responses. Only used if `BRoBType != NoRoB`.
     int unsigned BRoBDepth;
+    /// The type of Reoder Buffer (RoB) that is used for R responses.
     rob_type_e RRoBType;
+    /// The depth of the RoB for R responses. Only used if `RRoBType != NoRoB`.
     int unsigned RRoBDepth;
+    /// Whether to buffer incoming AXI requests at the network interface,
+    /// to ease timing closure.
     bit CutAx;
+    /// Whether to buffer incoming links at the network interface,
     bit CutRsp;
   } chimney_cfg_t;
 
+  /// The default configuration for the network interface
   localparam chimney_cfg_t ChimneyDefaultCfg = '{
     EnSbrPort: 1'b1,
     EnMgrPort: 1'b1,
@@ -113,6 +207,7 @@ package floo_pkg;
     CutRsp: 1'b0
   };
 
+  /// The default configuration for routing
   localparam route_cfg_t RouteDefaultCfg = '{
     RouteAlgo: XYRouting,
     UseIdTable: 1'b0,
@@ -123,6 +218,7 @@ package floo_pkg;
     NumRoutes: 0
   };
 
+  /// The AXI channel to link mapping in a single-AXI network interface
   function automatic floo_chan_e axi_chan_mapping(axi_ch_e ch);
     if (ch == AxiAw || ch == AxiW || ch == AxiAr) begin
       return FlooReq;
@@ -131,6 +227,7 @@ package floo_pkg;
     end
   endfunction
 
+  /// The AXI channel to link mapping in a narrow-wide AXI network interface
   function automatic floo_chan_e nw_chan_mapping(nw_ch_e ch);
     if (ch == NarrowAw || ch == NarrowW || ch == NarrowAr || ch == WideAr) begin
       return FlooReq;
@@ -141,6 +238,7 @@ package floo_pkg;
     end
   endfunction
 
+  /// Swaps the direction of the AXI interface config
   function automatic axi_cfg_t axi_cfg_swap_iw(axi_cfg_t cfg);
     return '{
       AddrWidth: cfg.AddrWidth,
@@ -151,12 +249,15 @@ package floo_pkg;
     };
   endfunction
 
+  /// Helper function to enable/disable the subordinate and manager ports
+  /// for a chimney config.
   function automatic chimney_cfg_t set_ports(chimney_cfg_t cfg, bit en_sbr, bit en_mgr);
     cfg.EnSbrPort = en_sbr;
     cfg.EnMgrPort = en_mgr;
     return cfg;
   endfunction
 
+  /// Returns the number of bits of an AXI channel for a single-AXI config
   function automatic int unsigned get_axi_chan_width(axi_cfg_t cfg, axi_ch_e ch);
     case (ch)
       AxiAw: return axi_pkg::aw_width(cfg.AddrWidth, cfg.InIdWidth, cfg.UserWidth);
@@ -168,6 +269,7 @@ package floo_pkg;
     endcase
   endfunction
 
+  /// Returns the number of bits of an AXI channel for a narrow-wide AXI config
   function automatic int unsigned get_nw_chan_width(axi_cfg_t cfg_n, axi_cfg_t cfg_w, nw_ch_e ch);
     case (ch)
       NarrowAw: return axi_pkg::aw_width(cfg_n.AddrWidth, cfg_n.InIdWidth, cfg_n.UserWidth);
@@ -184,6 +286,8 @@ package floo_pkg;
     endcase
   endfunction
 
+  /// Calculates the maximum payload bits required for a link, based on the single-AXI
+  /// channel mapping
   function automatic int unsigned get_max_axi_payload_bits(axi_cfg_t cfg, floo_chan_e ch);
     int unsigned max_payload_bits = 0;
     for (int unsigned i = 0; i < NumAxiChannels; i++) begin
@@ -196,6 +300,8 @@ package floo_pkg;
     return max_payload_bits + 1; // +1 because we need at least one `rsvd` bit
   endfunction
 
+  /// Calculates the maximum payload bits required for a link, based on the narrow-wide AXI
+  /// channel mapping
   function automatic int unsigned get_max_nw_payload_bits(
     axi_cfg_t cfg_n, axi_cfg_t cfg_w, floo_chan_e ch);
     int unsigned max_payload_bits = 0;
@@ -209,11 +315,15 @@ package floo_pkg;
     return max_payload_bits + 1; // +1 because we need at least one `rsvd` bit
   endfunction
 
+  /// Calculates the number of unused (i.e. reserved) bits in a link for a specific
+  /// AXI channel payload in a single-AXI config
   function automatic int unsigned get_axi_rsvd_bits(axi_cfg_t cfg, axi_ch_e ch);
     return get_max_axi_payload_bits(cfg, axi_chan_mapping(ch)) -
                                     get_axi_chan_width(cfg, ch);
   endfunction
 
+  /// Calculates the number of unused (i.e. reserved) bits in a link for a specific
+  /// AXI channel payload in a narrow-wide AXI config
   function automatic int unsigned get_nw_rsvd_bits(axi_cfg_t cfg_n, axi_cfg_t cfg_w, nw_ch_e ch);
     return get_max_nw_payload_bits(cfg_n, cfg_w, nw_chan_mapping(ch)) -
                                    get_nw_chan_width(cfg_n, cfg_w, ch);

@@ -11,12 +11,12 @@
 
 /// A bidirectional network interface for connecting AXI4 Buses to the NoC
 module floo_axi_chimney #(
-  /// AXI parameter config
+  /// Config of the AXI interfaces (see floo_pkg::axi_cfg_t for details)
   parameter floo_pkg::axi_cfg_t AxiCfg = '0,
-  /// Route config
-  parameter floo_pkg::route_cfg_t RouteCfg  = floo_pkg::RouteDefaultCfg,
-  /// Chimney config
+  /// Config of the data path in the chimney (see floo_pkg::chimney_cfg_t for details)
   parameter floo_pkg::chimney_cfg_t ChimneyCfg = floo_pkg::ChimneyDefaultCfg,
+  /// Config for routing information (see floo_pkg::route_cfg_t for details)
+  parameter floo_pkg::route_cfg_t RouteCfg  = floo_pkg::RouteDefaultCfg,
   /// Atomic operation support
   parameter bit AtopSupport                 = 1'b1,
   /// Maximum number of oustanding Atomic transactions,
@@ -24,24 +24,41 @@ module floo_axi_chimney #(
   /// Every atomic transactions needs to have a unique ID
   /// and one ID is reserved for non-atomic transactions
   parameter int unsigned MaxAtomicTxns      = 1,
-  // All the types
-  parameter type sam_rule_t                 = logic,
-  parameter type hdr_t                      = logic,
-  parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam  = '0,
+  /// Node ID type for routing
+  parameter type id_t                                   = logic,
+  /// RoB index type for reordering.
+  // (can be ignored if `RoBType == NoRoB`)
+  parameter type rob_idx_t                              = logic,
+  /// Route type for source-based routing
+  /// (only used if `RouteCfg.RouteAlgo == SourceRouting`)
+  parameter type route_t                                = logic,
+  /// Header type for the flits
+  parameter type hdr_t                                  = logic,
+  /// Rule type for the System Address Map
+  /// (only used if `RouteCfg.UseIdTable == 1'b1`)
+  parameter type sam_rule_t                             = logic,
+  /// The System Address Map (SAM) rules
+  /// (only used if `RouteCfg.UseIdTable == 1'b1`)
+  parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam   = '0,
+  /// AXI manager request channel type
   parameter type axi_in_req_t               = logic,
+  /// AXI manager response channel type
   parameter type axi_in_rsp_t               = logic,
+  /// AXI subordinate request channel type
   parameter type axi_out_req_t              = logic,
+  // AXI subordinate response channel type
   parameter type axi_out_rsp_t              = logic,
-  parameter type rob_idx_t                  = logic,
-  parameter type id_t                       = logic,
-  parameter type route_t                    = logic,
+  /// Floo `req` link type
   parameter type floo_req_t                 = logic,
+  /// Floo `rsp` link type
   parameter type floo_rsp_t                 = logic,
+  /// SRAM configuration type
   parameter type sram_cfg_t                 = logic
 ) (
   input  logic clk_i,
   input  logic rst_ni,
   input  logic test_enable_i,
+  /// SRAM configuration
   input  sram_cfg_t  sram_cfg_i,
   /// AXI4 side interfaces
   input  axi_in_req_t axi_in_req_i,
@@ -52,10 +69,10 @@ module floo_axi_chimney #(
   input  id_t id_i,
   /// Routing table for the current tile
   input  route_t [RouteCfg.NumRoutes-1:0] route_table_i,
-  /// Output to NoC
+  /// Output links to NoC
   output floo_req_t floo_req_o,
   output floo_rsp_t floo_rsp_o,
-  /// Input from NoC
+  /// Input links from NoC
   input  floo_req_t floo_req_i,
   input  floo_rsp_t floo_rsp_i
 );

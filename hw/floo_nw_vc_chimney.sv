@@ -12,66 +12,103 @@
 
 /// A bidirectional network interface for connecting narrow & wide AXI Buses to the multi-link NoC
 module floo_nw_vc_chimney #(
-  /// AXI parameter config
+  /// Config of the narrow AXI interfaces (see floo_pkg::axi_cfg_t for details)
   parameter floo_pkg::axi_cfg_t AxiCfgN = '0,
+  /// Config of the wide AXI interfaces (see floo_pkg::axi_cfg_t for details)
   parameter floo_pkg::axi_cfg_t AxiCfgW = '0,
-  // Chimney configs
+  /// Config of the narrow data path in the chimney (see floo_pkg::chimney_cfg_t for details)
   parameter floo_pkg::chimney_cfg_t ChimneyCfgN = floo_pkg::ChimneyDefaultCfg,
+  /// Config of the wide data path in the chimney (see floo_pkg::chimney_cfg_t for details)
   parameter floo_pkg::chimney_cfg_t ChimneyCfgW = floo_pkg::ChimneyDefaultCfg,
-  /// Route config
+  /// Config for routing information (see floo_pkg::route_cfg_t for details)
   parameter floo_pkg::route_cfg_t RouteCfg  = floo_pkg::RouteDefaultCfg,
   /// Atomic operation support, currently only implemented for
   /// the narrow network!
   parameter bit AtopSupport                      = 1'b1,
   /// Maximum number of oustanding Atomic transactions,
-  /// must be smaller or equal to 2**AxiOutIdWidth-1 since
+  /// must be smaller or equal to 2**`AxiCfgN.OutIdWidth`-1 since
   /// Every atomic transactions needs to have a unique ID
   /// and one ID is reserved for non-atomic transactions
   parameter int unsigned MaxAtomicTxns           = 1,
-  /// Type for implementation inputs and outputs
-  parameter type sam_rule_t                             = logic,
-  parameter type hdr_t                                  = logic,
-  parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam   = '0,
-  parameter type axi_narrow_in_req_t                    = logic,
-  parameter type axi_narrow_in_rsp_t                    = logic,
-  parameter type axi_narrow_out_req_t                   = logic,
-  parameter type axi_narrow_out_rsp_t                   = logic,
-  parameter type axi_wide_in_req_t                      = logic,
-  parameter type axi_wide_in_rsp_t                      = logic,
-  parameter type axi_wide_out_req_t                     = logic,
-  parameter type axi_wide_out_rsp_t                     = logic,
-  parameter type rob_idx_t                              = logic,
+  /// Node ID type for routing
   parameter type id_t                                   = logic,
-  parameter type vc_id_t                                = logic,
+  /// RoB index type for reordering.
+  // (can be ignored if `RoBType == NoRoB`)
+  parameter type rob_idx_t                              = logic,
+  /// Route type for source-based routing
+  /// (only used if `RouteCfg.RouteAlgo == SourceRouting`)
   parameter type route_t                                = logic,
-  parameter type addr_rule_t                            = logic,
-  parameter int unsigned NumAddrRules                   = 0,
+  /// VC ID type
+  parameter type vc_id_t                                = logic,
+  /// Header type for the flits
+  parameter type hdr_t                                  = logic,
+  /// Rule type for the System Address Map
+  /// (only used if `RouteCfg.UseIdTable == 1'b1`)
+  parameter type sam_rule_t                             = logic,
+  /// The System Address Map (SAM) rules
+  /// (only used if `RouteCfg.UseIdTable == 1'b1`)
+  parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam   = '0,
+  /// Narrow AXI manager request channel type
+  parameter type axi_narrow_in_req_t                    = logic,
+  /// Narrow AXI manager response channel type
+  parameter type axi_narrow_in_rsp_t                    = logic,
+  /// Narrow AXI subordinate request channel type
+  parameter type axi_narrow_out_req_t                   = logic,
+  /// Narrow AXI subordinate response channel type
+  parameter type axi_narrow_out_rsp_t                   = logic,
+  /// Wide AXI manager request channel type
+  parameter type axi_wide_in_req_t                      = logic,
+  /// Wide AXI manager response channel type
+  parameter type axi_wide_in_rsp_t                      = logic,
+  /// Wide AXI subordinate request channel type
+  parameter type axi_wide_out_req_t                     = logic,
+  /// Wide AXI subordinate response channel type
+  parameter type axi_wide_out_rsp_t                     = logic,
+  /// Floo `req` link type
   parameter type floo_vc_req_t                          = logic,
+  /// Floo `rsp` link type
   parameter type floo_vc_rsp_t                          = logic,
+  /// Floo `wide` link type
   parameter type floo_vc_wide_t                         = logic,
+  /// SRAM configuration type `tc_sram_impl` in RoB
+  /// Only used if technology-dependent SRAM is used
   parameter type sram_cfg_t                             = logic,
-  //on which port the chimney is connected to the router (as seen from the router)
+  /// Address rule for the `id_route_map_i`
+  parameter type addr_rule_t                            = logic,
+  /// Number of Address Rules in the `id_route_map_i`
+  parameter int unsigned NumAddrRules                   = 0,
+  /// Which port the chimney is connected to the router (as seen from the router)
   parameter floo_pkg::route_direction_e OutputDir       = floo_pkg::Eject,
-
+  /// Number of Virtual channels
   parameter int NumVC                            = 4, // as seen from chimney
-  parameter int NumVCWidth                       = NumVC > 1 ? $clog2(NumVC) : 1,
+  /// Number of bits to encode the VC
+  parameter int NumVCWidth                       = cf_math_pkg::idx_width(NumVC),
+  /// Enables faster return of credits to the source
   parameter int CreditShortcut                   = 1,
+  /// Allow overflow to other VCs if the current VC is full
   parameter int AllowVCOverflow                  = 1,
+  /// Depth of incoming VC link buffers
   parameter int InputFifoDepth                   = 3,
+  /// Depth of outgoing VC link buffers
   parameter int VCDepth                          = 2,
+  /// Enables Wormhole routing
   parameter int FixedWormholeVC                  = 1, // if 1, force wormhole flits to wormholeVCId
+  /// VC ID to use for wormhole routing
   parameter int WormholeVCId                     = 0,
+  /// Depth of the wormhole VC link buffers
   parameter int WormholeVCDepth                  = 3
 ) (
   input  logic clk_i,
   input  logic rst_ni,
   input  logic test_enable_i,
+  /// SRAM configuration
   input  sram_cfg_t  sram_cfg_i,
-  /// AXI4 side interfaces
+  /// Narrow AXI4 side interfaces
   input  axi_narrow_in_req_t axi_narrow_in_req_i,
   output axi_narrow_in_rsp_t axi_narrow_in_rsp_o,
   output axi_narrow_out_req_t axi_narrow_out_req_o,
   input  axi_narrow_out_rsp_t axi_narrow_out_rsp_i,
+  /// Wide AXI4 side interfaces
   input  axi_wide_in_req_t axi_wide_in_req_i,
   output axi_wide_in_rsp_t axi_wide_in_rsp_o,
   output axi_wide_out_req_t axi_wide_out_req_o,
@@ -80,12 +117,14 @@ module floo_nw_vc_chimney #(
   input  id_t id_i,
   /// Routing table for the current tile
   input  route_t [RouteCfg.NumRoutes-1:0] route_table_i,
+  /// Route map used by lookahead routing.
+  /// (only used if `RouteCfg.RouteAlgo == IdTable`)
   input  addr_rule_t [NumAddrRules-1:0] id_route_map_i,
-  /// Output to NoC
+  /// Output links to NoC
   output floo_vc_req_t   floo_req_o,
   output floo_vc_rsp_t   floo_rsp_o,
   output floo_vc_wide_t  floo_wide_o,
-  /// Input from NoC
+  /// Input links from NoC
   input  floo_vc_req_t   floo_req_i,
   input  floo_vc_rsp_t   floo_rsp_i,
   input  floo_vc_wide_t  floo_wide_i
