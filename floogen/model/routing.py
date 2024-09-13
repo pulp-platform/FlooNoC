@@ -18,6 +18,7 @@ from floogen.utils import (
     sv_struct_typedef,
     bool_to_sv,
     snake_to_camel,
+    sv_struct_render
 )
 
 
@@ -505,27 +506,28 @@ class Routing(BaseModel):
                 string += sv_typedef("route_t", array_size=self.num_route_bits)
             case _:
                 pass
-        match self.route_algo:
-            case RouteAlgo.SRC:
-                string += sv_typedef("dst_t", dtype="route_t")
-            case _:
-                string += sv_typedef("dst_t", dtype="id_t")
         if self.num_vc_id_bits > 0:
             string += sv_typedef("vc_id_t", array_size=self.num_vc_id_bits)
         return string
 
-    def render_flit_header(self) -> str:
+    def render_hdr_typedef(self) -> str:
         """Render the SystemVerilog flit header."""
-        header_fields = {
-            "rob_req": "logic",
-            "rob_idx": "rob_idx_t",
-            "dst_id": "dst_t",
-            "src_id": "id_t",
-            "last": "logic",
-            "atop": "logic",
-            "axi_ch": "axi_ch_e",
+
+        dst_type = "route_t" if self.route_algo == RouteAlgo.SRC else "id_t"
+
+        if self.num_vc_id_bits == 0:
+            return f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, nw_ch_e, rob_idx_t)"
+        return f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, vc_id_t, nw_ch_e, rob_idx_t, vc_id_t)"
+
+    def render_route_cfg(self, name) -> str:
+        """Render the SystemVerilog routing configuration."""
+        fields = {
+            "RouteAlgo": self.route_algo.value,
+            "UseIdTable": bool_to_sv(self.use_id_table),
+            "XYAddrOffsetX": self.addr_offset_bits if self.route_algo == RouteAlgo.XY else 0,
+            "XYAddrOffsetY": self.addr_offset_bits + self.num_x_bits if self.route_algo == RouteAlgo.XY else 0,
+            "IdAddrOffset": self.addr_offset_bits if self.route_algo == RouteAlgo.ID and not self.use_id_table else 0,
+            "NumSamRules": len(self.sam),
+            "NumRoutes": len(self.table) if self.table is not None else 0,
         }
-        if self.num_vc_id_bits > 0:
-            header_fields["vc_id"] = "vc_id_t"
-            header_fields["lookahead"] = "route_direction_e"
-        return sv_struct_typedef("hdr_t", header_fields)
+        return sv_param_decl(name, sv_struct_render(fields), dtype="route_cfg_t")
