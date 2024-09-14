@@ -30,7 +30,7 @@ _FlooNoC_, is a Network-on-Chip (NoC) research project, which is part of the [PU
 
     [:octicons-arrow-right-24: FlooGen](floogen/overview.md)
 
--   :material-scale-balance:{ .lg .middle } __Open Source, MIT__
+-   :material-scale-balance:{ .lg .middle } __License__
 
     ---
 
