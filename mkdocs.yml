@@ -51,16 +51,18 @@ plugins:
       enable_creation_date: true
 
 markdown_extensions:
-  - pymdownx.superfences
-  - pymdownx.tabbed:
-      alternate_style: true
+  - admonition
   - attr_list
+  - footnotes
+  - md_in_html
+  - pymdownx.details
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
-  - md_in_html
-  - admonition
-  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
 
 nav:
 - Home:
@@ -71,6 +73,7 @@ nav:
 - Getting Started: getting_started.md
 - Hardware IPs:
   - Overview: hw/overview.md
+  - Flits: hw/flits.md
   - Links: hw/links.md
   - Routing Algorithms: hw/route_algos.md
   - Network Interfaces: hw/chimneys.md
