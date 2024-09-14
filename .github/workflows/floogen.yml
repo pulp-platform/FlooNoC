@@ -8,6 +8,7 @@ name: floogen
 
 on:
   pull_request:
+  push:
     branches:
       - main
 
