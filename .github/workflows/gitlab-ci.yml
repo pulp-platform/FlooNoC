@@ -8,6 +8,7 @@ name: gitlab-ci
 
 on:
   pull_request:
+  push:
     branches:
       - main
 
