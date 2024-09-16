@@ -60,7 +60,7 @@ The entire flit is constructed by concatenating the header and the payload. One 
 | ----------- | --------------- | --------------------- |
 | `hdr` | `hdr_t` | The header of the flit, which is identical across the whole network |
 | `payload` | `payload_t`[^3] | The payload of the flit, which can be of any width |
-| `rsvd` | `logic[x:0]` | Optional padding bits if the flit is smaller than the link width |
+| `rsvd` | `logic[RsvdBits-1:0]` | Optional padding bits if the flit is smaller than the link width |
 
 [^3]: The payload type can be anything. For instance, sending an AXI AW is done by defining a `axi_aw_chan_t` struct for the payload type.
 
