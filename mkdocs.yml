@@ -74,7 +74,7 @@ nav:
 - Hardware IPs:
   - Overview: hw/overview.md
   - Flits: hw/flits.md
-  - Links: hw/links.md
+  - Channels & Links: hw/links.md
   - Routing Algorithms: hw/route_algos.md
   - Network Interfaces: hw/chimneys.md
   - Router: hw/routers.md
