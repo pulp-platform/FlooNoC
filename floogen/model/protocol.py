@@ -17,7 +17,7 @@ class ProtocolDesc(BaseModel):
     name: str
     description: Optional[str] = ""
     protocol: Annotated[str, StringConstraints(pattern=r"AXI4")]
-    type: Annotated[str, StringConstraints(pattern=r"narrow|wide")]
+    type: Optional[Annotated[str, StringConstraints(pattern=r"narrow|wide")]] = None
     direction: Optional[str] = None
 
 class AXI4(ProtocolDesc):

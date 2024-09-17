@@ -73,6 +73,18 @@ class Router(BaseModel, ABC):
                              f"outgoing links but should have {self.degree}")
         return self
 
+class AxiRouter(Router):
+    """Router class to describe a single-AXI router"""
+
+    with as_file(
+        files(floogen.templates).joinpath("floo_axi_router.sv.mako")
+    ) as _tpl_path:
+        _tpl: ClassVar = Template(filename=str(_tpl_path))
+
+    def render(self):
+        """Declare the router in the generated code."""
+        return self._tpl.render(router=self) + "\n"
+
 class NarrowWideRouter(Router):
     """Router class to describe a narrow-wide router"""
 

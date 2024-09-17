@@ -4,6 +4,7 @@
 
 name: occamy_mesh_src
 description: "Occamy mesh configuration for FlooGen with source-based routing"
+network_type: "narrow-wide"
 
 routing:
   route_algo: "SRC"

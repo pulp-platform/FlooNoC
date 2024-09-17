@@ -4,6 +4,7 @@
 
 name: single_cluster
 description: "Single Cluster Configuration for FlooGen"
+network_type: "narrow-wide"
 
 routing:
   route_algo: "ID"

@@ -4,6 +4,7 @@
 
 name: occamy_tree
 description: "Occamy configuration for FlooGen"
+network_type: "narrow-wide"
 
 routing:
   route_algo: "ID"

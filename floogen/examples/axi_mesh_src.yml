@@ -1,0 +1,81 @@
+# Copyright 2023 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+
+name: axi_mesh
+description: "AXI mesh configuration for FlooGen"
+network_type: "axi"
+
+routing:
+  route_algo: "SRC"
+  use_id_table: true
+
+protocols:
+  - name: "axi_in"
+    protocol: "AXI4"
+    data_width: 64
+    addr_width: 48
+    id_width: 4
+    user_width: 1
+    type_prefix: # prevents `axi_axi` prefix
+  - name: "axi_out"
+    protocol: "AXI4"
+    data_width: 64
+    addr_width: 48
+    id_width: 2
+    user_width: 1
+    type_prefix: # prevents `axi_axi` prefix
+
+endpoints:
+  - name: "cluster"
+    array: [4, 4]
+    addr_range:
+      base: 0x0000_1000_0000
+      size: 0x0000_0004_0000
+    mgr_port_protocol:
+      - "axi_in"
+    sbr_port_protocol:
+      - "axi_out"
+  - name: "hbm"
+    array: [4]
+    addr_range:
+      base: 0x0000_8000_0000
+      size: 0x0000_4000_0000
+    sbr_port_protocol:
+      - "axi_out"
+  - name: "peripherals"
+    addr_range:
+      start: 0x0000_0000_0000
+      end: 0x0000_0fff_ffff
+    mgr_port_protocol:
+      - "axi_in"
+    sbr_port_protocol:
+      - "axi_out"
+
+routers:
+  - name: "router"
+    array: [4, 4]
+    degree: 5
+
+connections:
+  - src: "cluster"
+    dst: "router"
+    src_range:
+    - [0, 3]
+    - [0, 3]
+    dst_range:
+    - [0, 3]
+    - [0, 3]
+    dst_dir: "Eject"
+  - src: "hbm"
+    dst: "router"
+    src_range:
+    - [0, 3]
+    dst_range:
+    - [0, 0]
+    - [0, 3]
+    dst_dir: "West"
+  - src: "peripherals"
+    dst: "router"
+    dst_idx: [1, 3]
+    dst_dir: "North"
