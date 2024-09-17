@@ -51,14 +51,6 @@ package floo_pkg;
     NumDirections
   } route_direction_e;
 
-  /// Additional directions for the Ruche network
-  typedef enum  {
-    RucheNorth = 'd5,
-    RucheEast  = 'd6,
-    RucheSouth = 'd7,
-    RucheWest  = 'd8
-  } ruche_direction_e;
-
   /// The types of Reorder Buffers (RoBs) that can be used in the network interface
   typedef enum logic [1:0] {
     /// The most performant but also most complex RoB, which supports reodering
