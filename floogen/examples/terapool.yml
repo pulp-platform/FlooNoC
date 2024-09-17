@@ -4,6 +4,7 @@
 
 name: terapool
 description: "Terapool AXI NoC"
+network_type: "narrow-wide"
 
 routing:
   route_algo: "SRC"
