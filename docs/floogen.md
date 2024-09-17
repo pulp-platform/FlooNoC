@@ -84,7 +84,6 @@ The protocols section describes the protocols used in the network. It is compose
 
 - `name`: name of the protocol. This will be used as a reference in the framework and in the generated RTL code to name the protocol module and the protocol signals. If the narrow-wide channels are used, they need to be named `narrow` and `wide` respectively.
 - `type`: Currently only `AXI4` is supported
-- `direction`: the direction of the protocol. It can be either `manager` or `subordinate`. If an endpoint is both manager and subordinate, two protocols need to be defined.
 - `data_width`: the data width of the protocol
 - `addr_width`: the address width of the protocol
 - `id_width`: the ID width of the protocol. Endpoints with different ID widths for the `manager` and `subordinate` protocols are supported.
@@ -157,7 +156,5 @@ where `<config_file>` is the configuration file and `<output_dir>` is the output
 Apart from the configuration file, `floogen` supports additional options to customize the generated RTL code. The following options are supported:
 
 - `--outdir`: the output directory where the generated RTL code will be placed. This is equivalent to the `-o` option. If it is not specified, the output is printed to stdout.
-- `--only-pkg`: only generate the package. This is useful if you want to test single IPs without generating a whole network.
-- `--pkg-outdir`: the output directory where the generated package will be placed. By default, the package in the `hw` folder is overwitten, since it is also the once that is used by `bender` for compiling the IPs. If you want to keep the original package, you can specify a different output directory here.
 - `--no-format`: do not format the generated RTL code. By default, the generated RTL code is formatted with verible format, for which the `verible-verilog-format` binary needs to be installed. If this option is set, the generated RTL code is not formatted.
 - `--visualize`: visualize the generated network. It will create a plot of the graph of the network. If the `--outdir` option is specified, the plot is saved in the output directory. Otherwise, it is shown in a window. This is mainly intended for a quick check of the generated network, not a tool for debugging.
