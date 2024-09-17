@@ -13,7 +13,7 @@ from mako.lookup import Template
 
 from floogen.model.routing import Id, AddrRange, Routing, RouteMap
 from floogen.model.protocol import AXI4
-from floogen.model.link import NarrowWideLink
+from floogen.model.link import NarrowWideLink, AxiLink
 from floogen.model.endpoint import EndpointDesc
 import floogen.templates
 
@@ -46,6 +46,23 @@ class NetworkInterface(BaseModel):
         """Return true if the network interface is only a manager."""
         return self.endpoint.is_mgr() and not self.endpoint.is_sbr()
 
+
+class AxiNI(NetworkInterface):
+    """ Axi Network Interface class."""
+
+    with as_file(
+        files(floogen.templates).joinpath("floo_axi_chimney.sv.mako")
+    ) as _tpl_path:
+        tpl: ClassVar = Template(filename=str(_tpl_path))
+
+    mgr_port: Optional[AXI4] = None
+    sbr_port: Optional[AXI4] = None
+    mgr_link: AxiLink
+    sbr_link: AxiLink
+
+    def render(self, **kwargs) -> str:
+        """Render the network interface."""
+        return self.tpl.render(ni=self, **kwargs)
 
 class NarrowWideAxiNI(NetworkInterface):
     """ " NarrowWideNI class to describe a narrow-wide network interface."""
