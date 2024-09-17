@@ -20,7 +20,7 @@ from floogen.model.graph import Graph
 from floogen.model.endpoint import EndpointDesc, Endpoint
 from floogen.model.router import RouterDesc, NarrowWideRouter
 from floogen.model.connection import ConnectionDesc
-from floogen.model.link import NarrowWideLink, NarrowWideVCLink, NarrowLink, NarrowVCLink
+from floogen.model.link import NarrowWideLink, NarrowWideVCLink
 from floogen.model.network_interface import NarrowWideAxiNI
 from floogen.model.protocol import AXI4, AXI4Bus
 from floogen.utils import clog2, sv_enum_typedef, sv_param_decl
@@ -32,13 +32,10 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     Network class to describe a network with routers and endpoints.
     """
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
-    with as_file(files(floogen.templates).joinpath("floo_noc_top.sv.mako")) as _tpl_path:
+    with as_file(files(floogen.templates).joinpath("floo_top_noc.sv.mako")) as _tpl_path:
         tpl: ClassVar = Template(filename=str(_tpl_path))
-
-    with as_file(files(floogen.templates).joinpath("floo_flit_pkg.sv.mako")) as _tpl_path:
-        tpl_pkg: ClassVar = Template(filename=str(_tpl_path))
 
     name: str
     description: Optional[str]
@@ -88,11 +85,21 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     @field_validator("protocols")
     @classmethod
-    def validate_addr_width(cls, protocols):
-        """Check that all protocols have the same address width."""
-        addr_widths = [prot.addr_width for prot in protocols]
-        if len(set(addr_widths)) != 1:
+    def validate_protocols(cls, protocols):
+        """Check that names are unique and parameters are compatible."""
+        # Check that address width is unique among all protocols
+        if len(set(prot.addr_width for prot in protocols)) != 1:
             raise ValueError("All protocols must have the same address width")
+        # Check that `narrow` and `wide` protocols have the same data width
+        if len(set(prot.data_width for prot in protocols if prot.type == "narrow")) != 1:
+            raise ValueError("All `narrow` protocols must have the same data width")
+        if len(set(prot.data_width for prot in protocols if prot.type == "wide")) != 1:
+            raise ValueError("All `wide` protocols must have the same data width")
+        # Check that `narrow` and `wide` protocols have the same user width
+        if len(set(prot.user_width for prot in protocols if prot.type == "narrow")) != 1:
+            raise ValueError("All `narrow` protocols must have the same user width")
+        if len(set(prot.user_width for prot in protocols if prot.type == "wide")) != 1:
+            raise ValueError("All `wide` protocols must have the same user width")
         return protocols
 
     @model_validator(mode="after")
@@ -408,9 +415,11 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             if ep.is_mgr():
                 for i in ep.mgr_port_protocol:
                     prot = {}
-                    protocol = [
-                        p for p in self.protocols if p.name == i and p.direction == "manager"
-                    ][0]
+                    protocol = next(p for p in self.protocols if p.name == i)
+                    if protocol.direction is None:
+                        protocol.direction = "input"
+                    elif protocol.direction != "input":
+                        raise ValueError("Protocol cannot be used for both manager and subordinate")
                     prot["base_name"] = f"{ep.name}_{protocol.name}"
                     prot["source"] = ep_name
                     prot["dest"] = ep.get_ni_name(ep_name)
@@ -422,10 +431,12 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 self.graph.set_edge_obj((prot["source"], prot["dest"]), mgr_ports)
             if ep.is_sbr():
                 for i in ep.sbr_port_protocol:
-                    protocol = [
-                        p for p in self.protocols if p.name == i and p.direction == "subordinate"
-                    ][0]
                     prot = {}
+                    protocol = next(p for p in self.protocols if p.name == i)
+                    if protocol.direction is None:
+                        protocol.direction = "output"
+                    elif protocol.direction != "output":
+                        raise ValueError("Protocol cannot be used for both manager and subordinate")
                     prot["base_name"] = f"{ep.name}_{protocol.name}"
                     prot["source"] = ep.get_ni_name(ep_name)
                     prot["dest"] = ep_name
@@ -481,7 +492,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             mgr_prot_edges = self.graph.get_edges_to(ni_name, filters=[self.graph.is_prot_edge])
             for protocols in sbr_prot_edges:
                 for prot in protocols:
-                    match prot.name:
+                    match prot.type:
                         case "narrow":
                             ni_dict["sbr_narrow_port"] = prot
                         case "wide":
@@ -489,7 +500,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
             for protocols in mgr_prot_edges:
                 for prot in protocols:
-                    match prot.name:
+                    match prot.type:
                         case "narrow":
                             ni_dict["mgr_narrow_port"] = prot
                         case "wide":
@@ -610,16 +621,35 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             addr_table.append(addr_rule)
         return RouteMap(name="sam", rules=addr_table)
 
-    def render_ports(self):
+    def render_ports(self, pkg_name=""):
         """Render the ports in the generated code."""
         ports, declared_ports = [], []
         for ep in self.graph.get_ep_nodes():
             if ep.name in declared_ports:
                 continue
-            ports += ep.render_ports()
+            ports += ep.render_ports(pkg_name=pkg_name)
             declared_ports.append(ep.name)
         port_string = ",\n  ".join(ports) + "\n"
         return port_string
+
+    def render_link_typedefs(self):
+        """Render the protocol configuration structs."""
+        string = ""
+        narrow_in_prot = next((prot for prot in self.protocols
+            if prot.type == "narrow" and prot.direction == "input"), None)
+        narrow_out_prot = next((prot for prot in self.protocols
+            if prot.type == "narrow" and prot.direction == "output"), None)
+        wide_in_prot = next((prot for prot in self.protocols
+            if prot.type == "wide" and prot.direction == "input"), None)
+        wide_out_prot = next((prot for prot in self.protocols
+            if prot.type == "wide" and prot.direction == "output"), None)
+        string += AXI4.render_cfg("AxiCfgN", narrow_in_prot, narrow_out_prot)
+        string += AXI4.render_cfg("AxiCfgW", wide_in_prot, wide_out_prot)
+
+        string += NarrowWideLink.render_typedefs(
+            narrow_in_prot.type_name(), wide_in_prot.type_name(), "AxiCfgN", "AxiCfgW"
+        )
+        return string
 
     def render_prots(self):
         """Render the protocols in the generated code."""
@@ -648,7 +678,8 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         string = ""
         sorted_ni_list = sorted(self.graph.get_ni_nodes(), key=lambda ni: ni.id.id, reverse=True)
         for ni in sorted_ni_list:
-            string += ni.table.render(num_route_bits=self.routing.num_route_bits, no_decl=True)
+            string += ni.table.render(
+                num_route_bits=self.routing.num_route_bits, no_decl=True)
             string += ",\n"
         string = "'{\n" + string[:-2] + "}\n"
         return sv_param_decl(
@@ -675,22 +706,6 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     def render_network(self):
         """Render the network in the generated code."""
         return self.tpl.render(noc=self)
-
-    def render_link_cfg(self):
-        """Render the link configuration file"""
-        prot_names = [prot.name for prot in self.protocols]
-        if "wide" in prot_names and "narrow" in prot_names:
-            if self.routing.num_vc_id_bits > 0:
-                axi_type, link_type = "vc_narrow_wide", NarrowWideVCLink
-            else:
-                axi_type, link_type = "narrow_wide", NarrowWideLink
-        else:
-            if self.routing.num_vc_id_bits > 0:
-                axi_type, link_type = "vc_axi", NarrowVCLink
-            else:
-                axi_type, link_type = "axi", NarrowLink
-
-        return axi_type, self.tpl_pkg.render(name=axi_type, noc=self, link=link_type)
 
     def visualize(self, savefig=True, filename: pathlib.Path = "network.png"):
         """Visualize the network graph."""

@@ -61,7 +61,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.examples }}
-        path: generated/${{ matrix.examples }}_floo_noc.sv
+        path: generated/floo_${{ matrix.examples }}_noc.sv
         if-no-files-found: error
         retention-days: 1
 

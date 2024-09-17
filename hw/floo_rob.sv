@@ -15,7 +15,7 @@ module floo_rob #(
   /// metadata will be stored in normal FFs
   parameter bit          OnlyMetaData = 1'b0,
   /// Size of the reorder buffer
-  parameter int unsigned ReorderBufferSize = 32'd64,
+  parameter int unsigned RoBSize = 32'd64,
   /// Data type of response to be reordered
   parameter type         ax_len_t   = logic,
   parameter type         ax_id_t    = logic,
@@ -54,7 +54,7 @@ module floo_rob #(
   localparam int unsigned NumIds = 2**AxiIdWidth;
   typedef logic[AxiIdWidth-1:0] axi_id_t;
   typedef logic[$clog2(NumIds)-1:0] num_id_t;
-  typedef logic[ReorderBufferSize-1:0] rob_flag_t;
+  typedef logic[RoBSize-1:0] rob_flag_t;
 
   /////////////////////////
   //  Transaction Table  //
@@ -121,10 +121,10 @@ module floo_rob #(
 
   if (!OnlyMetaData) begin : gen_rob_sram
     tc_sram_impl #(
-      .NumWords   (ReorderBufferSize),
-      .DataWidth  ($bits(rsp_data_t)),
-      .NumPorts   ( 1               ),
-      .impl_in_t  ( sram_cfg_t      )
+      .NumWords   ( RoBSize           ),
+      .DataWidth  ( $bits(rsp_data_t) ),
+      .NumPorts   ( 1                 ),
+      .impl_in_t  ( sram_cfg_t        )
     ) i_reorder_buffer (
       .clk_i    ( clk_i       ),
       .rst_ni   ( rst_ni      ),
@@ -141,7 +141,7 @@ module floo_rob #(
     assign rob_rdata = '0;
   end
 
-  rsp_meta_t  [ReorderBufferSize-1:0] rob_meta_q, rob_meta_d;
+  rsp_meta_t  [RoBSize-1:0] rob_meta_q, rob_meta_d;
   rob_flag_t rob_valid_q, rob_valid_d;
   rob_flag_t rob_alloc_q, rob_alloc_d;
   rob_idx_t rob_free_space;
@@ -152,11 +152,11 @@ module floo_rob #(
   `FF(rsp_out_valid_q, rsp_out_valid_d, '0)
   `FFL(rob_meta_q, rob_meta_d, rob_req && rob_wen, '0)
 
-  assign rob_next_free_idx = ReorderBufferSize - rob_free_space;
+  assign rob_next_free_idx = RoBSize - rob_free_space;
 
   lzc #(
-    .WIDTH  ( ReorderBufferSize ),
-    .MODE   ( 1'b1              )
+    .WIDTH  ( RoBSize ),
+    .MODE   ( 1'b1    )
   ) i_lzc (
     .in_i     ( rob_alloc_q     ),
     .cnt_o    ( rob_free_space  ),
@@ -174,8 +174,10 @@ module floo_rob #(
   // In the ID table, only the pointer to the first entry of a specific response
   // is stored. From there an offset is used to calculate the exact index in the
   // reorder buffer.
-  rob_idx_t rob_idx_offset_q, rob_idx_offset_d;
-  `FF(rob_idx_offset_q, rob_idx_offset_d, '0)
+  rob_idx_t [NumIds-1:0] read_rob_idx_offset_q, read_rob_idx_offset_d;
+  rob_idx_t [NumIds-1:0] write_rob_idx_offset_q, write_rob_idx_offset_d;
+  `FF(read_rob_idx_offset_q, read_rob_idx_offset_d, '0)
+  `FF(write_rob_idx_offset_q, write_rob_idx_offset_d, '0)
 
   // `is_last_rsp_in_rob` denotes if it is the last beat in a burst.
   // For B responses, this is always true
@@ -218,7 +220,8 @@ module floo_rob #(
     rob_addr = '0;
     rob_wen = 1'b0;
 
-    rob_idx_offset_d = rob_idx_offset_q;
+    read_rob_idx_offset_d = read_rob_idx_offset_q;
+    write_rob_idx_offset_d = write_rob_idx_offset_q;
 
     ax_valid_o = 1'b0;
     ax_ready_o = 1'b0;
@@ -240,7 +243,7 @@ module floo_rob #(
         rsp_valid_o = 1'b0;
         rob_req = 1'b1;
         rob_wen = 1'b0;
-        rob_addr = st_peek_rob_idx + rob_idx_offset_q;
+        rob_addr = st_peek_rob_idx + read_rob_idx_offset_q[st_rsp_out_id];
 
         // If the peek ID is valid and there is a valid item in the RoB
         // for the current response, then we can release the response
@@ -253,12 +256,12 @@ module floo_rob #(
             rob_alloc_d[rob_addr] = 1'b0;
             rob_addr++;
             // increment the offset counter
-            rob_idx_offset_d++;
+            read_rob_idx_offset_d[st_rsp_out_id]++;
             // If this was the last beat for this ID, increment the rsp_counter
             if (is_last_rsp_in_rob) begin
               st_rsp_pop = 1'b1;
               rsp_out_valid_d = 1'b0;
-              rob_idx_offset_d = '0;
+              read_rob_idx_offset_d[st_rsp_out_id] = '0;
             end
           end
         // If the peeked entry is invalid or the ROB is empty, we can't release
@@ -270,11 +273,13 @@ module floo_rob #(
 
       RoBWrite: begin
 
-        rob_addr = rsp_rob_idx_i + rob_idx_offset_q;
+        rob_addr = rsp_rob_idx_i + write_rob_idx_offset_q[st_rsp_out_id];
 
         // If the peeked ID has a valid entry and there is data in the RoB,
         // we can release the response from the RoB to make place for new requests
-        if (st_peek_valid && rob_valid_q[st_peek_rob_idx]) begin
+        if (st_peek_valid && rob_valid_q[st_peek_rob_idx +
+            read_rob_idx_offset_q[st_rob_peek_id_q]])
+        begin
           rob_state_d = RoBRead;
           // Don't forward the current response, since we are releasing one from the RoB
           rsp_valid_o = 1'b0;
@@ -299,14 +304,14 @@ module floo_rob #(
             if (rsp_ready_i) begin
               // Unset the allocated bit
               rob_alloc_d[rob_addr] = 1'b0;
-              rob_idx_offset_d++;
+              write_rob_idx_offset_d[st_rsp_out_id]++;
               // If this was the last beat of a response for this ID, increment the
               // response counter and clear the entry in the ID status table if
               // this was the very last response
               if (rsp_last_i) begin
                 // Pop the transaction
                 st_rsp_pop = 1'b1;
-                rob_idx_offset_d = '0;
+                write_rob_idx_offset_d[st_rsp_out_id] = '0;
               end
             end
           // Otherwise, the response is out of order and has to be stored in the
@@ -319,7 +324,8 @@ module floo_rob #(
             rsp_ready_o = 1'b1;
             rob_valid_d[rob_addr] = 1'b1;
             rob_meta_d[rob_addr] = rob_meta;
-            rob_idx_offset_d = (rsp_last_i)? '0 : rob_idx_offset_q + 1;
+            write_rob_idx_offset_d[st_rsp_out_id] = (rsp_last_i)?
+              '0 : write_rob_idx_offset_q[st_rsp_out_id] + 1;
           end
         end
       end

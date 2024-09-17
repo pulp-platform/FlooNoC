@@ -8,25 +8,18 @@
 `include "axi/typedef.svh"
 
 /// A AXI4 Bus Multi-Slave generating random AXI respones with configurable response time
-module floo_axi_rand_slave
-  import floo_test_pkg::*;
-#(
-  parameter int unsigned AxiAddrWidth = 0,
-  parameter int unsigned AxiDataWidth = 0,
-  parameter int unsigned AxiIdWidth   = 0,
-  parameter int unsigned AxiUserWidth = 0,
+module floo_axi_rand_slave #(
+  parameter floo_pkg::axi_cfg_t AxiCfg = '0,
   parameter type axi_req_t = logic,
   parameter type axi_rsp_t = logic,
-  // Dependent parameter, DO NOT OVERWRITE!
-  parameter int unsigned AxiStrbWidth = AxiDataWidth/8,
   // TB Parameters
   parameter time ApplTime = 2ns,
   parameter time TestTime = 8ns,
-  parameter logic[AxiAddrWidth-1:0] DstStartAddr = '0,
-  parameter logic[AxiAddrWidth-1:0] DstEndAddr = '1,
-  parameter slave_type_e SlaveType = MixedSlave,
+  parameter logic[AxiCfg.AddrWidth-1:0] DstStartAddr = '0,
+  parameter logic[AxiCfg.AddrWidth-1:0] DstEndAddr = '1,
+  parameter floo_test_pkg::slave_type_e SlaveType = floo_test_pkg::MixedSlave,
   parameter int unsigned NumSlaves = 4,
-  localparam logic[AxiAddrWidth-1:0] SlvAddrSpace = (DstEndAddr - DstStartAddr) / NumSlaves
+  localparam logic[AxiCfg.AddrWidth-1:0] SlvAddrSpace = (DstEndAddr - DstStartAddr) / NumSlaves
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -38,25 +31,25 @@ module floo_axi_rand_slave
   output axi_rsp_t [NumSlaves-1:0] mon_mst_port_rsp_o
 );
 
-  typedef logic [AxiAddrWidth-1:0] addr_t;
-  typedef logic [AxiDataWidth-1:0] data_t;
-  typedef logic [AxiStrbWidth-1:0] strb_t;
-  typedef logic [AxiIdWidth-1:0]   id_t;
-  typedef logic [AxiUserWidth-1:0] user_t;
+  typedef logic [AxiCfg.AddrWidth-1:0] addr_t;
+  typedef logic [AxiCfg.DataWidth-1:0] data_t;
+  typedef logic [AxiCfg.DataWidth/8-1:0] strb_t;
+  typedef logic [AxiCfg.OutIdWidth-1:0]   id_t;
+  typedef logic [AxiCfg.UserWidth-1:0] user_t;
 
   `AXI_TYPEDEF_ALL(axi_xbar, addr_t, id_t, data_t, strb_t, user_t)
 
   AXI_BUS_DV #(
-    .AXI_ADDR_WIDTH ( AxiAddrWidth      ),
-    .AXI_DATA_WIDTH ( AxiDataWidth      ),
-    .AXI_ID_WIDTH   ( AxiIdWidth   ),
-    .AXI_USER_WIDTH ( AxiUserWidth      )
+    .AXI_ADDR_WIDTH ( AxiCfg.AddrWidth  ),
+    .AXI_DATA_WIDTH ( AxiCfg.DataWidth  ),
+    .AXI_ID_WIDTH   ( AxiCfg.OutIdWidth ),
+    .AXI_USER_WIDTH ( AxiCfg.UserWidth  )
   ) slave_dv [NumSlaves] (clk_i);
 
   typedef struct packed {
     logic [31:0] idx;
-    logic [AxiAddrWidth-1:0] start_addr;
-    logic [AxiAddrWidth-1:0] end_addr;
+    logic [AxiCfg.AddrWidth-1:0] start_addr;
+    logic [AxiCfg.AddrWidth-1:0] end_addr;
   } xbar_rule_t;
 
   xbar_rule_t [NumSlaves-1:0] XbarAddrMap;
@@ -76,11 +69,11 @@ module floo_axi_rand_slave
     FallThrough:        1,
     LatencyMode:        axi_pkg::CUT_ALL_PORTS,
     PipelineStages:     0,
-    AxiIdWidthSlvPorts: AxiIdWidth,
-    AxiIdUsedSlvPorts:  AxiIdWidth,
+    AxiIdWidthSlvPorts: AxiCfg.OutIdWidth,
+    AxiIdUsedSlvPorts:  AxiCfg.OutIdWidth,
     UniqueIds:          0,
-    AxiAddrWidth:       AxiAddrWidth,
-    AxiDataWidth:       AxiDataWidth,
+    AxiAddrWidth:       AxiCfg.AddrWidth,
+    AxiDataWidth:       AxiCfg.DataWidth,
     NoAddrRules:        NumSlaves
   };
 
@@ -90,34 +83,34 @@ module floo_axi_rand_slave
   axi_xbar_resp_t [NumSlaves-1:0] xbar_out_rsp;
 
   axi_xbar #(
-    .Cfg          (XbarCfg),
-    .Connectivity ('1),
-    .ATOPs        (0),
-    .slv_aw_chan_t(axi_xbar_aw_chan_t),
-    .mst_aw_chan_t(axi_xbar_aw_chan_t),
-    .w_chan_t     (axi_xbar_w_chan_t ),
-    .slv_b_chan_t (axi_xbar_b_chan_t ),
-    .mst_b_chan_t (axi_xbar_b_chan_t ),
-    .slv_ar_chan_t(axi_xbar_ar_chan_t),
-    .mst_ar_chan_t(axi_xbar_ar_chan_t),
-    .slv_r_chan_t (axi_xbar_r_chan_t ),
-    .mst_r_chan_t (axi_xbar_r_chan_t ),
-    .slv_req_t    (axi_xbar_req_t   ),
-    .slv_resp_t   (axi_xbar_resp_t   ),
-    .mst_req_t    (axi_xbar_req_t   ),
-    .mst_resp_t   (axi_xbar_resp_t   ),
-    .rule_t       (xbar_rule_t)
+    .Cfg            ( XbarCfg             ),
+    .Connectivity   ( '1                  ),
+    .ATOPs          ( 0                   ),
+    .slv_aw_chan_t  ( axi_xbar_aw_chan_t  ),
+    .mst_aw_chan_t  ( axi_xbar_aw_chan_t  ),
+    .w_chan_t       ( axi_xbar_w_chan_t   ),
+    .slv_b_chan_t   ( axi_xbar_b_chan_t   ),
+    .mst_b_chan_t   ( axi_xbar_b_chan_t   ),
+    .slv_ar_chan_t  ( axi_xbar_ar_chan_t  ),
+    .mst_ar_chan_t  ( axi_xbar_ar_chan_t  ),
+    .slv_r_chan_t   ( axi_xbar_r_chan_t   ),
+    .mst_r_chan_t   ( axi_xbar_r_chan_t   ),
+    .slv_req_t      ( axi_xbar_req_t      ),
+    .slv_resp_t     ( axi_xbar_resp_t     ),
+    .mst_req_t      ( axi_xbar_req_t      ),
+    .mst_resp_t     ( axi_xbar_resp_t     ),
+    .rule_t         ( xbar_rule_t         )
   ) i_xbar (
-    .clk_i                (clk_i),
-    .rst_ni               (rst_ni),
-    .test_i               (1'b0),
-    .slv_ports_req_i      (xbar_in_req),
-    .slv_ports_resp_o     (xbar_in_rsp),
-    .mst_ports_req_o      (xbar_out_req),
-    .mst_ports_resp_i     (xbar_out_rsp),
-    .addr_map_i           (XbarAddrMap),
-    .en_default_mst_port_i('1),
-    .default_mst_port_i   ('0)
+    .clk_i                  ( clk_i         ),
+    .rst_ni                 ( rst_ni        ),
+    .test_i                 ( 1'b0          ),
+    .slv_ports_req_i        ( xbar_in_req   ),
+    .slv_ports_resp_o       ( xbar_in_rsp   ),
+    .mst_ports_req_o        ( xbar_out_req  ),
+    .mst_ports_resp_i       ( xbar_out_rsp  ),
+    .addr_map_i             ( XbarAddrMap   ),
+    .en_default_mst_port_i  ( '1            ),
+    .default_mst_port_i     ( '0            )
   );
 
   assign xbar_in_req = slv_port_req_i;
@@ -132,24 +125,24 @@ module floo_axi_rand_slave
 
   typedef axi_test::axi_rand_slave #(
     // AXI interface parameters
-    .AW ( AxiAddrWidth     ),
-    .DW ( AxiDataWidth     ),
-    .IW ( AxiIdWidth       ),
-    .UW ( AxiUserWidth     ),
+    .AW ( AxiCfg.AddrWidth  ),
+    .DW ( AxiCfg.DataWidth  ),
+    .IW ( AxiCfg.OutIdWidth ),
+    .UW ( AxiCfg.UserWidth  ),
     // Stimuli application and test time
-    .TA ( ApplTime         ),
-    .TT ( TestTime         )
+    .TA ( ApplTime          ),
+    .TT ( TestTime          )
   ) axi_rand_slave_t;
 
   typedef axi_test::axi_rand_slave #(
     // AXI interface parameters
-    .AW ( AxiAddrWidth     ),
-    .DW ( AxiDataWidth     ),
-    .IW ( AxiIdWidth       ),
-    .UW ( AxiUserWidth     ),
+    .AW ( AxiCfg.AddrWidth  ),
+    .DW ( AxiCfg.DataWidth  ),
+    .IW ( AxiCfg.OutIdWidth ),
+    .UW ( AxiCfg.UserWidth  ),
     // Stimuli application and test time
-    .TA ( ApplTime         ),
-    .TT ( TestTime         ),
+    .TA ( ApplTime          ),
+    .TT ( TestTime          ),
     // Responsiveness
     .AX_MIN_WAIT_CYCLES   (0),
     .AX_MAX_WAIT_CYCLES   (5),
@@ -161,13 +154,13 @@ module floo_axi_rand_slave
 
   typedef axi_test::axi_rand_slave #(
     // AXI interface parameters
-    .AW ( AxiAddrWidth     ),
-    .DW ( AxiDataWidth     ),
-    .IW ( AxiIdWidth       ),
-    .UW ( AxiUserWidth     ),
+    .AW ( AxiCfg.AddrWidth  ),
+    .DW ( AxiCfg.DataWidth  ),
+    .IW ( AxiCfg.OutIdWidth ),
+    .UW ( AxiCfg.UserWidth  ),
     // Stimuli application and test time
-    .TA ( ApplTime         ),
-    .TT ( TestTime         ),
+    .TA ( ApplTime          ),
+    .TT ( TestTime          ),
     // Responsiveness
     .AX_MIN_WAIT_CYCLES   (50),
     .AX_MAX_WAIT_CYCLES   (100),
@@ -181,7 +174,7 @@ module floo_axi_rand_slave
   axi_rand_slow_slave_t axi_rand_slow_slave[NumSlaves];
   axi_rand_fast_slave_t axi_rand_fast_slave[NumSlaves];
 
-  if (SlaveType == SlowSlave) begin : gen_slow_slaves
+  if (SlaveType == floo_test_pkg::SlowSlave) begin : gen_slow_slaves
     for (genvar i = 0; i < NumSlaves; i++) begin : gen_slow_slaves
       initial begin
         axi_rand_slow_slave[i] = new( slave_dv[i] );
@@ -190,7 +183,7 @@ module floo_axi_rand_slave
         axi_rand_slow_slave[i].run();
       end
     end
-  end else if (SlaveType == FastSlave) begin : gen_fast_slaves
+  end else if (SlaveType == floo_test_pkg::FastSlave) begin : gen_fast_slaves
     for (genvar i = 0; i < NumSlaves; i++) begin : gen_fast_slaves
       initial begin
         axi_rand_fast_slave[i] = new( slave_dv[i] );
@@ -199,7 +192,7 @@ module floo_axi_rand_slave
         axi_rand_fast_slave[i].run();
       end
     end
-  end else if (SlaveType == MixedSlave) begin : gen_mixed_slaves
+  end else if (SlaveType == floo_test_pkg::MixedSlave) begin : gen_mixed_slaves
     for (genvar i = 0; i < NumSlaves; i++) begin : gen_mixed_slaves
       if (i % 2 == 0) begin : gen_slow_slaves
         initial begin

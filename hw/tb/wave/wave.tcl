@@ -147,6 +147,10 @@ proc floo_narrow_wide_chimney_wave {dut groups {expand 1}} {
     }
 }
 
+proc floo_vc_narrow_wide_chimney_wave {dut groups} {
+    floo_add_wave $dut/* $groups
+}
+
 proc floo_router_wave {dut groups} {
     floo_add_wave $dut/* $groups
 }

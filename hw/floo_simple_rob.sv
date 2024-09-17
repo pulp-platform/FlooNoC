@@ -8,26 +8,25 @@
 `include "common_cells/assertions.svh"
 
 /// A simplistic low-complexity Reorder Buffer, similar to a FIFO
+/// WARNING: The implementation has a known bug for burst support,
+/// and is therefore only advised to be used for B responses.
 module floo_simple_rob #(
-  /// Maximum number of transactions in flight per ID which *require* reordering
-  /// Not used in the simple RoB
-  parameter int unsigned MaxRoTxnsPerId = 32'd32,
   /// If the response only consists of small metadata i.e. B channel
   /// In this case no SRAM will be instantied and the response will be
   /// metadata will be stored in SCMs
   parameter bit          OnlyMetaData = 1'b0,
   /// Size of the reorder buffer
-  parameter int unsigned ReorderBufferSize = 32'd64,
+  parameter int unsigned RoBSize = 32'd64,
   /// Data type of response to be reordered
   parameter type         ax_len_t   = logic,
   parameter type         rsp_chan_t = logic,
   parameter type         rsp_data_t = logic,
   parameter type         rsp_meta_t = logic,
-  parameter type         rob_idx_t  = logic[$clog2(ReorderBufferSize)-1:0],
+  parameter type         rob_idx_t  = logic[$clog2(RoBSize)-1:0],
   parameter type         dest_t     = logic,
   parameter type         sram_cfg_t = logic,
   // Dependent parameters, DO NOT OVERRIDE!
-  localparam type rob_flag_t        = logic[ReorderBufferSize-1:0]
+  localparam type rob_flag_t        = logic[RoBSize-1:0]
 ) (
   input  logic      clk_i,
   input  logic      rst_ni,
@@ -53,9 +52,9 @@ module floo_simple_rob #(
 
   rob_idx_t read_pointer_q, read_pointer_d;
   rob_idx_t write_pointer_q, write_pointer_d;
-  logic [$clog2(ReorderBufferSize):0] status_cnt_q, status_cnt_d;
-  logic [$clog2(ReorderBufferSize):0] free_entries;
-  rsp_meta_t  [ReorderBufferSize-1:0] rob_meta_q, rob_meta_d;
+  logic [$clog2(RoBSize):0] status_cnt_q, status_cnt_d;
+  logic [$clog2(RoBSize):0] free_entries;
+  rsp_meta_t  [RoBSize-1:0] rob_meta_q, rob_meta_d;
   rsp_meta_t rob_meta;
   rob_idx_t rsp_burst_cnt_q, rsp_burst_cnt_d;
   rob_flag_t rob_valid_q, rob_valid_d;
@@ -78,10 +77,10 @@ module floo_simple_rob #(
 
   if (!OnlyMetaData) begin : gen_rob_sram
     tc_sram_impl #(
-      .NumWords   (ReorderBufferSize),
-      .DataWidth  ($bits(rsp_data_t)),
-      .NumPorts   ( 1               ),
-      .impl_in_t  ( sram_cfg_t      )
+      .NumWords   ( RoBSize           ),
+      .DataWidth  ( $bits(rsp_data_t) ),
+      .NumPorts   ( 1                 ),
+      .impl_in_t  ( sram_cfg_t        )
     ) i_reorder_buffer (
       .clk_i    ( clk_i       ),
       .rst_ni   ( rst_ni      ),
@@ -99,7 +98,7 @@ module floo_simple_rob #(
   end
 
 
-  assign free_entries = ReorderBufferSize - status_cnt_q;
+  assign free_entries = RoBSize - status_cnt_q;
   assign ax_len = (OnlyMetaData)? 1 : ax_len_i + 1'b1;
 
   always_comb begin
@@ -130,8 +129,8 @@ module floo_simple_rob #(
       if (ax_ready_i) begin
         ax_ready_o = 1'b1;
         // Increment write and status counter
-        if (write_pointer_q + ax_len >= ReorderBufferSize) begin
-          write_pointer_d = write_pointer_q + ax_len - ReorderBufferSize;
+        if (write_pointer_q + ax_len >= RoBSize) begin
+          write_pointer_d = write_pointer_q + ax_len - RoBSize;
         end else begin
           write_pointer_d = write_pointer_q + ax_len;
         end
@@ -150,6 +149,11 @@ module floo_simple_rob #(
           rob_addr = rsp_rob_idx_i + rsp_burst_cnt_q;
           rob_meta_d[rob_addr] = rob_meta;
           rob_valid_d[rob_addr] = 1'b1;
+          // WARNING: This implementation does not support interleaved
+          // bursts with different IDs. Each burst would need its own
+          // `rsp_burst_cnt` counter which is currently not implemented.
+          // The way to implement this would be to increment `rsp_rob_idx_i`
+          // at the endpoint which issues the responses.
           rsp_burst_cnt_d = (rsp_last_i)? '0 : rsp_burst_cnt_q + 1'b1;
         end
 
@@ -165,8 +169,8 @@ module floo_simple_rob #(
           rsp_out_valid_d = 1'b1;
           if (rsp_valid_o && rsp_ready_i) begin
             rob_valid_d[read_pointer_q] = 1'b0;
-            if (read_pointer_q + 1'b1 >= ReorderBufferSize) begin
-              read_pointer_d = read_pointer_q + 1'b1 - ReorderBufferSize;
+            if (read_pointer_q + 1'b1 >= RoBSize) begin
+              read_pointer_d = read_pointer_q + 1'b1 - RoBSize;
             end else begin
               read_pointer_d = read_pointer_q + 1'b1;
             end
@@ -208,5 +212,8 @@ module floo_simple_rob #(
   `FFL(rob_meta_q, rob_meta_d, rob_req && rob_wen, '0)
   `FF(rob_state_q, rob_state_d, RoBWrite)
   `FF(rsp_out_valid_q, rsp_out_valid_d, '0)
+
+  // This module currently does not handle interleaved burst responses correctly
+  `ASSERT(NoBurstSupport, rsp_last_i == 1'b1)
 
 endmodule

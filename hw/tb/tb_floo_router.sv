@@ -16,7 +16,6 @@
 module tb_floo_router;
 
   import floo_pkg::*;
-  import floo_axi_pkg::*;
 
   localparam time CyclTime = 10ns;
   localparam time ApplTime = 2ns;
@@ -41,6 +40,12 @@ module tb_floo_router;
   localparam int unsigned IdWidth = $clog2(NumPorts);
   localparam int unsigned FlitWidth = 123;
   localparam int unsigned MaxPacketLength = 32;
+
+  typedef logic [FlitWidth-1:0] payload_t;
+  typedef logic [IdWidth-1:0] id_t;
+
+  `FLOO_TYPEDEF_HDR_T(hdr_t, id_t, id_t, logic, logic)
+  `FLOO_TYPEDEF_GENERIC_FLIT_T(req, hdr_t, payload_t)
 
   logic clk, rst_n;
 
@@ -222,19 +227,19 @@ module tb_floo_router;
 
 
   floo_router #(
-    .NumRoutes       ( NumPorts        ),
-    .NumVirtChannels ( NumVirtChannels ),
-    .flit_t          ( floo_req_generic_flit_t     ),
-    .ChannelFifoDepth( 4               ),
-    .RouteAlgo       ( IdIsPort        ),
-    .IdWidth         ( IdWidth         )
+    .NumRoutes        ( NumPorts                ),
+    .NumVirtChannels  ( NumVirtChannels         ),
+    .flit_t           ( floo_req_generic_flit_t ),
+    .InFifoDepth      ( 4                       ),
+    .RouteAlgo        ( SourceRouting           ),
+    .IdWidth          ( IdWidth                 )
   ) i_dut (
     .clk_i         ( clk   ),
     .rst_ni        ( rst_n ),
     .test_enable_i ( '0 ),
 
-    .xy_id_i       ( '0 ), // Unused for IdIsPort
-    .id_route_map_i( '0 ), // Unused for IdIsPort
+    .xy_id_i       ( '0 ), // Unused for `SourceRouting`
+    .id_route_map_i( '0 ), // Unused for `SourceRouting`
 
     .valid_i       ( valid_in  ),
     .ready_o       ( ready_in  ),

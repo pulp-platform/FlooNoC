@@ -12,6 +12,10 @@
 /// that need to be stored until the response arrives.
 /// Also supports atomics with unique IDs.
 module floo_meta_buffer #(
+  /// AXI in ID width
+  parameter int unsigned InIdWidth = 0,
+  /// AXI out ID width
+  parameter int unsigned OutIdWidth = 0,
   /// Maximum number of non-atomic outstanding requests
   parameter int MaxTxns       = 32'd0,
   /// Number of unique non-atomic IDs
@@ -45,11 +49,9 @@ module floo_meta_buffer #(
 );
 
   // AXI parameters
-  localparam int unsigned IdInWidth = $bits(axi_req_i.aw.id);
-  localparam int unsigned IdOutWidth = $bits(axi_req_o.aw.id);
-  localparam int unsigned IdMinWidth = IdInWidth > IdOutWidth ? IdOutWidth : IdInWidth;
-  typedef logic [IdInWidth-1:0] id_in_t;
-  typedef logic [IdOutWidth-1:0] id_out_t;
+  localparam int unsigned IdMinWidth = InIdWidth > OutIdWidth ? OutIdWidth : InIdWidth;
+  typedef logic [InIdWidth-1:0] id_in_t;
+  typedef logic [OutIdWidth-1:0] id_out_t;
   typedef logic [IdMinWidth-1:0] id_min_t;
 
   logic ar_no_atop_buf_full, aw_no_atop_buf_full;
@@ -112,13 +114,13 @@ module floo_meta_buffer #(
 
     id_out_t no_atop_aw_req_id_in, no_atop_ar_req_id_in;
 
-    // Non-atomic transaction IDs are assigned to the range [MaxAtomicTxns, 2**IdOutWidth-1),
+    // Non-atomic transaction IDs are assigned to the range [MaxAtomicTxns, 2**OutIdWidth-1),
     // Therefore `MaxAtomicTxns` is added/subtracted to/from the ID to get the original ID
     assign no_atop_aw_req_id = id_min_t'(MaxAtomicTxns) + id_min_t'(axi_req_i.aw.id);
     assign no_atop_ar_req_id = id_min_t'(MaxAtomicTxns) + id_min_t'(axi_req_i.ar.id);
     assign no_atop_aw_req_id_in = axi_rsp_i.b.id - id_min_t'(MaxAtomicTxns);
     assign no_atop_ar_req_id_in = axi_rsp_i.r.id - id_min_t'(MaxAtomicTxns);
-    `ASSERT_INIT(TooFewIdBits2, MaxAtomicTxns + id_min_t'('1) < 2**IdOutWidth)
+    `ASSERT_INIT(TooFewIdBits2, MaxAtomicTxns + id_min_t'('1) < 2**OutIdWidth)
 
     logic aw_no_atop_buf_not_full, ar_no_atop_buf_not_full;
 
@@ -310,6 +312,6 @@ module floo_meta_buffer #(
   `ASSERT_INIT(NoAtomicTxns, AtopSupport || (!AtopSupport && (MaxAtomicTxns == 0)))
   // Multiple outstanding atomics need to use different IDs
   // Non-atomic transactions all use the same ID
-  `ASSERT_INIT(TooFewIdBits1, MaxUniqueIds + MaxAtomicTxns <= 2**IdOutWidth)
+  `ASSERT_INIT(TooFewIdBits1, MaxUniqueIds + MaxAtomicTxns <= 2**OutIdWidth)
 
 endmodule

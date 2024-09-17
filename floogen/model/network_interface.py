@@ -51,7 +51,7 @@ class NarrowWideAxiNI(NetworkInterface):
     """ " NarrowWideNI class to describe a narrow-wide network interface."""
 
     with as_file(
-        files(floogen.templates).joinpath("floo_narrow_wide_chimney.sv.mako")
+        files(floogen.templates).joinpath("floo_nw_chimney.sv.mako")
     ) as _tpl_path:
         tpl: ClassVar = Template(filename=str(_tpl_path))
 

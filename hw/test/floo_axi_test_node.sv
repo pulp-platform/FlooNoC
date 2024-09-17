@@ -8,23 +8,17 @@
 
 /// A AXI4 Bus Master-Slave Node for generating random AXI transactions
 module floo_axi_test_node #(
-  parameter int unsigned AxiAddrWidth = 0,
-  parameter int unsigned AxiDataWidth = 0,
-  parameter int unsigned AxiIdInWidth = 0,
-  parameter int unsigned AxiIdOutWidth   = 0,
-  parameter int unsigned AxiUserWidth = 0,
+  parameter floo_pkg::axi_cfg_t AxiCfg = '{default:0},
   parameter type mst_req_t = logic,
   parameter type mst_rsp_t = logic,
   parameter type slv_req_t = logic,
   parameter type slv_rsp_t = logic,
-  // Dependent parameter, DO NOT OVERWRITE!
-  parameter int unsigned AxiStrbWidth = AxiDataWidth/8,
   // TB Parameters
   parameter time ApplTime = 2ns,
   parameter time TestTime = 8ns,
   parameter bit          Atops = 1'b0,
   parameter int unsigned AxiMaxBurstLen = 128,
-  parameter int unsigned NumAddrRegions  = 1,
+  parameter int unsigned NumAddrRegions  = 0,
   parameter type rule_t = logic,
   parameter rule_t [NumAddrRegions-1:0] AddrRegions = '0,
   parameter int unsigned NumReads = 0,
@@ -41,11 +35,12 @@ module floo_axi_test_node #(
 
   output logic end_of_sim
 );
+
   AXI_BUS_DV #(
-    .AXI_ADDR_WIDTH ( AxiAddrWidth  ),
-    .AXI_DATA_WIDTH ( AxiDataWidth  ),
-    .AXI_ID_WIDTH   ( AxiIdOutWidth ),
-    .AXI_USER_WIDTH ( AxiUserWidth  )
+    .AXI_ADDR_WIDTH ( AxiCfg.AddrWidth  ),
+    .AXI_DATA_WIDTH ( AxiCfg.DataWidth  ),
+    .AXI_ID_WIDTH   ( AxiCfg.OutIdWidth ),
+    .AXI_USER_WIDTH ( AxiCfg.UserWidth  )
   ) master_dv (clk_i);
 
   `AXI_ASSIGN_TO_REQ(mst_port_req_o, master_dv)
@@ -53,10 +48,10 @@ module floo_axi_test_node #(
 
   typedef axi_test::axi_rand_master #(
     // AXI interface parameters
-    .AW ( AxiAddrWidth  ),
-    .DW ( AxiDataWidth  ),
-    .IW ( AxiIdOutWidth ),
-    .UW ( AxiUserWidth  ),
+    .AW ( AxiCfg.AddrWidth  ),
+    .DW ( AxiCfg.DataWidth  ),
+    .IW ( AxiCfg.OutIdWidth ),
+    .UW ( AxiCfg.UserWidth  ),
     // Stimuli application and test time
     .TA ( ApplTime      ),
     .TT ( TestTime      ),
@@ -77,10 +72,10 @@ module floo_axi_test_node #(
   ) axi_rand_master_t;
 
   AXI_BUS_DV #(
-    .AXI_ADDR_WIDTH ( AxiAddrWidth  ),
-    .AXI_DATA_WIDTH ( AxiDataWidth  ),
-    .AXI_ID_WIDTH   ( AxiIdOutWidth ),
-    .AXI_USER_WIDTH ( AxiUserWidth  )
+    .AXI_ADDR_WIDTH ( AxiCfg.AddrWidth  ),
+    .AXI_DATA_WIDTH ( AxiCfg.DataWidth  ),
+    .AXI_ID_WIDTH   ( AxiCfg.OutIdWidth ),
+    .AXI_USER_WIDTH ( AxiCfg.UserWidth  )
   ) slave_dv (clk_i);
 
   `AXI_ASSIGN_FROM_REQ(slave_dv, slv_port_req_i)
@@ -88,10 +83,10 @@ module floo_axi_test_node #(
 
   typedef axi_test::axi_rand_slave #(
     // AXI interface parameters
-    .AW ( AxiAddrWidth  ),
-    .DW ( AxiDataWidth  ),
-    .IW ( AxiIdOutWidth ),
-    .UW ( AxiUserWidth  ),
+    .AW ( AxiCfg.AddrWidth  ),
+    .DW ( AxiCfg.DataWidth  ),
+    .IW ( AxiCfg.OutIdWidth ),
+    .UW ( AxiCfg.UserWidth  ),
     // Stimuli application and test time
     .TA ( ApplTime      ),
     .TT ( TestTime      )

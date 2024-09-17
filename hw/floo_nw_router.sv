@@ -4,39 +4,81 @@
 //
 // Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
+`include "axi/typedef.svh"
+`include "floo_noc/typedef.svh"
+
 /// Wrapper of a multi-link router for narrow and wide links
-module floo_narrow_wide_router
-  import floo_pkg::*;
-  import floo_narrow_wide_pkg::*;
-  #(
-    parameter int unsigned NumRoutes        = NumDirections,
-    parameter int unsigned NumInputs        = NumRoutes,
-    parameter int unsigned NumOutputs       = NumRoutes,
-    parameter int unsigned ChannelFifoDepth = 0,
-    parameter int unsigned OutputFifoDepth  = 0,
-    parameter route_algo_e RouteAlgo        = XYRouting,
-    parameter bit          XYRouteOpt       = 1'b1,
-    /// Used for ID-based and XY routing
-    parameter int unsigned IdWidth          = 0,
-    parameter type         id_t             = logic[IdWidth-1:0],
-    /// Used for ID-based routing
-    parameter int unsigned NumAddrRules     = 0,
-    parameter type         addr_rule_t      = logic
+module floo_nw_router #(
+  /// Config of the narrow AXI interfaces (see floo_pkg::axi_cfg_t for details)
+  parameter floo_pkg::axi_cfg_t AxiCfgN       = '0,
+  /// Config of the wide AXI interfaces (see floo_pkg::axi_cfg_t for details)
+  parameter floo_pkg::axi_cfg_t AxiCfgW       = '0,
+  /// Routing algorithm
+  parameter floo_pkg::route_algo_e RouteAlgo  = floo_pkg::XYRouting,
+  /// Number of input/output ports
+  parameter int unsigned NumRoutes            = 0,
+  /// Number of input ports
+  parameter int unsigned NumInputs            = NumRoutes,
+  /// Number of output ports
+  parameter int unsigned NumOutputs           = NumRoutes,
+  /// Input buffer depth
+  parameter int unsigned InFifoDepth          = 0,
+  /// Output buffer depth
+  parameter int unsigned OutFifoDepth         = 0,
+  /// Disable illegal connections in router
+  /// (only applies for `RouteAlgo == XYRouting`)
+  parameter bit          XYRouteOpt           = 1'b1,
+  /// Node ID type
+  parameter type id_t                         = logic,
+  /// Header type
+  parameter type hdr_t                        = logic,
+  /// Number of rules in the route table
+  /// (only used for `RouteAlgo == IdTable`)
+  parameter int unsigned NumAddrRules         = 0,
+  /// Address rule type
+  /// (only used for `RouteAlgo == IdTable`)
+  parameter type addr_rule_t                  = logic,
+  /// Floo `req` link type
+  parameter type floo_req_t                   = logic,
+  /// Floo `rsp` link type
+  parameter type floo_rsp_t                   = logic,
+  /// Floo `wide` link type
+  parameter type floo_wide_t                  = logic
 ) (
   input  logic   clk_i,
   input  logic   rst_ni,
   input  logic   test_enable_i,
-
+  /// Coordinate of the current node
+  /// (only used for `RouteAlgo == XYRouting`)
   input  id_t id_i,
+  /// Routing table
+  /// (only used for `RouteAlgo == IdTable`)
   input  addr_rule_t [NumAddrRules-1:0] id_route_map_i,
-
+  /// Input and output links
   input   floo_req_t [NumInputs-1:0] floo_req_i,
   input   floo_rsp_t [NumOutputs-1:0] floo_rsp_i,
   output  floo_req_t [NumOutputs-1:0] floo_req_o,
   output  floo_rsp_t [NumInputs-1:0] floo_rsp_o,
-  input   floo_wide_t   [NumRoutes-1:0] floo_wide_i,
-  output  floo_wide_t   [NumRoutes-1:0] floo_wide_o
+  input   floo_wide_t [NumRoutes-1:0] floo_wide_i,
+  output  floo_wide_t [NumRoutes-1:0] floo_wide_o
 );
+
+  typedef logic [AxiCfgN.AddrWidth-1:0] axi_addr_t;
+  typedef logic [AxiCfgN.InIdWidth-1:0] axi_narrow_in_id_t;
+  typedef logic [AxiCfgN.UserWidth-1:0] axi_narrow_user_t;
+  typedef logic [AxiCfgN.DataWidth-1:0] axi_narrow_data_t;
+  typedef logic [AxiCfgN.DataWidth/8-1:0] axi_narrow_strb_t;
+  typedef logic [AxiCfgW.InIdWidth-1:0] axi_wide_in_id_t;
+  typedef logic [AxiCfgW.UserWidth-1:0] axi_wide_user_t;
+  typedef logic [AxiCfgW.DataWidth-1:0] axi_wide_data_t;
+  typedef logic [AxiCfgW.DataWidth/8-1:0] axi_wide_strb_t;
+
+  // (Re-) definitons of `axi_in` and `floo` types, for transport
+  `AXI_TYPEDEF_ALL_CT(axi_narrow, axi_narrow_req_t, axi_narrow_rsp_t, axi_addr_t,
+      axi_narrow_in_id_t, axi_narrow_data_t, axi_narrow_strb_t, axi_narrow_user_t)
+  `AXI_TYPEDEF_ALL_CT(axi_wide, axi_wide_req_t, axi_wide_rsp_t, axi_addr_t,
+      axi_wide_in_id_t, axi_wide_data_t, axi_wide_strb_t, axi_wide_user_t)
+  `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow, axi_wide, AxiCfgN, AxiCfgW, hdr_t)
 
   floo_req_chan_t [NumInputs-1:0] req_in;
   floo_rsp_chan_t [NumInputs-1:0] rsp_out;
@@ -83,11 +125,10 @@ module floo_narrow_wide_router
     .NumInput         ( NumInputs               ),
     .NumOutput        ( NumOutputs              ),
     .flit_t           ( floo_req_generic_flit_t ),
-    .ChannelFifoDepth ( ChannelFifoDepth        ),
-    .OutputFifoDepth  ( OutputFifoDepth         ),
+    .InFifoDepth      ( InFifoDepth             ),
+    .OutFifoDepth     ( OutFifoDepth            ),
     .RouteAlgo        ( RouteAlgo               ),
     .XYRouteOpt       ( XYRouteOpt              ),
-    .IdWidth          ( IdWidth                 ),
     .id_t             ( id_t                    ),
     .NumAddrRules     ( NumAddrRules            ),
     .addr_rule_t      ( addr_rule_t             )
@@ -111,11 +152,10 @@ module floo_narrow_wide_router
     .NumVirtChannels  ( 1                       ),
     .NumInput         ( NumInputs               ),
     .NumOutput        ( NumOutputs              ),
-    .ChannelFifoDepth ( ChannelFifoDepth        ),
-    .OutputFifoDepth  ( OutputFifoDepth         ),
+    .InFifoDepth      ( InFifoDepth             ),
+    .OutFifoDepth     ( OutFifoDepth            ),
     .RouteAlgo        ( RouteAlgo               ),
     .XYRouteOpt       ( XYRouteOpt              ),
-    .IdWidth          ( IdWidth                 ),
     .flit_t           ( floo_rsp_generic_flit_t ),
     .id_t             ( id_t                    ),
     .NumAddrRules     ( NumAddrRules            ),
@@ -140,11 +180,10 @@ module floo_narrow_wide_router
     .NumVirtChannels  ( 1                         ),
     .NumRoutes        ( NumRoutes                 ),
     .flit_t           ( floo_wide_generic_flit_t  ),
-    .ChannelFifoDepth ( ChannelFifoDepth          ),
-    .OutputFifoDepth  ( OutputFifoDepth           ),
+    .InFifoDepth      ( InFifoDepth               ),
+    .OutFifoDepth     ( OutFifoDepth              ),
     .RouteAlgo        ( RouteAlgo                 ),
     .XYRouteOpt       ( XYRouteOpt                ),
-    .IdWidth          ( IdWidth                   ),
     .id_t             ( id_t                      ),
     .NumAddrRules     ( NumAddrRules              ),
     .addr_rule_t      ( addr_rule_t               )

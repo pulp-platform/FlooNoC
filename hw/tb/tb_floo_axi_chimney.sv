@@ -10,9 +10,6 @@
 
 module tb_floo_axi_chimney;
 
-  import floo_pkg::*;
-  import floo_axi_pkg::*;
-
   localparam time CyclTime = 10ns;
   localparam time ApplTime = 2ns;
   localparam time TestTime = 8ns;
@@ -22,15 +19,17 @@ module tb_floo_axi_chimney;
   localparam int unsigned NumReads1 = 1000;
   localparam int unsigned NumWrites1 = 1000;
 
-  localparam bit AtopSupport = 1'b1;
-
   localparam int unsigned NumTargets = 2;
 
-  localparam int unsigned ReorderBufferSize = 64;
-  localparam int unsigned MaxTxns = 32;
-  localparam int unsigned MaxTxnsPerId = 32;
-
   logic clk, rst_n;
+
+  typedef logic [1:0] x_bits_t;
+  typedef logic [1:0] y_bits_t;
+  `FLOO_TYPEDEF_XY_NODE_ID_T(id_t, x_bits_t, y_bits_t, logic)
+  `FLOO_TYPEDEF_HDR_T(hdr_t, id_t, id_t, floo_pkg::axi_ch_e, logic)
+  `FLOO_TYPEDEF_AXI_FROM_CFG(axi, floo_test_pkg::AxiCfg)
+  `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi_in, floo_test_pkg::AxiCfg, hdr_t)
+  `FLOO_TYPEDEF_AXI_LINK_ALL(req, rsp, req, rsp)
 
   axi_in_req_t [NumTargets-1:0] node_man_req;
   axi_in_rsp_t [NumTargets-1:0] node_man_rsp;
@@ -60,8 +59,8 @@ module tb_floo_axi_chimney;
   );
 
   typedef struct packed {
-    logic [AxiInAddrWidth-1:0] start_addr;
-    logic [AxiInAddrWidth-1:0] end_addr;
+    logic [floo_test_pkg::AxiCfg.AddrWidth-1:0] start_addr;
+    logic [floo_test_pkg::AxiCfg.AddrWidth-1:0] end_addr;
   } node_addr_region_t;
 
   localparam int unsigned NumAddrRegions = 1;
@@ -70,24 +69,19 @@ module tb_floo_axi_chimney;
   };
 
   floo_axi_test_node #(
-    .AxiAddrWidth   ( AxiInAddrWidth      ),
-    .AxiDataWidth   ( AxiInDataWidth      ),
-    .AxiIdOutWidth  ( AxiInIdWidth        ),
-    .AxiIdInWidth   ( AxiOutIdWidth       ),
-    .AxiUserWidth   ( AxiInUserWidth      ),
-    .mst_req_t      ( axi_in_req_t        ),
-    .mst_rsp_t      ( axi_in_rsp_t        ),
-    .slv_req_t      ( axi_out_req_t       ),
-    .slv_rsp_t      ( axi_out_rsp_t       ),
-    .ApplTime       ( ApplTime            ),
-    .TestTime       ( TestTime            ),
-    .Atops          ( AtopSupport         ),
-    .AxiMaxBurstLen ( ReorderBufferSize   ),
-    .NumAddrRegions ( NumAddrRegions      ),
-    .rule_t         ( node_addr_region_t  ),
-    .AddrRegions    ( AddrRegions         ),
-    .NumReads       ( NumReads0           ),
-    .NumWrites      ( NumWrites0          )
+    .AxiCfg         ( floo_test_pkg::AxiCfg       ),
+    .mst_req_t      ( axi_in_req_t                ),
+    .mst_rsp_t      ( axi_in_rsp_t                ),
+    .slv_req_t      ( axi_out_req_t               ),
+    .slv_rsp_t      ( axi_out_rsp_t               ),
+    .ApplTime       ( ApplTime                    ),
+    .TestTime       ( TestTime                    ),
+    .Atops          ( floo_test_pkg::AtopSupport  ),
+    .NumAddrRegions ( NumAddrRegions              ),
+    .rule_t         ( node_addr_region_t          ),
+    .AddrRegions    ( AddrRegions                 ),
+    .NumReads       ( NumReads0                   ),
+    .NumWrites      ( NumWrites0                  )
   ) i_test_node_0 (
     .clk_i          ( clk             ),
     .rst_ni         ( rst_n           ),
@@ -99,15 +93,15 @@ module tb_floo_axi_chimney;
   );
 
   axi_reorder_remap_compare #(
-    .AxiInIdWidth   ( AxiInIdWidth      ),
-    .AxiOutIdWidth  ( AxiOutIdWidth     ),
-    .aw_chan_t      ( axi_in_aw_chan_t  ),
-    .w_chan_t       ( axi_in_w_chan_t   ),
-    .b_chan_t       ( axi_in_b_chan_t   ),
-    .ar_chan_t      ( axi_in_ar_chan_t  ),
-    .r_chan_t       ( axi_in_r_chan_t   ),
-    .req_t          ( axi_in_req_t      ),
-    .rsp_t          ( axi_in_rsp_t      )
+    .AxiInIdWidth   ( floo_test_pkg::AxiCfg.InIdWidth   ),
+    .AxiOutIdWidth  ( floo_test_pkg::AxiCfg.OutIdWidth  ),
+    .aw_chan_t      ( axi_in_aw_chan_t                  ),
+    .w_chan_t       ( axi_in_w_chan_t                   ),
+    .b_chan_t       ( axi_in_b_chan_t                   ),
+    .ar_chan_t      ( axi_in_ar_chan_t                  ),
+    .r_chan_t       ( axi_in_r_chan_t                   ),
+    .req_t          ( axi_in_req_t                      ),
+    .rsp_t          ( axi_in_rsp_t                      )
   ) i_axi_chan_compare_0 (
     .clk_i          ( clk                   ),
     .mon_mst_req_i  ( node_man_req[0]       ),
@@ -118,11 +112,19 @@ module tb_floo_axi_chimney;
   );
 
   floo_axi_chimney #(
-    .AtopSupport        ( AtopSupport         ),
-    .MaxAtomicTxns      ( 4                   ),
-    .MaxTxns            ( MaxTxns             ),
-    .MaxTxnsPerId       ( MaxTxnsPerId        ),
-    .ReorderBufferSize  ( ReorderBufferSize   )
+    .AxiCfg             ( floo_test_pkg::AxiCfg         ),
+    .ChimneyCfg         ( floo_test_pkg::ChimneyCfg     ),
+    .RouteCfg           ( floo_test_pkg::RouteCfg       ),
+    .AtopSupport        ( floo_test_pkg::AtopSupport    ),
+    .MaxAtomicTxns      ( floo_test_pkg::MaxAtomicTxns  ),
+    .hdr_t              ( hdr_t                         ),
+    .axi_in_req_t       ( axi_in_req_t                  ),
+    .axi_in_rsp_t       ( axi_in_rsp_t                  ),
+    .axi_out_req_t      ( axi_out_req_t                 ),
+    .axi_out_rsp_t      ( axi_out_rsp_t                 ),
+    .id_t               ( id_t                          ),
+    .floo_req_t         ( floo_req_t                    ),
+    .floo_rsp_t         ( floo_rsp_t                    )
   ) i_floo_axi_chimney_0 (
     .clk_i          ( clk               ),
     .rst_ni         ( rst_n             ),
@@ -141,11 +143,19 @@ module tb_floo_axi_chimney;
   );
 
   floo_axi_chimney #(
-    .AtopSupport        ( AtopSupport         ),
-    .MaxAtomicTxns      ( 4                   ),
-    .MaxTxns            ( MaxTxns             ),
-    .MaxTxnsPerId       ( MaxTxnsPerId        ),
-    .ReorderBufferSize  ( ReorderBufferSize   )
+    .AxiCfg             ( floo_test_pkg::AxiCfg         ),
+    .ChimneyCfg         ( floo_test_pkg::ChimneyCfg     ),
+    .RouteCfg           ( floo_test_pkg::RouteCfg       ),
+    .AtopSupport        ( floo_test_pkg::AtopSupport    ),
+    .MaxAtomicTxns      ( floo_test_pkg::MaxAtomicTxns  ),
+    .hdr_t              ( hdr_t                         ),
+    .axi_in_req_t       ( axi_in_req_t                  ),
+    .axi_in_rsp_t       ( axi_in_rsp_t                  ),
+    .axi_out_req_t      ( axi_out_req_t                 ),
+    .axi_out_rsp_t      ( axi_out_rsp_t                 ),
+    .id_t               ( id_t                          ),
+    .floo_req_t         ( floo_req_t                    ),
+    .floo_rsp_t         ( floo_rsp_t                    )
   ) i_floo_axi_chimney_1 (
     .clk_i          ( clk                   ),
     .rst_ni         ( rst_n                 ),
@@ -164,15 +174,15 @@ module tb_floo_axi_chimney;
   );
 
   axi_reorder_remap_compare #(
-    .AxiInIdWidth   ( AxiInIdWidth      ),
-    .AxiOutIdWidth  ( AxiOutIdWidth     ),
-    .aw_chan_t      ( axi_in_aw_chan_t  ),
-    .w_chan_t       ( axi_in_w_chan_t   ),
-    .b_chan_t       ( axi_in_b_chan_t   ),
-    .ar_chan_t      ( axi_in_ar_chan_t  ),
-    .r_chan_t       ( axi_in_r_chan_t   ),
-    .req_t          ( axi_in_req_t      ),
-    .rsp_t          ( axi_in_rsp_t      )
+    .AxiInIdWidth   ( floo_test_pkg::AxiCfg.InIdWidth   ),
+    .AxiOutIdWidth  ( floo_test_pkg::AxiCfg.OutIdWidth  ),
+    .aw_chan_t      ( axi_in_aw_chan_t                  ),
+    .w_chan_t       ( axi_in_w_chan_t                   ),
+    .b_chan_t       ( axi_in_b_chan_t                   ),
+    .ar_chan_t      ( axi_in_ar_chan_t                  ),
+    .r_chan_t       ( axi_in_r_chan_t                   ),
+    .req_t          ( axi_in_req_t                      ),
+    .rsp_t          ( axi_in_rsp_t                      )
   ) i_axi_chan_compare_1 (
     .clk_i          ( clk                   ),
     .mon_mst_req_i  ( node_man_req[1]       ),
@@ -183,24 +193,19 @@ module tb_floo_axi_chimney;
   );
 
   floo_axi_test_node #(
-    .AxiAddrWidth   ( AxiInAddrWidth      ),
-    .AxiDataWidth   ( AxiInDataWidth      ),
-    .AxiIdInWidth   ( AxiOutIdWidth       ),
-    .AxiIdOutWidth  ( AxiInIdWidth        ),
-    .AxiUserWidth   ( AxiInUserWidth      ),
-    .mst_req_t      ( axi_in_req_t        ),
-    .mst_rsp_t      ( axi_in_rsp_t        ),
-    .slv_req_t      ( axi_out_req_t       ),
-    .slv_rsp_t      ( axi_out_rsp_t       ),
-    .ApplTime       ( ApplTime            ),
-    .TestTime       ( TestTime            ),
-    .Atops          ( AtopSupport         ),
-    .AxiMaxBurstLen ( ReorderBufferSize   ),
-    .NumAddrRegions ( NumAddrRegions      ),
-    .rule_t         ( node_addr_region_t  ),
-    .AddrRegions    ( AddrRegions         ),
-    .NumReads       ( NumReads1           ),
-    .NumWrites      ( NumWrites1          )
+    .AxiCfg         ( floo_test_pkg::AxiCfg       ),
+    .mst_req_t      ( axi_in_req_t                ),
+    .mst_rsp_t      ( axi_in_rsp_t                ),
+    .slv_req_t      ( axi_out_req_t               ),
+    .slv_rsp_t      ( axi_out_rsp_t               ),
+    .ApplTime       ( ApplTime                    ),
+    .TestTime       ( TestTime                    ),
+    .Atops          ( floo_test_pkg::AtopSupport  ),
+    .NumAddrRegions ( NumAddrRegions              ),
+    .rule_t         ( node_addr_region_t          ),
+    .AddrRegions    ( AddrRegions                 ),
+    .NumReads       ( NumReads1                   ),
+    .NumWrites      ( NumWrites1                  )
   ) i_test_node_1 (
     .clk_i          ( clk             ),
     .rst_ni         ( rst_n           ),
@@ -212,9 +217,9 @@ module tb_floo_axi_chimney;
   );
 
   axi_bw_monitor #(
-    .req_t      ( axi_in_req_t  ),
-    .rsp_t      ( axi_in_rsp_t ),
-    .AxiIdWidth ( AxiInIdWidth  )
+    .req_t      ( axi_in_req_t                    ),
+    .rsp_t      ( axi_in_rsp_t                    ),
+    .AxiIdWidth ( floo_test_pkg::AxiCfg.InIdWidth )
   ) i_axi_bw_monitor (
     .clk_i          ( clk             ),
     .en_i           ( rst_n           ),

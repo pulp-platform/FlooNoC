@@ -96,10 +96,9 @@ This repository includes the following NoC IPs:
 
 1. **Routers:** A collection of different NoC router designs with varying features such as virtual channels, input/output buffering, and adaptive routing algorithms.
 1. **Network Interfaces (NIs)**: A set of NoC network interfaces for connecting IPs to the NoC.
-1. **Topologies:** A collection of NoC topologies, such as mesh, to enable the creation of various on-chip interconnects.
-1. **Common IPs** A set of IPs used by the NoC IPs, such as FIFOs, Cuts and arbiters.
-1. **Verification IPs (VIPs):** A set of VIPs to verify the correct functionality of the NoC IPs.
-1. **Testbenches:** A set of testbenches to evaluate the performance of the NoC IPs, including throughput, latency.
+2. **Common IPs** A set of IPs used by the NoC IPs, such as FIFOs, Cuts and arbiters.
+3. **Verification IPs (VIPs):** A set of VIPs to verify the correct functionality of the NoC IPs.
+4. **Testbenches:** A set of testbenches to evaluate the performance of the NoC IPs, including throughput, latency.
 
 ### Routers
 | Name | Description | Doc |
@@ -112,12 +111,6 @@ This repository includes the following NoC IPs:
 | --- | --- | --- |
 | [floo_axi_chimney](hw/floo_axi_chimney.sv) | A bidirectional network interface for connecting AXI4 Buses to the NoC |  |
 | [floo_narrow_wide_chimney](hw/floo_narrow_wide_chimney.sv) | A bidirectional network interface for connecting narrow & wide AXI Buses to the multi-link NoC |  |
-
-### Topologies
-| Name | Description | Doc |
-| --- | --- | --- |
-| [floo_mesh](hw/floo_mesh.sv) | A mesh topology with configurable number of rows and columns |  |
-| [floo_mesh_ruche](hw/floo_mesh_ruche.sv) | A mesh topology with ruche channels and a configurable number of rows and columns |  |
 
 ### Common IPs
 | Name | Description | Doc |
