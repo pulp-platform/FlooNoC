@@ -532,6 +532,6 @@ class Routing(BaseModel):
             "IdAddrOffset": self.addr_offset_bits if
                                 self.route_algo == RouteAlgo.ID and not self.use_id_table else 0,
             "NumSamRules": len(self.sam),
-            "NumRoutes": len(self.table) if self.table is not None else 0,
+            "NumRoutes": self.num_endpoints if self.route_algo == RouteAlgo.SRC else 0,
         }
         return sv_param_decl(name, sv_struct_render(fields), dtype="route_cfg_t")
