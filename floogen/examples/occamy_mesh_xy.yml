@@ -4,6 +4,7 @@
 
 name: occamy_mesh
 description: "Occamy mesh configuration for FlooGen"
+network_type: "narrow-wide"
 
 routing:
   route_algo: "XY"
