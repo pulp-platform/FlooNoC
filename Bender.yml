@@ -38,6 +38,8 @@ sources:
   - hw/floo_axi_chimney.sv
   - hw/floo_nw_chimney.sv
   - hw/floo_router.sv
+  # Level 3 (Wrappers)
+  - hw/floo_axi_router.sv
   - hw/floo_nw_router.sv
 
   - target: vc_router
