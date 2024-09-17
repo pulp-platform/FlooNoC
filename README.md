@@ -162,16 +162,14 @@ The following example shows the configuration for a simple mesh topology with 4x
     use_id_table: true
 
   protocols:
-    - name: "example_axi"
+    - name: "axi_in"
       type: "AXI4"
-      direction: "manager"
       data_width: 64
       addr_width: 32
       id_width: 3
       user_width: 1
-    - name: "example_axi"
+    - name: "axi_out"
       type: "AXI4"
-      direction: "subordinate"
       data_width: 64
       addr_width: 32
       id_width: 3
@@ -184,9 +182,9 @@ The following example shows the configuration for a simple mesh topology with 4x
         base: 0x1000_0000
         size: 0x0004_0000
       mgr_port_protocol:
-        - "example_axi"
+        - "axi_in"
       sbr_port_protocol:
-        - "example_axi"
+        - "axi_out"
 
   routers:
     - name: "router"
