@@ -68,7 +68,7 @@ module floo_router
       (* ungroup *)
       stream_fifo_optimal_wrap #(
         .Depth  ( InFifoDepth ),
-        .type_t ( flit_t           )
+        .type_t ( flit_t      )
       ) i_stream_fifo (
         .clk_i      ( clk_i         ),
         .rst_ni     ( rst_ni        ),
@@ -174,8 +174,8 @@ module floo_router
       if (OutFifoDepth > 0) begin : gen_out_fifo
         (* ungroup *)
         stream_fifo_optimal_wrap #(
-          .Depth  ( OutFifoDepth ),
-          .type_t ( flit_t           )
+          .Depth  ( OutFifoDepth  ),
+          .type_t ( flit_t        )
         ) i_stream_fifo (
           .clk_i      ( clk_i         ),
           .rst_ni     ( rst_ni        ),
