@@ -15,6 +15,7 @@ floo_nw_chimney  #(
   .rob_idx_t(rob_idx_t),
 % if ni.routing.route_algo.value == 'SourceRouting':
   .route_t (route_t),
+  .dst_t   (route_t),
 % endif
   .hdr_t  (hdr_t),
   .sam_rule_t(sam_rule_t),
