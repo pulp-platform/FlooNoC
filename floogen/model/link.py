@@ -37,6 +37,41 @@ class Link(BaseModel, ABC):
     def render_ports(self):
         """Declare the ports of the link."""
 
+class AxiLink(Link):
+    """Link class to describe a AxiLink."""
+
+    req_type: ClassVar[str] = "floo_req_t"
+    rsp_type: ClassVar[str] = "floo_rsp_t"
+
+    def req_name(self):
+        """Return the narrow request name."""
+        return f"{self.source}_to_{self.dest}_req"
+
+    def rsp_name(self):
+        """Return the narrow response name."""
+        return f"{self.dest}_to_{self.source}_rsp"
+
+    @classmethod
+    def render_typedefs(cls, axi, cfg):
+        """Render the typedefs of the links."""
+        string = f"`FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, {axi}, {cfg}, hdr_t)\n\n"
+        string += "`FLOO_TYPEDEF_AXI_LINK_ALL(req, rsp, req, rsp)\n"
+        return string
+
+    def declare(self):
+        """Declare the link in the generated code."""
+        string = f"{self.req_type} {self.req_name()};\n"
+        string += f"{self.rsp_type} {self.rsp_name()};\n"
+        return string + "\n"
+
+    def render_ports(self, direction="input"):
+        """Declare the ports of the link."""
+        reverse_direction = "output" if direction == "input" else "input"
+        ports = []
+        ports.append(f"{direction} {self.req_type} {self.req_name()}")
+        ports.append(f"{reverse_direction} {self.rsp_type} {self.rsp_name()}")
+        return ports
+
 class NarrowWideLink(Link):
     """Link class to describe a NarrowWidelink."""
 
