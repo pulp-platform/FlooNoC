@@ -6,22 +6,23 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 import pathlib
-from typing import Optional, List, ClassVar
 from importlib.resources import files, as_file
+from typing import Optional, List, ClassVar
+from typing_extensions import Annotated
 
 import networkx as nx
 import matplotlib.pyplot as plt
 from mako.lookup import Template
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, StringConstraints, field_validator, model_validator
 
 from floogen.model.routing import Routing, RouteAlgo, RouteMapRule, RouteRule, RouteMap, RouteTable
 from floogen.model.routing import Coord, SimpleId, AddrRange, XYDirections
 from floogen.model.graph import Graph
 from floogen.model.endpoint import EndpointDesc, Endpoint
-from floogen.model.router import RouterDesc, NarrowWideRouter
+from floogen.model.router import RouterDesc, NarrowWideRouter, AxiRouter
 from floogen.model.connection import ConnectionDesc
-from floogen.model.link import NarrowWideLink, NarrowWideVCLink
-from floogen.model.network_interface import NarrowWideAxiNI
+from floogen.model.link import NarrowWideLink, NarrowWideVCLink, AxiLink
+from floogen.model.network_interface import NarrowWideAxiNI, AxiNI
 from floogen.model.protocol import AXI4, AXI4Bus
 from floogen.utils import clog2, sv_enum_typedef, sv_param_decl
 import floogen.templates
@@ -39,6 +40,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     name: str
     description: Optional[str]
+    network_type: Annotated[str, StringConstraints(pattern=r"axi|narrow-wide")]
     protocols: List[AXI4]
     endpoints: List[EndpointDesc]
     routers: List[RouterDesc]
@@ -83,24 +85,35 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             names.add(rt.name)
         return routers
 
-    @field_validator("protocols")
-    @classmethod
-    def validate_protocols(cls, protocols):
+    @model_validator(mode="after")
+    def validate_protocols(self):
         """Check that names are unique and parameters are compatible."""
         # Check that address width is unique among all protocols
-        if len(set(prot.addr_width for prot in protocols)) != 1:
+        if len(set(prot.addr_width for prot in self.protocols)) != 1:
             raise ValueError("All protocols must have the same address width")
-        # Check that `narrow` and `wide` protocols have the same data width
-        if len(set(prot.data_width for prot in protocols if prot.type == "narrow")) != 1:
-            raise ValueError("All `narrow` protocols must have the same data width")
-        if len(set(prot.data_width for prot in protocols if prot.type == "wide")) != 1:
-            raise ValueError("All `wide` protocols must have the same data width")
-        # Check that `narrow` and `wide` protocols have the same user width
-        if len(set(prot.user_width for prot in protocols if prot.type == "narrow")) != 1:
-            raise ValueError("All `narrow` protocols must have the same user width")
-        if len(set(prot.user_width for prot in protocols if prot.type == "wide")) != 1:
-            raise ValueError("All `wide` protocols must have the same user width")
-        return protocols
+        if self.network_type == "narrow-wide":
+            # Check that `narrow` and `wide` protocols have the same data width
+            if len(set(prot.data_width for prot in self.protocols if prot.type == "narrow")) != 1:
+                raise ValueError("All `narrow` protocols must have the same data width")
+            if len(set(prot.data_width for prot in self.protocols if prot.type == "wide")) != 1:
+                raise ValueError("All `wide` protocols must have the same data width")
+            # Check that `narrow` and `wide` protocols have the same user width
+            if len(set(prot.user_width for prot in self.protocols if prot.type == "narrow")) != 1:
+                raise ValueError("All `narrow` protocols must have the same user width")
+            if len(set(prot.user_width for prot in self.protocols if prot.type == "wide")) != 1:
+                raise ValueError("All `wide` protocols must have the same user width")
+            # Check that `type` is defined when using `narrow-wide` network
+            if any(prot.type not in ["narrow", "wide"] for prot in self.protocols) and \
+                "narrow-wide" in self.network_type:
+                raise ValueError("Protocols must define `type` for `narrow-wide` networks")
+        else:
+            # Check that data width is the same among all protocols
+            if len(set(prot.data_width for prot in self.protocols)) != 1:
+                raise ValueError("All protocols must have the same data width")
+            # Check that user width is the same among all protocols
+            if len(set(prot.user_width for prot in self.protocols)) != 1:
+                raise ValueError("All protocols must have the same user width")
+        return self
 
     @model_validator(mode="after")
     def set_addr_width(self):
@@ -342,10 +355,17 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 "dest_type": self.graph.nodes[edge[1]]["type"],
                 "is_bidirectional": is_bidirectional,
             }
-            if self.routing.num_vc_id_bits > 0:
-                self.graph.set_edge_obj(edge, NarrowWideVCLink(**link))
-            else:
-                self.graph.set_edge_obj(edge, NarrowWideLink(**link))
+            match (self.network_type, self.routing.num_vc_id_bits):
+                case ("axi", 0):
+                    self.graph.set_edge_obj(edge, AxiLink(**link))
+                case ("narrow-wide", 0):
+                    self.graph.set_edge_obj(edge, NarrowWideLink(**link))
+                case ("narrow-wide", _):
+                    self.graph.set_edge_obj(edge, NarrowWideVCLink(**link))
+                case _:
+                    raise NotImplementedError(
+                        f"Network type {self.network_type} with VC routers is not supported yet"
+                    )
 
     def compile_routers(self): # pylint: disable=too-many-branches, too-many-locals
         """Infer the router type from the network."""
@@ -405,7 +425,11 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             }
             if self.routing.route_algo == RouteAlgo.XY:
                 router_dict["id"] = self.graph.get_node_id(rt_name)
-            self.graph.set_node_obj(rt_name, NarrowWideRouter(**router_dict))
+            match self.network_type:
+                case "axi":
+                    self.graph.set_node_obj(rt_name, AxiRouter(**router_dict))
+                case "narrow-wide":
+                    self.graph.set_node_obj(rt_name, NarrowWideRouter(**router_dict))
 
     def compile_endpoints(self):
         """Infer the endpoint type from the network."""
@@ -492,18 +516,22 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             mgr_prot_edges = self.graph.get_edges_to(ni_name, filters=[self.graph.is_prot_edge])
             for protocols in sbr_prot_edges:
                 for prot in protocols:
-                    match prot.type:
-                        case "narrow":
+                    match (self.network_type, prot.type):
+                        case ("axi", _):
+                            ni_dict["sbr_port"] = prot
+                        case ("narrow-wide", "narrow"):
                             ni_dict["sbr_narrow_port"] = prot
-                        case "wide":
+                        case ("narrow-wide", "wide"):
                             ni_dict["sbr_wide_port"] = prot
 
             for protocols in mgr_prot_edges:
                 for prot in protocols:
-                    match prot.type:
-                        case "narrow":
+                    match (self.network_type, prot.type):
+                        case ("axi", _):
+                            ni_dict["mgr_port"] = prot
+                        case ("narrow-wide", "narrow"):
                             ni_dict["mgr_narrow_port"] = prot
-                        case "wide":
+                        case ("narrow-wide", "wide"):
                             ni_dict["mgr_wide_port"] = prot
 
             ni_dict["mgr_link"] = self.graph.get_edges_from(
@@ -512,8 +540,11 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             ni_dict["sbr_link"] = self.graph.get_edges_to(
                 ni_name, filters=[self.graph.is_link_edge]
             )[0]
-
-            self.graph.set_node_obj(ni_name, NarrowWideAxiNI(**ni_dict))
+            match self.network_type:
+                case "axi":
+                    self.graph.set_node_obj(ni_name, AxiNI(**ni_dict))
+                case "narrow-wide":
+                    self.graph.set_node_obj(ni_name, NarrowWideAxiNI(**ni_dict))
 
     def gen_routing_info(self):
         """Wrapper function to generate all the routing info for the network,
@@ -635,20 +666,26 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     def render_link_typedefs(self):
         """Render the protocol configuration structs."""
         string = ""
-        narrow_in_prot = next((prot for prot in self.protocols
-            if prot.type == "narrow" and prot.direction == "input"), None)
-        narrow_out_prot = next((prot for prot in self.protocols
-            if prot.type == "narrow" and prot.direction == "output"), None)
-        wide_in_prot = next((prot for prot in self.protocols
-            if prot.type == "wide" and prot.direction == "input"), None)
-        wide_out_prot = next((prot for prot in self.protocols
-            if prot.type == "wide" and prot.direction == "output"), None)
-        string += AXI4.render_cfg("AxiCfgN", narrow_in_prot, narrow_out_prot)
-        string += AXI4.render_cfg("AxiCfgW", wide_in_prot, wide_out_prot)
+        if self.network_type == "narrow-wide":
+            narrow_in_prot = next((prot for prot in self.protocols
+                if prot.type == "narrow" and prot.direction == "input"), None)
+            narrow_out_prot = next((prot for prot in self.protocols
+                if prot.type == "narrow" and prot.direction == "output"), None)
+            wide_in_prot = next((prot for prot in self.protocols
+                if prot.type == "wide" and prot.direction == "input"), None)
+            wide_out_prot = next((prot for prot in self.protocols
+                if prot.type == "wide" and prot.direction == "output"), None)
+            string += AXI4.render_cfg("AxiCfgN", narrow_in_prot, narrow_out_prot)
+            string += AXI4.render_cfg("AxiCfgW", wide_in_prot, wide_out_prot)
 
-        string += NarrowWideLink.render_typedefs(
-            narrow_in_prot.type_name(), wide_in_prot.type_name(), "AxiCfgN", "AxiCfgW"
-        )
+            string += NarrowWideLink.render_typedefs(
+                narrow_in_prot.type_name(), wide_in_prot.type_name(), "AxiCfgN", "AxiCfgW"
+            )
+        else:
+            in_prot = next((prot for prot in self.protocols if prot.direction == "input"), None)
+            out_prot = next((prot for prot in self.protocols if prot.direction == "output"), None)
+            string += AXI4.render_cfg("AxiCfg", in_prot, out_prot)
+            string += AxiLink.render_typedefs(in_prot.type_name(), "AxiCfg")
         return string
 
     def render_prots(self):
