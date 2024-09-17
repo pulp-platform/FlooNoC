@@ -15,10 +15,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
   - The `RouteCfg` describes all the necessary routing information parameters required by the chimneys.
   - The `ChimneyCfg` describes all other parameters for the data path of the chimney (e.g. Mgr/Sbr port enable, number of oustanding transactions, RoB types & sizes, etc.)
 - The `floo_test_pkg` now defines default configurations for all the new configuration structs that are used by the testbenches.
+- Add `floo_axi_router` module, which is a wrapper similar to the `floo_nw_router` but for single-AXI configurations, and can be used in conjunction with `floo_axi_chimney`.
 
 #### FlooGen
 - The `data_width` and `user_width` fields for `protocols` are now also validated to be compatible with each other.
 - All the various `*Cfg`'s is now rendered by _FlooGen_, either in the `*_noc_pkg` or in the `*_noc` module itself.
+- Added support for single-AXI configuration networks.
 
 ### Changed
 
@@ -42,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
   - The `direction` field in the `protocol` schema is no longer required, since the direction is determined when specifying `mgr_port_protocol` and `sbr_port_protocol`.
   - The `name` field must be unique now, since it is used by `mgr_port_protocol` and `sbr_port_protocol` to reference the exact protocol.
   - All examples were adapted to reflect those changes.
+- A FlooGen configuration file now requires a `network_type` field, to determine the type of network to generate. The options are `axi` for single-AXI networks and `narrow-wide` for the narrow-wide AXI configurations.
 
 ### Fixed
 
