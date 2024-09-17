@@ -38,6 +38,11 @@ module floo_nw_vc_chimney #(
   /// Route type for source-based routing
   /// (only used if `RouteCfg.RouteAlgo == SourceRouting`)
   parameter type route_t                                = logic,
+  /// Destination ID type for routing
+  /// The destination ID type is usually the same as the node ID type,
+  /// except for the case of source-based routing, where the destination
+  /// ID is the actual route to the destination i.e. `route_t`
+  parameter type dst_t                                  = id_t,
   /// VC ID type
   parameter type vc_id_t                                = logic,
   /// Header type for the flits
@@ -257,8 +262,8 @@ module floo_nw_vc_chimney #(
   } wide_meta_buf_t;
 
   // Routing
-  id_t [NumNWAxiChannels-1:0] dst_id;
-  id_t narrow_aw_id_q, wide_aw_id_q;
+  dst_t [NumNWAxiChannels-1:0] dst_id;
+  dst_t narrow_aw_id_q, wide_aw_id_q;
   route_t [NumNWAxiChannels-1:0] route_out;
   id_t [NumNWAxiChannels-1:0] id_out;
 

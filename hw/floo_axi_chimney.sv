@@ -32,6 +32,11 @@ module floo_axi_chimney #(
   /// Route type for source-based routing
   /// (only used if `RouteCfg.RouteAlgo == SourceRouting`)
   parameter type route_t                                = logic,
+  /// Destination ID type for routing
+  /// The destination ID type is usually the same as the node ID type,
+  /// except for the case of source-based routing, where the destination
+  /// ID is the actual route to the destination i.e. `route_t`
+  parameter type dst_t                                  = id_t,
   /// Header type for the flits
   parameter type hdr_t                                  = logic,
   /// Rule type for the System Address Map
@@ -145,8 +150,8 @@ module floo_axi_chimney #(
   } meta_buf_t;
 
   // Routing
-  id_t [NumAxiChannels-1:0] dst_id;
-  id_t axi_aw_id_q;
+  dst_t [NumAxiChannels-1:0] dst_id;
+  dst_t axi_aw_id_q;
   route_t [NumAxiChannels-1:0] route_out;
   id_t [NumAxiChannels-1:0] id_out;
 
