@@ -5,7 +5,7 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 from typing import Optional, List, Union, Tuple
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from floogen.model.routing import AddrRange, Id, Coord
 from floogen.model.protocol import Protocols
@@ -15,6 +15,8 @@ class EndpointDesc(BaseModel):
     """
     Endpoint class to describe an endpoint with adress ranges and configuration parameters.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     name: str
     description: Optional[str] = ""

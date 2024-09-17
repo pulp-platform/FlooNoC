@@ -10,7 +10,7 @@ from typing import Optional, List, ClassVar, Tuple, Union
 from importlib.resources import files, as_file
 from abc import ABC, abstractmethod
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from mako.lookup import Template
 
 from floogen.model.routing import RouteMap, Id, Coord, RouteAlgo
@@ -20,6 +20,8 @@ import floogen.templates
 
 class RouterDesc(BaseModel):
     """Router class to describe (arrays of) a router"""
+
+    model_config = ConfigDict(extra="forbid")
 
     name: str
     array: Optional[Union[Tuple[int], Tuple[int, int]]] = None

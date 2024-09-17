@@ -6,13 +6,15 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 from typing import Optional, List, Tuple
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from floogen.model.routing import XYDirections
 
 
 class ConnectionDesc(BaseModel):
     """Connection class to describe a connection between routers and endpoints."""
+
+    model_config = ConfigDict(extra="forbid")
 
     description: Optional[str] = ""
     src: str

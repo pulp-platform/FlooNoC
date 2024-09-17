@@ -168,6 +168,8 @@ class Coord(Id):
 class AddrRange(BaseModel):
     """Address range class."""
 
+    model_config = ConfigDict(extra="forbid")
+
     start: int = Field(ge=0)
     end: int = Field(ge=0)
     size: int
@@ -431,7 +433,7 @@ class RouteMap(BaseModel):
 class Routing(BaseModel):
     """Routing Description class."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
     route_algo: RouteAlgo
     use_id_table: bool = True

@@ -32,7 +32,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     Network class to describe a network with routers and endpoints.
     """
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
     with as_file(files(floogen.templates).joinpath("floo_top_noc.sv.mako")) as _tpl_path:
         tpl: ClassVar = Template(filename=str(_tpl_path))
