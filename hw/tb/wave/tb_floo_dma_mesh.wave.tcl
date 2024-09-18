@@ -15,7 +15,7 @@ set num_x [regexp -all {y\[0\]} $routers]
 for {set y 0} {$y < $num_y} {incr y} {
   for {set x 0} {$x < $num_x} {incr x} {
     set groups [list Node X=${x} Y=${y}]
-    floo_narrow_wide_chimney_wave $tb_name/gen_x[$x]/gen_y[$y]/i_dma_chimney [concat $groups [list Chimney]]
+    floo_nw_chimney_wave $tb_name/gen_x[$x]/gen_y[$y]/i_dma_chimney [concat $groups [list Chimney]]
     floo_router_wave $tb_name/gen_x[$x]/gen_y[$y]/i_router [concat $groups [list Router]]
 
     floo_add_wave $tb_name/gen_x[$x]/gen_y[$y]/i_axi_narrow_bw_monitor/*in_flight_o $groups 1
@@ -25,17 +25,17 @@ for {set y 0} {$y < $num_y} {incr y} {
 
 for {set y 0} {$y < $num_y} {incr y} {
   # East
-  floo_narrow_wide_chimney_wave $tb_name/gen_hbm_chimneys[1]/i_hbm_chimney[$y] [list HBM East "Channel ${y}" Chimney] 1
+  floo_nw_chimney_wave $tb_name/gen_hbm_chimneys[1]/i_hbm_chimney[$y] [list HBM East "Channel ${y}" Chimney] 1
   # West
-  floo_narrow_wide_chimney_wave $tb_name/gen_hbm_chimneys[3]/i_hbm_chimney[$y] [list HBM West "Channel ${y}" Chimney] 1
+  floo_nw_chimney_wave $tb_name/gen_hbm_chimneys[3]/i_hbm_chimney[$y] [list HBM West "Channel ${y}" Chimney] 1
 
 }
 
 for {set x 0} {$x < $num_x} {incr x} {
   # North
-  floo_narrow_wide_chimney_wave $tb_name/gen_hbm_chimneys[0]/i_hbm_chimney[$x] [list HBM North "Channel ${x}" Chimney] 1
+  floo_nw_chimney_wave $tb_name/gen_hbm_chimneys[0]/i_hbm_chimney[$x] [list HBM North "Channel ${x}" Chimney] 1
   # South
-  floo_narrow_wide_chimney_wave $tb_name/gen_hbm_chimneys[2]/i_hbm_chimney[$x] [list HBM South "Channel ${x}" Chimney] 1
+  floo_nw_chimney_wave $tb_name/gen_hbm_chimneys[2]/i_hbm_chimney[$x] [list HBM South "Channel ${x}" Chimney] 1
 }
 
 floo_wave_style
