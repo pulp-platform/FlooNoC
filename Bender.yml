@@ -88,3 +88,10 @@ sources:
     files:
       - hw/tb/tb_floo_vc_router.sv
       - hw/tb/tb_floo_vc_dma_mesh.sv
+
+  - target: all(test, nw_mesh)
+    include_dirs:
+      - hw/test/include
+    files:
+      - generated/floo_nw_mesh_noc.sv
+      - hw/tb/tb_floo_nw_mesh.sv
