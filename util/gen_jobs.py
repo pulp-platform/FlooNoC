@@ -148,7 +148,8 @@ def gen_mesh_traffic(
             elif traffic_type == "random":
                 ext_addr = local_addr
                 while ext_addr == local_addr:
-                    ext_addr = get_xy_base_addr(random.randint(0, NUM_X-1), random.randint(0, NUM_Y-1))
+                    ext_addr = get_xy_base_addr(random.randint(0, NUM_X-1),
+                                                random.randint(0, NUM_Y-1))
             elif traffic_type == "onehop":
                 if not (x == 0 and y == 0):
                     wide_length = 0

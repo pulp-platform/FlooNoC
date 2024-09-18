@@ -520,7 +520,7 @@ class Routing(BaseModel):
 
         if self.num_vc_id_bits == 0:
             return f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t)"
-        return f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, vc_id_t, {ch_type}, rob_idx_t, vc_id_t)"
+        return f"`FLOO_TYPEDEF_VC_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t, vc_id_t)"
 
     def render_route_cfg(self, name) -> str:
         """Render the SystemVerilog routing configuration."""
