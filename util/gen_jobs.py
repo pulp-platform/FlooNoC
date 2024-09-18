@@ -60,12 +60,12 @@ def gen_job_str(
     return job_str
 
 
-def emit_jobs(jobs, out_dir, name, idx):
+def emit_jobs(jobs, out_dir, idx):
     """Emit jobs to file."""
     # Generate directory if it does not exist
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
-    with open(f"{out_dir}/{name}_{idx}.txt", "w", encoding="utf-8") as job_file:
+    with open(f"{out_dir}/job_{idx}.txt", "w", encoding="utf-8") as job_file:
         job_file.write(jobs)
         job_file.close()
 
@@ -89,7 +89,7 @@ def gen_chimney2chimney_traffic(
                 dst_addr = MEM_SIZE if rw == "write" else 0
                 job_str = gen_job_str(length, src_addr, dst_addr)
                 jobs += job_str
-        emit_jobs(jobs, out_dir, "chimney2chimney", i)
+        emit_jobs(jobs, out_dir, i)
 
 
 def gen_nw_chimney2chimney_traffic(
@@ -117,8 +117,8 @@ def gen_nw_chimney2chimney_traffic(
                 wide_jobs += gen_job_str(wide_length, src_addr, dst_addr)
             for _ in range(num_narrow_bursts):
                 narrow_jobs += gen_job_str(narrow_length, src_addr, dst_addr)
-        emit_jobs(wide_jobs, out_dir, "nw_chimney2chimney", i)
-        emit_jobs(narrow_jobs, out_dir, "nw_chimney2chimney", i + 100)
+        emit_jobs(wide_jobs, out_dir, i)
+        emit_jobs(narrow_jobs, out_dir, i + 100)
 
 
 def gen_mesh_traffic(
@@ -209,8 +209,8 @@ def gen_mesh_traffic(
                 wide_jobs += gen_job_str(wide_length, src_addr, dst_addr)
             for _ in range(num_narrow_bursts):
                 narrow_jobs += gen_job_str(narrow_length, src_addr, dst_addr)
-            emit_jobs(wide_jobs, out_dir, "mesh", x * NUM_Y + y)
-            emit_jobs(narrow_jobs, out_dir, "mesh", x * NUM_Y + y + 100)
+            emit_jobs(wide_jobs, out_dir, x * NUM_Y + y)
+            emit_jobs(narrow_jobs, out_dir, x * NUM_Y + y + 100)
 
 
 def main():

@@ -64,9 +64,6 @@ VCS_ARGS    += -Mdir=$(WORK)
 VCS_ARGS    += -j 8
 
 # Set the job name and directory if specified
-ifdef JOB_NAME
-		VSIM_FLAGS += +JOB_NAME=$(JOB_NAME)
-endif
 ifdef JOB_DIR
 		VSIM_FLAGS += +JOB_DIR=$(JOB_DIR)
 endif

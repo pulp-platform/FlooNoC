@@ -343,21 +343,16 @@ module floo_dma_test_node  #(
     // Read Job queue from File
     //--------------------------------------
   initial begin
-    string job_file, job_name, job_dir;
-    if ($value$plusargs ("JOB_NAME=%s", job_name)) begin
-      job_name = $sformatf("%s", job_name);
-    end else begin
-      job_name = "single_tf";
-    end
+    string job_file, job_dir;
     if ($value$plusargs("JOB_DIR=%s", job_dir)) begin
       job_dir = $sformatf("%s", job_dir);
     end else begin
       job_dir = "hw/test/jobs";
     end
     if (JobId != -1) begin
-      job_file = $sformatf("%s/%s_%0d.txt", job_dir, job_name, JobId);
+      job_file = $sformatf("%s/job_%0d.txt", job_dir, JobId);
     end else begin
-      job_file = $sformatf("%s/%s.txt", job_dir, job_name);
+      job_file = $sformatf("%s/job.txt", job_dir);
     end
     $display("[DMA%0d] Reading from %s", JobId + 1, job_file);
     read_jobs(job_file, req_jobs);
