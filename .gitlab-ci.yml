@@ -27,8 +27,6 @@ compile-vsim:
   stage: build
   needs:
     - collect-bender-sources
-  variables:
-    EXTRA_BENDER_FLAGS: "-t vc_router"
   script:
     - make compile-sim | tee compile.log 2>&1
     - '! grep "\*\* Error" compile.log'

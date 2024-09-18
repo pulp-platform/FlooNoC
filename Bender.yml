@@ -80,11 +80,6 @@ sources:
       - hw/tb/tb_floo_nw_chimney.sv
       - hw/tb/tb_floo_router.sv
       - hw/tb/tb_floo_rob.sv
-
-  - target: all(test, vc_router)
-    include_dirs:
-      - hw/test/include
-    files:
       - hw/tb/tb_floo_vc_router.sv
 
   - target: all(test, axi_mesh)
