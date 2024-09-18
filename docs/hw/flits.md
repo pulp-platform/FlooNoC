@@ -18,10 +18,6 @@ Therefore, In _FlooNoC_ and modern NoCs in general[^1], another approach is take
 
 1. **Parallel header**: Instead of sending the header before the payload, the header is sent in parallel to the payload. This way, the link utilization is not degraded by header flits.
 
-!!! tip "Wires are cheap now"
-
-    You might wonder why this was not used in the first place. The reason is that wires were not as cheap as they are today. Modern technologies now have >10 metal layers which can fit >10000 wires/mm. A very good source on this topic, which has also influenced the design of _FlooNoC_ is the NOCS keynote  [Reflections on 21 Years of NoCS](https://www.youtube.com/watch?v=Nk3oQm9NxcY) from Bill Dally, one of the pioneers in early NoC research.
-
 Below, we will discuss the header and the payload in more detail.
 
 ## Header
