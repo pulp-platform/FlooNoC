@@ -102,7 +102,6 @@ sources: check-floogen
 
 clean-sources:
 	rm -rf $(FLOOGEN_OUT_DIR)
-	rm -f $(FLOOGEN_PKG_SRC)
 
 ######################
 # Traffic Generation #
