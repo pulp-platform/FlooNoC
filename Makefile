@@ -128,13 +128,8 @@ clean-jobs:
 
 .PHONY: compile-vsim run-vsim run-vsim-batch clean-vsim
 
-scripts/compile_vsim.tcl: Bender.yml
-	mkdir -p scripts
-	echo 'set ROOT [file normalize [file dirname [info script]]/..]' > scripts/compile_vsim.tcl
-	$(BENDER) script vsim --vlog-arg="$(VLOG_ARGS)" $(BENDER_FLAGS) | grep -v "set ROOT" >> scripts/compile_vsim.tcl
-	echo >> scripts/compile_vsim.tcl
-
-compile-vsim: scripts/compile_vsim.tcl
+compile-vsim:
+	$(BENDER) script vsim --vlog-arg="$(VLOG_ARGS)" $(BENDER_FLAGS) > scripts/compile_vsim.tcl
 	$(VSIM) -64 -c -do "source scripts/compile_vsim.tcl; quit"
 
 run-vsim:
