@@ -40,7 +40,7 @@ package floo_${noc.name}_noc_pkg;
   ${prot.render_typedefs()}
 % endfor
 
-  ${noc.routing.render_hdr_typedef()}
+  ${noc.routing.render_hdr_typedef(network_type=noc.network_type)}
   ${noc.render_link_typedefs()}
 
 endpackage
