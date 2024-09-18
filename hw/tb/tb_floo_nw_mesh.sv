@@ -63,7 +63,8 @@ module tb_floo_nw_mesh;
   typedef logic [AxiCfgJoin.OutIdWidth-1:0] hbm_id_t;
   typedef logic [AxiCfgJoin.UserWidth-1:0] hbm_user_t;
 
-  `AXI_TYPEDEF_ALL_CT(hbm_axi, hbm_axi_req_t, hbm_axi_rsp_t, axi_wide_out_addr_t, hbm_id_t, axi_wide_out_data_t, axi_wide_out_strb_t, hbm_user_t)
+  `AXI_TYPEDEF_ALL_CT(hbm_axi, hbm_axi_req_t, hbm_axi_rsp_t, axi_wide_out_addr_t,
+       hbm_id_t, axi_wide_out_data_t, axi_wide_out_strb_t, hbm_user_t)
 
   hbm_axi_req_t [NumHBMChannels-1:0]  hbm_req;
   hbm_axi_rsp_t [NumHBMChannels-1:0]  hbm_rsp;
