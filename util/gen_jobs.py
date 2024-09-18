@@ -13,8 +13,7 @@ import math
 MEM_SIZE = 2**16
 NUM_X = 4
 NUM_Y = 4
-XY_ADDR_OFFSET_X = 16
-XY_ADDR_OFFSET_Y = 20
+HBM_BASE_ADDR = 0x80000000
 
 data_widths = {"wide": 512, "narrow": 64}
 
@@ -27,7 +26,12 @@ def clog2(x: int):
 def get_xy_base_addr(x: int, y: int):
     """Get the address of a tile in the mesh."""
     assert x <= NUM_X+1 and y <= NUM_Y+1
-    return (x << XY_ADDR_OFFSET_X) + (y << XY_ADDR_OFFSET_Y)
+    return (x * NUM_Y + y) * MEM_SIZE
+
+def get_hbm_base_addr(ch: int):
+    """Get the address of an HBM channel."""
+    assert ch <= NUM_Y+1
+    return HBM_BASE_ADDR + (ch << MEM_SIZE)
 
 
 def gen_job_str(
@@ -129,8 +133,8 @@ def gen_mesh_traffic(
 ):
     # pylint: disable=too-many-arguments, too-many-locals, too-many-branches, too-many-statements
     """Generate Mesh traffic."""
-    for x in range(1, NUM_X + 1):
-        for y in range(1, NUM_Y + 1):
+    for x in range(0, NUM_X):
+        for y in range(0, NUM_Y):
             wide_jobs = ""
             narrow_jobs = ""
             wide_length = wide_burst_length * data_widths["wide"] / 8
@@ -140,25 +144,26 @@ def gen_mesh_traffic(
             if traffic_type == "hbm":
                 # Tile x=0 are the HBM channels
                 # Each core read from the channel of its y coordinate
-                ext_addr = get_xy_base_addr(0, y)
+                ext_addr = get_hbm_base_addr(y)
             elif traffic_type == "random":
                 ext_addr = local_addr
                 while ext_addr == local_addr:
-                    ext_addr = get_xy_base_addr(random.randint(1, NUM_X), random.randint(1, NUM_Y))
+                    ext_addr = get_xy_base_addr(random.randint(0, NUM_X+1), random.randint(0, NUM_Y+1))
             elif traffic_type == "onehop":
-                if not (x == 1 and y == 1):
+                if not (x == 0 and y == 0):
                     wide_length = 0
                     narrow_length = 0
                     local_addr = 0
                     ext_addr = 0
                 else:
                     ext_addr = get_xy_base_addr(x, y + 1)
+
             elif traffic_type == "bit_complement":
-                ext_addr = get_xy_base_addr(NUM_X - x + 1, NUM_Y - y + 1)
+                ext_addr = get_xy_base_addr(NUM_X - x - 1, NUM_Y - y - 1)
             elif traffic_type == "bit_reverse":
                 # in order to achieve same result as garnet:
                 # change to space where addresses start at 0 and return afterwards
-                straight = x-1 + (y-1) * NUM_X
+                straight = x + y * NUM_X
                 num_destinations = NUM_X * NUM_Y
                 reverse = straight & 1  # LSB
                 num_bits = clog2(num_destinations)
@@ -166,33 +171,33 @@ def gen_mesh_traffic(
                     reverse <<= 1
                     straight >>= 1
                     reverse |= (straight & 1)  # LSB
-                ext_addr = get_xy_base_addr(reverse % NUM_X + 1, reverse // NUM_X + 1)
+                ext_addr = get_xy_base_addr(reverse % NUM_X, reverse // NUM_X)
             elif traffic_type == "bit_rotation":
-                source = x-1 + (y-1) * NUM_X
+                source = x + y * NUM_X
                 num_destinations = NUM_X * NUM_Y
                 if source % 2 == 0:
                     ext = source // 2
                 else:  # (source % 2 == 1)
                     ext = (source // 2) + (num_destinations // 2)
-                ext_addr = get_xy_base_addr(ext % NUM_X + 1, ext // NUM_X + 1)
+                ext_addr = get_xy_base_addr(ext % NUM_X, ext // NUM_X)
             elif traffic_type == "neighbor":
-                ext_addr = get_xy_base_addr(x % NUM_X + 1, y)
+                ext_addr = get_xy_base_addr((x + 1) % NUM_X, y)
             elif traffic_type == "shuffle":
-                source = x-1 + (y-1) * NUM_X
+                source = x + y * NUM_X
                 num_destinations = NUM_X * NUM_Y
                 if source < num_destinations // 2:
                     ext = source * 2
                 else: ext = (source * 2) - num_destinations + 1
-                ext_addr = get_xy_base_addr(ext % NUM_X + 1, ext // NUM_X + 1)
+                ext_addr = get_xy_base_addr(ext % NUM_X, ext // NUM_X)
             elif traffic_type == "transpose":
                 dest_x = y
                 dest_y = x
                 ext_addr = get_xy_base_addr(dest_x, dest_y)
             elif traffic_type == "tornado":
-                dest_x = (x-1 + math.ceil(NUM_X / 2) - 1) % NUM_X + 1
+                dest_x = (x + math.ceil(NUM_X / 2) - 1) % NUM_X
                 ext_addr = get_xy_base_addr(dest_x, y)
             elif traffic_type == "single_dest_boundary":
-                ext_addr = get_xy_base_addr(0, NUM_Y//2)
+                ext_addr = get_hbm_base_addr(NUM_Y//2)
             elif traffic_type == "single_dest_center":
                 ext_addr = get_xy_base_addr(NUM_X//2, NUM_Y//2)
             else:
@@ -203,8 +208,8 @@ def gen_mesh_traffic(
                 wide_jobs += gen_job_str(wide_length, src_addr, dst_addr)
             for _ in range(num_narrow_bursts):
                 narrow_jobs += gen_job_str(narrow_length, src_addr, dst_addr)
-            emit_jobs(wide_jobs, out_dir, "mesh", x + (y - 1) * NUM_X)
-            emit_jobs(narrow_jobs, out_dir, "mesh", x + (y - 1) * NUM_X + 100)
+            emit_jobs(wide_jobs, out_dir, "mesh", x + y * NUM_X)
+            emit_jobs(narrow_jobs, out_dir, "mesh", x + y * NUM_X + 100)
 
 
 def main():
