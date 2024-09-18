@@ -38,16 +38,6 @@ compile-vsim:
       - work/
       - modelsim.ini
 
-install-floogen:
-  stage: build
-  script:
-    - $PYTHON -m venv .venv
-    - source .venv/bin/activate
-    - pip install .
-  artifacts:
-    paths:
-      - .venv/
-
 run-vsim:
   stage: run
   script:
@@ -80,13 +70,18 @@ run-traffic:
         TRAFFIC_RW: [read, write]
   needs:
     - collect-bender-sources
-    - install-floogen
   script:
+    # Install `floogen`
+    - $PYTHON -m venv .venv
     - source .venv/bin/activate
+    - pip install .
+    # Generate sources
     - floogen -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
-    - make compile-sim EXTRA_BENDER_FLAGS="-t ${DUT}"
     - make jobs
+    # Compile and run the simulation
+    - make compile-sim EXTRA_BENDER_FLAGS="-t ${DUT}"
     - make run-sim-batch VSIM_TB_DUT=tb_floo_${DUT} | tee vsim.log 2>&1
+    # Check for errors
     - 'grep "Errors: 0," vsim.log'
 
 morty:
