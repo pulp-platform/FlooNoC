@@ -12,23 +12,21 @@
 /// of an HBM controller to enable access from both the
 /// narrow and the wide AXI bus.
 module floo_nw_join #(
+  /// Narrow AXI bus configuration
+  parameter floo_pkg::axi_cfg_t AxiCfgN               = '0,
+  /// Wide AXI bus configuration
+  parameter floo_pkg::axi_cfg_t AxiCfgW               = '0,
+  /// Resulting AXI bus configuration
+  parameter floo_pkg::axi_cfg_t AxiCfgJoin            = '0,
   /// Filter Atops on the Narrow AXI bus
   parameter bit FilterNarrowAtops                     = 1'b0,
   /// Filter Atops on the Wide AXI bus
   parameter bit FilterWideAtops                       = 1'b0,
-  /// ID width of the narrow AXI bus
-  parameter int unsigned AxiNarrowIdInWidth           = 0,
-  /// ID width of the wide AXI bus
-  parameter int unsigned AxiWideIdInWidth             = 0,
-  /// User width of the narrow AXI bus
-  parameter int unsigned AxiNarrowUserInWidth         = 0,
-  /// User width of the wide AXI bus
-  parameter int unsigned AxiWideUserInWidth           = 0,
   /// ID width of the resulting AXI bus
   /// To prevent the instantiation of any ID remappers,
   /// `AxiIdOutWidth` should be chosen, such that:
   /// max(`AxiNarrowIdWidth` and `AxiWideIdWidth`) == AxidOutWidth - 1
-  parameter int unsigned AxiIdOutWidth                = 0,
+  parameter int unsigned AxiIdOutWidth                = AxiCfgJoin.InIdWidth,
   /// ID width of the busses before muxing them together.
   localparam int unsigned AxiIdConvWidth              = AxiIdOutWidth - 1,
   /// Default parameter for number of inflight narrow transactions
@@ -38,7 +36,7 @@ module floo_nw_join #(
   /// Maximum number of in-flight AXI narrow read transactions
   parameter int unsigned AxiNarrowMaxReadTxns         = AxiNarrowMaxTxns,
   /// Number of unique IDs on the narrow AXI bus
-  parameter int unsigned AxiNarrowSlvPortMaxUniqIds   = 2**AxiNarrowIdInWidth,
+  parameter int unsigned AxiNarrowSlvPortMaxUniqIds   = 2**AxiCfgN.InIdWidth,
   /// Maximum number of in-flight AXI transactions on the narrow AXI bus
   parameter int unsigned AxiNarrowSlvPortMaxTxnsPerId = AxiNarrowMaxTxns,
   /// Maximum number of in-flight transactions at the narrow slave port
@@ -52,7 +50,7 @@ module floo_nw_join #(
   /// Maximum number of in-flight AXI wide write transactions
   parameter int unsigned AxiWideMaxWriteTxns          = AxiWideMaxTxns,
   /// Number of unique IDs on the wide AXI bus
-  parameter int unsigned AxiWideSlvPortMaxUniqIds     = 2**AxiWideIdInWidth,
+  parameter int unsigned AxiWideSlvPortMaxUniqIds     = 2**AxiCfgW.InIdWidth,
   /// Maximum number of in-flight AXI transactions on the wide AXI bus
   parameter int unsigned AxiWideSlvPortMaxTxnsPerId   = AxiWideMaxTxns,
   /// Maximum number of in-flight transactions at the wide slave port
@@ -61,18 +59,10 @@ module floo_nw_join #(
   parameter int unsigned AxiWideMstPortMaxUniqIds     = 2**AxiIdConvWidth,
   /// Maximum number of in-flight transactions with the same ID at the wide master port.
   parameter int unsigned AxiWideMstPortMaxTxnsPerId   = AxiWideMaxTxns,
-    /// Address width of both AXI4+ATOP ports
-  parameter int unsigned AxiAddrWidth                 = 32'd0,
-  /// Data width of narrow AXI4+ATOP ports
-  parameter int unsigned AxiNarrowDataWidth           = 32'd0,
-  /// Data width of wide AXI4+ATOP ports
-  parameter int unsigned AxiWideDataWidth             = 32'd0,
-  /// User signal width of both AXI4+ATOP ports
-  parameter int unsigned AxiUserWidth                 = 32'd0,
   /// Use user signals for the ATOP adapter
   parameter bit AtopUserAsId                          = 1'b1,
   /// MSB of the ID field of the ATOP adapter
-  parameter int unsigned AtopAxiUserIdMsb             = AxiUserWidth-1,
+  parameter int unsigned AtopAxiUserIdMsb             = AxiCfgJoin.UserWidth-1,
   /// LSB of the ID field of the ATOP adapter
   parameter int unsigned AtopAxiUserIdLsb             = 0,
   /// AXI type of the narrow AXI bus
@@ -98,14 +88,14 @@ module floo_nw_join #(
 
   typedef logic [AxiIdOutWidth-1:0] id_t;
   typedef logic [AxiIdConvWidth-1:0] id_conv_t;
-  typedef logic [AxiAddrWidth-1:0] addr_t;
-  typedef logic [AxiNarrowDataWidth-1:0] narrow_data_t;
-  typedef logic [AxiNarrowDataWidth/8-1:0] narrow_strb_t;
-  typedef logic [AxiWideDataWidth-1:0] wide_data_t;
-  typedef logic [AxiWideDataWidth/8-1:0] wide_strb_t;
-  typedef logic [AxiNarrowUserInWidth-1:0] narrow_user_t;
-  typedef logic [AxiWideUserInWidth-1:0] wide_user_t;
-  typedef logic [AxiUserWidth-1:0] user_t;
+  typedef logic [AxiCfgJoin.AddrWidth-1:0] addr_t;
+  typedef logic [AxiCfgN.DataWidth-1:0] narrow_data_t;
+  typedef logic [AxiCfgN.DataWidth/8-1:0] narrow_strb_t;
+  typedef logic [AxiCfgW.DataWidth-1:0] wide_data_t;
+  typedef logic [AxiCfgW.DataWidth/8-1:0] wide_strb_t;
+  typedef logic [AxiCfgN.UserWidth-1:0] narrow_user_t;
+  typedef logic [AxiCfgW.UserWidth-1:0] wide_user_t;
+  typedef logic [AxiCfgJoin.UserWidth-1:0] user_t;
 
   `AXI_TYPEDEF_ALL_CT(axi_narrow_iw_conv, axi_narrow_iw_conv_req_t, axi_narrow_iw_conv_rsp_t,
                       addr_t, id_conv_t, narrow_data_t, narrow_strb_t, narrow_user_t)
@@ -129,7 +119,7 @@ module floo_nw_join #(
 
   if (FilterNarrowAtops) begin : gen_narrow_atop_filter
     axi_atop_filter #(
-      .AxiIdWidth       ( AxiNarrowIdInWidth    ),
+      .AxiIdWidth       ( AxiCfgN.InIdWidth    ),
       .AxiMaxWriteTxns  ( AxiNarrowMaxWriteTxns ),
       .axi_req_t        ( axi_narrow_req_t      ),
       .axi_resp_t       ( axi_narrow_rsp_t      )
@@ -148,7 +138,7 @@ module floo_nw_join #(
 
   if (FilterWideAtops) begin : gen_wide_atop_filter
     axi_atop_filter #(
-      .AxiIdWidth       ( AxiWideIdInWidth    ),
+      .AxiIdWidth       ( AxiCfgW.InIdWidth    ),
       .AxiMaxWriteTxns  ( AxiWideMaxWriteTxns ),
       .axi_req_t        ( axi_wide_req_t      ),
       .axi_resp_t       ( axi_wide_rsp_t      )
@@ -175,16 +165,16 @@ module floo_nw_join #(
   axi_wide_iw_conv_rsp_t axi_wide_rsp_iw_conv;
 
   axi_iw_converter #(
-    .AxiSlvPortIdWidth      ( AxiNarrowIdInWidth            ),
+    .AxiSlvPortIdWidth      ( AxiCfgN.InIdWidth             ),
     .AxiMstPortIdWidth      ( AxiIdConvWidth                ),
     .AxiSlvPortMaxUniqIds   ( AxiNarrowSlvPortMaxUniqIds    ),
     .AxiSlvPortMaxTxnsPerId ( AxiNarrowSlvPortMaxTxnsPerId  ),
     .AxiSlvPortMaxTxns      ( AxiNarrowSlvPortMaxTxns       ),
     .AxiMstPortMaxUniqIds   ( AxiNarrowMstPortMaxUniqIds    ),
     .AxiMstPortMaxTxnsPerId ( AxiNarrowMstPortMaxTxnsPerId  ),
-    .AxiAddrWidth           ( AxiAddrWidth                  ),
-    .AxiDataWidth           ( AxiNarrowDataWidth            ),
-    .AxiUserWidth           ( AxiNarrowUserInWidth          ),
+    .AxiAddrWidth           ( AxiCfgJoin.AddrWidth          ),
+    .AxiDataWidth           ( AxiCfgN.DataWidth             ),
+    .AxiUserWidth           ( AxiCfgN.UserWidth             ),
     .slv_req_t              ( axi_narrow_req_t              ),
     .slv_resp_t             ( axi_narrow_rsp_t              ),
     .mst_req_t              ( axi_narrow_iw_conv_req_t      ),
@@ -199,16 +189,16 @@ module floo_nw_join #(
   );
 
   axi_iw_converter #(
-    .AxiSlvPortIdWidth        ( AxiWideIdInWidth            ),
+    .AxiSlvPortIdWidth        ( AxiCfgW.InIdWidth           ),
     .AxiMstPortIdWidth        ( AxiIdConvWidth              ),
     .AxiSlvPortMaxUniqIds     ( AxiWideSlvPortMaxUniqIds    ),
     .AxiSlvPortMaxTxnsPerId   ( AxiWideSlvPortMaxTxnsPerId  ),
     .AxiSlvPortMaxTxns        ( AxiWideSlvPortMaxTxns       ),
     .AxiMstPortMaxUniqIds     ( AxiWideMstPortMaxUniqIds    ),
     .AxiMstPortMaxTxnsPerId   ( AxiWideMstPortMaxTxnsPerId  ),
-    .AxiAddrWidth             ( AxiAddrWidth                ),
-    .AxiDataWidth             ( AxiWideDataWidth            ),
-    .AxiUserWidth             ( AxiWideUserInWidth          ),
+    .AxiAddrWidth             ( AxiCfgJoin.AddrWidth        ),
+    .AxiDataWidth             ( AxiCfgW.DataWidth           ),
+    .AxiUserWidth             ( AxiCfgW.UserWidth           ),
     .slv_req_t                ( axi_wide_req_t              ),
     .slv_resp_t               ( axi_wide_rsp_t              ),
     .mst_req_t                ( axi_wide_iw_conv_req_t      ),
@@ -231,9 +221,9 @@ module floo_nw_join #(
 
   axi_dw_converter #(
     .AxiMaxReads          ( AxiNarrowMaxReadTxns          ),
-    .AxiSlvPortDataWidth  ( AxiNarrowDataWidth            ),
-    .AxiMstPortDataWidth  ( AxiWideDataWidth              ),
-    .AxiAddrWidth         ( AxiAddrWidth                  ),
+    .AxiSlvPortDataWidth  ( AxiCfgN.DataWidth             ),
+    .AxiMstPortDataWidth  ( AxiCfgW.DataWidth             ),
+    .AxiAddrWidth         ( AxiCfgJoin.AddrWidth          ),
     .AxiIdWidth           ( AxiIdConvWidth                ),
     .aw_chan_t            ( axi_narrow_iw_conv_aw_chan_t  ),
     .mst_w_chan_t         ( axi_narrow_dw_conv_w_chan_t   ),
@@ -309,18 +299,18 @@ module floo_nw_join #(
   axi_out_rsp_t axi_out_rsp_atop;
 
   axi_riscv_atomics_structs #(
-    .AxiAddrWidth     ( AxiAddrWidth        ),
-    .AxiDataWidth     ( AxiWideDataWidth    ),
-    .AxiIdWidth       ( AxiIdOutWidth       ),
-    .AxiUserWidth     ( AxiUserWidth        ),
-    .AxiMaxReadTxns   ( AxiWideMaxTxns      ),
-    .AxiMaxWriteTxns  ( AxiWideMaxWriteTxns ),
-    .AxiUserAsId      ( int'(AtopUserAsId)  ),
-    .AxiUserIdMsb     ( AtopAxiUserIdMsb    ),
-    .AxiUserIdLsb     ( AtopAxiUserIdLsb    ),
-    .RiscvWordWidth   ( AxiNarrowDataWidth  ),
-    .axi_req_t        ( axi_out_req_t       ),
-    .axi_rsp_t        ( axi_out_rsp_t       )
+    .AxiAddrWidth     ( AxiCfgJoin.AddrWidth  ),
+    .AxiDataWidth     ( AxiCfgJoin.DataWidth  ),
+    .AxiIdWidth       ( AxiIdOutWidth         ),
+    .AxiUserWidth     ( AxiCfgJoin.UserWidth  ),
+    .AxiMaxReadTxns   ( AxiWideMaxTxns        ),
+    .AxiMaxWriteTxns  ( AxiWideMaxWriteTxns   ),
+    .AxiUserAsId      ( int'(AtopUserAsId)    ),
+    .AxiUserIdMsb     ( AtopAxiUserIdMsb      ),
+    .AxiUserIdLsb     ( AtopAxiUserIdLsb      ),
+    .RiscvWordWidth   ( AxiCfgN.DataWidth     ),
+    .axi_req_t        ( axi_out_req_t         ),
+    .axi_rsp_t        ( axi_out_rsp_t         )
   ) i_axi_riscv_atomics_structs (
     .clk_i          ( clk_i             ),
     .rst_ni         ( rst_ni            ),

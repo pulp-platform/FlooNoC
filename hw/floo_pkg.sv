@@ -249,6 +249,24 @@ package floo_pkg;
     return cfg;
   endfunction
 
+  /// Helper function to calculate the maximum of two unsigned integers
+  function automatic int unsigned max(int unsigned a, int unsigned b);
+    return (a > b) ? a : b;
+  endfunction
+
+  /// Returns the AXI config the resulting AXI config when joining a narrow
+  /// and wide AXI subordinate interfaces.
+  function automatic axi_cfg_t axi_join_cfg(axi_cfg_t cfg_n, axi_cfg_t cfg_w);
+    assert (cfg_n.AddrWidth == cfg_w.AddrWidth);
+    return '{
+      AddrWidth: cfg_n.AddrWidth,
+      DataWidth: max(cfg_n.DataWidth, cfg_w.DataWidth),
+      UserWidth: max(cfg_n.UserWidth, cfg_w.UserWidth),
+      InIdWidth: 0, // Not used in `nw_join`
+      OutIdWidth: max(cfg_n.OutIdWidth, cfg_w.OutIdWidth) + 1 // for the AXI mux
+    };
+  endfunction
+
   /// Returns the number of bits of an AXI channel for a single-AXI config
   function automatic int unsigned get_axi_chan_width(axi_cfg_t cfg, axi_ch_e ch);
     case (ch)
