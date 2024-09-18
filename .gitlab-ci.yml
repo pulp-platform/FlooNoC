@@ -73,8 +73,9 @@ run-traffic:
   needs:
     - collect-bender-sources
   script:
-    # Install FlooGen
-    - $PYTHON -m pip install .
+    - $PYTHON -m venv .venv
+    - source .venv/bin/activate
+    - pip install .
     - floogen -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated
     - make compile-sim BENDER_FLAGS="-t ${DUT}"
     - make jobs
