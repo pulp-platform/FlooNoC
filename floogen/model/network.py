@@ -642,7 +642,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         """Generate the system address map, which is used by the network interfaces
         to determine the destination of a packet based on the address."""
         addr_table = []
-        ni_sbr_nodes = [ni for ni in self.graph.get_ni_nodes() if ni.is_sbr()]
+        ni_sbr_nodes = reversed([ni for ni in self.graph.get_ni_nodes() if ni.is_sbr()])
         for ni in ni_sbr_nodes:
             dest = ni.id
             if self.routing.id_offset is not None:
@@ -707,7 +707,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         """Render the routers in the generated code."""
         string = ""
         for rt in self.graph.get_rt_nodes():
-            string += rt.render()
+            string += rt.render(network=self)
         return string
 
     def render_ni_tables(self):
@@ -735,7 +735,11 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     def render_ep_enum(self):
         """Render the endpoint enum in the generated code."""
-        fields_dict = {ep.name: ep.id.id for ep in self.graph.get_ni_nodes()}
+        match self.routing.route_algo:
+            case RouteAlgo.XY:
+                fields_dict = {ep.name: i for i, ep in enumerate(self.graph.get_ni_nodes())}
+            case RouteAlgo.ID | RouteAlgo.SRC:
+                fields_dict = {ep.name: ep.id.id for ep in self.graph.get_ni_nodes()}
         fields_dict = dict(sorted(fields_dict.items(), key=lambda item: item[1]))
         fields_dict["num_endpoints"] = len(fields_dict)
         return sv_enum_typedef(name="ep_id_e", fields_dict=fields_dict)

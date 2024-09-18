@@ -102,7 +102,7 @@ proc floo_axi_chimney_wave {dut groups {expand 1}} {
     }
 }
 
-proc floo_narrow_wide_chimney_wave {dut groups {expand 1}} {
+proc floo_nw_chimney_wave {dut groups {expand 1}} {
 
     floo_add_wave $dut/* $groups 1 $expand
 

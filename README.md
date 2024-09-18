@@ -104,13 +104,13 @@ This repository includes the following NoC IPs:
 | Name | Description | Doc |
 | --- | --- | --- |
 | [floo_router](hw/floo_router.sv) | A simple router with configurable number of ports, physical and virtual channels, and input/output buffers |  |
-| [floo_narrow_wide_router](hw/floo_narrow_wide_router.sv) | Wrapper of a multi-link router for narrow and wide links |  |
+| [floo_nw_router](hw/floo_nw_router.sv) | Wrapper of a multi-link router for narrow and wide links |  |
 
 ### Network Interfaces
 | Name | Description | Doc |
 | --- | --- | --- |
 | [floo_axi_chimney](hw/floo_axi_chimney.sv) | A bidirectional network interface for connecting AXI4 Buses to the NoC |  |
-| [floo_narrow_wide_chimney](hw/floo_narrow_wide_chimney.sv) | A bidirectional network interface for connecting narrow & wide AXI Buses to the multi-link NoC |  |
+| [floo_nw_chimney](hw/floo_nw_chimney.sv) | A bidirectional network interface for connecting narrow & wide AXI Buses to the multi-link NoC |  |
 
 ### Common IPs
 | Name | Description | Doc |
@@ -124,7 +124,7 @@ This repository includes the following NoC IPs:
 | [floo_rob](hw/floo_rob.sv) | A table-based Reorder Buffer |  |
 | [floo_simple_rob](hw/floo_simple_rob.sv) | A simplistic low-complexity Reorder Buffer |  |
 | [floo_rob_wrapper](hw/floo_simple_rob.sv) | A wrapper of all available types of RoBs including RoB-less version |  |
-| [floo_narrow_wide_join](hw/floo_narrow_wide_join.sv) | A mux for joining a narrow and wide AXI bus a single wide bus |  |
+| [floo_nw_join](hw/floo_nw_join.sv) | A mux for joining a narrow and wide AXI bus a single wide bus |  |
 
 ### Verification IPs
 | Name | Description | Doc |

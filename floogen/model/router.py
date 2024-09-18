@@ -81,9 +81,9 @@ class AxiRouter(Router):
     ) as _tpl_path:
         _tpl: ClassVar = Template(filename=str(_tpl_path))
 
-    def render(self):
+    def render(self, **kwargs):
         """Declare the router in the generated code."""
-        return self._tpl.render(router=self) + "\n"
+        return self._tpl.render(router=self, **kwargs) + "\n"
 
 class NarrowWideRouter(Router):
     """Router class to describe a narrow-wide router"""
@@ -93,6 +93,6 @@ class NarrowWideRouter(Router):
     ) as _tpl_path:
         _tpl: ClassVar = Template(filename=str(_tpl_path))
 
-    def render(self):
+    def render(self, **kwargs):
         """Declare the router in the generated code."""
-        return self._tpl.render(router=self) + "\n"
+        return self._tpl.render(router=self, **kwargs) + "\n"

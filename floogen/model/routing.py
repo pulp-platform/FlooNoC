@@ -512,14 +512,15 @@ class Routing(BaseModel):
             string += sv_typedef("vc_id_t", array_size=self.num_vc_id_bits)
         return string
 
-    def render_hdr_typedef(self) -> str:
+    def render_hdr_typedef(self, network_type) -> str:
         """Render the SystemVerilog flit header."""
 
         dst_type = "route_t" if self.route_algo == RouteAlgo.SRC else "id_t"
+        ch_type = "axi_ch_e" if network_type == "axi" else "nw_ch_e"
 
         if self.num_vc_id_bits == 0:
-            return f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, nw_ch_e, rob_idx_t)"
-        return f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, vc_id_t, nw_ch_e, rob_idx_t, vc_id_t)"
+            return f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t)"
+        return f"`FLOO_TYPEDEF_VC_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t, vc_id_t)"
 
     def render_route_cfg(self, name) -> str:
         """Render the SystemVerilog routing configuration."""

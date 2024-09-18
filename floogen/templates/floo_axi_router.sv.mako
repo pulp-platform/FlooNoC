@@ -4,6 +4,7 @@
 <% def camelcase(s):
   return ''.join(x.capitalize() or '_' for x in s.split('_'))
 %>\
+<% offset_xy_id = router.id - network.routing.id_offset if network.routing.id_offset is not None else router.id %>\
 <% req_type = next(d for d in router.incoming if d is not None).req_type %>\
 <% rsp_type = next(d for d in router.incoming if d is not None).rsp_type %>\
 % if router.route_algo == RouteAlgo.ID:
@@ -64,7 +65,7 @@ floo_axi_router #(
   .rst_ni,
   .test_enable_i,
 % if router.route_algo == RouteAlgo.XY:
-  .id_i (${router.id.render()}),
+  .id_i (${offset_xy_id.render()}),
 % else:
   .id_i ('0),
 % endif

@@ -45,10 +45,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
   - The `name` field must be unique now, since it is used by `mgr_port_protocol` and `sbr_port_protocol` to reference the exact protocol.
   - All examples were adapted to reflect those changes.
 - A FlooGen configuration file now requires a `network_type` field, to determine the type of network to generate. The options are `axi` for single-AXI networks and `narrow-wide` for the narrow-wide AXI configurations.
+- The system address map `Sam` is now sorted correctly and can be indexed with `ep_id_e` values.
 
 ### Fixed
 
 - A bug in the calcuation of the RoB offset in `floo_rob` was fixed. Previously, the allocation and the write process used the same counter in bursts for offset calculation, which resulted in wrong offsets.
+- Routers with `XYRouting` do now use the global `id_offset`, which was previously not accounted for (or had to be specified manually).
 
 ### Removed
 
@@ -57,6 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - As the flit type definitions were moved to `typedef.svh`, the auto-generated `floo_*_pkg` packages were removed from the repository. Furthermore, all the (global) imports of those packages in the modules were replaced by parameters.
 - The testbench `tb_floo_nw_chimney` was removed since it was neither used nor maintained anymore.
 - The `IdIsPort` routing algorithm was removed since it can only be used for routes over a single router. The same functionality can be achieved with the `SourceRouting` algorithm.
+- The `dma_mesh` testbench was removed in favor of `nw_mesh` and `axi_mesh` which use generated networks with _FlooGen_.
 
 #### FlooGen
 - The package generation was removed from _FlooGen_ since it is now handled by the `typedef.svh` file. Further, the `--only-pkg` and `--pkg-outdir` flags were removed from the _FlooGen_ CLI.
