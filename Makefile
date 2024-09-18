@@ -14,7 +14,7 @@ MKFILE_DIR  := $(dir $(MKFILE_PATH))
 
 .PHONY: all clean compile-sim run-sim run-sim-batch
 all: compile-sim
-clean: clean-sim clean-spyglass clean-jobs clean-sources clean-vcs
+clean: clean-sim clean-spyglass clean-traffic clean-sources clean-vcs
 compile-sim: compile-vsim
 run-sim: run-vsim
 run-sim-batch: run-vsim-batch
@@ -64,8 +64,8 @@ VCS_ARGS    += -Mdir=$(WORK)
 VCS_ARGS    += -j 8
 
 # Set the job name and directory if specified
-ifdef JOB_DIR
-		VSIM_FLAGS += +JOB_DIR=$(JOB_DIR)
+ifdef TRAFFIC_DIR
+		VSIM_FLAGS += +JOB_DIR=$(TRAFFIC_DIR)
 endif
 ifdef LOG_FILE
 		VSIM_FLAGS += -l $(LOG_FILE)
@@ -107,18 +107,18 @@ clean-sources:
 # Traffic Generation #
 ######################
 
-TRAFFIC_GEN ?= util/gen_jobs.py
+TRAFFIC_GEN ?= util/gen_traffic.py
 TRAFFIC_TB ?= dma_mesh
 TRAFFIC_TYPE ?= random
 TRAFFIC_RW ?= read
-TRAFFIC_OUTDIR ?= hw/test/jobs
+TRAFFIC_OUTDIR ?= hw/test/traffic
 
-.PHONY: jobs clean-jobs
-jobs: $(TRAFFIC_GEN)
+.PHONY: traffic clean-traffic
+traffic: $(TRAFFIC_GEN)
 	mkdir -p $(TRAFFIC_OUTDIR)
 	$(TRAFFIC_GEN) --out_dir $(TRAFFIC_OUTDIR) --tb $(TRAFFIC_TB) --traffic_type $(TRAFFIC_TYPE) --rw $(TRAFFIC_RW)
 
-clean-jobs:
+clean-traffic:
 	rm -rf $(TRAFFIC_OUTDIR)
 
 ########################

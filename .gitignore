@@ -64,7 +64,7 @@ deps
 generated
 *.png
 !util/traffic_visualizations/*.png
-hw/test/jobs
+**/job*.txt
 
 # QuestaSim
 work

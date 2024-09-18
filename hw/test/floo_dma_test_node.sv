@@ -347,7 +347,7 @@ module floo_dma_test_node  #(
     if ($value$plusargs("JOB_DIR=%s", job_dir)) begin
       job_dir = $sformatf("%s", job_dir);
     end else begin
-      job_dir = "hw/test/jobs";
+      job_dir = "hw/test/traffic";
     end
     if (JobId != -1) begin
       job_file = $sformatf("%s/job_%0d.txt", job_dir, JobId);
