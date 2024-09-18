@@ -47,6 +47,7 @@ VSIM_TB_DUT ?= floo_noc_router_test
 VSIM_FLAGS += -64
 VSIM_FLAGS += -t 1ps
 VSIM_FLAGS += -sv_seed 0
+VSIM_FLAGS += -quiet
 
 # Set the job name and directory if specified
 ifdef JOB_NAME
