@@ -163,7 +163,7 @@ def gen_mesh_traffic(
             elif traffic_type == "bit_reverse":
                 # in order to achieve same result as garnet:
                 # change to space where addresses start at 0 and return afterwards
-                straight = x + y * NUM_X
+                straight = x * NUM_Y + y
                 num_destinations = NUM_X * NUM_Y
                 reverse = straight & 1  # LSB
                 num_bits = clog2(num_destinations)
@@ -173,7 +173,7 @@ def gen_mesh_traffic(
                     reverse |= (straight & 1)  # LSB
                 ext_addr = get_xy_base_addr(reverse % NUM_X, reverse // NUM_X)
             elif traffic_type == "bit_rotation":
-                source = x + y * NUM_X
+                source = x * NUM_Y + y
                 num_destinations = NUM_X * NUM_Y
                 if source % 2 == 0:
                     ext = source // 2
@@ -183,7 +183,7 @@ def gen_mesh_traffic(
             elif traffic_type == "neighbor":
                 ext_addr = get_xy_base_addr((x + 1) % NUM_X, y)
             elif traffic_type == "shuffle":
-                source = x + y * NUM_X
+                source = x * NUM_Y + y
                 num_destinations = NUM_X * NUM_Y
                 if source < num_destinations // 2:
                     ext = source * 2
@@ -208,8 +208,8 @@ def gen_mesh_traffic(
                 wide_jobs += gen_job_str(wide_length, src_addr, dst_addr)
             for _ in range(num_narrow_bursts):
                 narrow_jobs += gen_job_str(narrow_length, src_addr, dst_addr)
-            emit_jobs(wide_jobs, out_dir, "mesh", x + y * NUM_X)
-            emit_jobs(narrow_jobs, out_dir, "mesh", x + y * NUM_X + 100)
+            emit_jobs(wide_jobs, out_dir, "mesh", x * NUM_Y + y)
+            emit_jobs(narrow_jobs, out_dir, "mesh", x * NUM_Y + y + 100)
 
 
 def main():

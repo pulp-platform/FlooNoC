@@ -132,8 +132,8 @@ module tb_floo_nw_mesh;
       localparam string NarrowDmaName = $sformatf("narrow_dma_%0d_%0d", x, y);
       localparam string WideDmaName   = $sformatf("wide_dma_%0d_%0d", x, y);
 
-      localparam int unsigned Index = y * NumX + x;
       localparam addr_t MemBaseAddr = get_base_addr(x+1, y);
+      localparam int unsigned Index = x * NumX + y;
 
       floo_dma_test_node #(
         .TA             ( ApplTime                                  ),
