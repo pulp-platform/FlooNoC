@@ -707,7 +707,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         """Render the routers in the generated code."""
         string = ""
         for rt in self.graph.get_rt_nodes():
-            string += rt.render()
+            string += rt.render(network=self)
         return string
 
     def render_ni_tables(self):
