@@ -35,10 +35,13 @@ BENDER_FLAGS += -t snitch_cluster
 BENDER_FLAGS += -t idma_test
 BENDER_FLAGS := $(BENDER_FLAGS) $(EXTRA_BENDER_FLAGS)
 
+WORK ?= work
+
 VLOG_ARGS += -suppress vlog-2583
 VLOG_ARGS += -suppress vlog-13314
 VLOG_ARGS += -suppress vlog-13233
 VLOG_ARGS += -timescale \"1 ns / 1 ps\"
+VLOG_ARGS += -work $(WORK)
 
 VSIM_TB_DUT ?= floo_noc_router_test
 
@@ -46,6 +49,7 @@ VSIM_FLAGS += -64
 VSIM_FLAGS += -t 1ps
 VSIM_FLAGS += -sv_seed 0
 VSIM_FLAGS += -quiet
+VSIM_FLAGS += -work $(WORK)
 
 # Set the job name and directory if specified
 ifdef JOB_NAME
