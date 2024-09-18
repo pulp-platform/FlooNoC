@@ -25,8 +25,10 @@ collect-bender-sources:
 
 compile-vsim:
   stage: build
+  variables:
+    EXTRA_BENDER_FLAGS: "-t vc_router"
   script:
-    - make compile-sim VC=true | tee compile.log 2>&1
+    - make compile-sim | tee compile.log 2>&1
     - '! grep "\*\* Error" compile.log'
   needs:
     - collect-bender-sources
@@ -77,7 +79,7 @@ run-traffic:
     - source .venv/bin/activate
     - pip install .
     - floogen -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
-    - make compile-sim BENDER_FLAGS="-t ${DUT}"
+    - make compile-sim EXTRA_BENDER_FLAGS="-t ${DUT}"
     - make jobs
     - make run-sim-batch VSIM_TB_DUT=tb_floo_${DUT} | tee vsim.log 2>&1
     - 'grep "Errors: 0," vsim.log'
