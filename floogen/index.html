@@ -14,7 +14,7 @@
       
       
       <link rel="icon" href="../img/floo_noc_favicon_logo.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.34">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.35">
     
     
       
@@ -597,7 +597,7 @@
         
   
   <span class="md-ellipsis">
-    Links
+    Channels & Links
   </span>
   
 
@@ -1153,16 +1153,14 @@
 <span class="w">    </span><span class="nt">use_id_table</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 
 <span class="w">  </span><span class="nt">protocols</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;example_axi&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;axi_in&quot;</span>
 <span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;AXI4&quot;</span>
-<span class="w">      </span><span class="nt">direction</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;manager&quot;</span>
 <span class="w">      </span><span class="nt">data_width</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64</span>
 <span class="w">      </span><span class="nt">addr_width</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
 <span class="w">      </span><span class="nt">id_width</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
 <span class="w">      </span><span class="nt">user_width</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;example_axi&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;axi_out&quot;</span>
 <span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;AXI4&quot;</span>
-<span class="w">      </span><span class="nt">direction</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;subordinate&quot;</span>
 <span class="w">      </span><span class="nt">data_width</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64</span>
 <span class="w">      </span><span class="nt">addr_width</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
 <span class="w">      </span><span class="nt">id_width</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
@@ -1175,9 +1173,9 @@
 <span class="w">        </span><span class="nt">base</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x1000_0000</span>
 <span class="w">        </span><span class="nt">size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x0004_0000</span>
 <span class="w">      </span><span class="nt">mgr_port_protocol</span><span class="p">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;example_axi&quot;</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;axi_in&quot;</span>
 <span class="w">      </span><span class="nt">sbr_port_protocol</span><span class="p">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;example_axi&quot;</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;axi_out&quot;</span>
 
 <span class="w">  </span><span class="nt">routers</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;router&quot;</span>
@@ -1217,7 +1215,6 @@
 <ul>
 <li><code>name</code>: name of the protocol. This will be used as a reference in the framework and in the generated RTL code to name the protocol module and the protocol signals. If the narrow-wide channels are used, they need to be named <code>narrow</code> and <code>wide</code> respectively.</li>
 <li><code>type</code>: Currently only <code>AXI4</code> is supported</li>
-<li><code>direction</code>: the direction of the protocol. It can be either <code>manager</code> or <code>subordinate</code>. If an endpoint is both manager and subordinate, two protocols need to be defined.</li>
 <li><code>data_width</code>: the data width of the protocol</li>
 <li><code>addr_width</code>: the address width of the protocol</li>
 <li><code>id_width</code>: the ID width of the protocol. Endpoints with different ID widths for the <code>manager</code> and <code>subordinate</code> protocols are supported.</li>
@@ -1272,8 +1269,6 @@
 <p>Apart from the configuration file, <code>floogen</code> supports additional options to customize the generated RTL code. The following options are supported:</p>
 <ul>
 <li><code>--outdir</code>: the output directory where the generated RTL code will be placed. This is equivalent to the <code>-o</code> option. If it is not specified, the output is printed to stdout.</li>
-<li><code>--only-pkg</code>: only generate the package. This is useful if you want to test single IPs without generating a whole network.</li>
-<li><code>--pkg-outdir</code>: the output directory where the generated package will be placed. By default, the package in the <code>hw</code> folder is overwitten, since it is also the once that is used by <code>bender</code> for compiling the IPs. If you want to keep the original package, you can specify a different output directory here.</li>
 <li><code>--no-format</code>: do not format the generated RTL code. By default, the generated RTL code is formatted with verible format, for which the <code>verible-verilog-format</code> binary needs to be installed. If this option is set, the generated RTL code is not formatted.</li>
 <li><code>--visualize</code>: visualize the generated network. It will create a plot of the graph of the network. If the <code>--outdir</code> option is specified, the plot is saved in the output directory. Otherwise, it is shown in a window. This is mainly intended for a quick check of the generated network, not a tool for debugging.</li>
 </ul>
@@ -1299,7 +1294,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">January 9, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 17, 2024</span>
   </span>
 
     
@@ -1357,7 +1352,7 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.footer", "content.code.copy"], "search": "../assets/javascripts/workers/search.07f07601.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.footer", "content.code.copy"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
       <script src="../assets/javascripts/bundle.56dfad97.min.js"></script>
