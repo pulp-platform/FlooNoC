@@ -65,7 +65,7 @@ run-traffic:
   parallel:
     matrix:
       - DUT: [nw_mesh] # Fix: `tb_floo_vc_dma_mesh` has issues with boundary accesses
-        ROUTE_ALGO: [xy]
+        ROUTE_ALGO: [xy, src, id]
         TRAFFIC_TYPE: [random, hbm, onehop, bit_complement, bit_reverse, bit_rotation, neighbor, shuffle, transpose, tornado, single_dest_boundary, single_dest_center]
         TRAFFIC_RW: [read, write]
   needs:
