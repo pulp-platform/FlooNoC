@@ -70,7 +70,7 @@ compile-meshes:
     # Generate sources
     - floogen -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
     # Compile the network
-    - bender build -t ${DUT} -work work_${DUT}_${ROUTE_ALGO} | tee compile.log 2>&1
+    - bender build -t ${DUT} --work work_${DUT}_${ROUTE_ALGO} | tee compile.log 2>&1
     - '! grep "\*\* Error" compile.log'
   artifacts:
     paths:
