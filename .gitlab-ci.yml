@@ -76,7 +76,7 @@ run-traffic:
     - $PYTHON -m venv .venv
     - source .venv/bin/activate
     - pip install .
-    - floogen -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated
+    - floogen -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
     - make compile-sim BENDER_FLAGS="-t ${DUT}"
     - make jobs
     - make run-sim-batch VSIM_TB_DUT=${tb_floo_${DUT}} | tee vsim.log 2>&1
