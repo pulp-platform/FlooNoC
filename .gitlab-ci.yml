@@ -67,10 +67,6 @@ run-vsim:
   needs:
     - collect-bender-sources
     - compile-vsim
-  rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /noci$/'
-      when: manual
-    - when: always
 
 run-traffic:
   stage: run
