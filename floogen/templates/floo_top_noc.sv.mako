@@ -18,9 +18,7 @@ package floo_${noc.name}_noc_pkg;
   //   Address Map   //
   /////////////////////
 
-% if noc.routing.route_algo.value != "XYRouting":
   ${noc.render_ep_enum()}
-% endif
 
   ${noc.routing.render_typedefs()}
 
