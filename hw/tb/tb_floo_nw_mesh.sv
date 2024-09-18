@@ -117,23 +117,13 @@ module tb_floo_nw_mesh;
   //   DMA Model Mesh   //
   ////////////////////////
 
-  function automatic addr_t get_base_addr(int unsigned x, int unsigned y);
-    foreach (Sam[i]) begin
-      if (Sam[i].idx.x == x && Sam[i].idx.y == y) begin
-        return Sam[i].start_addr;
-      end
-      $error("No base address found for x=%0d, y=%0d", x, y);
-    end
-
-  endfunction
-
   for (genvar x = 0; x < NumX; x++) begin : gen_x
     for (genvar y = 0; y < NumX; y++) begin : gen_y
       localparam string NarrowDmaName = $sformatf("narrow_dma_%0d_%0d", x, y);
       localparam string WideDmaName   = $sformatf("wide_dma_%0d_%0d", x, y);
 
-      localparam addr_t MemBaseAddr = get_base_addr(x+1, y);
       localparam int unsigned Index = x * NumX + y;
+      localparam addr_t MemBaseAddr = Sam[ClusterNi00+Index].start_addr;
 
       floo_dma_test_node #(
         .TA             ( ApplTime                                  ),
