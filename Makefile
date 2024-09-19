@@ -14,7 +14,7 @@ MKFILE_DIR  := $(dir $(MKFILE_PATH))
 
 .PHONY: all clean compile-sim run-sim run-sim-batch
 all: compile-sim
-clean: clean-sim clean-spyglass clean-jobs clean-sources clean-vcs
+clean: clean-sim clean-spyglass clean-traffic clean-sources clean-vcs
 compile-sim: compile-vsim
 run-sim: run-vsim
 run-sim-batch: run-vsim-batch
@@ -64,11 +64,8 @@ VCS_ARGS    += -Mdir=$(WORK)
 VCS_ARGS    += -j 8
 
 # Set the job name and directory if specified
-ifdef JOB_NAME
-		VSIM_FLAGS += +JOB_NAME=$(JOB_NAME)
-endif
-ifdef JOB_DIR
-		VSIM_FLAGS += +JOB_DIR=$(JOB_DIR)
+ifdef TRAFFIC_DIR
+		VSIM_FLAGS += +JOB_DIR=$(TRAFFIC_DIR)
 endif
 ifdef LOG_FILE
 		VSIM_FLAGS += -l $(LOG_FILE)
@@ -105,24 +102,23 @@ sources: check-floogen
 
 clean-sources:
 	rm -rf $(FLOOGEN_OUT_DIR)
-	rm -f $(FLOOGEN_PKG_SRC)
 
 ######################
 # Traffic Generation #
 ######################
 
-TRAFFIC_GEN ?= util/gen_jobs.py
+TRAFFIC_GEN ?= util/gen_traffic.py
 TRAFFIC_TB ?= dma_mesh
 TRAFFIC_TYPE ?= random
 TRAFFIC_RW ?= read
-TRAFFIC_OUTDIR ?= hw/test/jobs
+TRAFFIC_OUTDIR ?= hw/test/traffic
 
-.PHONY: jobs clean-jobs
-jobs: $(TRAFFIC_GEN)
+.PHONY: traffic clean-traffic
+traffic: $(TRAFFIC_GEN)
 	mkdir -p $(TRAFFIC_OUTDIR)
 	$(TRAFFIC_GEN) --out_dir $(TRAFFIC_OUTDIR) --tb $(TRAFFIC_TB) --traffic_type $(TRAFFIC_TYPE) --rw $(TRAFFIC_RW)
 
-clean-jobs:
+clean-traffic:
 	rm -rf $(TRAFFIC_OUTDIR)
 
 ########################
@@ -131,13 +127,8 @@ clean-jobs:
 
 .PHONY: compile-vsim run-vsim run-vsim-batch clean-vsim
 
-scripts/compile_vsim.tcl: Bender.yml
-	mkdir -p scripts
-	echo 'set ROOT [file normalize [file dirname [info script]]/..]' > scripts/compile_vsim.tcl
-	$(BENDER) script vsim --vlog-arg="$(VLOG_ARGS)" $(BENDER_FLAGS) | grep -v "set ROOT" >> scripts/compile_vsim.tcl
-	echo >> scripts/compile_vsim.tcl
-
-compile-vsim: scripts/compile_vsim.tcl
+compile-vsim:
+	$(BENDER) script vsim --vlog-arg="$(VLOG_ARGS)" $(BENDER_FLAGS) > scripts/compile_vsim.tcl
 	$(VSIM) -64 -c -do "source scripts/compile_vsim.tcl; quit"
 
 run-vsim:
