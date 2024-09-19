@@ -10,99 +10,106 @@ routing:
   use_id_table: true
 
 protocols:
-  - name: "axi"
+  - name: "narrow"
     type: "AXI4"
     direction: "manager"
     data_width: 64
     addr_width: 48
-    id_width: 2
+    id_width: 3
     user_width: 10
-  - name: "axi"
+  - name: "narrow"
     type: "AXI4"
     direction: "subordinate"
     data_width: 64
     addr_width: 48
-    id_width: 11
+    id_width: 9
+    user_width: 10
+  - name: "wide"
+    type: "AXI4"
+    direction: "manager"
+    data_width: 64
+    addr_width: 48
+    id_width: 3
+    user_width: 10
+  - name: "wide"
+    type: "AXI4"
+    direction: "subordinate"
+    data_width: 64
+    addr_width: 48
+    id_width: 9
     user_width: 10
 
 endpoints:
-  - name: "cluster_0"
-    addr_range:
-        base: 0x0000_5000_0000
-        size: 0x0000_0080_0000
-    mgr_port_protocol:
-      - "axi"
-    sbr_port_protocol:
-      - "axi"
-  - name: "cluster_1"
-    addr_range:
-        base: 0x0000_5080_0000
-        size: 0x0000_0080_0000
-    mgr_port_protocol:
-      - "axi"
-    sbr_port_protocol:
-      - "axi"
-  - name: "dram"
-    addr_range:
-      base: 0x0000_8000_0000
-      size: 0x0020_0000_0000
-    sbr_port_protocol:
-      - "axi"
-  - name: "l2_port0"
-    addr_range:
-      base: 0x0000_7800_0000
-      size: 0x0000_0020_0000
-    sbr_port_protocol:
-      - "axi"
-  - name: "l2_port1"
-    addr_range:
-      base: 0x0000_7820_0000
-      size: 0x0000_0020_0000
-    sbr_port_protocol:
-      - "axi"
   - name: "cheshire"
     addr_range:
       base: 0x0000_0000_0000
       size: 0x0000_2000_0000
     mgr_port_protocol:
-      - "axi"
+      - "narrow"
     sbr_port_protocol:
-      - "axi"
+      - "narrow"
   - name: "opentitan_main"
     mgr_port_protocol:
-      - "axi"
+      - "narrow"
   - name: "opentitan_dma"
     mgr_port_protocol:
-      - "axi"
-  - name: "peripherals"
+      - "narrow"
+  - name: "l2_port0"
     addr_range:
-      start: 0x0000_2000_0000
-      size: 0x0000_2000_0000
-    mgr_port_protocol:
-      - "axi"
+      base: 0x0000_7800_0000
+      size: 0x0000_0020_0000
     sbr_port_protocol:
-      - "axi"
+      - "narrow"
+  - name: "l2_port1"
+    addr_range:
+      base: 0x0000_7820_0000
+      size: 0x0000_0020_0000
+    sbr_port_protocol:
+      - "narrow"
+  - name: "cluster_0"
+    addr_range:
+        base: 0x0000_5000_0000
+        size: 0x0000_0080_0000
+    mgr_port_protocol:
+      - "narrow"
+    sbr_port_protocol:
+      - "narrow"
+  # - name: "cluster_1"
+  #   addr_range:
+  #       base: 0x0000_5080_0000
+  #       size: 0x0000_0080_0000
+  #   mgr_port_protocol:
+  #     - "narrow"
+  #   sbr_port_protocol:
+  #     - "narrow"
+  - name: "ethernet"
+    mgr_port_protocol:
+      - "narrow"
   - name: "mbox"
     addr_range:
       base: 0x0000_4000_0000
       size: 0x0000_0000_3000
     sbr_port_protocol:
-      - "axi"
+      - "narrow"
+  - name: "peripherals"
+    addr_range:
+      start: 0x0000_2100_0000
+      end: 0x0000_4000_0000
+    sbr_port_protocol:
+      - "narrow"
+  - name: "dram"
+    addr_range:
+      base: 0x0000_8000_0000
+      size: 0x0000_8000_0000
+    mgr_port_protocol:
+      - "narrow"
+    sbr_port_protocol:
+      - "narrow"
 
 routers:
   - name: "router"
 
 connections:
-  - src: "cluster_0"
-    dst: "router"
-  - src: "cluster_1"
-    dst: "router"
-  - src: "router"
-    dst: "dram"
-  - src: "router"
-    dst: "l2_port0"
-  - src: "router"
-    dst: "l2_port1"
   - src: "cheshire"
     dst: "router"
   - src: "opentitan_main"
@@ -110,6 +117,19 @@ connections:
   - src: "opentitan_dma"
     dst: "router"
   - src: "router"
-    dst: "peripherals"
+    dst: "l2_port0"
+  - src: "router"
+    dst: "l2_port1"
+  - src: "cluster_0"
+    dst: "router"
+  # - src: "cluster_1"
+  #   dst: "router"
+  - src: "ethernet"
+    dst: "router"
   - src: "mbox"
     dst: "router"
+  - src: "router"
+    dst: "peripherals"
+  - src: "router"
+    dst: "dram"  
+  

@@ -41,6 +41,7 @@ sources:
   # Level 3 (Wrappers)
   - hw/floo_axi_router.sv
   - hw/floo_nw_router.sv
+  - hw/dual_cluster_mesh/dual_cluster_floo_noc.sv
 
   # VC Router (Level 1)
   - hw/vc_router_util/floo_credit_counter.sv
