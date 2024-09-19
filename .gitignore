@@ -74,6 +74,13 @@ transcript
 vsim.wlf
 scripts/compile_vsim.tcl
 
+# VCS
+AN.DB
+bin
+ucli.key
+vc_hdrs.h
+scripts/compile_vcs.sh
+
 # Verible
 verible*
 

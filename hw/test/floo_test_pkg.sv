@@ -30,8 +30,8 @@ package floo_test_pkg;
     XYAddrOffsetX: 16,
     XYAddrOffsetY: 20,
     IdAddrOffset: 0,
-    NumSamRules: 0,
-    NumRoutes: 0
+    NumSamRules: 1,
+    NumRoutes: 1
   };
 
   // Common chimney parameters

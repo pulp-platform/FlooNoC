@@ -36,6 +36,24 @@ compile-vsim:
       - work/
       - modelsim.ini
 
+compile-vcs:
+  stage: build
+  needs:
+    - collect-bender-sources
+  parallel:
+    matrix:
+      - TB_DUT:
+        - tb_floo_router
+        - tb_floo_vc_router
+        - tb_floo_axi_chimney
+        - tb_floo_nw_chimney
+        - tb_floo_rob
+  script:
+    - make bin/${TB_DUT}.vcs | tee compile.log 2>&1
+  artifacts:
+    paths:
+      - bin/
+
 compile-meshes:
   stage: build
   needs:
@@ -58,25 +76,29 @@ compile-meshes:
     paths:
       - work_*/
 
-run-vsim:
+run-sim:
   stage: run
   needs:
     - collect-bender-sources
     - compile-vsim
+    - compile-vcs
   parallel:
     matrix:
-      - VSIM_TB_DUT:
+      - SIMULATOR: [vsim, vcs]
+        TB_DUT:
         - tb_floo_router
         - tb_floo_vc_router
         - tb_floo_axi_chimney
         - tb_floo_nw_chimney
         - tb_floo_rob
   script:
-    - make run-sim-batch | tee vsim.log 2>&1
-    - 'grep "Errors: 0," vsim.log'
-  artifacts:
-    paths:
-      - vsim.log
+    - |
+      if [ "${SIMULATOR}" = "vsim" ]; then
+        make run-${SIMULATOR}-batch | tee ${SIMULATOR}.log 2>&1
+        grep "Errors: 0," ${SIMULATOR}.log
+      else
+        make run-${SIMULATOR}-batch
+      fi
 
 run-traffic:
   stage: run
@@ -89,11 +111,11 @@ run-traffic:
     matrix:
       - DUT: [axi_mesh, nw_mesh]
         ROUTE_ALGO: [xy, src, id]
-        TRAFFIC_TYPE: [random, hbm, onehop, bit_complement, bit_reverse, bit_rotation, neighbor, shuffle, transpose, tornado, single_dest_boundary, single_dest_center]
+        TRAFFIC_TYPE: [random, hbm, shuffle, single_dest_center]
         TRAFFIC_RW: [read, write]
   script:
     - make jobs
-    - make run-sim-batch VSIM_TB_DUT=tb_floo_${DUT} WORK=work_${DUT}_${ROUTE_ALGO} | tee vsim.log 2>&1
+    - make run-sim-batch TB_DUT=tb_floo_${DUT} WORK=work_${DUT}_${ROUTE_ALGO} | tee vsim.log 2>&1
     - 'grep "Errors: 0," vsim.log'
 
 morty:

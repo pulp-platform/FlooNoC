@@ -12,9 +12,12 @@
 MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 MKFILE_DIR  := $(dir $(MKFILE_PATH))
 
-.PHONY: all clean
+.PHONY: all clean compile-sim run-sim run-sim-batch
 all: compile-sim
-clean: clean-sim clean-spyglass clean-jobs clean-sources
+clean: clean-sim clean-spyglass clean-jobs clean-sources clean-vcs
+compile-sim: compile-vsim
+run-sim: run-vsim
+run-sim-batch: run-vsim-batch
 
 ############
 # Programs #
@@ -24,6 +27,8 @@ BENDER     	?= bender
 VSIM       	?= questa-2023.4 vsim
 SPYGLASS   	?= sg_shell
 VERIBLE_FMT	?= verible-verilog-format
+VCS		      ?= vcs-2022.06 vcs
+VLOGAN  	  ?= vcs-2022.06 vlogan
 
 #####################
 # Compilation Flags #
@@ -35,7 +40,8 @@ BENDER_FLAGS += -t snitch_cluster
 BENDER_FLAGS += -t idma_test
 BENDER_FLAGS := $(BENDER_FLAGS) $(EXTRA_BENDER_FLAGS)
 
-WORK ?= work
+WORK 	 		?= work
+TB_DUT 		?= floo_noc_router_test
 
 VLOG_ARGS += -suppress vlog-2583
 VLOG_ARGS += -suppress vlog-13314
@@ -43,13 +49,19 @@ VLOG_ARGS += -suppress vlog-13233
 VLOG_ARGS += -timescale \"1 ns / 1 ps\"
 VLOG_ARGS += -work $(WORK)
 
-VSIM_TB_DUT ?= floo_noc_router_test
-
 VSIM_FLAGS += -64
 VSIM_FLAGS += -t 1ps
 VSIM_FLAGS += -sv_seed 0
 VSIM_FLAGS += -quiet
 VSIM_FLAGS += -work $(WORK)
+
+VLOGAN_ARGS := -assert svaext
+VLOGAN_ARGS += -assert disable_cover
+VLOGAN_ARGS += -timescale=1ns/1ps
+
+VCS_ARGS    += -Mlib=$(WORK)
+VCS_ARGS    += -Mdir=$(WORK)
+VCS_ARGS    += -j 8
 
 # Set the job name and directory if specified
 ifdef JOB_NAME
@@ -66,8 +78,8 @@ endif
 # Automatically open the waveform if a wave.tcl file is present
 VSIM_FLAGS_GUI += -do "log -r /*"
 VSIM_FLAGS_GUI += -voptargs=+acc
-ifneq ("$(wildcard hw/tb/wave/$(VSIM_TB_DUT).wave.tcl)","")
-    VSIM_FLAGS_GUI += -do "source hw/tb/wave/$(VSIM_TB_DUT).wave.tcl"
+ifneq ("$(wildcard hw/tb/wave/$(TB_DUT).wave.tcl)","")
+    VSIM_FLAGS_GUI += -do "source hw/tb/wave/$(TB_DUT).wave.tcl"
 endif
 
 ###########
@@ -117,7 +129,7 @@ clean-jobs:
 # QuestaSim Simulation #
 ########################
 
-.PHONY: compile-sim run-sim run-sim-batch clean-sim
+.PHONY: compile-vsim run-vsim run-vsim-batch clean-vsim
 
 scripts/compile_vsim.tcl: Bender.yml
 	mkdir -p scripts
@@ -125,20 +137,51 @@ scripts/compile_vsim.tcl: Bender.yml
 	$(BENDER) script vsim --vlog-arg="$(VLOG_ARGS)" $(BENDER_FLAGS) | grep -v "set ROOT" >> scripts/compile_vsim.tcl
 	echo >> scripts/compile_vsim.tcl
 
-compile-sim: scripts/compile_vsim.tcl
+compile-vsim: scripts/compile_vsim.tcl
 	$(VSIM) -64 -c -do "source scripts/compile_vsim.tcl; quit"
 
-run-sim:
-	$(VSIM) $(VSIM_FLAGS) $(VSIM_FLAGS_GUI) $(VSIM_TB_DUT)
+run-vsim:
+	$(VSIM) $(VSIM_FLAGS) $(VSIM_FLAGS_GUI) $(TB_DUT)
 
-run-sim-batch:
-	$(VSIM) -c $(VSIM_FLAGS) $(VSIM_TB_DUT) -do "run -all; quit"
+run-vsim-batch:
+	$(VSIM) -c $(VSIM_FLAGS) $(TB_DUT) -do "run -all; quit"
 
-clean-sim:
+clean-vsim:
 	rm -rf scripts/compile_vsim.tcl
 	rm -rf modelsim.ini
 	rm -rf transcript
 	rm -rf work*
+
+##################
+# VCS Simulation #
+##################
+
+.PHONY: compile-vcs clean-vcs run-vcs run-vcs-batch
+
+scripts/compile_vcs.sh: Bender.yml Bender.lock
+	@mkdir -p scripts
+	$(BENDER) script vcs --vlog-arg "\$(VLOGAN_ARGS)" $(BENDER_FLAGS) --vlogan-bin "$(VLOGAN)" > $@
+	chmod +x $@
+
+compile-vcs: scripts/compile_vcs.sh
+	$< | tee scripts/compile_vcs.log
+
+bin/%.vcs: scripts/compile_vcs.sh compile-vcs
+	mkdir -p bin
+	$(VCS) $(VCS_ARGS) $(VCS_PARAMS) $* -o $@
+
+run-vcs run-vcs-batch:
+	bin/$(TB_DUT).vcs +permissive -exitstatus +permissive-off
+
+clean-vcs:
+	@rm -rf AN.DB
+	@rm -f  scripts/compile_vcs.sh
+	@rm -rf bin
+	@rm -rf work-vcs
+	@rm -f  ucli.key
+	@rm -f  vc_hdrs.h
+	@rm -f  logs/*.vcs.log
+	@rm -f  scripts/compile_vcs.log
 
 ####################
 # Spyglass Linting #
