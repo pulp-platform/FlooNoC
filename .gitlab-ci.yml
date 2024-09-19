@@ -85,7 +85,7 @@ run-sim:
   parallel:
     matrix:
       - SIMULATOR: [vsim, vcs]
-      - TB_DUT:
+        TB_DUT:
         - tb_floo_router
         - tb_floo_vc_router
         - tb_floo_axi_chimney
