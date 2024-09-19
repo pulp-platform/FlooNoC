@@ -170,8 +170,8 @@ bin/%.vcs: scripts/compile_vcs.sh compile-vcs
 	mkdir -p bin
 	$(VCS) $(VCS_ARGS) $(VCS_PARAMS) $* -o $@
 
-run-vcs run-vcs-batch: bin/$(TB_DUT).vcs
-	$< +permissive -exitstatus +permissive-off
+run-vcs run-vcs-batch:
+	bin/$(TB_DUT).vcs +permissive -exitstatus +permissive-off
 
 clean-vcs:
 	@rm -rf AN.DB
