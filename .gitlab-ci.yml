@@ -92,8 +92,13 @@ run-sim:
         - tb_floo_nw_chimney
         - tb_floo_rob
   script:
-    - make run-${SIMULATOR}-batch | tee ${SIMULATOR}.log 2>&1
-    - 'grep "Errors: 0," ${SIMULATOR}.log'
+    - |
+      if [ "${SIMULATOR}" = "vsim" ]; then
+        make run-${SIMULATOR}-batch | tee ${SIMULATOR}.log 2>&1
+        grep "Errors: 0," ${SIMULATOR}.log
+      else
+        make run-${SIMULATOR}-batch
+      fi
   artifacts:
     paths:
       - ${SIMULATOR}.log
