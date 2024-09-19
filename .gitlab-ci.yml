@@ -90,6 +90,19 @@ run-vsim:
     paths:
       - vsim.log
 
+run-vcs:
+  stage: run
+  variables:
+    TB_DUT: tb_floo_axi_chimney
+  needs:
+    - collect-bender-sources
+    - compile-vcs
+  script:
+    - make run-vcs-batch | tee vcs.log 2>&1
+  artifacts:
+    paths:
+      - vcs.log
+
 # run-traffic:
 #   stage: run
 #   needs:
