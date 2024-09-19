@@ -77,7 +77,7 @@ Currently, we do not provide any open-source simulation setup. Internally, the F
 # Compile the sources
 make compile-sim
 # Run the simulation
-make run-sim-batch VSIM_TB_DUT=tb_floo_dut
+make run-sim-batch TB_DUT=tb_floo_dut
 ```
 
 or in the GUI, with prepared waveforms:
@@ -86,7 +86,7 @@ or in the GUI, with prepared waveforms:
 # Compile the sources
 make compile-sim
 # Run the simulation
-make run-sim VSIM_TB_DUT=tb_floo_dut
+make run-sim TB_DUT=tb_floo_dut
 ```
 By replacing `tb_floo_dut` with the name of the testbench you want to simulate.
 
