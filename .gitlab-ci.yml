@@ -99,9 +99,6 @@ run-sim:
       else
         make run-${SIMULATOR}-batch
       fi
-  artifacts:
-    paths:
-      - ${SIMULATOR}.log
 
 # run-traffic:
 #   stage: run
