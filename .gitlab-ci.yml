@@ -36,6 +36,18 @@ compile-vsim:
       - work/
       - modelsim.ini
 
+compile-vcs:
+  stage: build
+  needs:
+    - collect-bender-sources
+  variables:
+    TB_DUT: tb_floo_axi_chimney
+  script:
+    - make bin/$(TB_DUT).vcs | tee compile.log 2>&1
+  artifacts:
+    paths:
+      - bin/
+
 compile-meshes:
   stage: build
   needs:
