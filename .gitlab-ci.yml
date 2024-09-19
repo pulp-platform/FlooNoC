@@ -43,7 +43,7 @@ compile-vcs:
   variables:
     TB_DUT: tb_floo_axi_chimney
   script:
-    - make bin/$(TB_DUT).vcs | tee compile.log 2>&1
+    - make bin/${TB_DUT}.vcs | tee compile.log 2>&1
   artifacts:
     paths:
       - bin/
