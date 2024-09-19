@@ -186,21 +186,26 @@ logic [NumAxiOutIds-1:0] ar_queue_recv_empty;
 logic [NumAxiInIds-1:0] b_queue_empty;
 logic [NumAxiInIds-1:0] r_queue_empty;
 
-assign aw_w_queue_sent_empty = (aw_w_queue_sent.size() == 0);
-assign aw_w_queue_recv_empty = (aw_w_queue_recv.size() == 0);
+// verilog_lint: waive-start always-ff-non-blocking
+always_ff @(posedge clk_i) begin
+  aw_w_queue_sent_empty = (aw_w_queue_sent.size() == 0);
+  aw_w_queue_recv_empty = (aw_w_queue_recv.size() == 0);
 
-for (genvar i = 0; i < NumAxiInIds; i++) begin : gen_aw_queue_sent_empty
-  assign aw_queue_sent_empty[i] = (aw_queue_sent[i].size() == 0);
-  assign w_queue_empty[i] = (w_queue[i].size() == 0);
-  assign ar_queue_sent_empty[i] = (ar_queue_sent[i].size() == 0);
-  assign b_queue_empty[i] = (b_queue[i].size() == 0);
-  assign r_queue_empty[i] = (r_queue[i].size() == 0);
-end
+  for (int i = 0; i < NumAxiInIds; i++) begin : gen_aw_queue_sent_empty
+    aw_queue_sent_empty[i] = (aw_queue_sent[i].size() == 0);
+    w_queue_empty[i] = (w_queue[i].size() == 0);
+    ar_queue_sent_empty[i] = (ar_queue_sent[i].size() == 0);
+    b_queue_empty[i] = (b_queue[i].size() == 0);
+    r_queue_empty[i] = (r_queue[i].size() == 0);
+  end
 
-for (genvar i = 0; i < NumAxiOutIds; i++) begin : gen_aw_queue_recv_empty
-  assign aw_queue_recv_empty[i] = (aw_queue_recv[i].size() == 0);
-  assign ar_queue_recv_empty[i] = (ar_queue_recv[i].size() == 0);
+  for (int i = 0; i < NumAxiOutIds; i++) begin : gen_aw_queue_recv_empty
+    aw_queue_recv_empty[i] = (aw_queue_recv[i].size() == 0);
+    ar_queue_recv_empty[i] = (ar_queue_recv[i].size() == 0);
+  end
 end
+// verilog_lint: waive-stop always-ff-non-blocking
+
 
 assign end_of_sim_o = aw_w_queue_sent_empty &&
                       aw_w_queue_recv_empty &&

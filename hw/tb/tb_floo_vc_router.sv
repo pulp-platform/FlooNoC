@@ -195,7 +195,7 @@ module tb_floo_vc_router;
     for(int port = 0; port < NumPorts; port++) begin
       if(expected_result_queue[port].size() != 0) begin
         $error("Port %0d was still expecting results:", port);
-        for(; 0 < expected_result_queue[port].size();) begin
+        while(expected_result_queue[port].size() != 0) begin
           exp_result = expected_result_queue[port].pop_front();
           $display("Expected hdr: %p", exp_result.hdr);
         end
