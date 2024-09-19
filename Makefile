@@ -168,7 +168,7 @@ compile-vcs: scripts/compile_vcs.sh
 
 bin/%.vcs: scripts/compile_vcs.sh compile-vcs
 	mkdir -p bin
-	$(VCS) $(VCS_ARGS) $(VCS_PARAMS) $*
+	$(VCS) $(VCS_ARGS) $(VCS_PARAMS) $* -o $@
 
 run-vcs run-vcs-batch: bin/$(TB_DUT).vcs
 	$<
