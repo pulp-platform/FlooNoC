@@ -345,13 +345,15 @@ module axi_reorder_compare #(
   logic [NumSlaves-1:0][NumAxiIds-1:0][31:0] b_queue_state;
   logic [NumSlaves-1:0][NumAxiIds-1:0][31:0] r_queue_state;
 
-  for (genvar i = 0; i < NumSlaves; i++) begin : gen_b_queue_state
-    assign aw_queue_state[i] = aw_queue[i].size();
-    assign w_queue_state[i] = w_queue[i].size();
-    assign ar_queue_state[i] = ar_queue[i].size();
-    for (genvar j = 0; j < NumAxiIds; j++) begin : gen_b_queue_state
-      assign b_queue_state[i][j] = b_queue[i][j].size();
-      assign r_queue_state[i][j] = r_queue[i][j].size();
+  always_comb begin
+    for (int i = 0; i < NumSlaves; i++) begin : gen_b_queue_state
+      aw_queue_state[i] = aw_queue[i].size();
+      w_queue_state[i] = w_queue[i].size();
+      ar_queue_state[i] = ar_queue[i].size();
+      for (int j = 0; j < NumAxiIds; j++) begin : gen_b_queue_state
+        b_queue_state[i][j] = b_queue[i][j].size();
+        r_queue_state[i][j] = r_queue[i][j].size();
+      end
     end
   end
 

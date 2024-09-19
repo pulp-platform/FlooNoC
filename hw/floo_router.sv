@@ -21,7 +21,7 @@ module floo_router
   parameter int unsigned IdWidth          = 0,
   parameter type         id_t             = logic[IdWidth-1:0],
   /// Used for ID-based routing
-  parameter int unsigned NumAddrRules     = 0,
+  parameter int unsigned NumAddrRules     = 1,
   parameter type         addr_rule_t      = logic,
   /// Configuration parameters for special network topologies
   parameter int unsigned NumInput         = NumRoutes,

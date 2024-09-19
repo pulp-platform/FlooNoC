@@ -55,7 +55,7 @@ module floo_vc_router import floo_pkg::*; #(
   parameter int unsigned IdWidth                    =  1,
   parameter type id_t                               =  logic[IdWidth-1:0],
   /// Used for ID-based routing
-  parameter int unsigned NumAddrRules               =  0,
+  parameter int unsigned NumAddrRules               =  1,
   parameter type addr_rule_t                        =  logic
 ) (
   input  logic                                        clk_i,
@@ -360,7 +360,7 @@ module floo_vc_router import floo_pkg::*; #(
 
   always_comb begin
     sa_local_out_valid = '0;
-    la_route_per_output = '0;
+    la_route_per_output = route_direction_e'('0);
     output_id_oh_sa_stage = '0;
     for (int out_port = 0; out_port < NumPorts; out_port++) begin : gen_transform_sa_results
       if (RouteAlgo == XYRouting) begin : gen_reduce_sa_global_input_size_if_xyrouting
