@@ -265,8 +265,8 @@ class RouteRule(BaseModel):
         split_route = False
         if self.route is None:
             if split_route:
-                return f"{num_route_bits}'d?"
-            return f"{num_route_bits}'b{'?' * num_route_bits}"
+                return f"{num_route_bits}'d0"
+            return f"{num_route_bits}'b{'0' * num_route_bits}"
         for port, num_bits in self.route:
             if split_route:
                 route_str = f"{num_bits}'d{port}, " + route_str
