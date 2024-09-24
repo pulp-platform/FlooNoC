@@ -631,12 +631,10 @@ module floo_nw_chimney #(
   //   ROUTING   //
   /////////////////
 
-  typedef axi_addr_t addr_t;
-
   floo_route_comp #(
     .RouteCfg     ( RouteCfg    ),
     .id_t         ( id_t        ),
-    .addr_t       ( addr_t      ),
+    .addr_t       ( axi_addr_t  ),
     .addr_rule_t  ( sam_rule_t  ),
     .route_t      ( route_t     )
   ) i_floo_req_route_comp [3:0] (
@@ -658,15 +656,15 @@ module floo_nw_chimney #(
       .RouteCfg     ( RouteCfg    ),
       .UseIdTable   ( 1'b0        ), // Overwrite `RouteCfg`
       .id_t         ( id_t        ),
-      .addr_t       ( addr_t      ),
+      .addr_t       ( axi_addr_t  ),
       .addr_rule_t  ( sam_rule_t  ),
       .route_t      ( route_t     )
       ) i_floo_rsp_route_comp [3:0] (
       .clk_i,
       .rst_ni,
       .route_table_i,
-      .addr_i     ( '0 ),
-      .addr_map_i ( '0 ),
+      .addr_i     ( '{default: '0} ),
+      .addr_map_i ( '{default: '0} ),
       .id_i ({
         narrow_aw_buf_hdr_out.hdr.src_id, narrow_ar_buf_hdr_out.hdr.src_id,
         wide_aw_buf_hdr_out.hdr.src_id, wide_ar_buf_hdr_out.hdr.src_id
