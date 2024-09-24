@@ -109,8 +109,8 @@ module floo_meta_buffer #(
 
   end else begin : gen_no_atop_id_queue
 
-    logic b_outp_gnt, b_oup_data_valid;
-    logic r_outp_gnt, r_oup_data_valid;
+    logic b_oup_gnt, b_oup_data_valid;
+    logic r_oup_gnt, r_oup_data_valid;
 
     id_out_t no_atop_aw_req_id_in, no_atop_ar_req_id_in;
 
@@ -146,7 +146,7 @@ module floo_meta_buffer #(
       .oup_req_i        ( axi_rsp_i.b_valid           ),
       .oup_data_o       ( no_atop_b_buf               ),
       .oup_data_valid_o ( b_oup_data_valid            ),
-      .oup_gnt_o        ( b_outp_gnt                  )
+      .oup_gnt_o        ( b_oup_gnt                   )
     );
 
     id_queue #(
@@ -177,7 +177,7 @@ module floo_meta_buffer #(
     assign ar_no_atop_buf_full = !ar_no_atop_buf_not_full;
     assign aw_no_atop_buf_full = !aw_no_atop_buf_not_full;
 
-    `ASSERT(NoBResponseIdQueue, axi_rsp_i.b_valid -> (b_oup_data_valid && b_outp_gnt),
+    `ASSERT(NoBResponseIdQueue, axi_rsp_i.b_valid -> (b_oup_data_valid && b_oup_gnt),
             "Meta data for B response must exist in Id Queue!")
     `ASSERT(NoRResponseIdQueue, axi_rsp_i.r_valid -> (r_oup_data_valid && r_oup_gnt),
             "Meta data for R response must exist in Id Queue!")
