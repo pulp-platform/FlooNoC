@@ -194,6 +194,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
         tree: List[int],
         node_type: str,
         edge_type: str,
+        *,
         lvl: int = 0,
         node_obj=None,
         edge_obj=None,
@@ -213,7 +214,14 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
                     node, parent, type=edge_type, obj=edge_obj, src_dir=None, dst_dir=None
                 )
             self.add_nodes_as_tree(
-                node, tree, node_type, edge_type, lvl + 1, node_obj, edge_obj, connect
+                node,
+                tree,
+                node_type,
+                edge_type,
+                lvl=lvl + 1,
+                node_obj=node_obj,
+                edge_obj=edge_obj,
+                connect=connect,
             )
 
     def add_nodes_as_array(
@@ -221,6 +229,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
         name: str,
         array: Tuple[int],
         node_type: str,
+        *,
         edge_type: str = "",
         node_obj=None,
         edge_obj=None,
