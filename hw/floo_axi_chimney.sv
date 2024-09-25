@@ -374,49 +374,72 @@ module floo_axi_chimney #(
   //   ROUTING   //
   /////////////////
 
-  floo_route_comp #(
-    .RouteCfg       ( RouteCfg    ),
-    .id_t           ( id_t        ),
-    .addr_t         ( axi_addr_t  ),
-    .addr_rule_t    ( sam_rule_t  ),
-    .route_t        ( route_t     )
-  ) i_floo_req_route_comp [1:0] (
-    .clk_i,
-    .rst_ni,
-    .route_table_i,
-    .addr_map_i ( Sam                                     ),
-    .id_i       ( id_t'('0)                               ),
-    .addr_i     ( {axi_aw_queue.addr, axi_ar_queue.addr}  ),
-    .route_o    ( {route_out[AxiAw], route_out[AxiAr]}    ),
-    .id_o       ( {id_out[AxiAw], id_out[AxiAr]}          )
-  );
-  if (RouteCfg.RouteAlgo == SourceRouting) begin : gen_route_field
-    floo_route_comp #(
-      .RouteCfg     ( RouteCfg    ),
-      .UseIdTable   ( 1'b0        ), // Overwrite RouteCfg
-      .id_t         ( id_t        ),
-      .addr_t       ( axi_addr_t  ),
-      .addr_rule_t  ( sam_rule_t  ),
-      .route_t      ( route_t     )
-    ) i_floo_rsp_route_comp [1:0] (
-      .clk_i,
-      .rst_ni,
-      .route_table_i,
-      .addr_i     ( '0                                                    ),
-      .addr_map_i ( '0                                                    ),
-      .id_i       ({aw_out_hdr_out.hdr.src_id, ar_out_hdr_out.hdr.src_id} ),
-      .route_o    ({route_out[AxiB], route_out[AxiR]}                     ),
-      .id_o       ({id_out[AxiB], id_out[AxiR]}                           )
-    );
+  axi_addr_t [NumAxiChannels-1:0] axi_req_addr;
+  id_t [NumAxiChannels-1:0] axi_rsp_src_id;
+
+  assign axi_req_addr[AxiAw] = axi_aw_queue.addr;
+  assign axi_req_addr[AxiAr] = axi_ar_queue.addr;
+
+  assign axi_rsp_src_id[AxiB] = aw_out_hdr_out.hdr.src_id;
+  assign axi_rsp_src_id[AxiR] = ar_out_hdr_out.hdr.src_id;
+
+  for (genvar ch = 0; ch < NumAxiChannels; ch++) begin : gen_route_comp
+    localparam axi_ch_e axi_ch = axi_ch_e'(ch);
+    if (axi_ch == AxiAw || axi_ch == AxiAr) begin : gen_req_route_comp
+      // Translate the address from AXI requests to a destination ID
+      // (or route if `SourceRouting` is used)
+      floo_route_comp #(
+        .RouteCfg     ( RouteCfg    ),
+        .id_t         ( id_t        ),
+        .addr_t       ( axi_addr_t  ),
+        .addr_rule_t  ( sam_rule_t  ),
+        .route_t      ( route_t     )
+      ) i_floo_req_route_comp (
+        .clk_i,
+        .rst_ni,
+        .route_table_i,
+        .addr_map_i ( Sam               ),
+        .id_i       ( id_t'('0)         ),
+        .addr_i     ( axi_req_addr[ch]  ),
+        .route_o    ( route_out[ch]     ),
+        .id_o       ( id_out[ch]        )
+      );
+    end else if (RouteCfg.RouteAlgo == floo_pkg::SourceRouting &&
+                 (axi_ch == AxiB || axi_ch == AxiR)) begin : gen_rsp_route_comp
+      // Generally, the source ID from the request is used to route back
+      // the responses. However, in the case of `SourceRouting`, the source ID
+      // first needs to be translated into a route.
+      floo_route_comp #(
+        .RouteCfg     ( RouteCfg    ),
+        .UseIdTable   ( 1'b0        ), // Overwrite `RouteCfg`
+        .id_t         ( id_t        ),
+        .addr_t       ( axi_addr_t  ),
+        .addr_rule_t  ( sam_rule_t  ),
+        .route_t      ( route_t     )
+      ) i_floo_rsp_route_comp (
+        .clk_i,
+        .rst_ni,
+        .route_table_i,
+        .addr_i     ( '0                  ),
+        .addr_map_i ( '0                  ),
+        .id_i       ( axi_rsp_src_id[ch]  ),
+        .route_o    ( route_out[ch]       ),
+        .id_o       ( id_out[ch]          )
+      );
+    end
+  end
+
+  if (RouteCfg.RouteAlgo == floo_pkg::SourceRouting) begin : gen_route_field
     assign route_out[AxiW] = axi_aw_id_q;
     assign dst_id = route_out;
   end else begin : gen_dst_field
-    assign dst_id[AxiAw]  = id_out[AxiAw];
-    assign dst_id[AxiAr]  = id_out[AxiAr];
-    assign dst_id[AxiB]   = aw_out_hdr_out.hdr.src_id;
-    assign dst_id[AxiR]   = ar_out_hdr_out.hdr.src_id;
-    assign dst_id[AxiW]   = axi_aw_id_q;
+    assign dst_id[AxiAw] = id_out[AxiAw];
+    assign dst_id[AxiAr] = id_out[AxiAr];
+    assign dst_id[AxiB]  = aw_out_hdr_out.hdr.src_id;
+    assign dst_id[AxiR]  = ar_out_hdr_out.hdr.src_id;
+    assign dst_id[AxiW]  = axi_aw_id_q;
   end
+
   `FFL(axi_aw_id_q, dst_id[AxiAw], axi_aw_queue_valid_out &&
                                    axi_aw_queue_ready_in, '0)
 
