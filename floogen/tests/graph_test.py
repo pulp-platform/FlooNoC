@@ -311,7 +311,7 @@ def test_add_nodes_as_array1(graph):
         assert graph.has_edge(*edge[::-1])
         assert graph.is_link_edge(edge[::-1])
 
-    graph.add_nodes_as_array("A", [2], "router", "link")
+    graph.add_nodes_as_array("A", [2], "router", edge_type="link")
     assert_node("A_0", (0,))
     assert_node("A_1", (1,))
     assert_edge(("A_0", "A_1"))
@@ -329,7 +329,7 @@ def test_add_nodes_as_array2(graph):
         assert graph.has_edge(*edge)
         assert graph.is_link_edge(edge)
 
-    graph.add_nodes_as_array("A", [2, 2], "router", "link")
+    graph.add_nodes_as_array("A", [2, 2], "router", edge_type="link")
     assert_node("A_0_0", (0, 0))
     assert_node("A_0_1", (0, 1))
     assert_node("A_1_0", (1, 0))
