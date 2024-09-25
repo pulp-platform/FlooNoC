@@ -384,8 +384,8 @@ module floo_axi_chimney #(
   assign axi_rsp_src_id[AxiR] = ar_out_hdr_out.hdr.src_id;
 
   for (genvar ch = 0; ch < NumAxiChannels; ch++) begin : gen_route_comp
-    localparam axi_ch_e axi_ch = axi_ch_e'(ch);
-    if (axi_ch == AxiAw || axi_ch == AxiAr) begin : gen_req_route_comp
+    localparam axi_ch_e Ch = axi_ch_e'(ch);
+    if (Ch == AxiAw || Ch == AxiAr) begin : gen_req_route_comp
       // Translate the address from AXI requests to a destination ID
       // (or route if `SourceRouting` is used)
       floo_route_comp #(
@@ -405,7 +405,7 @@ module floo_axi_chimney #(
         .id_o       ( id_out[ch]        )
       );
     end else if (RouteCfg.RouteAlgo == floo_pkg::SourceRouting &&
-                 (axi_ch == AxiB || axi_ch == AxiR)) begin : gen_rsp_route_comp
+                 (Ch == AxiB || Ch == AxiR)) begin : gen_rsp_route_comp
       // Generally, the source ID from the request is used to route back
       // the responses. However, in the case of `SourceRouting`, the source ID
       // first needs to be translated into a route.

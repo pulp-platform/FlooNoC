@@ -645,9 +645,9 @@ module floo_nw_chimney #(
   assign axi_rsp_src_id[WideR]   = wide_ar_buf_hdr_out.hdr.src_id;
 
   for (genvar ch = 0; ch < NumNWAxiChannels; ch++) begin : gen_route_comp
-    localparam nw_ch_e nw_ch = nw_ch_e'(ch);
-    if (nw_ch == NarrowAw || nw_ch == NarrowAr ||
-        nw_ch == WideAw || nw_ch == WideAr) begin : gen_req_route_comp
+    localparam nw_ch_e Ch = nw_ch_e'(ch);
+    if (Ch == NarrowAw || Ch == NarrowAr ||
+        Ch == WideAw || Ch == WideAr) begin : gen_req_route_comp
 
       // Translate the address from AXI requests to a destination ID
       // (or route if `SourceRouting` is used)
@@ -668,8 +668,8 @@ module floo_nw_chimney #(
         .id_o       ( id_out[ch]        )
       );
     end else if (RouteCfg.RouteAlgo == floo_pkg::SourceRouting &&
-                 (nw_ch == NarrowB || nw_ch == NarrowR ||
-                  nw_ch == WideB || nw_ch == WideR)) begin : gen_rsp_route_comp
+                 (Ch == NarrowB || Ch == NarrowR ||
+                  Ch == WideB || Ch == WideR)) begin : gen_rsp_route_comp
       // Generally, the source ID from the request is used to route back
       // the responses. However, in the case of `SourceRouting`, the source ID
       // first needs to be translated into a route.
