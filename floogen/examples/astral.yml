@@ -2,42 +2,29 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-name: dual_cluster
-description: "Dual Cluster Configuration for FlooGen"
+name: astral
+description: "AXI mesh configuration with table-based routing for FlooGen"
+network_type: "axi"
 
 routing:
   route_algo: "ID"
   use_id_table: true
 
 protocols:
-  - name: "narrow"
-    type: "AXI4"
-    direction: "manager"
+  - name: "axi_in"
+    protocol: "AXI4"
+    data_width: 64
+    addr_width: 48
+    id_width: 6
+    user_width: 10
+    type_prefix: "in"
+  - name: "axi_out"
+    protocol: "AXI4"
     data_width: 64
     addr_width: 48
     id_width: 3
     user_width: 10
-  - name: "narrow"
-    type: "AXI4"
-    direction: "subordinate"
-    data_width: 64
-    addr_width: 48
-    id_width: 9
-    user_width: 10
-  - name: "wide"
-    type: "AXI4"
-    direction: "manager"
-    data_width: 64
-    addr_width: 48
-    id_width: 3
-    user_width: 10
-  - name: "wide"
-    type: "AXI4"
-    direction: "subordinate"
-    data_width: 64
-    addr_width: 48
-    id_width: 9
-    user_width: 10
+    type_prefix: "out"
 
 endpoints:
   - name: "cheshire"
@@ -45,69 +32,65 @@ endpoints:
       base: 0x0000_0000_0000
       size: 0x0000_2000_0000
     mgr_port_protocol:
-      - "narrow"
+      - "axi_in"
     sbr_port_protocol:
-      - "narrow"
+      - "axi_out"
   - name: "opentitan_main"
     mgr_port_protocol:
-      - "narrow"
+      - "axi_in"
   - name: "opentitan_dma"
     mgr_port_protocol:
-      - "narrow"
+      - "axi_in"
   - name: "l2_port0"
     addr_range:
       base: 0x0000_7800_0000
       size: 0x0000_0020_0000
     sbr_port_protocol:
-      - "narrow"
+      - "axi_out"
   - name: "l2_port1"
     addr_range:
       base: 0x0000_7820_0000
       size: 0x0000_0020_0000
     sbr_port_protocol:
-      - "narrow"
-  - name: "cluster_0"
+      - "axi_out"
+  - name: "cluster"
+    # array: [4, 4]
     addr_range:
-        base: 0x0000_5000_0000
-        size: 0x0000_0080_0000
+      base: 0x0000_5000_0000
+      size: 0x0000_0080_0000
     mgr_port_protocol:
-      - "narrow"
+      - "axi_in"
     sbr_port_protocol:
-      - "narrow"
-  # - name: "cluster_1"
-  #   addr_range:
-  #       base: 0x0000_5080_0000
-  #       size: 0x0000_0080_0000
-  #   mgr_port_protocol:
-  #     - "narrow"
-  #   sbr_port_protocol:
-  #     - "narrow"
+      - "axi_out"
   - name: "ethernet"
     mgr_port_protocol:
-      - "narrow"
+      - "axi_in"
   - name: "mbox"
     addr_range:
       base: 0x0000_4000_0000
       size: 0x0000_0000_3000
     sbr_port_protocol:
-      - "narrow"
+      - "axi_out"
   - name: "peripherals"
     addr_range:
       start: 0x0000_2100_0000
       end: 0x0000_4000_0000
     sbr_port_protocol:
-      - "narrow"
+      - "axi_out"
   - name: "dram"
+    # array: [4]
     addr_range:
       base: 0x0000_8000_0000
       size: 0x0000_8000_0000
     mgr_port_protocol:
-      - "narrow"
+      - "axi_in"
     sbr_port_protocol:
-      - "narrow"
+      - "axi_out"
 
 routers:
   - name: "router"
+    # array: [4, 4]
+    # degree: 5
 
 connections:
   - src: "cheshire"
@@ -120,10 +103,15 @@ connections:
     dst: "l2_port0"
   - src: "router"
     dst: "l2_port1"
-  - src: "cluster_0"
+  - src: "cluster"
     dst: "router"
-  # - src: "cluster_1"
-  #   dst: "router"
+    # src_range:
+    # - [0, 3]
+    # - [0, 3]
+    # dst_range:
+    # - [0, 3]
+    # - [0, 3]
+    # dst_dir: "Eject"
   - src: "ethernet"
     dst: "router"
   - src: "mbox"
@@ -131,5 +119,10 @@ connections:
   - src: "router"
     dst: "peripherals"
   - src: "router"
-    dst: "dram"  
-  
+    dst: "dram"
+    # src_range:
+    # - [0, 3]
+    # dst_range:
+    # - [0, 0]
+    # - [0, 3]
+    # dst_dir: "West"

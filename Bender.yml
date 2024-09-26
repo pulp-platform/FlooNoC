@@ -41,7 +41,7 @@ sources:
   # Level 3 (Wrappers)
   - hw/floo_axi_router.sv
   - hw/floo_nw_router.sv
-  - hw/dual_cluster_mesh/dual_cluster_floo_noc.sv
+  - hw/astral/floo_astral_noc.sv
 
   # VC Router (Level 1)
   - hw/vc_router_util/floo_credit_counter.sv
@@ -60,7 +60,7 @@ sources:
   - hw/floo_nw_vc_chimney.sv
   - hw/floo_nw_vc_router.sv
 
-  - target: test
+  - target: floonoc_test
     include_dirs:
       - hw/test/include
     files:
@@ -81,14 +81,14 @@ sources:
       - hw/tb/tb_floo_rob.sv
       - hw/tb/tb_floo_vc_router.sv
 
-  - target: all(test, axi_mesh)
+  - target: all(floonoc_test, axi_mesh)
     include_dirs:
       - hw/test/include
     files:
       - generated/floo_axi_mesh_noc.sv
       - hw/tb/tb_floo_axi_mesh.sv
 
-  - target: all(test, nw_mesh)
+  - target: all(floonoc_test, nw_mesh)
     include_dirs:
       - hw/test/include
     files:
