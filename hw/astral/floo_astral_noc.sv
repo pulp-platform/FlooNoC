@@ -49,8 +49,8 @@ localparam sam_rule_t[SamNumRules-1:0] Sam = '{
 '{idx: 9, start_addr: 48'h000021000000, end_addr: 48'h000040000000},// peripherals_ni
 '{idx: 6, start_addr: 48'h000040000000, end_addr: 48'h000040003000},// mbox_ni
 '{idx: 1, start_addr: 48'h000050000000, end_addr: 48'h000050800000},// cluster_ni
-'{idx: 5, start_addr: 48'h000078200000, end_addr: 48'h000078400000},// l2_port1_ni
-'{idx: 4, start_addr: 48'h000078000000, end_addr: 48'h000078200000},// l2_port0_ni
+'{idx: 5, start_addr: 48'h000078200000, end_addr: 48'h000078220000},// l2_port1_ni
+'{idx: 4, start_addr: 48'h000078000000, end_addr: 48'h000078020000},// l2_port0_ni
 '{idx: 0, start_addr: 48'h000000000000, end_addr: 48'h000020000000} // cheshire_ni
 
 };

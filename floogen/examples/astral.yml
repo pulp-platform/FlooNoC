@@ -44,13 +44,13 @@ endpoints:
   - name: "l2_port0"
     addr_range:
       base: 0x0000_7800_0000
-      size: 0x0000_0020_0000
+      size: 0x0000_0002_0000
     sbr_port_protocol:
       - "axi_out"
   - name: "l2_port1"
     addr_range:
       base: 0x0000_7820_0000
-      size: 0x0000_0020_0000
+      size: 0x0000_0002_0000
     sbr_port_protocol:
       - "axi_out"
   - name: "cluster"
