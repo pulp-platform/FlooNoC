@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../../img/floo_noc_favicon_logo.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.35">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.38">
     
     
       
@@ -26,7 +26,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.35f28582.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.8c3ca2c6.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
@@ -451,7 +451,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing.md" class="md-nav__link">
+      <a href="../../CONTRIBUTING/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1403,9 +1403,24 @@
 <p>A <code>union</code> essentially allows to represent multiple types of data in the same number of bits. This is also why <code>rsvd</code> bits are used in the flits, to ensure that the flits sent over a channel all have the same size. The <code>generic</code> is not meant to represent a flit with an actual payload, but can be used to decode the type of flit from its header.</p>
 <div class="admonition example">
 <p class="admonition-title">SystemVerilog Macros</p>
-<p>Similar to the flits, <em>FlooNoC</em> provides System Verilog macros in <code>typedef.svh</code> to generate the channel types such as <code>FLOO_TYPEDEF_AXI_CHAN_ALL</code> for a single-AXI configuration and <code>FLOO_TYPEDEF_AXI_CHAN_ALL</code> for a narrow-wide AXI configuration.</p>
+<p>Similar to the flits, <em>FlooNoC</em> provides System Verilog macros in <code>typedef.svh</code> to generate the channel types such as <code>FLOO_TYPEDEF_AXI_CHAN_ALL</code> for a single-AXI configuration and <code>FLOO_TYPEDEF_NW_CHAN_ALL</code> for a narrow-wide AXI configuration.</p>
 </div>
 <h2 id="links">Links</h2>
+<p>The links itself wraps a channel and additionally handles the flow control needed to send data from one node to another. <em>FlooNoC</em> primarily uses valid-ready handshaking flow control, but also has some support for credit-based flow control (see routers section for more information). The link then looks as follows:</p>
+<div class="highlight"><pre><span></span><code><span class="w">  </span><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="k">packed</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">logic</span><span class="w"> </span><span class="n">valid</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">logic</span><span class="w"> </span><span class="n">ready</span><span class="p">;</span>
+<span class="w">    </span><span class="n">floo_req_chan_t</span><span class="w"> </span><span class="n">req</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="n">floo_req_t</span><span class="p">;</span>
+</code></pre></div>
+<div class="admonition info">
+<p class="admonition-title">Bidirectional links</p>
+<p>Currently, <em>FlooNoC</em> only supports bidirectional links. This is why both <code>valid</code> and <code>ready</code> are encoded in the same link, eventhough they are separate from each other (i.e. the <code>ready</code> is an RX signal, while the <code>valid</code> is a TX signal).</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">SystemVerilog Macros</p>
+<p>Again, <em>FlooNoC</em> provides System Verilog macros in <code>typedef.svh</code> to generate the flit types. For instance, <code>FLOO_TYPEDEF_AXI_LINK_ALL</code> for a single-AXI configuration and <code>FLOO_TYPEDEF_NW_LINK_ALL</code> for a narrow-wide AXI configuration.</p>
+</div>
 
 
 
@@ -1428,7 +1443,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 18, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 28, 2024</span>
   </span>
 
     
@@ -1527,7 +1542,11 @@
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.footer", "content.code.copy"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.56dfad97.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d6f25eb3.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
     
   </body>
