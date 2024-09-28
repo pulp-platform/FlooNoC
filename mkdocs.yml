@@ -7,6 +7,10 @@ site_name: FlooNoC
 extra_css:
   - stylesheets/extra.css
 
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
 theme:
   logo: img/floo_noc_material_logo.png
   favicon: img/floo_noc_favicon_logo.png
@@ -55,6 +59,8 @@ markdown_extensions:
   - attr_list
   - footnotes
   - md_in_html
+  - pymdownx.arithmatex:
+      generic: true
   - pymdownx.details
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
