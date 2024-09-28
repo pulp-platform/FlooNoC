@@ -15,8 +15,10 @@ This repository provides modules for the FlooNoC, a Network-on-Chip (NoC) which 
 
 [![CI status](https://github.com/pulp-platform/FlooNoC/actions/workflows/gitlab-ci.yml/badge.svg?branch=main)](https://github.com/pulp-platform/FlooNoC/actions/workflows/gitlab-ci.yml?query=branch%3Amain)
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/pulp-platform/FlooNoC?color=blue&label=current&sort=semver)](CHANGELOG.md)
-![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![License](https://img.shields.io/badge/license-SHL--0.51-green)
+[![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE-APACHE)
+[![License](https://img.shields.io/badge/license-SHL--0.51-green)](LICENSE-SHL)
+[![Static Badge](https://img.shields.io/badge/IEEE_D%26T-blue?style=flat&label=DOI&color=00629b)](https://doi.org/10.1109/MDAT.2023.3306720)
+[![Static Badge](https://img.shields.io/badge/2409.17606-blue?style=flat&label=arXiv&color=b31b1b)](https://arxiv.org/abs/2409.17606)
 
 [Design Principles](#-design-principles) •
 [Getting started](#-getting-started) •
@@ -45,20 +47,40 @@ The names of the IPs are inspired by the [Harry Potter](https://en.wikipedia.org
 All code checked into this repository is made available under a permissive license. All software sources are licensed under the Apache License 2.0 (see [`LICENSE-APACHE`](LICENSE-APACHE)), and all hardware sources in the `hw` folder are licensed under the Solderpad Hardware License 0.51 (see [`LICENSE-SHL`](LICENSE-SHL)).
 
 ## 📚 Publication
-If you use FlooNoC in your research, please cite the following paper:
+If you use FlooNoC in your research, please cite the following papers:
+<details>
+<summary><b>FlooNoC: A 645 Gbps/link 0.15 pJ/B/hop Open-Source NoC with Wide Physical Links and End-to-End AXI4 Parallel Multi-Stream Support</b></summary>
+<p>
+
+```
+@misc{fischer2024floonoc645gbpslink015,
+      title={FlooNoC: A 645 Gbps/link 0.15 pJ/B/hop Open-Source NoC with Wide Physical Links and End-to-End AXI4 Parallel Multi-Stream Support},
+      author={Tim Fischer and Michael Rogenmoser and Thomas Benz and Frank K. Gürkaynak and Luca Benini},
+      year={2024},
+      eprint={2409.17606},
+      archivePrefix={arXiv},
+      primaryClass={cs.AR},
+      url={https://arxiv.org/abs/2409.17606}}
+```
+
+</p>
+</details>
 <details>
 <summary><b>FlooNoC: A Multi-Tbps Wide NoC for Heterogeneous AXI4 Traffic</b></summary>
 <p>
 
 ```
-@misc{fischer2023floonoc,
-      title={FlooNoC: A Multi-Tbps Wide NoC for Heterogeneous AXI4 Traffic},
-      author={Tim Fischer and Michael Rogenmoser and Matheus Cavalcante and Frank K. Gürkaynak and Luca Benini},
-      year={2023},
-      eprint={2305.08562},
-      archivePrefix={arXiv},
-      primaryClass={cs.AR}
-}
+@ARTICLE{10225380,
+  author={Fischer, Tim and Rogenmoser, Michael and Cavalcante, Matheus and Gürkaynak, Frank K. and Benini, Luca},
+  journal={IEEE Design & Test},
+  title={FlooNoC: A Multi-Tb/s Wide NoC for Heterogeneous AXI4 Traffic},
+  year={2023},
+  volume={40},
+  number={6},
+  pages={7-17},
+  keywords={Bandwidth;Protocols;Scalability;Routing;Payloads;Complexity theory;Network interfaces;Network-on-chip;Network-On-Chip;AXI;Network Interface;Physical design},
+  doi={10.1109/MDAT.2023.3306720}}
+
 ```
 
 </p>

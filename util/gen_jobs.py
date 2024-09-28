@@ -38,6 +38,7 @@ def gen_job_str(
     length: int,
     src_addr: int,
     dst_addr: int,
+    *,
     max_src_burst_size: int = 256,
     max_dst_burst_size: int = 256,
     r_aw_decouple: bool = False,
@@ -101,7 +102,7 @@ def gen_nw_chimney2chimney_traffic(
     bidir: bool,
     out_dir: str
 ):
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     """Generate Narrow Wide Chimney to Chimney traffic."""
     num_masters = 2
     for i in range(num_masters):
@@ -131,7 +132,7 @@ def gen_mesh_traffic(
     out_dir: str,
     **_kwargs
 ):
-    # pylint: disable=too-many-arguments, too-many-locals, too-many-branches, too-many-statements
+    # pylint: disable=too-many-arguments, too-many-locals, too-many-branches, too-many-statements, too-many-positional-arguments
     """Generate Mesh traffic."""
     for x in range(0, NUM_X):
         for y in range(0, NUM_Y):
