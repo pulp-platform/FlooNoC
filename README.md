@@ -17,8 +17,8 @@ This repository provides modules for the FlooNoC, a Network-on-Chip (NoC) which 
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/pulp-platform/FlooNoC?color=blue&label=current&sort=semver)](CHANGELOG.md)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 ![License](https://img.shields.io/badge/license-SHL--0.51-green)
-![Static Badge](https://img.shields.io/badge/IEEE_D%26T-blue?style=flat&label=DOI&link=https%3A%2F%2Fdoi.org%2F10.1109%2FMDAT.2023.3306720)
-![Static Badge](https://img.shields.io/badge/2409.17606-blue?style=flat&label=arXiv&color=b31b1b&link=https%3A%2F%2Farxiv.org%2Fabs%2F2409.17606)
+[![Static Badge](https://img.shields.io/badge/IEEE_D%26T-blue?style=flat&label=DOI&link=https%3A%2F%2Fdoi.org%2F10.1109%2FMDAT.2023.3306720)]
+[![Static Badge](https://img.shields.io/badge/2409.17606-blue?style=flat&label=arXiv&color=b31b1b&link=https%3A%2F%2Farxiv.org%2Fabs%2F2409.17606)]
 
 [Design Principles](#-design-principles) •
 [Getting started](#-getting-started) •
