@@ -84,7 +84,23 @@ typedef union packed {
 A `union` essentially allows to represent multiple types of data in the same number of bits. This is also why `rsvd` bits are used in the flits, to ensure that the flits sent over a channel all have the same size. The `generic` is not meant to represent a flit with an actual payload, but can be used to decode the type of flit from its header.
 
 !!! example "SystemVerilog Macros"
-    Similar to the flits, _FlooNoC_ provides System Verilog macros in `typedef.svh` to generate the channel types such as `FLOO_TYPEDEF_AXI_CHAN_ALL` for a single-AXI configuration and `FLOO_TYPEDEF_AXI_CHAN_ALL` for a narrow-wide AXI configuration.
+    Similar to the flits, _FlooNoC_ provides System Verilog macros in `typedef.svh` to generate the channel types such as `FLOO_TYPEDEF_AXI_CHAN_ALL` for a single-AXI configuration and `FLOO_TYPEDEF_NW_CHAN_ALL` for a narrow-wide AXI configuration.
 
 
 ## Links
+
+The links itself wraps a channel and additionally handles the flow control needed to send data from one node to another. _FlooNoC_ primarily uses valid-ready handshaking flow control, but also has some support for credit-based flow control (see routers section for more information). The link then looks as follows:
+
+```verilog
+  typedef struct packed {
+    logic valid;
+    logic ready;
+    floo_req_chan_t req;
+  } floo_req_t;
+```
+
+!!! info "Bidirectional links"
+    Currently, _FlooNoC_ only supports bidirectional links. This is why both `valid` and `ready` are encoded in the same link, eventhough they are separate from each other (i.e. the `ready` is an RX signal, while the `valid` is a TX signal).
+
+!!! example "SystemVerilog Macros"
+    Again, _FlooNoC_ provides System Verilog macros in `typedef.svh` to generate the flit types. For instance, `FLOO_TYPEDEF_AXI_LINK_ALL` for a single-AXI configuration and `FLOO_TYPEDEF_NW_LINK_ALL` for a narrow-wide AXI configuration.
