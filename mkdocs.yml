@@ -69,7 +69,7 @@ nav:
   - index.md
   - Repository Structure: repository_structure.md
   - License: license.md
-  - Contributing: contributing.md
+  - Contributing: CONTRIBUTING.md
 - Getting Started: getting_started.md
 - Hardware IPs:
   - Overview: hw/overview.md
