@@ -151,26 +151,19 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
     def get_nodes_from_range(self, node: str, rng: List[Tuple[int]]):
         """Return the nodes from the range."""
         nodes = []
-        match rng:
-            # 2D range
-            case [(start1, end1), (start2, end2)]:
-                for x in range(start1, end1 + 1):
-                    for y in range(start2, end2 + 1):
-                        node_name = f"{node}_{x}_{y}"
-                        if self.has_node(node_name):
-                            nodes.append(node_name)
-                        else:
-                            raise ValueError(f"Node {node_name} does not exist")
-            # 1D range
-            case [(start, end)]:
-                for i in range(start, end + 1):
-                    node_name = f"{node}_{i}"
-                    if self.has_node(node_name):
-                        nodes.append(node_name)
-                    else:
-                        raise ValueError(f"Node {node_name} does not exist")
-            case _:
-                raise NotImplementedError(f"Unsupported range {rng}")
+        if len(rng) == 0:
+            raise ValueError("Range is empty")
+        start, end = rng[0]
+        step = 1 if end > start else -1
+        for i in range(start, end + step, step):
+            if len (rng) == 1:
+                node_name = f"{node}_{i}"
+                if self.has_node(node_name):
+                    nodes.append(node_name)
+                else:
+                    raise ValueError(f"Node {node_name} does not exist")
+            else:
+                nodes.extend(self.get_nodes_from_range(f"{node}_{i}", rng[1:]))
         return nodes
 
     def get_nodes_from_idx(self, node: str, idx: List[int]):
