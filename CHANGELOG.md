@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - The `data_width` and `user_width` fields for `protocols` are now also validated to be compatible with each other.
 - All the various `*Cfg`'s is now rendered by _FlooGen_, either in the `*_noc_pkg` or in the `*_noc` module itself.
 - Added support for single-AXI configuration networks.
+- Support for negative increments when specifying a `src_range` or `dst_range` in the `connections` schema.
 
 ### Changed
 
