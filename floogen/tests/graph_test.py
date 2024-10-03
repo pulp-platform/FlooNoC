@@ -248,6 +248,33 @@ def test_get_nodes_from_range3(graph):
     nodes = graph.get_nodes_from_range("A", [(0, 3)])
     assert nodes == ["A_0", "A_1", "A_2", "A_3"]
 
+def test_get_nodes_from_range4(graph):
+    """Test getting all nodes from a range"""
+    graph.add_node("A_0", type="router")
+    graph.add_node("A_1", type="router")
+    graph.add_node("A_2", type="router")
+    graph.add_node("A_3", type="router")
+    nodes = graph.get_nodes_from_range("A", [(2, 1)])
+    assert nodes == ["A_2", "A_1"]
+
+def test_get_nodes_from_range_fail1(graph):
+    """Test getting all nodes from a range"""
+    graph.add_node("A_0", type="router")
+    graph.add_node("A_1", type="router")
+    graph.add_node("A_2", type="router")
+    graph.add_node("A_3", type="router")
+    with pytest.raises(ValueError):
+        graph.get_nodes_from_range("A", [(0, 1), (0, 1)])
+
+def test_get_nodes_from_range_fail2(graph):
+    """Test getting all nodes from a range"""
+    graph.add_node("A_0", type="router")
+    graph.add_node("A_1", type="router")
+    graph.add_node("A_2", type="router")
+    graph.add_node("A_3", type="router")
+    with pytest.raises(ValueError):
+        graph.get_nodes_from_range("A", [(0, 99)])
+
 
 def test_get_nodes_from_idx(graph):
     """Test getting all nodes from an index"""
