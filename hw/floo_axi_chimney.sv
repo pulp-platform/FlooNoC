@@ -238,6 +238,8 @@ module floo_axi_chimney #(
       .slv_resp_o ( axi_in_rsp_o  )
     );
     assign axi_req_in = '0;
+    assign axi_rsp_out.aw_ready = axi_aw_queue_ready_in;
+    assign axi_rsp_out.ar_ready = axi_ar_queue_ready_in;
     assign axi_aw_queue = '0;
     assign axi_ar_queue = '0;
     assign axi_aw_queue_valid_out = 1'b0;
