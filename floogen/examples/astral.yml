@@ -79,13 +79,14 @@ endpoints:
       end: 0x0000_4000_0000
     sbr_port_protocol:
       - "axi_out"
+  - name: "llc"
+    mgr_port_protocol:
+      - "axi_in"
   - name: "dram"
     # array: [4]
     addr_range:
       base: 0x0000_8000_0000
       size: 0x0000_8000_0000
-    mgr_port_protocol:
-      - "axi_in"
     sbr_port_protocol:
       - "axi_out"
 
@@ -120,6 +121,8 @@ connections:
     dst: "router"
   - src: "router"
     dst: "peripherals"
+  - src: "llc"
+    dst: "router"
   - src: "router"
     dst: "dram"
     # src_range:

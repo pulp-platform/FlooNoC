@@ -22,11 +22,12 @@ package floo_astral_noc_pkg;
     EthernetNi = 3,
     L2Port0Ni = 4,
     L2Port1Ni = 5,
-    MboxNi = 6,
-    OpentitanDmaNi = 7,
-    OpentitanMainNi = 8,
-    PeripheralsNi = 9,
-    NumEndpoints = 10} ep_id_e;
+    LlcNi = 6,
+    MboxNi = 7,
+    OpentitanDmaNi = 8,
+    OpentitanMainNi = 9,
+    PeripheralsNi = 10,
+    NumEndpoints = 11} ep_id_e;
 
 
 
@@ -46,8 +47,8 @@ typedef struct packed {
 
 localparam sam_rule_t[SamNumRules-1:0] Sam = '{
 '{idx: 2, start_addr: 48'h000080000000, end_addr: 48'h000100000000},// dram_ni
-'{idx: 9, start_addr: 48'h000021000000, end_addr: 48'h000040000000},// peripherals_ni
-'{idx: 6, start_addr: 48'h000040000000, end_addr: 48'h000040003000},// mbox_ni
+'{idx: 10, start_addr: 48'h000021000000, end_addr: 48'h000040000000},// peripherals_ni
+'{idx: 7, start_addr: 48'h000040000000, end_addr: 48'h000040003000},// mbox_ni
 '{idx: 1, start_addr: 48'h000050000000, end_addr: 48'h000050800000},// cluster_ni
 '{idx: 5, start_addr: 48'h000078200000, end_addr: 48'h000078220000},// l2_port1_ni
 '{idx: 4, start_addr: 48'h000078000000, end_addr: 48'h000078020000},// l2_port0_ni
@@ -62,10 +63,11 @@ localparam sam_rule_t[SamNumRules-1:0] Sam = '{
 4'b0001,// -> opentitan_main_ni
 4'b0010,// -> opentitan_dma_ni
 4'b????,// -> mbox_ni
+4'b1001,// -> llc_ni
 4'b????,// -> l2_port1_ni
 4'b????,// -> l2_port0_ni
 4'b0110,// -> ethernet_ni
-4'b1001,// -> dram_ni
+4'b????,// -> dram_ni
 4'b0101,// -> cluster_ni
 4'b0000 // -> cheshire_ni
 },
@@ -74,10 +76,11 @@ localparam sam_rule_t[SamNumRules-1:0] Sam = '{
 4'b????,// -> opentitan_main_ni
 4'b????,// -> opentitan_dma_ni
 4'b0111,// -> mbox_ni
+4'b????,// -> llc_ni
 4'b0100,// -> l2_port1_ni
 4'b0011,// -> l2_port0_ni
 4'b????,// -> ethernet_ni
-4'b1001,// -> dram_ni
+4'b1010,// -> dram_ni
 4'b0101,// -> cluster_ni
 4'b0000 // -> cheshire_ni
 },
@@ -86,10 +89,11 @@ localparam sam_rule_t[SamNumRules-1:0] Sam = '{
 4'b????,// -> opentitan_main_ni
 4'b????,// -> opentitan_dma_ni
 4'b0111,// -> mbox_ni
+4'b????,// -> llc_ni
 4'b0100,// -> l2_port1_ni
 4'b0011,// -> l2_port0_ni
 4'b????,// -> ethernet_ni
-4'b1001,// -> dram_ni
+4'b1010,// -> dram_ni
 4'b0101,// -> cluster_ni
 4'b0000 // -> cheshire_ni
 },
@@ -98,34 +102,11 @@ localparam sam_rule_t[SamNumRules-1:0] Sam = '{
 4'b0001,// -> opentitan_main_ni
 4'b0010,// -> opentitan_dma_ni
 4'b????,// -> mbox_ni
+4'b1001,// -> llc_ni
 4'b????,// -> l2_port1_ni
 4'b????,// -> l2_port0_ni
 4'b0110,// -> ethernet_ni
-4'b1001,// -> dram_ni
-4'b0101,// -> cluster_ni
-4'b0000 // -> cheshire_ni
-},
-'{
-4'b????,// -> peripherals_ni
-4'b0001,// -> opentitan_main_ni
-4'b0010,// -> opentitan_dma_ni
-4'b????,// -> mbox_ni
-4'b????,// -> l2_port1_ni
-4'b????,// -> l2_port0_ni
-4'b0110,// -> ethernet_ni
-4'b1001,// -> dram_ni
-4'b0101,// -> cluster_ni
-4'b0000 // -> cheshire_ni
-},
-'{
-4'b????,// -> peripherals_ni
-4'b0001,// -> opentitan_main_ni
-4'b0010,// -> opentitan_dma_ni
-4'b????,// -> mbox_ni
-4'b????,// -> l2_port1_ni
-4'b????,// -> l2_port0_ni
-4'b0110,// -> ethernet_ni
-4'b1001,// -> dram_ni
+4'b????,// -> dram_ni
 4'b0101,// -> cluster_ni
 4'b0000 // -> cheshire_ni
 },
@@ -134,20 +115,61 @@ localparam sam_rule_t[SamNumRules-1:0] Sam = '{
 4'b????,// -> opentitan_main_ni
 4'b????,// -> opentitan_dma_ni
 4'b0111,// -> mbox_ni
+4'b????,// -> llc_ni
 4'b0100,// -> l2_port1_ni
 4'b0011,// -> l2_port0_ni
 4'b????,// -> ethernet_ni
-4'b1001,// -> dram_ni
+4'b1010,// -> dram_ni
+4'b0101,// -> cluster_ni
+4'b0000 // -> cheshire_ni
+},
+'{
+4'b????,// -> peripherals_ni
+4'b0001,// -> opentitan_main_ni
+4'b0010,// -> opentitan_dma_ni
+4'b????,// -> mbox_ni
+4'b1001,// -> llc_ni
+4'b????,// -> l2_port1_ni
+4'b????,// -> l2_port0_ni
+4'b0110,// -> ethernet_ni
+4'b????,// -> dram_ni
+4'b0101,// -> cluster_ni
+4'b0000 // -> cheshire_ni
+},
+'{
+4'b????,// -> peripherals_ni
+4'b0001,// -> opentitan_main_ni
+4'b0010,// -> opentitan_dma_ni
+4'b????,// -> mbox_ni
+4'b1001,// -> llc_ni
+4'b????,// -> l2_port1_ni
+4'b????,// -> l2_port0_ni
+4'b0110,// -> ethernet_ni
+4'b????,// -> dram_ni
 4'b0101,// -> cluster_ni
 4'b0000 // -> cheshire_ni
 },
 '{
 4'b1000,// -> peripherals_ni
-4'b0001,// -> opentitan_main_ni
-4'b0010,// -> opentitan_dma_ni
+4'b????,// -> opentitan_main_ni
+4'b????,// -> opentitan_dma_ni
 4'b0111,// -> mbox_ni
+4'b????,// -> llc_ni
 4'b0100,// -> l2_port1_ni
 4'b0011,// -> l2_port0_ni
+4'b????,// -> ethernet_ni
+4'b1010,// -> dram_ni
+4'b0101,// -> cluster_ni
+4'b0000 // -> cheshire_ni
+},
+'{
+4'b????,// -> peripherals_ni
+4'b0001,// -> opentitan_main_ni
+4'b0010,// -> opentitan_dma_ni
+4'b????,// -> mbox_ni
+4'b1001,// -> llc_ni
+4'b????,// -> l2_port1_ni
+4'b????,// -> l2_port0_ni
 4'b0110,// -> ethernet_ni
 4'b????,// -> dram_ni
 4'b0101,// -> cluster_ni
@@ -158,10 +180,11 @@ localparam sam_rule_t[SamNumRules-1:0] Sam = '{
 4'b0001,// -> opentitan_main_ni
 4'b0010,// -> opentitan_dma_ni
 4'b0111,// -> mbox_ni
+4'b1001,// -> llc_ni
 4'b0100,// -> l2_port1_ni
 4'b0011,// -> l2_port0_ni
 4'b0110,// -> ethernet_ni
-4'b1001,// -> dram_ni
+4'b1010,// -> dram_ni
 4'b????,// -> cluster_ni
 4'b0000 // -> cheshire_ni
 },
@@ -170,10 +193,11 @@ localparam sam_rule_t[SamNumRules-1:0] Sam = '{
 4'b0001,// -> opentitan_main_ni
 4'b0010,// -> opentitan_dma_ni
 4'b0111,// -> mbox_ni
+4'b1001,// -> llc_ni
 4'b0100,// -> l2_port1_ni
 4'b0011,// -> l2_port0_ni
 4'b0110,// -> ethernet_ni
-4'b1001,// -> dram_ni
+4'b1010,// -> dram_ni
 4'b0101,// -> cluster_ni
 4'b???? // -> cheshire_ni
 }}
@@ -186,7 +210,7 @@ localparam sam_rule_t[SamNumRules-1:0] Sam = '{
     XYAddrOffsetY: 0,
     IdAddrOffset: 0,
     NumSamRules: 7,
-    NumRoutes: 10};
+    NumRoutes: 11};
 
 
   typedef logic[47:0] in_axi_in_addr_t;
@@ -248,8 +272,8 @@ module floo_astral_noc
   input out_axi_out_rsp_t              mbox_axi_out_rsp_i,
   output out_axi_out_req_t              peripherals_axi_out_req_o,
   input out_axi_out_rsp_t              peripherals_axi_out_rsp_i,
-  input in_axi_in_req_t              dram_axi_in_req_i,
-  output in_axi_in_rsp_t              dram_axi_in_rsp_o,
+  input in_axi_in_req_t              llc_axi_in_req_i,
+  output in_axi_in_rsp_t              llc_axi_in_rsp_o,
   output out_axi_out_req_t              dram_axi_out_req_o,
   input out_axi_out_rsp_t              dram_axi_out_rsp_i
 
@@ -282,6 +306,9 @@ floo_rsp_t mbox_ni_to_router_rsp;
 floo_req_t router_to_peripherals_ni_req;
 floo_rsp_t peripherals_ni_to_router_rsp;
 
+floo_req_t router_to_llc_ni_req;
+floo_rsp_t llc_ni_to_router_rsp;
+
 floo_req_t router_to_dram_ni_req;
 floo_rsp_t dram_ni_to_router_rsp;
 
@@ -311,6 +338,9 @@ floo_rsp_t router_to_mbox_ni_rsp;
 
 floo_req_t peripherals_ni_to_router_req;
 floo_rsp_t router_to_peripherals_ni_rsp;
+
+floo_req_t llc_ni_to_router_req;
+floo_rsp_t router_to_llc_ni_rsp;
 
 floo_req_t dram_ni_to_router_req;
 floo_rsp_t router_to_dram_ni_rsp;
@@ -377,7 +407,7 @@ floo_axi_chimney  #(
   .axi_in_rsp_o  ( opentitan_main_axi_in_rsp_o ),
   .axi_out_req_o (    ),
   .axi_out_rsp_i ( '0 ),
-  .id_i             ( id_t'(8) ),
+  .id_i             ( id_t'(9) ),
   .route_table_i    ( RoutingTables[OpentitanMainNi]  ),
   .floo_req_o       ( opentitan_main_ni_to_router_req   ),
   .floo_rsp_i       ( router_to_opentitan_main_ni_rsp   ),
@@ -411,7 +441,7 @@ floo_axi_chimney  #(
   .axi_in_rsp_o  ( opentitan_dma_axi_in_rsp_o ),
   .axi_out_req_o (    ),
   .axi_out_rsp_i ( '0 ),
-  .id_i             ( id_t'(7) ),
+  .id_i             ( id_t'(8) ),
   .route_table_i    ( RoutingTables[OpentitanDmaNi]  ),
   .floo_req_o       ( opentitan_dma_ni_to_router_req   ),
   .floo_rsp_i       ( router_to_opentitan_dma_ni_rsp   ),
@@ -581,7 +611,7 @@ floo_axi_chimney  #(
   .axi_in_rsp_o  (    ),
   .axi_out_req_o ( mbox_axi_out_req_o ),
   .axi_out_rsp_i ( mbox_axi_out_rsp_i ),
-  .id_i             ( id_t'(6) ),
+  .id_i             ( id_t'(7) ),
   .route_table_i    ( RoutingTables[MboxNi]  ),
   .floo_req_o       ( mbox_ni_to_router_req   ),
   .floo_rsp_i       ( router_to_mbox_ni_rsp   ),
@@ -615,7 +645,7 @@ floo_axi_chimney  #(
   .axi_in_rsp_o  (    ),
   .axi_out_req_o ( peripherals_axi_out_req_o ),
   .axi_out_rsp_i ( peripherals_axi_out_rsp_i ),
-  .id_i             ( id_t'(9) ),
+  .id_i             ( id_t'(10) ),
   .route_table_i    ( RoutingTables[PeripheralsNi]  ),
   .floo_req_o       ( peripherals_ni_to_router_req   ),
   .floo_rsp_i       ( router_to_peripherals_ni_rsp   ),
@@ -625,7 +655,41 @@ floo_axi_chimney  #(
 
 floo_axi_chimney  #(
   .AxiCfg(AxiCfg),
-  .ChimneyCfg(set_ports(ChimneyDefaultCfg, 1'b1, 1'b1)),
+  .ChimneyCfg(set_ports(ChimneyDefaultCfg, 1'b0, 1'b1)),
+  .RouteCfg(RouteCfg),
+  .id_t(id_t),
+  .rob_idx_t(rob_idx_t),
+  .route_t (route_t),
+  .dst_t   (route_t),
+  .hdr_t  (hdr_t),
+  .sam_rule_t(sam_rule_t),
+  .Sam(Sam),
+  .axi_in_req_t(in_axi_in_req_t),
+  .axi_in_rsp_t(in_axi_in_rsp_t),
+  .axi_out_req_t(out_axi_out_req_t),
+  .axi_out_rsp_t(out_axi_out_rsp_t),
+  .floo_req_t(floo_req_t),
+  .floo_rsp_t(floo_rsp_t)
+) llc_ni (
+  .clk_i,
+  .rst_ni,
+  .test_enable_i,
+  .sram_cfg_i ( '0 ),
+  .axi_in_req_i  ( llc_axi_in_req_i ),
+  .axi_in_rsp_o  ( llc_axi_in_rsp_o ),
+  .axi_out_req_o (    ),
+  .axi_out_rsp_i ( '0 ),
+  .id_i             ( id_t'(6) ),
+  .route_table_i    ( RoutingTables[LlcNi]  ),
+  .floo_req_o       ( llc_ni_to_router_req   ),
+  .floo_rsp_i       ( router_to_llc_ni_rsp   ),
+  .floo_req_i       ( router_to_llc_ni_req   ),
+  .floo_rsp_o       ( llc_ni_to_router_rsp   )
+);
+
+floo_axi_chimney  #(
+  .AxiCfg(AxiCfg),
+  .ChimneyCfg(set_ports(ChimneyDefaultCfg, 1'b1, 1'b0)),
   .RouteCfg(RouteCfg),
   .id_t(id_t),
   .rob_idx_t(rob_idx_t),
@@ -645,8 +709,8 @@ floo_axi_chimney  #(
   .rst_ni,
   .test_enable_i,
   .sram_cfg_i ( '0 ),
-  .axi_in_req_i  ( dram_axi_in_req_i ),
-  .axi_in_rsp_o  ( dram_axi_in_rsp_o ),
+  .axi_in_req_i  ( '0 ),
+  .axi_in_rsp_o  (    ),
   .axi_out_req_o ( dram_axi_out_req_o ),
   .axi_out_rsp_i ( dram_axi_out_rsp_i ),
   .id_i             ( id_t'(2) ),
@@ -658,10 +722,10 @@ floo_axi_chimney  #(
 );
 
 
-floo_req_t [9:0] router_req_in;
-floo_rsp_t [9:0] router_rsp_out;
-floo_req_t [9:0] router_req_out;
-floo_rsp_t [9:0] router_rsp_in;
+floo_req_t [10:0] router_req_in;
+floo_rsp_t [10:0] router_rsp_out;
+floo_req_t [10:0] router_req_out;
+floo_rsp_t [10:0] router_rsp_in;
 
     assign router_req_in[0] = cheshire_ni_to_router_req;
     assign router_req_in[1] = opentitan_main_ni_to_router_req;
@@ -672,7 +736,8 @@ floo_rsp_t [9:0] router_rsp_in;
     assign router_req_in[6] = ethernet_ni_to_router_req;
     assign router_req_in[7] = mbox_ni_to_router_req;
     assign router_req_in[8] = peripherals_ni_to_router_req;
-    assign router_req_in[9] = dram_ni_to_router_req;
+    assign router_req_in[9] = llc_ni_to_router_req;
+    assign router_req_in[10] = dram_ni_to_router_req;
 
     assign router_to_cheshire_ni_rsp = router_rsp_out[0];
     assign router_to_opentitan_main_ni_rsp = router_rsp_out[1];
@@ -683,7 +748,8 @@ floo_rsp_t [9:0] router_rsp_in;
     assign router_to_ethernet_ni_rsp = router_rsp_out[6];
     assign router_to_mbox_ni_rsp = router_rsp_out[7];
     assign router_to_peripherals_ni_rsp = router_rsp_out[8];
-    assign router_to_dram_ni_rsp = router_rsp_out[9];
+    assign router_to_llc_ni_rsp = router_rsp_out[9];
+    assign router_to_dram_ni_rsp = router_rsp_out[10];
 
     assign router_to_cheshire_ni_req = router_req_out[0];
     assign router_to_opentitan_main_ni_req = router_req_out[1];
@@ -694,7 +760,8 @@ floo_rsp_t [9:0] router_rsp_in;
     assign router_to_ethernet_ni_req = router_req_out[6];
     assign router_to_mbox_ni_req = router_req_out[7];
     assign router_to_peripherals_ni_req = router_req_out[8];
-    assign router_to_dram_ni_req = router_req_out[9];
+    assign router_to_llc_ni_req = router_req_out[9];
+    assign router_to_dram_ni_req = router_req_out[10];
 
     assign router_rsp_in[0] = cheshire_ni_to_router_rsp;
     assign router_rsp_in[1] = opentitan_main_ni_to_router_rsp;
@@ -705,14 +772,15 @@ floo_rsp_t [9:0] router_rsp_in;
     assign router_rsp_in[6] = ethernet_ni_to_router_rsp;
     assign router_rsp_in[7] = mbox_ni_to_router_rsp;
     assign router_rsp_in[8] = peripherals_ni_to_router_rsp;
-    assign router_rsp_in[9] = dram_ni_to_router_rsp;
+    assign router_rsp_in[9] = llc_ni_to_router_rsp;
+    assign router_rsp_in[10] = dram_ni_to_router_rsp;
 
 floo_axi_router #(
   .AxiCfg(AxiCfg),
   .RouteAlgo (SourceRouting),
-  .NumRoutes (10),
-  .NumInputs (10),
-  .NumOutputs (10),
+  .NumRoutes (11),
+  .NumInputs (11),
+  .NumOutputs (11),
   .InFifoDepth (2),
   .OutFifoDepth (2),
   .id_t(id_t),
