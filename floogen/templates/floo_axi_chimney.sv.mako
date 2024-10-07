@@ -1,5 +1,5 @@
 <%! from floogen.utils import snake_to_camel, bool_to_sv %>\
-<% actual_xy_id = ni.id - ni.routing.id_offset if ni.routing.id_offset is not None else ni.id %>\
+<% actual_xy_id = ni.id - ni.routing.xy_id_offset if ni.routing.xy_id_offset is not None else ni.id %>\
 <% in_prot = next((prot for prot in noc.protocols if prot.direction == "input"), None) %>\
 <% out_prot = next((prot for prot in noc.protocols if prot.direction == "output"), None) %>\
 

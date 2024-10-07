@@ -26,7 +26,7 @@ class RouterDesc(BaseModel):
     name: str
     array: Optional[Union[Tuple[int], Tuple[int, int]]] = None
     tree: Optional[List[int]] = None
-    id_offset: Optional[Id] = None
+    xy_id_offset: Optional[Id] = None
     auto_connect: Optional[bool] = True
     degree: Optional[int] = None
 

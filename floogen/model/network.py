@@ -304,15 +304,16 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     def compile_ids(self):
         """Infer the id type from the network."""
+        # Add XY coordinates to the nodes
         match self.routing.route_algo:
             case RouteAlgo.XY:
                 # 1st stage: Get all router nodes
                 for node_name, node in self.graph.get_rt_nodes(with_name=True):
                     x, y = self.graph.get_node_arr_idx(node_name)
-                    node_id = Coord(x=x, y=y)
-                    if node.id_offset is not None:
-                        node_id += node.id_offset
-                    self.graph.nodes[node_name]["id"] = node_id
+                    node_xy_id = Coord(x=x, y=y)
+                    if node.xy_id_offset is not None:
+                        node_xy_id += node.xy_id_offset
+                    self.graph.nodes[node_name]["id"] = node_xy_id
                 for node_name, node in self.graph.get_ni_nodes(with_name=True):
                     # Search for a neighbor node *with* an array index
                     for neighbor in self.graph.neighbors(node_name):
@@ -320,32 +321,37 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                             # If it has a directed edge, we can derive the coordinate from there
                             edge = self.graph.edges[(node_name, neighbor)]
                             if edge["dst_dir"] is not None:
-                                node_id = self.graph.nodes[neighbor]["id"] + XYDirections.to_coords(
-                                    edge["dst_dir"]
-                                )
+                                node_xy_id = self.graph.nodes[neighbor][
+                                    "id"
+                                ] + XYDirections.to_coords(edge["dst_dir"])
                                 break
                             edge = self.graph.edges[(neighbor, node_name)]
                             if edge["src_dir"] is not None:
-                                node_id = self.graph.nodes[neighbor]["id"] + XYDirections.to_coords(
-                                    edge["src_dir"]
-                                )
+                                node_xy_id = self.graph.nodes[neighbor][
+                                    "id"
+                                ] + XYDirections.to_coords(edge["src_dir"])
                                 break
-                    assert node_id is not None
-                    if node.id_offset is not None:
-                        node_id += node.id_offset
-                    self.graph.nodes[node_name]["id"] = node_id
+                    assert node_xy_id is not None
+                    if node.xy_id_offset is not None:
+                        node_xy_id += node.xy_id_offset
+                    self.graph.nodes[node_name]["id"] = node_xy_id
             case RouteAlgo.ID | RouteAlgo.SRC:
                 for ep_name, ep in self.graph.get_ep_nodes(with_name=True):
                     node_id = SimpleId(id=self.graph.create_unique_ep_id(ep_name))
-                    if ep.id_offset is not None:
-                        node_id += ep.id_offset
                     ni_name = ep.get_ni_name(ep_name)
                     self.graph.nodes[ep_name]["id"] = node_id
                     self.graph.nodes[ni_name]["id"] = node_id
 
+        # Add unique IDs (uid's) to the nodes
+        for ep_name, ep in self.graph.get_ep_nodes(with_name=True):
+            node_id = SimpleId(id=self.graph.create_unique_ep_id(ep_name))
+            ni_name = ep.get_ni_name(ep_name)
+            self.graph.nodes[ep_name]["uid"] = node_id
+            self.graph.nodes[ni_name]["uid"] = node_id
+
     def compile_links(self):
         """Infer the link type from the network."""
-        for edge, _ in self.graph.get_link_edges(with_name=True):
+        for edge in self.graph.get_link_edges(with_obj=False, with_name=True):
             # Check if link is bidirectional
             is_bidirectional = self.graph.has_edge(edge[1], edge[0])
             link = {
@@ -484,7 +490,8 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 "endpoint": ep_desc,
                 "routing": self.routing,
                 "addr_range": ep_desc.addr_range.model_copy() if ep_desc.addr_range else None,
-                "id": self.graph.get_node_id(ni_name).model_copy(),
+                "id": self.graph.get_node_id(node_name=ni_name).model_copy(),
+                "uid": self.graph.get_node_uid(node_name=ni_name).model_copy(),
             }
 
             assert ep_desc
@@ -603,7 +610,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         xy_routing_info["num_x_bits"] = clog2(max_x - min_x + 1)
         xy_routing_info["num_y_bits"] = clog2(max_y - min_y + 1)
         xy_routing_info["addr_offset_bits"] = clog2(max_address)
-        xy_routing_info["id_offset"] = Coord(x=min_x, y=min_y)
+        xy_routing_info["xy_id_offset"] = Coord(x=min_x, y=min_y)
         return xy_routing_info
 
     def gen_routes(self):
@@ -645,8 +652,8 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         ni_sbr_nodes = reversed([ni for ni in self.graph.get_ni_nodes() if ni.is_sbr()])
         for ni in ni_sbr_nodes:
             dest = ni.id
-            if self.routing.id_offset is not None:
-                dest -= self.routing.id_offset
+            if self.routing.xy_id_offset is not None:
+                dest -= self.routing.xy_id_offset
             addr_range = ni.addr_range
             addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, desc=ni.name)
             addr_table.append(addr_rule)
@@ -713,7 +720,11 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     def render_ni_tables(self):
         """Render the network interfaces tables in the generated code."""
         string = ""
-        sorted_ni_list = sorted(self.graph.get_ni_nodes(), key=lambda ni: ni.id.id, reverse=True)
+        sorted_ni_list = sorted(
+            self.graph.get_ni_nodes(),
+            key=lambda ni: self.graph.get_node_id(node_obj=ni),
+            reverse=True
+        )
         for ni in sorted_ni_list:
             string += ni.table.render(
                 num_route_bits=self.routing.num_route_bits, no_decl=True)
@@ -735,11 +746,9 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     def render_ep_enum(self):
         """Render the endpoint enum in the generated code."""
-        match self.routing.route_algo:
-            case RouteAlgo.XY:
-                fields_dict = {ep.name: i for i, ep in enumerate(self.graph.get_ni_nodes())}
-            case RouteAlgo.ID | RouteAlgo.SRC:
-                fields_dict = {ep.name: ep.id.id for ep in self.graph.get_ni_nodes()}
+        fields_dict = {
+            ep.name: self.graph.get_node_uid(node_obj=ep).id for ep in self.graph.get_ni_nodes()
+        }
         fields_dict = dict(sorted(fields_dict.items(), key=lambda item: item[1]))
         fields_dict["num_endpoints"] = len(fields_dict)
         return sv_enum_typedef(name="ep_id_e", fields_dict=fields_dict)
@@ -750,8 +759,8 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     def visualize(self, savefig=True, filename: pathlib.Path = "network.png"):
         """Visualize the network graph."""
-        ni_nodes = [name for name, _ in self.graph.get_ni_nodes(with_name=True)]
-        router_nodes = [name for name, _ in self.graph.get_rt_nodes(with_name=True)]
+        ni_nodes = self.graph.get_ni_nodes(with_obj=False, with_name=True)
+        router_nodes = self.graph.get_rt_nodes(with_obj=False, with_name=True)
         filtered_graph = self.graph.subgraph(ni_nodes + router_nodes)
         nx.draw(filtered_graph, with_labels=True)
         if savefig:

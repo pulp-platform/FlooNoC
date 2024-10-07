@@ -47,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
   - All examples were adapted to reflect those changes.
 - A FlooGen configuration file now requires a `network_type` field, to determine the type of network to generate. The options are `axi` for single-AXI networks and `narrow-wide` for the narrow-wide AXI configurations.
 - The system address map `Sam` is now sorted correctly and can be indexed with `ep_id_e` values.
+- `id_offset` was renamed to `xy_id_offset`, since this is now only applicable in `XYRouting` networks. An ID offset does not make sense for other types of routing algorithms. The use of `id_offset` is anyway not recommended anymore, since the direction of the connections can be specified in the `connections` schema.
 
 ### Fixed
 
