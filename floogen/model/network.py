@@ -337,8 +337,6 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             case RouteAlgo.ID | RouteAlgo.SRC:
                 for ep_name, ep in self.graph.get_ep_nodes(with_name=True):
                     node_id = SimpleId(id=self.graph.create_unique_ep_id(ep_name))
-                    if ep.id_offset is not None:
-                        node_id += ep.id_offset
                     ni_name = ep.get_ni_name(ep_name)
                     self.graph.nodes[ep_name]["id"] = node_id
                     self.graph.nodes[ni_name]["id"] = node_id
