@@ -4,7 +4,7 @@
 <% def camelcase(s):
   return ''.join(x.capitalize() or '_' for x in s.split('_'))
 %>\
-<% offset_xy_id = router.id - network.routing.id_offset if network.routing.id_offset is not None else router.id %>\
+<% offset_xy_id = router.id - network.routing.xy_id_offset if network.routing.xy_id_offset is not None else router.id %>\
 <% req_type = next(d for d in router.incoming if d is not None).req_type %>\
 <% rsp_type = next(d for d in router.incoming if d is not None).rsp_type %>\
 <% wide_type = next(d for d in router.incoming if d is not None).wide_type %>\

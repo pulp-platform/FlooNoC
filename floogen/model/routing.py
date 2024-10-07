@@ -440,7 +440,7 @@ class Routing(BaseModel):
     sam: Optional[RouteMap] = None
     table: Optional[RouteMap] = None
     addr_offset_bits: Optional[int] = None
-    id_offset: Optional[Id] = None
+    xy_id_offset: Optional[Id] = None
     num_endpoints: Optional[int] = None
     num_id_bits: Optional[int] = None
     num_x_bits: Optional[int] = None

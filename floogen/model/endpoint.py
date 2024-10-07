@@ -22,7 +22,7 @@ class EndpointDesc(BaseModel):
     description: Optional[str] = ""
     array: Optional[Union[Tuple[int], Tuple[int, int]]] = None
     addr_range: Optional[AddrRange] = None
-    id_offset: Optional[Id] = None
+    xy_id_offset: Optional[Id] = None
     mgr_port_protocol: Optional[List[str]] = None
     sbr_port_protocol: Optional[List[str]] = None
 
@@ -34,7 +34,7 @@ class EndpointDesc(BaseModel):
             return (v,)
         return v
 
-    @field_validator("id_offset", mode="before")
+    @field_validator("xy_id_offset", mode="before")
     @classmethod
     def dict_to_coord_obj(cls, v):
         """Convert dict to Coord object."""
