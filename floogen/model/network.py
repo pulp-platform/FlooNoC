@@ -720,7 +720,11 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     def render_ni_tables(self):
         """Render the network interfaces tables in the generated code."""
         string = ""
-        sorted_ni_list = sorted(self.graph.get_ni_nodes(), key=lambda ni: ni.id.id, reverse=True)
+        sorted_ni_list = sorted(
+            self.graph.get_ni_nodes(),
+            key=lambda ni: self.graph.get_node_id(node_obj=ni),
+            reverse=True
+        )
         for ni in sorted_ni_list:
             string += ni.table.render(
                 num_route_bits=self.routing.num_route_bits, no_decl=True)
