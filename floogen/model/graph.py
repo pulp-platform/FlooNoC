@@ -287,3 +287,11 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
     def get_node_id(self, node):
         """Return the node id."""
         return self.nodes[node]["id"]
+
+    def get_node_uid(self, node_name=None, node_obj=None):
+        """Return the unique node id."""
+        if node_name is not None:
+            return self.nodes[node_name]["uid"]
+        if node_obj is not None:
+            return self.nodes[node_obj.name]["uid"]
+        raise ValueError("Node name or object not provided")

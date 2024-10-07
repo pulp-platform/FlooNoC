@@ -11,7 +11,7 @@ from importlib.resources import files, as_file
 from pydantic import BaseModel
 from mako.lookup import Template
 
-from floogen.model.routing import Id, AddrRange, Routing, RouteMap
+from floogen.model.routing import Id, SimpleId, AddrRange, Routing, RouteMap
 from floogen.model.protocol import AXI4
 from floogen.model.link import NarrowWideLink, AxiLink
 from floogen.model.endpoint import EndpointDesc
@@ -27,6 +27,7 @@ class NetworkInterface(BaseModel):
     routing: Routing
     table: Optional[RouteMap] = None
     id: Optional[Id] = None
+    uid: Optional[SimpleId] = None
     arr_idx: Optional[Id] = None
     addr_range: Optional[AddrRange] = None
 

@@ -304,6 +304,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     def compile_ids(self):
         """Infer the id type from the network."""
+        # Add XY coordinates to the nodes
         match self.routing.route_algo:
             case RouteAlgo.XY:
                 # 1st stage: Get all router nodes
@@ -340,6 +341,13 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     ni_name = ep.get_ni_name(ep_name)
                     self.graph.nodes[ep_name]["id"] = node_id
                     self.graph.nodes[ni_name]["id"] = node_id
+
+        # Add unique IDs (uid's) to the nodes
+        for ep_name, ep in self.graph.get_ep_nodes(with_name=True):
+            node_id = SimpleId(id=self.graph.create_unique_ep_id(ep_name))
+            ni_name = ep.get_ni_name(ep_name)
+            self.graph.nodes[ep_name]["uid"] = node_id
+            self.graph.nodes[ni_name]["uid"] = node_id
 
     def compile_links(self):
         """Infer the link type from the network."""
@@ -482,7 +490,8 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 "endpoint": ep_desc,
                 "routing": self.routing,
                 "addr_range": ep_desc.addr_range.model_copy() if ep_desc.addr_range else None,
-                "id": self.graph.get_node_id(ni_name).model_copy(),
+                "id": self.graph.get_node_id(node_name=ni_name).model_copy(),
+                "uid": self.graph.get_node_uid(node_name=ni_name).model_copy(),
             }
 
             assert ep_desc
@@ -733,11 +742,9 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     def render_ep_enum(self):
         """Render the endpoint enum in the generated code."""
-        match self.routing.route_algo:
-            case RouteAlgo.XY:
-                fields_dict = {ep.name: i for i, ep in enumerate(self.graph.get_ni_nodes())}
-            case RouteAlgo.ID | RouteAlgo.SRC:
-                fields_dict = {ep.name: ep.id.id for ep in self.graph.get_ni_nodes()}
+        fields_dict = {
+            ep.name: self.graph.get_node_uid(node_obj=ep).id for ep in self.graph.get_ni_nodes()
+        }
         fields_dict = dict(sorted(fields_dict.items(), key=lambda item: item[1]))
         fields_dict["num_endpoints"] = len(fields_dict)
         return sv_enum_typedef(name="ep_id_e", fields_dict=fields_dict)
