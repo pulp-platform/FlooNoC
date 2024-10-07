@@ -351,7 +351,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     def compile_links(self):
         """Infer the link type from the network."""
-        for edge, _ in self.graph.get_link_edges(with_name=True):
+        for edge in self.graph.get_link_edges(with_obj=False, with_name=True):
             # Check if link is bidirectional
             is_bidirectional = self.graph.has_edge(edge[1], edge[0])
             link = {
@@ -759,8 +759,8 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     def visualize(self, savefig=True, filename: pathlib.Path = "network.png"):
         """Visualize the network graph."""
-        ni_nodes = [name for name, _ in self.graph.get_ni_nodes(with_name=True)]
-        router_nodes = [name for name, _ in self.graph.get_rt_nodes(with_name=True)]
+        ni_nodes = self.graph.get_ni_nodes(with_obj=False, with_name=True)
+        router_nodes = self.graph.get_rt_nodes(with_obj=False, with_name=True)
         filtered_graph = self.graph.subgraph(ni_nodes + router_nodes)
         nx.draw(filtered_graph, with_labels=True)
         if savefig:
