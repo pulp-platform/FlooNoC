@@ -98,7 +98,7 @@ module floo_axi_chimney #(
   // Duplicate AXI port signals to degenerate ports
   // in case they are not used
   axi_req_t axi_req_in;
-  axi_rsp_t axi_rsp_out;
+  axi_rsp_t axi_rsp_out, axi_in_rsp_err;
 
   // AX queue
   axi_aw_chan_t axi_aw_queue;
@@ -158,6 +158,8 @@ module floo_axi_chimney #(
   meta_buf_t aw_out_hdr_in, aw_out_hdr_out;
   meta_buf_t ar_out_hdr_in, ar_out_hdr_out;
 
+  // Error signals from AR/AW address decoders
+  logic [NumAxiChannels-1:0] decode_error_d, decode_error_q;
   ///////////////////////
   //  Spill registers  //
   ///////////////////////
@@ -165,7 +167,21 @@ module floo_axi_chimney #(
   if (ChimneyCfg.EnMgrPort) begin : gen_sbr_port
 
     assign axi_req_in = axi_in_req_i;
-    assign axi_in_rsp_o = axi_rsp_out;
+    assign axi_in_rsp_o = (decode_error_q[AxiAr] || decode_error_q[AxiAw]) ? axi_in_rsp_err :
+                                                                             axi_rsp_out;
+
+    axi_err_slv #(
+      .AxiIdWidth ( AxiCfg.InIdWidth  ),
+      .ATOPs      ( AtopSupport       ),
+      .axi_req_t  ( axi_in_req_t      ),
+      .axi_resp_t ( axi_in_rsp_t      )
+    ) i_axi_err_slv (
+      .clk_i      ( clk_i          ),
+      .rst_ni     ( rst_ni         ),
+      .test_i     ( test_enable_i  ),
+      .slv_req_i  ( axi_in_req_i   ),
+      .slv_resp_o ( axi_in_rsp_err )
+    );
 
     if (ChimneyCfg.CutAx) begin : gen_ax_cuts
       spill_register #(
@@ -193,6 +209,9 @@ module floo_axi_chimney #(
         .valid_o    ( axi_ar_queue_valid_out  ),
         .ready_i    ( axi_ar_queue_ready_in   )
       );
+
+      `FF(decode_error_q[AxiAr], decode_error_d[AxiAr], '0)
+      `FF(decode_error_q[AxiAw], decode_error_d[AxiAw], '0)
     end else begin : gen_no_ax_cuts
       assign axi_aw_queue = axi_in_req_i.aw;
       assign axi_aw_queue_valid_out = axi_in_req_i.aw_valid;
@@ -201,6 +220,9 @@ module floo_axi_chimney #(
       assign axi_ar_queue = axi_in_req_i.ar;
       assign axi_ar_queue_valid_out = axi_in_req_i.ar_valid;
       assign axi_rsp_out.ar_ready = axi_ar_queue_ready_in;
+
+      assign decode_error_q[AxiAr] = decode_error_d[AxiAr];
+      assign decode_error_q[AxiAw] = decode_error_d[AxiAw];
     end
   end else begin : gen_err_slv_port
     axi_err_slv #(
@@ -398,11 +420,12 @@ module floo_axi_chimney #(
         .clk_i,
         .rst_ni,
         .route_table_i,
-        .addr_map_i ( Sam               ),
-        .id_i       ( id_t'('0)         ),
-        .addr_i     ( axi_req_addr[ch]  ),
-        .route_o    ( route_out[ch]     ),
-        .id_o       ( id_out[ch]        )
+        .addr_map_i     ( Sam                ),
+        .id_i           ( id_t'('0)          ),
+        .addr_i         ( axi_req_addr[ch]   ),
+        .route_o        ( route_out[ch]      ),
+        .id_o           ( id_out[ch]         ),
+        .decode_error_o ( decode_error_d[ch] )
       );
     end else if (RouteCfg.RouteAlgo == floo_pkg::SourceRouting &&
                  (Ch == AxiB || Ch == AxiR)) begin : gen_rsp_route_comp
@@ -420,11 +443,12 @@ module floo_axi_chimney #(
         .clk_i,
         .rst_ni,
         .route_table_i,
-        .addr_i     ( '0                  ),
-        .addr_map_i ( '0                  ),
-        .id_i       ( axi_rsp_src_id[ch]  ),
-        .route_o    ( route_out[ch]       ),
-        .id_o       ( id_out[ch]          )
+        .addr_i         ( '0                  ),
+        .addr_map_i     ( Sam                 ),
+        .id_i           ( axi_rsp_src_id[ch]  ),
+        .route_o        ( route_out[ch]       ),
+        .id_o           ( id_out[ch]          ),
+        .decode_error_o ( decode_error_d[ch]  )
       );
     end
   end
