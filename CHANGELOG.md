@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - All the various `*Cfg`'s is now rendered by _FlooGen_, either in the `*_noc_pkg` or in the `*_noc` module itself.
 - Added support for single-AXI configuration networks.
 - Support for negative increments when specifying a `src_range` or `dst_range` in the `connections` schema.
+- Add support for multiple non-contiguous address ranges for endpoints.
 
 ### Changed
 
