@@ -51,13 +51,15 @@ endpoints:
     array: [16]
     addr_range:
       base: 0x0000_8000_0000
-      size: 0x0000_4000_0000
+      size: 0x0000_0400_0000
     sbr_port_protocol:
       - "wide_out"
   - name: "peripherals"
     addr_range:
-      start: 0x0000_0000_0000
-      end: 0x0000_0fff_ffff
+      - start: 0x0000_0000_0000
+        end: 0x0000_7fff_ffff
+      - start: 0x0000_C000_0000
+        end: 0x0000_C000_ffff
     mgr_port_protocol:
       - "wide_in"
     sbr_port_protocol:
