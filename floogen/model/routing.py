@@ -207,7 +207,7 @@ class AddrRange(BaseModel):
     def validate_output(self):
         """Validate the address range."""
         if self.start >= self.end:
-            raise ValueError("Invalid address range")
+            raise ValueError("Address range start must be less than end")
         return self
 
     def set_idx(self, idx):
