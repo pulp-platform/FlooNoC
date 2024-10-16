@@ -21,7 +21,7 @@ class EndpointDesc(BaseModel):
     name: str
     description: Optional[str] = ""
     array: Optional[Union[Tuple[int], Tuple[int, int]]] = None
-    addr_range: Optional[AddrRange] = None
+    addr_range: List[AddrRange] = []
     xy_id_offset: Optional[Id] = None
     mgr_port_protocol: Optional[List[str]] = None
     sbr_port_protocol: Optional[List[str]] = None
@@ -43,6 +43,14 @@ class EndpointDesc(BaseModel):
                 return None
             case {"x": x, "y": y}:
                 return Coord(x=x, y=y)
+
+    @field_validator("addr_range", mode="before")
+    @classmethod
+    def addr_range_to_list(cls, v):
+        """Convert single AddrRange to list."""
+        if not isinstance(v, List):
+            return [v]
+        return v
 
     @model_validator(mode="after")
     def check_addr_range(self):

@@ -5,7 +5,7 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from typing import Optional, ClassVar
+from typing import Optional, ClassVar, List
 from importlib.resources import files, as_file
 
 from pydantic import BaseModel
@@ -29,7 +29,7 @@ class NetworkInterface(BaseModel):
     id: Optional[Id] = None
     uid: Optional[SimpleId] = None
     arr_idx: Optional[Id] = None
-    addr_range: Optional[AddrRange] = None
+    addr_range: Optional[List[AddrRange]] = None
 
     def is_sbr(self) -> bool:
         """Return true if the network interface is a subordinate."""

@@ -489,7 +489,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 "name": f"{ni_name}",
                 "endpoint": ep_desc,
                 "routing": self.routing,
-                "addr_range": ep_desc.addr_range.model_copy() if ep_desc.addr_range else None,
+                "addr_range": [rng.model_copy() for rng in ep_desc.addr_range],
                 "id": self.graph.get_node_id(node_name=ni_name).model_copy(),
                 "uid": self.graph.get_node_uid(node_name=ni_name).model_copy(),
             }
@@ -505,7 +505,9 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 case (_,):
                     node_idx = self.graph.get_node_arr_idx(ni_name)[0]
                     if ep_desc.is_sbr():
-                        ni_dict["addr_range"] = ep_desc.addr_range.model_copy().set_idx(node_idx)
+                        ni_dict["addr_range"] = [
+                            rng.model_copy().set_idx(node_idx) for rng in ep_desc.addr_range
+                        ]
 
                 # 2D array case
                 case (_, n):
@@ -513,8 +515,9 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     idx = x * n + y
                     ni_dict["arr_idx"] = Coord(x=x, y=y)
                     if ep_desc.is_sbr():
-                        ni_dict["addr_range"] = ep_desc.addr_range.model_copy().set_idx(idx)
-
+                        ni_dict["addr_range"] = [
+                            rng.model_copy().set_idx(idx) for rng in ep_desc.addr_range
+                        ]
                 # Invalid case
                 case _:
                     raise ValueError("Invalid endpoint array description")
@@ -605,7 +608,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         min_y = min(ni.id.y for ni in ni_nodes)
         max_x = max(ni.id.x for ni in ni_nodes)
         max_y = max(ni.id.y for ni in ni_nodes)
-        max_address = max(ni.addr_range.end for ni in ni_sbr_nodes)
+        max_address = max(max(rng.end for rng in ni.addr_range) for ni in ni_sbr_nodes)
         xy_routing_info = {}
         xy_routing_info["num_x_bits"] = clog2(max_x - min_x + 1)
         xy_routing_info["num_y_bits"] = clog2(max_y - min_y + 1)
@@ -654,9 +657,9 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             dest = ni.id
             if self.routing.xy_id_offset is not None:
                 dest -= self.routing.xy_id_offset
-            addr_range = ni.addr_range
-            addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, desc=ni.name)
-            addr_table.append(addr_rule)
+            for addr_range in ni.addr_range:
+                addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, desc=ni.name)
+                addr_table.append(addr_rule)
         return RouteMap(name="sam", rules=addr_table)
 
     def render_ports(self, pkg_name=""):
