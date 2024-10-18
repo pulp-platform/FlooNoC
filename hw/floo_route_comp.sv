@@ -27,7 +27,8 @@ module floo_route_comp
   input  addr_rule_t [RouteCfg.NumSamRules-1:0] addr_map_i,
   input  route_t [RouteCfg.NumRoutes-1:0] route_table_i,
   output route_t route_o,
-  output id_t id_o
+  output id_t id_o,
+  output logic decode_error_o
 );
 
   // Use an address decoder to map the address to a destination ID.
@@ -36,34 +37,31 @@ module floo_route_comp
   // Further, the `rule_t` requires an additional field `id`, which can be used for the return route.
   // The reason for that is that a request destination is given by a physical address, while the
   // response destination is given by the ID of the source.
+
+  id_t addr_decode_id;
+
+  addr_decode #(
+    .NoIndices  ( RouteCfg.NumRoutes   ),
+    .NoRules    ( RouteCfg.NumSamRules ),
+    .addr_t     ( addr_t               ),
+    .rule_t     ( addr_rule_t          ),
+    .idx_t      ( id_t                 )
+  ) i_addr_dst_decode (
+    .addr_i           ( addr_i         ),
+    .addr_map_i       ( addr_map_i     ),
+    .idx_o            ( addr_decode_id ),
+    .dec_valid_o      (                ),
+    .dec_error_o      ( decode_error_o ),
+    .en_default_idx_i ( 1'b0           ),
+    .default_idx_i    ( '0             )
+  );
+
   if (UseIdTable &&
     ((RouteCfg.RouteAlgo == IdTable) ||
      (RouteCfg.RouteAlgo == XYRouting) ||
      (RouteCfg.RouteAlgo == SourceRouting)))
   begin : gen_table_routing
-    logic dec_error;
-
-    // This is simply to pass the assertions in addr_decode
-    // It is not used otherwise, since we specify `idx_t`
-    localparam int unsigned MaxPossibleId = 1 << $bits(id_o);
-
-    addr_decode #(
-      .NoIndices  ( MaxPossibleId        ),
-      .NoRules    ( RouteCfg.NumSamRules ),
-      .addr_t     ( addr_t               ),
-      .rule_t     ( addr_rule_t          ),
-      .idx_t      ( id_t                 )
-    ) i_addr_dst_decode (
-      .addr_i           ( addr_i      ),
-      .addr_map_i       ( addr_map_i  ),
-      .idx_o            ( id_o        ),
-      .dec_valid_o      (             ),
-      .dec_error_o      ( dec_error   ),
-      .en_default_idx_i ( 1'b0        ),
-      .default_idx_i    ( '0          )
-    );
-
-    `ASSERT(DecodeError, !dec_error)
+    assign id_o = addr_decode_id;
   end else if (RouteCfg.RouteAlgo == XYRouting) begin : gen_xy_bits_routing
     assign id_o.port_id = '0;
     assign id_o.x = addr_i[RouteCfg.XYAddrOffsetX +: $bits(id_o.x)];
@@ -71,7 +69,8 @@ module floo_route_comp
   end else if (RouteCfg.RouteAlgo == IdTable) begin : gen_id_bits_routing
     assign id_o = addr_i[RouteCfg.IdAddrOffset +: $bits(id_o)];
   end else if (RouteCfg.RouteAlgo == SourceRouting) begin : gen_source_routing
-    // Nothing to do here
+    // Default the ID output to 0
+    assign id_o = '0;
   end else begin : gen_error
     $fatal(1, "Routing algorithm not implemented");
   end
