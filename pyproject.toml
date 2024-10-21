@@ -18,17 +18,17 @@ classifiers = [
 ]
 
 dependencies = [
-  "pydantic",
-  "networkx",
-  "matplotlib",
-  "mako",
-  "ruamel.yaml",
-  "hjson",
-  "jsonref",
-  "click",
-  "pylint",
-  "pytest",
-  "pygame"
+  "pydantic == 2.5.3",
+  "networkx == 3.2.1",
+  "matplotlib == 3.8.2",
+  "mako == 1.3.1",
+  "ruamel.yaml == 0.18.5",
+  "hjson == 3.1.0",
+  "jsonref == 1.1.0",
+  "click == 8.1.7",
+  "pylint == 3.0.3",
+  "pytest == 7.4.4",
+  "pygame == 2.6.1"
 ]
 
 [build-system]

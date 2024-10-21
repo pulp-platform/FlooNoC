@@ -136,7 +136,11 @@ In case of tree routers, you can also specify the following fields:
 
 ## Running floogen
 
-`floogen` is a Python package that can be installed with `pip`:
+`floogen` is a Python package that can be installed and run _globally_ with `pip`, or _locally_ within a Python virtual environment.
+
+### Global installation
+
+To install `floogen` with `pip`:
 
 ```bash
 pip install .
@@ -150,6 +154,33 @@ floogen -c <config_file> -o <output_dir>
 
 where `<config_file>` is the configuration file and `<output_dir>` is the output directory where the generated RTL code will be placed.
 
+### Local virtual environment
+ 
+To build a local virtual environment we exploit `poetry`.
+However, its most recent `pip` release (1.8.3) does not support **PEP-621**, as the tool is older than that.
+Users would thus require to adhere to `poetry`-specific sections, when writing their `pyproject.toml`.
+As [support for PEP 621 was recently merged to `main`](https://github.com/python-poetry/poetry/commit/119a3d761782e6ef1e6389a66d6d666906cd6e67), it will be hopefully released soon.
+
+We hence suggest installing the git development version of `poetry`:
+
+```sh
+pip install pipx==1.7.1
+pipx install --suffix @main git+https://github.com/python-poetry/poetry.git@main
+```
+
+Note that the original setup leverages `Python 3.10` and `pipx 1.7.1`.
+
+Then, to install `floogen` run the following script:
+
+```sh
+source floogen/floo_gen_venv.sh
+```
+
+Once the virtual environment is activated, `floogen` is executed with the following command:
+
+```sh
+floogen -c <config_file> -o <output_dir>
+```
 
 ## Additonal arguments
 

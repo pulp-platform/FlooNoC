@@ -226,6 +226,10 @@ The following example shows the configuration for a simple mesh topology with 4x
 
 ### Usage
 
+`floogen` can be installed and run _globally_ with `pip`, or _locally_ within a Python virtual environment.
+
+##### Global installation
+
 To install `floogen` run the following command:
 
 ```sh
@@ -233,6 +237,30 @@ pip install .
 ```
 
 which allows you to use `floogen` with the following command:
+
+```sh
+floogen -c <config_file> -o <output_dir>
+```
+
+##### Local virtual environment
+ 
+To build a local virtual environment we exploit `poetry`, that can be installed as follows:
+
+```sh
+pip install pipx==1.7.1
+pipx install --suffix @main git+https://github.com/python-poetry/poetry.git@main
+```
+
+Note that the original setup leverages `Python 3.10` and `pipx 1.7.1`.
+Moreover, we currently install the git development version of `poetry`, as [PEP 621 support has not been released yet](https://github.com/python-poetry/poetry/commit/119a3d761782e6ef1e6389a66d6d666906cd6e67) (see the [documentation](docs/floogen.md) for more details).
+
+Then, to install `floogen` run the following script:
+
+```sh
+source floogen/floo_gen_venv.sh
+```
+
+Once the virtual environment is activated, `floogen` is executed with the following command:
 
 ```sh
 floogen -c <config_file> -o <output_dir>
