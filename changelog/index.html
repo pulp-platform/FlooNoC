@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../img/floo_noc_favicon_logo.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.38">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
     
     
       
@@ -24,7 +24,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.8c3ca2c6.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.0253249f.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
@@ -1915,6 +1915,8 @@
 <li>The <code>data_width</code> and <code>user_width</code> fields for <code>protocols</code> are now also validated to be compatible with each other.</li>
 <li>All the various <code>*Cfg</code>'s is now rendered by <em>FlooGen</em>, either in the <code>*_noc_pkg</code> or in the <code>*_noc</code> module itself.</li>
 <li>Added support for single-AXI configuration networks.</li>
+<li>Support for negative increments when specifying a <code>src_range</code> or <code>dst_range</code> in the <code>connections</code> schema.</li>
+<li>Add support for multiple non-contiguous address ranges for endpoints.</li>
 </ul>
 <h3 id="changed">Changed</h3>
 <h4 id="hardware_1">Hardware</h4>
@@ -1941,11 +1943,13 @@
 <li>All examples were adapted to reflect those changes.</li>
 <li>A FlooGen configuration file now requires a <code>network_type</code> field, to determine the type of network to generate. The options are <code>axi</code> for single-AXI networks and <code>narrow-wide</code> for the narrow-wide AXI configurations.</li>
 <li>The system address map <code>Sam</code> is now sorted correctly and can be indexed with <code>ep_id_e</code> values.</li>
+<li><code>id_offset</code> was renamed to <code>xy_id_offset</code>, since this is now only applicable in <code>XYRouting</code> networks. An ID offset does not make sense for other types of routing algorithms. The use of <code>id_offset</code> is anyway not recommended anymore, since the direction of the connections can be specified in the <code>connections</code> schema.</li>
 </ul>
 <h3 id="fixed">Fixed</h3>
 <ul>
 <li>A bug in the calcuation of the RoB offset in <code>floo_rob</code> was fixed. Previously, the allocation and the write process used the same counter in bursts for offset calculation, which resulted in wrong offsets.</li>
 <li>Routers with <code>XYRouting</code> do now use the global <code>id_offset</code>, which was previously not accounted for (or had to be specified manually).</li>
+<li>Fixed elaboration errors in the chimneys that occured.</li>
 </ul>
 <h3 id="removed">Removed</h3>
 <h4 id="hardware_2">Hardware</h4>
@@ -2112,7 +2116,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 18, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 16, 2024</span>
   </span>
 
     
@@ -2195,7 +2199,7 @@
     <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.footer", "content.code.copy"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.d6f25eb3.min.js"></script>
+      <script src="../assets/javascripts/bundle.83f73b43.min.js"></script>
       
         <script src="../javascripts/mathjax.js"></script>
       

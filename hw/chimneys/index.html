@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../../img/floo_noc_favicon_logo.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.38">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
     
     
       
@@ -26,7 +26,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.8c3ca2c6.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.0253249f.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
@@ -655,6 +655,17 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Network Interfaces
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -664,6 +675,82 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#axi-network-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      AXI Network Interface
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AXI Network Interface">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ordering" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ordering
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Ordering">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reordering" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reordering
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stalling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stalling
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#additional-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Additional configuration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -1032,6 +1119,71 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#axi-network-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      AXI Network Interface
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AXI Network Interface">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ordering" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ordering
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Ordering">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reordering" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reordering
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stalling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stalling
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#additional-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Additional configuration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1049,7 +1201,47 @@
 
 
 <h1 id="network-interfaces-aka-chimneys">Network interfaces (a.k.a. chimneys)</h1>
-<p><em>TODO</em></p>
+<p>Network interfaces (NIs) are essentially the gateway to the Network-on-Chip (NoC). Every endpoint in the system requires its own NI to issue and receive packets over the NoC. The main purpose of the NI is to translate the on-chip protocol (e.g. AXI) to the link-level protocol of the network. NIs are not trivial to implement since they need to adhere to all the rules of the on-chip protocol e.g. ordering, flow control, etc. However, the advantage of using NIs is that the rest of the network can be agnostic to the on-chip protocol, which results in simpler router microarchitecture and as well as better scalability. Currently, <em>FlooNoC</em> was mainly designed to support AXI4 and ships with dedicated NIs. However, it is possible to extend <em>FlooNoC</em> also with other protocols, by implementing custom NIs.</p>
+<details class="quote">
+<summary>Why chimneys?</summary>
+<p>The name of <em>FlooNoC</em> is derived from the Floo Network of Harry Potter. In the books, the Floo Network is a magical network of fireplaces that allows witches and wizards to travel from one place to another. Therefore, the chimneys are the gateways to the Floo Network, which is why they are called chimneys.</p>
+</details>
+<h2 id="axi-network-interface">AXI Network Interface</h2>
+<p><em>FlooNoC</em> ships with two different AXI NIs: the <code>axi_chimney</code> and the <code>nw_chimney</code>, which mainly differ from the ports and links that are connected to them. As the name implies, the <code>axi_chimney</code> has a single AXI port and uses only <code>req</code>/<code>rsp</code> physical channels, while the <code>nw_chimney</code> has a narrow <em>and</em> a wide AXI port and additionally features a <code>wide</code> physical channel. In the following, we will describe the inner workings of the <code>axi_chimney</code> in more detail. The <code>nw_chimney</code> is very similar, with largely duplicate datapaths for the narrow and wide ports.</p>
+<h3 id="ordering">Ordering</h3>
+<p>One of the main challenges of implementing an NI for the AXI protocol is the strict ordering requirement that is imposed by AXI. The NI interface needs to be able to guarantee that for transactions with the same <code>txnID</code> all responses arrive with the same order as how the request were injected into the network. By design, the <em>FlooNoC</em> link-level protocol does not guarantee ordering. For instance, if one request is sent to destination <code>A</code> and second request to destination <code>B</code>, the response from <code>B</code> can arrive before the response from <code>A</code>. There are essentially to ways of solving this problem: <em>Reordering</em> or <em>stalling</em>.</p>
+<h4 id="reordering">Reordering</h4>
+<p>Responses that arrive out-of-order are buffered in a reorder buffer (RoB) until they can be delivered in-order. This approach is more performant, since multiple requests can be issued to different endpoints at the same time. However, a RoB is costly in terms of area and needs to be limited in size. Furthermore, the NI still needs to ensure that all responses from the NoC can be handled, either by buffering them in the RoB or forwarding them to the on-chip protocol (if they are in order). Stalling the network is not an option, as this would inevitably lead to deadlocks. Therefore, the NI also needs to track or allocate space in the RoB and only inject new requests into the network if it can guarantee that the responses can be handled:</p>
+<h4 id="stalling">Stalling</h4>
+<p>Another way to solve the ordering problem is to simply stall the injection of new requests into the network if the NI cannot guarantee that the responses will arrive in order. This approach is very simple to implement, and has a very small overhead, but it can lead to significant performance degredation in some cases. Luckily, there are some optimizations that the AXI NIs apply, which reduce the number of stalls. First, transactions to the same destination are always guaranteed to arrive in order (assuming a static routing algorithm is used in side the network). This means that the NI can inject multiple requests into the network, while the destination stays the same. Second, the ordering requirement only applies to transactions with the same <code>txnID</code>. Therefore, downstream components can also use different IDs to avoid ordering issues.</p>
+<p>The AXI NIs of <em>FlooNoC</em> offers both options, and there are different implementations that can be set with the <code>ChimneyCfg.RoBType</code> parameter. The following table shows the different options:</p>
+<table>
+<thead>
+<tr>
+<th>RoBType</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NoRoB</code></td>
+<td>No RoB, which stalls transactions of the same <code>txnID</code> going to different destinations until the previous transaction is completed. This is option is useful if the ordering of transactions is handled downstream, e.g. in the DMA by issuing AXI transactions with different <code>txnIDs</code>. The overhead of this RoB is very low, since it only requires counters for tracking the number of outstanding transactions of each <code>txnID</code>.</td>
+</tr>
+<tr>
+<td><code>NormalRoB</code></td>
+<td>The most performant but also most complex RoB, which supports reodering of responses. This reorder buffer retains the out-of-order nature of AXI transactions with different IDs. Supports multiple outstanding transactions and bursts</td>
+</tr>
+<tr>
+<td><code>SimpleRoB</code></td>
+<td>Simpler FIFO-like RoB, which does not support reordering of responses with the same AXI <code>txnID</code>. Transactions with different <code>txnIDs</code> are effectively serialized. Supports multiple outstanding transactions but currently does not support burst transactions. Mainly useful for B-responses which are single transactions.</td>
+</tr>
+</tbody>
+</table>
+<p>The selection of the RoB type depends on the endpoints that are attached to it. For instance, cores with narrower AXI interfaces might are less costly to reorder with a RoB, while DMAs with wider interfaces and burst requests might be prohibitively expensive to reorder. <code>FlooNoC</code> gives the option to specify the RoB type and size in the <code>ChimneyCfg</code> parameter. In AXI, both read and write response exist, for which different RoBs can be selected. For instance, the <code>B</code> response is very small and the cost of reordering it is quite low, which might not be true for the <code>R</code> responses.</p>
+<h3 id="additional-configuration">Additional configuration</h3>
+<ul>
+<li>spill registers</li>
+</ul>
 
 
 
@@ -1072,7 +1264,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 9, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 22, 2024</span>
   </span>
 
     
@@ -1171,7 +1363,7 @@
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.footer", "content.code.copy"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d6f25eb3.min.js"></script>
+      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
         <script src="../../javascripts/mathjax.js"></script>
       
