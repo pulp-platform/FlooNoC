@@ -735,9 +735,27 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#additional-configuration" class="md-nav__link">
+  <a href="#routing" class="md-nav__link">
     <span class="md-ellipsis">
-      Additional configuration
+      Routing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#axi-transaction-id-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      AXI Transaction ID handling
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration
     </span>
   </a>
   
@@ -1169,9 +1187,27 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#additional-configuration" class="md-nav__link">
+  <a href="#routing" class="md-nav__link">
     <span class="md-ellipsis">
-      Additional configuration
+      Routing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#axi-transaction-id-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      AXI Transaction ID handling
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration
     </span>
   </a>
   
@@ -1238,7 +1274,19 @@
 </tbody>
 </table>
 <p>The selection of the RoB type depends on the endpoints that are attached to it. For instance, cores with narrower AXI interfaces might are less costly to reorder with a RoB, while DMAs with wider interfaces and burst requests might be prohibitively expensive to reorder. <code>FlooNoC</code> gives the option to specify the RoB type and size in the <code>ChimneyCfg</code> parameter. In AXI, both read and write response exist, for which different RoBs can be selected. For instance, the <code>B</code> response is very small and the cost of reordering it is quite low, which might not be true for the <code>R</code> responses.</p>
-<h3 id="additional-configuration">Additional configuration</h3>
+<h3 id="routing">Routing</h3>
+<p>Another task of the NI is also to create the header of the flit which contains all the information required to route a packet from source to destination. To do this, the NI needs to translate the request address to a destination ID, which can be done in two different ways:</p>
+<ul>
+<li>
+<p>Address Offset: The NI simply uses a fixed offset into the request address to determine the destination ID. For instance, assuming an node ID width of 3, and an address offset of 8, the address <code>0x0f00</code> would be translated to node ID <code>0x7</code>. This is the simplest way to route packets, but it is also the least flexible. For instance, if not all of the endpoints have the same address range size, a lot of address space might be wasted. For simpler systems, this might however be a good choice. The Address Offset method can be enabled by setting the <code>RouteCfg.IdAddrOffset</code>, respectively <code>RouteCfg.XYAddrOffsetX</code> and <code>RouteCfg.XYAddrOffsetX</code> in case of <code>XYRouting</code>.</p>
+</li>
+<li>
+<p>Address Map: The other alternative is to use an address map to translate the request address to a node ID. This is usually in the form of a global System Address Map (SAM), which consists of a list of address ranges and the corresponding node IDs. To configure this, the <code>RouteCfg.UseIdTable</code> needs to be set and the System Address Map can be passed to the network interface with the <code>Sam</code> parameter (which also requires setting the <code>RouteCfg.NumSamRules</code> parameter).</p>
+</li>
+</ul>
+<p>Source-based routing is handled a bit different, since the route instead of the destination ID needs to be included in the header. Calculating the route is done in two steps 1) the destination ID is computed the same way as for the node ID based routing and 2) the destination ID is used as an index into a routing table to determine the route. The routing table is passed to the network interface over the <code>route_table_i</code> port (which requires setting the <code>RouteCfg.NumRoutes</code> parameter).</p>
+<h3 id="axi-transaction-id-handling">AXI Transaction ID handling</h3>
+<h3 id="configuration">Configuration</h3>
 <ul>
 <li>spill registers</li>
 </ul>
