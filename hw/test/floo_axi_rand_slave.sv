@@ -131,8 +131,15 @@ module floo_axi_rand_slave #(
     .UW ( AxiCfg.UserWidth  ),
     // Stimuli application and test time
     .TA ( ApplTime          ),
-    .TT ( TestTime          )
-  ) axi_rand_slave_t;
+    .TT ( TestTime          ),
+    // Responsiveness
+    .AX_MIN_WAIT_CYCLES   (0),
+    .AX_MAX_WAIT_CYCLES   (0),
+    .R_MIN_WAIT_CYCLES    (0),
+    .R_MAX_WAIT_CYCLES    (0),
+    .RESP_MIN_WAIT_CYCLES (0),
+    .RESP_MAX_WAIT_CYCLES (0)
+  ) axi_rand_ideal_slave_t;
 
   typedef axi_test::axi_rand_slave #(
     // AXI interface parameters
@@ -173,6 +180,7 @@ module floo_axi_rand_slave #(
   // axi slave
   axi_rand_slow_slave_t axi_rand_slow_slave[NumSlaves];
   axi_rand_fast_slave_t axi_rand_fast_slave[NumSlaves];
+  axi_rand_ideal_slave_t axi_rand_ideal_slave[NumSlaves];
 
   if (SlaveType == floo_test_pkg::SlowSlave) begin : gen_slow_slaves
     for (genvar i = 0; i < NumSlaves; i++) begin : gen_slow_slaves
@@ -190,6 +198,15 @@ module floo_axi_rand_slave #(
         axi_rand_fast_slave[i].reset();
         @(posedge rst_ni)
         axi_rand_fast_slave[i].run();
+      end
+    end
+  end else if (SlaveType == floo_test_pkg::IdealSlave) begin : gen_fast_slaves
+    for (genvar i = 0; i < NumSlaves; i++) begin : gen_fast_slaves
+      initial begin
+        axi_rand_ideal_slave[i] = new( slave_dv[i] );
+        axi_rand_ideal_slave[i].reset();
+        @(posedge rst_ni)
+        axi_rand_ideal_slave[i].run();
       end
     end
   end else if (SlaveType == floo_test_pkg::MixedSlave) begin : gen_mixed_slaves

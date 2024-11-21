@@ -15,6 +15,7 @@ module floo_dma_test_node  #(
   parameter time         TT                   = 9ns,
   parameter int unsigned BufferDepth          = 16,
   parameter int unsigned NumAxInFlight        = 16,
+  parameter floo_test_pkg::slave_type_e SlaveType = floo_test_pkg::FastSlave,
   parameter floo_pkg::axi_cfg_t AxiCfg = '{default:0},
   parameter type axi_req_t                    = logic,
   parameter type axi_rsp_t                    = logic,
@@ -250,7 +251,7 @@ module floo_dma_test_node  #(
     .AxiCfg       ( AxiCfg                    ),
     .ApplTime     ( TA                        ),
     .TestTime     ( TT                        ),
-    .SlaveType    ( floo_test_pkg::FastSlave  ),
+    .SlaveType    ( SlaveType                 ),
     .NumSlaves    ( 1                         ),
     .axi_req_t    ( axi_xbar_req_t            ),
     .axi_rsp_t    ( axi_xbar_resp_t           )
@@ -267,7 +268,7 @@ module floo_dma_test_node  #(
     .AxiCfg       ( floo_pkg::axi_cfg_swap_iw(AxiCfg) ),
     .ApplTime     ( TA                                ),
     .TestTime     ( TT                                ),
-    .SlaveType    ( floo_test_pkg::FastSlave          ),
+    .SlaveType    ( SlaveType                         ),
     .NumSlaves    ( 1                                 ),
     .axi_req_t    ( axi_in_req_t                      ),
     .axi_rsp_t    ( axi_in_rsp_t                      )
