@@ -17,6 +17,8 @@ HBM_BASE_ADDR = 0x80000000
 
 data_widths = {"wide": 512, "narrow": 64}
 
+random.seed(42)
+
 
 def clog2(x: int):
     """Compute the ceiling of the log2 of x."""
