@@ -119,11 +119,11 @@ module tb_floo_nw_mesh;
   ////////////////////////
 
   for (genvar x = 0; x < NumX; x++) begin : gen_x
-    for (genvar y = 0; y < NumX; y++) begin : gen_y
+    for (genvar y = 0; y < NumY; y++) begin : gen_y
       localparam string NarrowDmaName = $sformatf("narrow_dma_%0d_%0d", x, y);
       localparam string WideDmaName   = $sformatf("wide_dma_%0d_%0d", x, y);
 
-      localparam int unsigned Index = x * NumX + y;
+      localparam int unsigned Index = x * NumY + y;
       localparam addr_t MemBaseAddr = Sam[ClusterNi00+Index].start_addr;
 
       floo_dma_test_node #(
