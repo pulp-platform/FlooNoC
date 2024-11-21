@@ -340,8 +340,8 @@ module floo_dma_test_node  #(
   `include "tb_tasks.svh"
 
   //--------------------------------------
-    // Read Job queue from File
-    //--------------------------------------
+  // Read Job queue from File
+  //--------------------------------------
   initial begin
     string job_file, job_name, job_dir;
     if ($value$plusargs ("JOB_NAME=%s", job_name)) begin
@@ -374,6 +374,7 @@ module floo_dma_test_node  #(
   axi_pkg::resp_t      cause;
   addr_t               burst_addr;
   int                  err_idx [$];
+  real                 injection_ratio;
 
   initial begin
     // reset driver
@@ -383,34 +384,50 @@ module floo_dma_test_node  #(
     // print a job summary
     print_summary(req_jobs);
     // wait some additional time
+    if (!$value$plusargs("TRAFFIC_INJ_RATIO=%f", injection_ratio)) begin
+      injection_ratio = 1.0;
+      $display("[DMA%0d] Using default injection ratio of 1.0", JobId + 1);
+    end else begin
+      $display("[DMA%0d] Using injection ratio of %f", JobId + 1, injection_ratio);
+    end
+
+    // wait some additional time
     #2ns;
 
     // run all requests in queue
     while (req_jobs.size() != 0) begin
-        // pop front to get a job
-        automatic tb_dma_job_t now = req_jobs.pop_front();
-        // print job to terminal
-        if (EnableDebug) $display("[DMA%0d]%s", JobId, now.pprint());
-        // launch DUT
-        drv.launch_tf(
-                      now.length,
-                      now.src_addr,
-                      now.dst_addr,
-                      now.src_protocol,
-                      now.dst_protocol,
-                      now.aw_decoupled,
-                      now.rw_decoupled,
-                      $clog2(now.max_src_len),
-                      $clog2(now.max_dst_len),
-                      now.max_src_len != 'd256,
-                      now.max_dst_len != 'd256,
-                      now.id
-                    );
+      automatic tb_dma_job_t now;
+      // Inject delay based on injection ratio
+      // Compute whether to inject in the next cycle based on the injection ratio
+      if (!($urandom_range(0, 100) < (injection_ratio * 100))) begin
+        // Wait for the next cycle
+        if (EnableDebug && (JobId == 100)) $display("[DMA%0d] Delay", JobId + 1);
+        @(posedge clk_i);
+        continue;
+      end
+      // pop front to get a job
+      now = req_jobs.pop_front();
+      // print job to terminal
+      if (EnableDebug) $display("[DMA%0d]%s", JobId, now.pprint());
+      // launch DUT
+      drv.launch_tf(
+                    now.length,
+                    now.src_addr,
+                    now.dst_addr,
+                    now.src_protocol,
+                    now.dst_protocol,
+                    now.aw_decoupled,
+                    now.rw_decoupled,
+                    $clog2(now.max_src_len),
+                    $clog2(now.max_dst_len),
+                    now.max_src_len != 'd256,
+                    now.max_dst_len != 'd256,
+                    now.id
+                  );
     end
     // once done: launched all transfers
     $display("[DMA%0d] Launched all Transfers.", JobId + 1);
-
-end
+  end
 
 initial begin
   end_of_sim_o = 1'b0;
