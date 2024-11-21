@@ -21,6 +21,10 @@ module tb_floo_axi_mesh;
   localparam int unsigned NumHBMChannels = NumY;
   localparam int unsigned NumMax = (NumX > NumY) ? NumX : NumY;
 
+  // Add a buffer before the AXI monitors. Otherwise transactions
+  // are stalled which skews the latency measurements
+  localparam int unsigned FifoDepth = 100;
+
   typedef axi_in_addr_t addr_t;
   localparam int unsigned HBMLatency = 100;
   localparam addr_t HBMSize = 48'h10000; // 64KB
@@ -48,6 +52,10 @@ module tb_floo_axi_mesh;
 
   axi_out_req_t [NumHBMChannels-1:0] hbm_req;
   axi_out_rsp_t [NumHBMChannels-1:0] hbm_rsp;
+
+  axi_in_req_t [NumX-1:0][NumY-1:0] cluster_in_buf_req;
+  axi_in_rsp_t [NumX-1:0][NumY-1:0] cluster_in_buf_rsp;
+
 
   ///////////////////
   //   HBM Model   //
@@ -109,6 +117,26 @@ module tb_floo_axi_mesh;
         .end_of_sim_o   ( end_of_sim[x][y]      )
       );
 
+      axi_fifo #(
+        .Depth        ( FifoDepth         ),
+        .FallThrough  ( 1'b1              ),
+        .aw_chan_t    ( axi_in_aw_chan_t  ),
+        .w_chan_t     ( axi_in_w_chan_t   ),
+        .b_chan_t     ( axi_in_b_chan_t   ),
+        .ar_chan_t    ( axi_in_ar_chan_t  ),
+        .r_chan_t     ( axi_in_r_chan_t   ),
+        .axi_req_t    ( axi_in_req_t      ),
+        .axi_resp_t   ( axi_in_rsp_t      )
+      ) i_axi_narrow_buffer (
+        .clk_i      ( clk                      ),
+        .rst_ni     ( rst_n                    ),
+        .test_i     ( 1'b0                     ),
+        .slv_req_i  ( cluster_in_req[x][y]     ),
+        .slv_resp_o ( cluster_in_rsp[x][y]     ),
+        .mst_req_o  ( cluster_in_buf_req[x][y] ),
+        .mst_resp_i ( cluster_in_buf_rsp[x][y] )
+      );
+
       axi_bw_monitor #(
         .req_t      ( axi_in_req_t      ),
         .rsp_t      ( axi_in_rsp_t      ),
@@ -132,15 +160,15 @@ module tb_floo_axi_mesh;
   /////////////////////////
 
   floo_axi_mesh_noc i_floo_axi_mesh_noc (
-    .clk_i                  ( clk             ),
-    .rst_ni                 ( rst_n           ),
-    .test_enable_i          ( 1'b0            ),
-    .cluster_axi_in_req_i   ( cluster_in_req  ),
-    .cluster_axi_in_rsp_o   ( cluster_in_rsp  ),
-    .cluster_axi_out_req_o  ( cluster_out_req ),
-    .cluster_axi_out_rsp_i  ( cluster_out_rsp ),
-    .hbm_axi_out_req_o      ( hbm_req         ),
-    .hbm_axi_out_rsp_i      ( hbm_rsp         )
+    .clk_i                  ( clk                 ),
+    .rst_ni                 ( rst_n               ),
+    .test_enable_i          ( 1'b0                ),
+    .cluster_axi_in_req_i   ( cluster_in_buf_req  ),
+    .cluster_axi_in_rsp_o   ( cluster_in_buf_rsp  ),
+    .cluster_axi_out_req_o  ( cluster_out_req     ),
+    .cluster_axi_out_rsp_i  ( cluster_out_rsp     ),
+    .hbm_axi_out_req_o      ( hbm_req             ),
+    .hbm_axi_out_rsp_i      ( hbm_rsp             )
   );
 
 
