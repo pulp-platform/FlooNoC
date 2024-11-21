@@ -148,7 +148,7 @@ def gen_mesh_traffic(
                 # Tile x=0 are the HBM channels
                 # Each core read from the channel of its y coordinate
                 ext_addr = get_hbm_base_addr(y)
-            elif traffic_type == "random":
+            elif traffic_type == "uniform":
                 ext_addr = local_addr
                 while ext_addr == local_addr:
                     ext_addr = get_xy_base_addr(random.randint(0, NUM_X-1),
@@ -200,9 +200,9 @@ def gen_mesh_traffic(
             elif traffic_type == "tornado":
                 dest_x = (x + math.ceil(NUM_X / 2) - 1) % NUM_X
                 ext_addr = get_xy_base_addr(dest_x, y)
-            elif traffic_type == "single_dest_boundary":
+            elif traffic_type == "hotspot_boundary":
                 ext_addr = get_hbm_base_addr(NUM_Y//2)
-            elif traffic_type == "single_dest_center":
+            elif traffic_type == "hotspot":
                 ext_addr = get_xy_base_addr(NUM_X//2, NUM_Y//2)
             else:
                 raise ValueError(f"Unknown traffic type: {traffic_type}")
