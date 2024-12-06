@@ -148,11 +148,13 @@ def gen_mesh_traffic(
                 # Tile x=0 are the HBM channels
                 # Each core read from the channel of its y coordinate
                 ext_addr = get_hbm_base_addr(y)
+                accesses = [(ext_addr, rw, wide_length)]
             elif traffic_type == "uniform":
                 ext_addr = local_addr
                 while ext_addr == local_addr:
                     ext_addr = get_xy_base_addr(random.randint(0, NUM_X-1),
                                                 random.randint(0, NUM_Y-1))
+                accesses = [(ext_addr, rw, wide_length)]
             elif traffic_type == "onehop":
                 if not (x == 0 and y == 0):
                     wide_length = 0
@@ -161,9 +163,11 @@ def gen_mesh_traffic(
                     ext_addr = 0
                 else:
                     ext_addr = get_xy_base_addr(x, y + 1)
+                accesses = [(ext_addr, rw, wide_length)]
 
             elif traffic_type == "bit_complement":
                 ext_addr = get_xy_base_addr(NUM_X - x - 1, NUM_Y - y - 1)
+                accesses = [(ext_addr, rw, wide_length)]
             elif traffic_type == "bit_reverse":
                 # in order to achieve same result as garnet:
                 # change to space where addresses start at 0 and return afterwards
@@ -176,6 +180,7 @@ def gen_mesh_traffic(
                     straight >>= 1
                     reverse |= (straight & 1)  # LSB
                 ext_addr = get_xy_base_addr(reverse % NUM_X, reverse // NUM_X)
+                accesses = [(ext_addr, rw, wide_length)]
             elif traffic_type == "bit_rotation":
                 source = x * NUM_Y + y
                 num_destinations = NUM_X * NUM_Y
@@ -184,8 +189,10 @@ def gen_mesh_traffic(
                 else:  # (source % 2 == 1)
                     ext = (source // 2) + (num_destinations // 2)
                 ext_addr = get_xy_base_addr(ext % NUM_X, ext // NUM_X)
+                accesses = [(ext_addr, rw, wide_length)]
             elif traffic_type == "neighbor":
                 ext_addr = get_xy_base_addr((x + 1) % NUM_X, y)
+                accesses = [(ext_addr, rw, wide_length)]
             elif traffic_type == "shuffle":
                 source = x * NUM_Y + y
                 num_destinations = NUM_X * NUM_Y
@@ -193,25 +200,54 @@ def gen_mesh_traffic(
                     ext = source * 2
                 else: ext = (source * 2) - num_destinations + 1
                 ext_addr = get_xy_base_addr(ext % NUM_X, ext // NUM_X)
+                accesses = [(ext_addr, rw, wide_length)]
             elif traffic_type == "transpose":
-                dest_x = y
-                dest_y = x
+                if NUM_X == NUM_Y:
+                    dest_x = y
+                    dest_y = x
+                elif NUM_Y > NUM_X:
+                    assert NUM_Y % NUM_X == 0, "NUM_Y must be divisible by NUM_X"
+                    dest_x = y - (y // NUM_X) * NUM_X
+                    dest_y = x + (y // NUM_X) * NUM_X
+                else:
+                    assert NUM_X % NUM_Y == 0, "NUM_X must be divisible by NUM_Y"
+                    dest_x = y + (x // NUM_Y) * NUM_Y
+                    dest_y = x - (x // NUM_Y) * NUM_Y
                 ext_addr = get_xy_base_addr(dest_x, dest_y)
+                accesses = [(ext_addr, rw, wide_length)]
             elif traffic_type == "tornado":
                 dest_x = (x + math.ceil(NUM_X / 2) - 1) % NUM_X
                 ext_addr = get_xy_base_addr(dest_x, y)
+                accesses = [(ext_addr, rw, wide_length)]
             elif traffic_type == "hotspot_boundary":
                 ext_addr = get_hbm_base_addr(NUM_Y//2)
+                accesses = [(ext_addr, rw, wide_length)]
             elif traffic_type == "hotspot":
                 ext_addr = get_xy_base_addr(NUM_X//2, NUM_Y//2)
+                accesses = [(ext_addr, rw, wide_length)]
+            elif traffic_type == "matmul":
+                # First access for matrix A, B, C from HBM
+                accesses = [(get_hbm_base_addr(y), "read", wide_length//2)]
+                # accesses += [(get_hbm_base_addr(y), "read")]
+                accesses += [(get_hbm_base_addr((y + i) % NUM_Y), "read", (wide_length//2)//NUM_Y) for i in range(NUM_Y)]
+                # accesses += [(get_hbm_base_addr(y), "read")]
+                # Subsequent accesses for matrix A, B from mesh
+                # accesses += [(get_xy_base_addr((x + i) % NUM_X, y), "read") for i in range(1, NUM_X)]
+                # accesses += [(get_xy_base_addr(x, (y + i) % NUM_Y), "read") for i in range(1, NUM_Y)]
+                # Writeback of matrix C to HBM
+                accesses += [(get_hbm_base_addr(y), "write", wide_length//4)]
             else:
                 raise ValueError(f"Unknown traffic type: {traffic_type}")
-            src_addr = ext_addr if rw == "read" else local_addr
-            dst_addr = local_addr if rw == "read" else ext_addr
             for _ in range(num_wide_bursts):
-                wide_jobs += gen_job_str(wide_length, src_addr, dst_addr)
+                for access in accesses:
+                    src_addr = access[0] if access[1] == "read" else local_addr
+                    dst_addr = local_addr if access[1] == "read" else access[0]
+                    wide_jobs += gen_job_str(access[2], src_addr, dst_addr)
             for _ in range(num_narrow_bursts):
-                narrow_jobs += gen_job_str(narrow_length, src_addr, dst_addr)
+                for access in accesses:
+                    src_addr = access[0] if access[1] == "read" else local_addr
+                    dst_addr = local_addr if access[1] == "read" else access[0]
+                    narrow_jobs += gen_job_str(access[2], src_addr, dst_addr)
             emit_jobs(wide_jobs, out_dir, "mesh", x * NUM_Y + y)
             emit_jobs(narrow_jobs, out_dir, "mesh", x * NUM_Y + y + 100)
 
