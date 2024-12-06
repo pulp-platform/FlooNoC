@@ -28,9 +28,9 @@ module floo_nw_join #(
   /// max(`AxiNarrowIdWidth` and `AxiWideIdWidth`) == AxidOutWidth - 1
   parameter int unsigned AxiIdOutWidth                = AxiCfgJoin.InIdWidth,
   /// ID width of the busses before muxing them together.
-  localparam int unsigned AxiIdConvWidth              = AxiIdOutWidth - 1,
+  parameter int unsigned AxiIdConvWidth              = AxiIdOutWidth - 1,
   /// Default parameter for number of inflight narrow transactions
-  localparam int unsigned AxiNarrowMaxTxns            = 8,
+  parameter int unsigned AxiNarrowMaxTxns            = 8,
   /// Maximum number of in-flight AXI narrow write transactions
   parameter int unsigned AxiNarrowMaxWriteTxns        = AxiNarrowMaxTxns,
   /// Maximum number of in-flight AXI narrow read transactions
@@ -46,7 +46,7 @@ module floo_nw_join #(
   /// Maximum number of in-flight transactions with the same ID at the narrow master port.
   parameter int unsigned AxiNarrowMstPortMaxTxnsPerId = AxiNarrowMaxTxns,
   /// Default parameter for number of inflight wide transactions
-  localparam int unsigned AxiWideMaxTxns              = 32,
+  parameter int unsigned AxiWideMaxTxns              = 32,
   /// Maximum number of in-flight AXI wide write transactions
   parameter int unsigned AxiWideMaxWriteTxns          = AxiWideMaxTxns,
   /// Number of unique IDs on the wide AXI bus
