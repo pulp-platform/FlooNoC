@@ -61,8 +61,8 @@ module tb_floo_nw_chimney;
   axi_wide_in_req_t [NumTargets-1:0] wide_man_req;
   axi_wide_in_rsp_t [NumTargets-1:0] wide_man_rsp;
 
-  axi_narrow_out_req_t [NumTargets-1:0] narrow_sub_req;
-  axi_narrow_out_rsp_t [NumTargets-1:0] narrow_sub_rsp;
+  axi_narrow_out_req_t [NumTargets-1:0] narrow_sub_req, narrow_sub_req_sync;
+  axi_narrow_out_rsp_t [NumTargets-1:0] narrow_sub_rsp, narrow_sub_rsp_sync;
   axi_wide_out_req_t [NumTargets-1:0] wide_sub_req;
   axi_wide_out_rsp_t [NumTargets-1:0] wide_sub_rsp;
 
@@ -72,8 +72,8 @@ module tb_floo_nw_chimney;
   axi_wide_in_rsp_t [NumTargets-1:0] wide_sub_rsp_id_mapped;
 
   for (genvar i = 0; i < NumTargets; i++) begin : gen_dir
-    `AXI_ASSIGN_REQ_STRUCT(narrow_sub_req_id_mapped[i], narrow_sub_req[i])
-    `AXI_ASSIGN_RESP_STRUCT(narrow_sub_rsp_id_mapped[i], narrow_sub_rsp[i])
+    `AXI_ASSIGN_REQ_STRUCT(narrow_sub_req_id_mapped[i], narrow_sub_req_sync[i])
+    `AXI_ASSIGN_RESP_STRUCT(narrow_sub_rsp_id_mapped[i], narrow_sub_rsp_sync[i])
     `AXI_ASSIGN_REQ_STRUCT(wide_sub_req_id_mapped[i], wide_sub_req[i])
     `AXI_ASSIGN_RESP_STRUCT(wide_sub_rsp_id_mapped[i], wide_sub_rsp[i])
   end
@@ -118,13 +118,13 @@ module tb_floo_nw_chimney;
     .NumReads       ( NarrowNumReads          ),
     .NumWrites      ( NarrowNumWrites         )
   ) i_narrow_test_node_0 (
-    .clk_i          ( clk               ),
-    .rst_ni         ( rst_n             ),
-    .mst_port_req_o ( narrow_man_req[0] ),
-    .mst_port_rsp_i ( narrow_man_rsp[0] ),
-    .slv_port_req_i ( narrow_sub_req[0] ),
-    .slv_port_rsp_o ( narrow_sub_rsp[0] ),
-    .end_of_sim     ( end_of_sim[0]     )
+    .clk_i          ( clk                     ),
+    .rst_ni         ( rst_n                   ),
+    .mst_port_req_o ( narrow_man_req[0]       ),
+    .mst_port_rsp_i ( narrow_man_rsp[0]       ),
+    .slv_port_req_i ( narrow_sub_req_sync[0]  ),
+    .slv_port_rsp_o ( narrow_sub_rsp_sync[0]  ),
+    .end_of_sim     ( end_of_sim[0]           )
   );
 
   floo_axi_test_node #(
@@ -188,6 +188,18 @@ module tb_floo_nw_chimney;
     .axi_b_res  ( wide_sub_rsp_id_mapped[1] )
   );
 
+  axi_aw_w_sync #(
+    .axi_req_t  ( axi_narrow_out_req_t ),
+    .axi_resp_t ( axi_narrow_out_rsp_t )
+  ) i_axi_aw_w_sync_0 (
+    .clk_i      ( clk                     ),
+    .rst_ni     ( rst_n                   ),
+    .slv_req_i  ( narrow_sub_req[0]       ),
+    .slv_resp_o ( narrow_sub_rsp[0]       ),
+    .mst_req_o  ( narrow_sub_req_sync[0]  ),
+    .mst_resp_i ( narrow_sub_rsp_sync[0]  )
+  );
+
   floo_nw_chimney #(
     .AxiCfgN              ( floo_test_pkg::AxiCfgN  ),
     .AxiCfgW              ( floo_test_pkg::AxiCfgW  ),
@@ -209,7 +221,7 @@ module tb_floo_nw_chimney;
     .floo_req_t           ( floo_req_t              ),
     .floo_rsp_t           ( floo_rsp_t              ),
     .floo_wide_t          ( floo_wide_t             )
-  ) i_floo_narrow_wide_chimney_0 (
+  ) i_floo_nw_chimney_0 (
     .clk_i                ( clk               ),
     .rst_ni               ( rst_n             ),
     .sram_cfg_i           ( '0                ),
@@ -253,7 +265,7 @@ module tb_floo_nw_chimney;
     .floo_req_t           ( floo_req_t              ),
     .floo_rsp_t           ( floo_rsp_t              ),
     .floo_wide_t          ( floo_wide_t             )
-  ) i_floo_narrow_wide_chimney_1 (
+  ) i_floo_nw_chimney_1 (
     .clk_i                ( clk               ),
     .rst_ni               ( rst_n             ),
     .sram_cfg_i           ( '0                ),
@@ -274,6 +286,18 @@ module tb_floo_nw_chimney;
     .floo_req_i           ( chimney_req[0]    ),
     .floo_rsp_i           ( chimney_rsp[0]    ),
     .floo_wide_i          ( chimney_wide[0]   )
+  );
+
+  axi_aw_w_sync #(
+    .axi_req_t  ( axi_narrow_out_req_t ),
+    .axi_resp_t ( axi_narrow_out_rsp_t )
+  ) i_axi_aw_w_sync_1 (
+    .clk_i      ( clk                     ),
+    .rst_ni     ( rst_n                   ),
+    .slv_req_i  ( narrow_sub_req[1]       ),
+    .slv_resp_o ( narrow_sub_rsp[1]       ),
+    .mst_req_o  ( narrow_sub_req_sync[1]  ),
+    .mst_resp_i ( narrow_sub_rsp_sync[1]  )
   );
 
   axi_reorder_remap_compare #(
@@ -325,18 +349,17 @@ module tb_floo_nw_chimney;
     .NumAddrRegions ( NumAddrRegions          ),
     .rule_t         ( node_addr_region_t      ),
     .AddrRegions    ( AddrRegions             ),
-
     .AxiMaxBurstLen ( 1                       ),
     .NumReads       ( NarrowNumReads          ),
     .NumWrites      ( NarrowNumWrites         )
   ) i_narrow_test_node_1 (
-    .clk_i          ( clk               ),
-    .rst_ni         ( rst_n             ),
-    .mst_port_req_o ( narrow_man_req[1] ),
-    .mst_port_rsp_i ( narrow_man_rsp[1] ),
-    .slv_port_req_i ( narrow_sub_req[1] ),
-    .slv_port_rsp_o ( narrow_sub_rsp[1] ),
-    .end_of_sim     ( end_of_sim[4]     )
+    .clk_i          ( clk                     ),
+    .rst_ni         ( rst_n                   ),
+    .mst_port_req_o ( narrow_man_req[1]       ),
+    .mst_port_rsp_i ( narrow_man_rsp[1]       ),
+    .slv_port_req_i ( narrow_sub_req_sync[1]  ),
+    .slv_port_rsp_o ( narrow_sub_rsp_sync[1]  ),
+    .end_of_sim     ( end_of_sim[4]           )
   );
 
   floo_axi_test_node #(
