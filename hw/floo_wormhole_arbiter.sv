@@ -59,7 +59,8 @@ module floo_wormhole_arbiter import floo_pkg::*;
   assign data_o  = data_i [valid_selected_idx];
   always_comb begin : proc_ready_o
     ready_o = '0;
-    ready_o[valid_selected_idx] = ready_i;
+    // ready_o[valid_selected_idx] = ready_i;
+    ready_o[valid_selected_idx] = (|valid_i)? ready_i : '0; // so that when valid_i is invalid, there's no generated ready bit
   end
 
   assign last_out = data_o.hdr.last & valid_o;

@@ -5,6 +5,7 @@
 // Michael Rogenmoser <michaero@iis.ee.ethz.ch>
 
 `include "common_cells/assertions.svh"
+`include "common_cells/registers.svh"
 
 /// A simple router with configurable number of ports, physical and virtual channels, and input/output buffers
 module floo_router
@@ -109,10 +110,13 @@ module floo_router
     end
   end
 
+  // TODO CHEN: buffer the mcast AW for each input port
+
   localparam int unsigned NumInputLimited = NoLoopback ? NumInput-1 : NumInput;
 
   logic [NumOutput-1:0][NumVirtChannels-1:0][NumInputLimited-1:0] masked_valid, masked_ready;
   logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] masked_all_ready;
+  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] accum_masked_ready_q, accum_masked_ready_d, current_accumulated;
 
   flit_t [NumOutput-1:0][NumVirtChannels-1:0][NumInputLimited-1:0] masked_data;
 
@@ -135,16 +139,26 @@ module floo_router
           assign masked_all_ready[in_route][v_chan][out_route] =
             masked_ready[out_route][v_chan][ModInRoute];
           assign masked_valid[out_route][v_chan][ModInRoute] =
-            in_valid[in_route][v_chan] & route_mask[in_route][v_chan][out_route];
+            in_valid[in_route][v_chan] & route_mask[in_route][v_chan][out_route] & ~(accum_masked_ready_q[in_route][v_chan][out_route]);
           assign masked_data[out_route][v_chan][ModInRoute] =
             in_routed_data[in_route][v_chan];
         end
       end
-      assign in_ready[in_route][v_chan] =
-        |(masked_all_ready[in_route][v_chan] & route_mask[in_route][v_chan]);
+      assign accum_masked_ready_d[in_route][v_chan] = 
+        (in_ready[in_route][v_chan]) ? '0 : (accum_masked_ready_q[in_route][v_chan] | masked_all_ready[in_route][v_chan]);
+      `FF(accum_masked_ready_q[in_route][v_chan], accum_masked_ready_d[in_route][v_chan], '0)
+      assign current_accumulated[in_route][v_chan] = 
+        accum_masked_ready_q[in_route][v_chan] | masked_all_ready[in_route][v_chan];
+      // assign in_ready[in_route][v_chan] = 
+      //   &(current_accumulated[in_route][v_chan] | ~route_mask[in_route][v_chan]);
+      assign in_ready[in_route][v_chan] = 
+        &(current_accumulated[in_route][v_chan] | 
+          ~(NoLoopback? (route_mask[in_route][v_chan] & ~(1 << in_route)) : route_mask[in_route][v_chan]));    
+      // assign in_ready[in_route][v_chan] =
+      //   // |(masked_all_ready[in_route][v_chan] & route_mask[in_route][v_chan]);
+      //   &(masked_all_ready[in_route][v_chan] | ~route_mask[in_route][v_chan]);
     end
   end
-
 
   flit_t [NumOutput-1:0][NumVirtChannels-1:0] out_data, out_buffered_data;
   logic  [NumOutput-1:0][NumVirtChannels-1:0] out_valid, out_ready;
@@ -214,6 +228,8 @@ module floo_router
       .data_o  ( data_o   [out_route] )
     );
   end
+
+  // TODO CHEN: count B rsp for each output port (compared to the mcast buffer generated before)
 
   for (genvar i = 0; i < NumInput; i++) begin : gen_input_assert
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_assert

@@ -64,11 +64,12 @@ module floo_axi_test_node #(
     // Delay of master port
     .AXI_MAX_BURST_LEN    ( AxiMaxBurstLen ),
     .AX_MIN_WAIT_CYCLES   ( 0              ),
-    .AX_MAX_WAIT_CYCLES   ( 2              ),
+    .AX_MAX_WAIT_CYCLES   ( 0              ),
     .W_MIN_WAIT_CYCLES    ( 0              ),
-    .W_MAX_WAIT_CYCLES    ( 2              ),
+    .W_MAX_WAIT_CYCLES    ( 0              ),
     .RESP_MIN_WAIT_CYCLES ( 0              ),
-    .RESP_MAX_WAIT_CYCLES ( 2              )
+    .RESP_MAX_WAIT_CYCLES ( 0              ),
+    .ENABLE_MULTICAST     ( 1              )
   ) axi_rand_master_t;
 
   AXI_BUS_DV #(
@@ -103,7 +104,7 @@ module floo_axi_test_node #(
                                         AddrRegions[i].end_addr,
                                         axi_pkg::DEVICE_NONBUFFERABLE);
     end
-
+    axi_rand_master.set_multicast_probability(50);
     axi_rand_master.reset();
     @(posedge rst_ni)
     axi_rand_master.run(NumReads, NumWrites);

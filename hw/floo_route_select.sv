@@ -40,7 +40,7 @@ module floo_route_select
   logic [NumRoutes-1:0] route_sel;
   logic [RouteSelWidth-1:0] route_sel_id;
 
-if (RouteAlgo == IdTable) begin : gen_id_table
+  if (RouteAlgo == IdTable) begin : gen_id_table
     // Routing based on an ID table passed into the router (TBD parameter or signal)
     // Assumes an ID field present in the flit_t
 
@@ -97,27 +97,68 @@ if (RouteAlgo == IdTable) begin : gen_id_table
 
     id_t id_in;
     assign id_in = id_t'(channel_i.hdr.dst_id);
+    id_t mask_in;
+    assign mask_in = id_t'(channel_i.hdr.dst_mask);
+    id_t src_id;
+    assign src_id = id_t'(channel_i.hdr.src_id);
+
+    id_t dst_id_max;
+    assign dst_id_max.x = id_in.x | mask_in.x;
+    assign dst_id_max.y = id_in.y | mask_in.y;
+
+    id_t dst_id_min;
+    assign dst_id_min.x = id_in.x & (~mask_in.x);
+    assign dst_id_min.y = id_in.y & (~mask_in.y);
+
+    logic x_matched, y_matched;
+    assign x_matched = &(mask_in.x | ~(xy_id_i.x ^ id_in.x));
+    assign y_matched = &(mask_in.y | ~(xy_id_i.y ^ id_in.y));
 
     always_comb begin : proc_route_sel
-      route_sel_id = East;
-      if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
-        route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
-      end else if (id_in.x == xy_id_i.x) begin
-        if (id_in.y < xy_id_i.y) begin
-          route_sel_id = South;
-        end else begin
-          route_sel_id = North;
+      // now not one-hot?!
+      route_sel = '0;
+      if (x_matched && y_matched) begin
+        // route_sel[Eject + channel_i.hdr.dst_id.port_id] = 1;
+        route_sel[Eject] = 1;
+      end
+      if (xy_id_i.y == src_id.y) begin
+        if (xy_id_i.x >= src_id.x && xy_id_i.x < dst_id_max.x) begin
+          route_sel[East] = 1;
         end
-      end else begin
-        if (id_in.x < xy_id_i.x) begin
-          route_sel_id = West;
-        end else begin
-          route_sel_id = East;
+        if (xy_id_i.x <= src_id.x && xy_id_i.x > dst_id_min.x) begin
+          route_sel[West] = 1;
         end
       end
-      route_sel = '0;
-      route_sel[route_sel_id] = 1'b1;
+      if (x_matched) begin
+        if (xy_id_i.y >= src_id.y && xy_id_i.y < dst_id_max.y) begin
+          route_sel[North] = 1;
+        end
+        if (xy_id_i.y <= src_id.y && xy_id_i.y > dst_id_min.y) begin
+          route_sel[South] = 1;
+        end
+      end
     end
+
+    // always_comb begin : proc_route_sel
+    //   route_sel_id = East;
+    //   if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
+    //     route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
+    //   end else if (id_in.x == xy_id_i.x) begin
+    //     if (id_in.y < xy_id_i.y) begin
+    //       route_sel_id = South;
+    //     end else begin
+    //       route_sel_id = North;
+    //     end
+    //   end else begin
+    //     if (id_in.x < xy_id_i.x) begin
+    //       route_sel_id = West;
+    //     end else begin
+    //       route_sel_id = East;
+    //     end
+    //   end
+    //   route_sel = '0;
+    //   route_sel[route_sel_id] = 1'b1;
+    // end
 
     assign channel_o = channel_i;
 

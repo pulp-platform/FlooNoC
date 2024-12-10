@@ -13,7 +13,7 @@
   //   - match the collected flits to ensure all packets are routed to their intended destination without errors or injected/missing flits
 
 
-module tb_floo_router;
+module tb_floo_router_mcast;
 
   import floo_pkg::*;
 
@@ -36,16 +36,45 @@ module tb_floo_router;
   localparam int unsigned NumTestPacketsPerChannel = 100;
 
   localparam int unsigned NumPorts = 5;
-  localparam int unsigned NumVirtChannels = 6;
+  localparam int unsigned NumVirtChannels = 1; //6;
   localparam int unsigned IdWidth = $clog2(NumPorts);
   localparam int unsigned FlitWidth = 123;
   localparam int unsigned MaxPacketLength = 32;
 
   typedef logic [FlitWidth-1:0] payload_t;
-  typedef logic [IdWidth-1:0] id_t;
+  // typedef logic [IdWidth-1:0] id_t;
+  typedef logic [1:0] x_bits_t;
+  typedef logic [1:0] y_bits_t;
+  typedef logic [2:0] port_id_bits_t;
+  `FLOO_TYPEDEF_XY_NODE_ID_T(id_t, x_bits_t, y_bits_t, port_id_bits_t)
 
-  `FLOO_TYPEDEF_HDR_T(hdr_t, id_t, id_t, logic, logic)
+  // `FLOO_TYPEDEF_HDR_T(hdr_t, id_t, id_t, logic, logic)
+  `FLOO_TYPEDEF_MASK_HDR_T(hdr_t, id_t, id_t, id_t, logic, logic)
   `FLOO_TYPEDEF_GENERIC_FLIT_T(req, hdr_t, payload_t)
+
+  typedef enum logic[2:0] {
+    North = 3'd0, // y increasing
+    East  = 3'd1, // x increasing
+    South = 3'd2, // y decreasing
+    West  = 3'd3, // x decreasing
+    Eject = 3'd4, // target/destination
+    NumDirections
+  } route_direction_e;
+
+  id_t [NumDirections-1:0] xy_id;
+  assign xy_id[Eject] = '{x: 2'd1, y: 2'd1, port_id: 3'd4};
+  for (genvar i = North; i <= West; i++) begin : gen_slaves
+
+    if (i == North) begin : gen_north
+      assign xy_id[i] = '{x: 2'd1, y: 2'd2, port_id: 3'd0};
+    end else if (i == South) begin : gen_south
+      assign xy_id[i] = '{x: 2'd1, y: 2'd0, port_id: 3'd2};
+    end else if (i == East) begin : gen_east
+      assign xy_id[i] = '{x: 2'd2, y: 2'd1, port_id: 3'd1};
+    end else if (i == West) begin : gen_west
+      assign xy_id[i] = '{x: 2'd0, y: 2'd1, port_id: 3'd3};
+    end
+  end
 
   logic clk, rst_n;
 
@@ -79,6 +108,8 @@ module tb_floo_router;
     bit [IdWidth-1:0]        source;
     rand int                 len;
     rand bit [IdWidth-1:0]   id;
+    rand x_bits_t            mask_x;
+    rand y_bits_t            mask_y;
 
     function new (bit [IdWidth-1:0] in_source);
       this.source = in_source;
@@ -90,7 +121,7 @@ module tb_floo_router;
     }
 
     constraint len_is_reasonable_c {
-      len <= 32;
+      len <= 5;
       len > 0;
     }
 
@@ -122,14 +153,20 @@ module tb_floo_router;
               if (rand_data.randomize()) begin
                 automatic floo_req_generic_flit_t next_flit = '0;
                 next_flit.payload = rand_data.data;
-                next_flit.hdr.src_id = port;
-                next_flit.hdr.dst_id = stimuli.id;
+                next_flit.hdr.src_id = xy_id[port];
+                if(port==4) begin
+                  next_flit.hdr.dst_mask.x = stimuli.mask_x;
+                  next_flit.hdr.dst_mask.y = stimuli.mask_y;
+                end else begin
+                  next_flit.hdr.dst_mask = '0;
+                end
+                next_flit.hdr.dst_id = xy_id[stimuli.id];
                 next_flit.hdr.last = j == stimuli.len-1;
 
                 stimuli_queue[port][virt_channel].push_back(next_flit);
                 golden_queue[port][virt_channel][stimuli.id].push_back(next_flit);
 
-                // $display("%x from: %d to: %d vc: %d, last: %d",next_flit.data, port, next_flit.id, virt_channel, next_flit.last);
+                // $display("generate stimuli for port %0d: dst=%0d, last=%0b, payload=%0x", port, stimuli.id, next_flit.hdr.last, next_flit.payload);
               end else begin
                 $error("Could not randomize.");
               end
@@ -157,7 +194,7 @@ module tb_floo_router;
       begin : apply_valid_data
         stimuli = stimuli_queue[port][virt_channel].pop_front();
         pre_data_in[port][virt_channel] = stimuli;
-        $info("apply stimuli to src port %0d: dst %d, payload %0x", port, stimuli.hdr.dst_id, stimuli.payload);
+        $info("apply stimuli to src port %0d: dst %d, mask(%0b,%0b) payload %0x", port, stimuli.hdr.dst_id.port_id, timuli.hdr.dst_mask.x, timuli.hdr.dst_mask.y, stimuli.payload);
         pre_valid_in[port][virt_channel] = 1'b1;
       end
       begin
@@ -232,14 +269,17 @@ module tb_floo_router;
     .NumVirtChannels  ( NumVirtChannels         ),
     .flit_t           ( floo_req_generic_flit_t ),
     .InFifoDepth      ( 4                       ),
-    .RouteAlgo        ( SourceRouting           ),
-    .IdWidth          ( IdWidth                 )
+    .RouteAlgo        ( XYRouting           ),
+    .id_t             ( id_t                    ),
+    // .IdWidth          ( IdWidth                 )
+    .XYRouteOpt       ( 0                       ),
+    .NoLoopback       ( 1                       )
   ) i_dut (
     .clk_i         ( clk   ),
     .rst_ni        ( rst_n ),
     .test_enable_i ( '0 ),
 
-    .xy_id_i       ( '0 ), // Unused for `SourceRouting`
+    .xy_id_i       ( xy_id[Eject] ), // Unused for `SourceRouting`
     .id_route_map_i( '0 ), // Unused for `SourceRouting`
 
     .valid_i       ( valid_in  ),
@@ -306,7 +346,6 @@ module tb_floo_router;
   floo_req_generic_flit_t result_queue[NumPorts][NumVirtChannels][$];
 
   task automatic collect_result(int unsigned port, int unsigned virt_channel);
-
     fork
       begin
         delayed_ready_out[port][virt_channel] = 1'b1;
@@ -315,14 +354,13 @@ module tb_floo_router;
         started_cycle_end();
         if (delayed_valid_out[port][virt_channel]) begin
           result_queue[port][virt_channel].push_back(delayed_data_out[port][virt_channel]);
-          $info("collect output of dst %0d: src %0d, payload %0x", port, delayed_data_out[port][virt_channel].hdr.src_id, delayed_data_out[port][virt_channel].payload);
+          $info("collect output of dst %0d: src %0d, payload %0x", port, delayed_data_out[port][virt_channel].hdr.src_id.port_id, delayed_data_out[port][virt_channel].payload);
         end
       end
     join
     @(posedge clk);
     cycle_start();
     delayed_ready_out[port][virt_channel] = 1'b0;
-
   endtask
 
   logic [NumPorts-1:0][NumVirtChannels-1:0] check_complete;
@@ -344,17 +382,17 @@ module tb_floo_router;
       end else begin
         result = result_queue[port][virt_channel].pop_front();
       end
-      if (golden_queue[result.hdr.src_id][virt_channel][port].size() == 0) begin
-        $error("ERROR! Golden queue %d is empty.", result.hdr.src_id);
+      if (golden_queue[result.hdr.src_id.port_id][virt_channel][port].size() == 0) begin
+        $error("ERROR! Golden queue %d is empty.", result.hdr.src_id.port_id);
       end else begin
-        golden = golden_queue[result.hdr.src_id][virt_channel][port].pop_front();
+        golden = golden_queue[result.hdr.src_id.port_id][virt_channel][port].pop_front();
       end
 
       if (result.payload != golden.payload) begin
         $error("ERROR! Mismatch for port %d channel %d (from %d, target port %d)",
-               port, virt_channel, result.hdr.src_id, result.hdr.dst_id);
+               port, virt_channel, result.hdr.src_id.port_id, result.hdr.dst_id.port_id);
       end else begin
-        $info("Matched! for dst %0d from src %0d, payload %0x", port, result.hdr.src_id, result.payload);
+        $info("Matched! for dst %0d from src %0d, payload %0x", port, result.hdr.src_id.port_id, result.payload);
       end
 
       all_golden_size = 0;

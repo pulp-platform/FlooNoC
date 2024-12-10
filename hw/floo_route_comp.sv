@@ -24,10 +24,12 @@ module floo_route_comp
   input  logic  rst_ni,
   input  id_t   id_i,
   input  addr_t addr_i,
+  input  addr_t mask_i,
   input  addr_rule_t [RouteCfg.NumSamRules-1:0] addr_map_i,
   input  route_t [RouteCfg.NumRoutes-1:0] route_table_i,
   output route_t route_o,
-  output id_t id_o
+  output id_t id_o,
+  output id_t mask_o
 );
 
   // Use an address decoder to map the address to a destination ID.
@@ -68,6 +70,9 @@ module floo_route_comp
     assign id_o.port_id = '0;
     assign id_o.x = addr_i[RouteCfg.XYAddrOffsetX +: $bits(id_o.x)];
     assign id_o.y = addr_i[RouteCfg.XYAddrOffsetY +: $bits(id_o.y)];
+    assign mask_o.port_id = '0;
+    assign mask_o.x = mask_i[RouteCfg.XYAddrOffsetX +: $bits(id_o.x)];
+    assign mask_o.y = mask_i[RouteCfg.XYAddrOffsetY +: $bits(id_o.y)];
   end else if (RouteCfg.RouteAlgo == IdTable) begin : gen_id_bits_routing
     assign id_o = addr_i[RouteCfg.IdAddrOffset +: $bits(id_o)];
   end else if (RouteCfg.RouteAlgo == SourceRouting) begin : gen_source_routing

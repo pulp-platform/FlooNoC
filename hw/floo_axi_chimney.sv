@@ -156,8 +156,12 @@ module floo_axi_chimney #(
   // Routing
   dst_t [NumAxiChannels-1:0] dst_id;
   dst_t axi_aw_id_q;
+  id_t  [NumAxiChannels-1:0] dst_mask;
+  id_t  axi_aw_mask_q;
+
   route_t [NumAxiChannels-1:0] route_out;
   id_t [NumAxiChannels-1:0] id_out;
+  id_t [NumAxiChannels-1:0] mask_out; // TODO is type correct?
 
   meta_buf_t aw_out_hdr_in, aw_out_hdr_out;
   meta_buf_t ar_out_hdr_in, ar_out_hdr_out;
@@ -322,6 +326,7 @@ module floo_axi_chimney #(
     `ASSERT(NoAtopSupport, !(axi_aw_queue_valid_out && (axi_aw_queue.atop != axi_pkg::ATOP_NONE)))
   end
 
+  // TODO: whether to pass mask_out as input as well? check the reason for inputing id_out
   floo_rob_wrapper #(
     .RoBType        ( ChimneyCfg.BRoBType     ),
     .RoBSize        ( ChimneyCfg.BRoBSize     ),
@@ -408,10 +413,13 @@ module floo_axi_chimney #(
   /////////////////
 
   axi_addr_t [NumAxiChannels-1:0] axi_req_addr;
+  axi_addr_t [NumAxiChannels-1:0] axi_req_mask; // TODO is type correct?
   id_t [NumAxiChannels-1:0] axi_rsp_src_id;
 
   assign axi_req_addr[AxiAw] = axi_aw_queue.addr;
   assign axi_req_addr[AxiAr] = axi_ar_queue.addr;
+  assign axi_req_mask[AxiAw] = axi_aw_queue.user;
+  assign axi_req_mask[AxiAr] = axi_ar_queue.user;
 
   assign axi_rsp_src_id[AxiB] = aw_out_hdr_out.hdr.src_id;
   assign axi_rsp_src_id[AxiR] = ar_out_hdr_out.hdr.src_id;
@@ -434,8 +442,10 @@ module floo_axi_chimney #(
         .addr_map_i ( Sam               ),
         .id_i       ( id_t'('0)         ),
         .addr_i     ( axi_req_addr[ch]  ),
+        .mask_i     ( axi_req_mask[ch]  ),
         .route_o    ( route_out[ch]     ),
-        .id_o       ( id_out[ch]        )
+        .id_o       ( id_out[ch]        ),
+        .mask_o     ( mask_out[ch]      )
       );
     end else if (RouteCfg.RouteAlgo == floo_pkg::SourceRouting &&
                  (Ch == AxiB || Ch == AxiR)) begin : gen_rsp_route_comp
@@ -454,10 +464,12 @@ module floo_axi_chimney #(
         .rst_ni,
         .route_table_i,
         .addr_i     ( '0                  ),
+        .mask_i     ( '0                  ),
         .addr_map_i ( '0                  ),
         .id_i       ( axi_rsp_src_id[ch]  ),
         .route_o    ( route_out[ch]       ),
-        .id_o       ( id_out[ch]          )
+        .id_o       ( id_out[ch]          ),
+        .mask_o     (                     )
       );
     end
   end
@@ -465,15 +477,24 @@ module floo_axi_chimney #(
   if (RouteCfg.RouteAlgo == floo_pkg::SourceRouting) begin : gen_route_field
     assign route_out[AxiW] = axi_aw_id_q;
     assign dst_id = route_out;
+    assign  dst_mask = '0;
   end else begin : gen_dst_field
     assign dst_id[AxiAw] = id_out[AxiAw];
     assign dst_id[AxiAr] = id_out[AxiAr];
     assign dst_id[AxiB]  = aw_out_hdr_out.hdr.src_id;
     assign dst_id[AxiR]  = ar_out_hdr_out.hdr.src_id;
     assign dst_id[AxiW]  = axi_aw_id_q;
+
+    assign dst_mask[AxiAw] = mask_out[AxiAw];
+    assign dst_mask[AxiAr] = mask_out[AxiAr];
+    assign dst_mask[AxiB]  = '0;
+    assign dst_mask[AxiR]  = '0;
+    assign dst_mask[AxiW]  = axi_aw_mask_q;
   end
 
   `FFL(axi_aw_id_q, dst_id[AxiAw], axi_aw_queue_valid_out &&
+                                   axi_aw_queue_ready_in, '0)
+  `FFL(axi_aw_mask_q, dst_mask[AxiAw], axi_aw_queue_valid_out &&
                                    axi_aw_queue_ready_in, '0)
 
   ///////////////////
@@ -485,6 +506,7 @@ module floo_axi_chimney #(
     floo_axi_aw.hdr.rob_req = aw_rob_req_out;
     floo_axi_aw.hdr.rob_idx = aw_rob_idx_out;
     floo_axi_aw.hdr.dst_id  = dst_id[AxiAw];
+    floo_axi_aw.hdr.dst_mask    = dst_mask[AxiAw];
     floo_axi_aw.hdr.src_id  = id_i;
     floo_axi_aw.hdr.last    = 1'b0;
     floo_axi_aw.hdr.axi_ch  = AxiAw;
@@ -497,6 +519,7 @@ module floo_axi_chimney #(
     floo_axi_w.hdr.rob_req  = aw_rob_req_out;
     floo_axi_w.hdr.rob_idx  = aw_rob_idx_out;
     floo_axi_w.hdr.dst_id   = dst_id[AxiW];
+    floo_axi_w.hdr.dst_mask     = dst_mask[AxiW];
     floo_axi_w.hdr.src_id   = id_i;
     floo_axi_w.hdr.last     = axi_req_in.w.last;
     floo_axi_w.hdr.axi_ch   = AxiW;
@@ -508,6 +531,7 @@ module floo_axi_chimney #(
     floo_axi_ar.hdr.rob_req = ar_rob_req_out;
     floo_axi_ar.hdr.rob_idx = ar_rob_idx_out;
     floo_axi_ar.hdr.dst_id  = dst_id[AxiAr];
+    floo_axi_ar.hdr.dst_mask    = dst_mask[AxiAr];
     floo_axi_ar.hdr.src_id  = id_i;
     floo_axi_ar.hdr.last    = 1'b1;
     floo_axi_ar.hdr.axi_ch  = AxiAr;
@@ -519,6 +543,7 @@ module floo_axi_chimney #(
     floo_axi_b.hdr.rob_req  = aw_out_hdr_out.hdr.rob_req;
     floo_axi_b.hdr.rob_idx  = aw_out_hdr_out.hdr.rob_idx;
     floo_axi_b.hdr.dst_id   = dst_id[AxiB];
+    floo_axi_b.hdr.dst_mask     = dst_mask[AxiB];
     floo_axi_b.hdr.src_id   = id_i;
     floo_axi_b.hdr.last     = 1'b1;
     floo_axi_b.hdr.axi_ch   = AxiB;
@@ -532,6 +557,7 @@ module floo_axi_chimney #(
     floo_axi_r.hdr.rob_req  = ar_out_hdr_out.hdr.rob_req;
     floo_axi_r.hdr.rob_idx  = ar_out_hdr_out.hdr.rob_idx;
     floo_axi_r.hdr.dst_id   = dst_id[AxiR];
+    floo_axi_r.hdr.dst_mask     = dst_mask[AxiR];
     floo_axi_r.hdr.src_id   = id_i;
     floo_axi_r.hdr.last     = 1'b1; // There is no reason to do wormhole routing for R bursts
     floo_axi_r.hdr.axi_ch   = AxiR;

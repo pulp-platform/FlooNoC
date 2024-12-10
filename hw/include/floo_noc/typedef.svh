@@ -58,6 +58,18 @@
     ch_t axi_ch;                                                  \
   } hdr_t;
 
+`define FLOO_TYPEDEF_MASK_HDR_T(hdr_t, dst_t, mask_t, src_t, ch_t, rob_idx_t)  \
+  typedef struct packed {                                         \
+    logic rob_req;                                                \
+    rob_idx_t rob_idx;                                            \
+    dst_t dst_id;                                                 \
+    mask_t dst_mask;                                              \
+    src_t src_id;                                                 \
+    logic last;                                                   \
+    logic atop;                                                   \
+    ch_t axi_ch;                                                  \
+  } hdr_t;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Header definition for virtual channel and lookahead routing
 //
