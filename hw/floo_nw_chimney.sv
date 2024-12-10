@@ -271,33 +271,6 @@ module floo_nw_chimney #(
       assign axi_narrow_rsp_out.ar_ready = axi_narrow_ar_queue_ready_in;
     end
 
-    logic narrow_aw_out_queue_valid, narrow_aw_out_queue_ready;
-    axi_narrow_out_aw_chan_t axi_narrow_aw_queue_out;
-
-    // Since AW and W are transferred over the same link, it can happen that
-    // a downstream module does not accept the AW until the W is valid.
-    // Therefore, we need to add a spill register for the AW channel.
-    spill_register #(
-      .T (axi_narrow_out_aw_chan_t)
-    ) i_aw_narrow_out_queue (
-      .clk_i    ( clk_i                                 ),
-      .rst_ni   ( rst_ni                                ),
-      .valid_i  ( axi_narrow_meta_buf_req_out.aw_valid  ),
-      .ready_o  ( narrow_aw_out_queue_ready             ),
-      .data_i   ( axi_narrow_meta_buf_req_out.aw        ),
-      .valid_o  ( narrow_aw_out_queue_valid             ),
-      .ready_i  ( axi_narrow_out_rsp_i.aw_ready         ),
-      .data_o   ( axi_narrow_aw_queue_out               )
-    );
-
-    always_comb begin
-      axi_narrow_out_req_o = axi_narrow_meta_buf_req_out;
-      axi_narrow_out_req_o.aw_valid = narrow_aw_out_queue_valid;
-      axi_narrow_out_req_o.aw = axi_narrow_aw_queue_out;
-      axi_narrow_meta_buf_rsp_in = axi_narrow_out_rsp_i;
-      axi_narrow_meta_buf_rsp_in.aw_ready = narrow_aw_out_queue_ready;
-    end
-
   end else begin : gen_narrow_err_slv_port
     axi_err_slv #(
       .AxiIdWidth ( AxiCfgN.InIdWidth   ),
