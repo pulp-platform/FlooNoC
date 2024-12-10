@@ -48,7 +48,8 @@
    assign aw_valid = w_completed_q && slv_req_i.aw_valid && slv_req_i.w_valid;
 
    // W is valid when corresponding AW is valid or sent
-   assign w_valid = slv_req_i.w_valid && (!w_completed_q || (aw_valid && mst_resp_i.aw_ready)); // This is probably pretty bad for timing
+   // This is probably pretty bad for timing!
+   assign w_valid = slv_req_i.w_valid && (!w_completed_q || (aw_valid && mst_resp_i.aw_ready));
 
    always_comb begin
      w_completed_d = w_completed_q;
