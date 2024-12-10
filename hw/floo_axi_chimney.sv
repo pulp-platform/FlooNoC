@@ -207,33 +207,6 @@ module floo_axi_chimney #(
       assign axi_rsp_out.ar_ready = axi_ar_queue_ready_in;
     end
 
-    logic aw_out_queue_valid, aw_out_queue_ready;
-    axi_out_aw_chan_t axi_aw_queue_out;
-
-    // Since AW and W are transferred over the same link, it can happen that
-    // a downstream module does not accept the AW until the W is valid.
-    // Therefore, we need to add a spill register for the AW channel.
-    spill_register #(
-      .T (axi_out_aw_chan_t)
-    ) i_aw_out_queue (
-      .clk_i    ( clk_i                     ),
-      .rst_ni   ( rst_ni                    ),
-      .valid_i  ( meta_buf_req_out.aw_valid ),
-      .ready_o  ( aw_out_queue_ready        ),
-      .data_i   ( meta_buf_req_out.aw       ),
-      .valid_o  ( aw_out_queue_valid        ),
-      .ready_i  ( axi_out_rsp_i.aw_ready    ),
-      .data_o   ( axi_aw_queue_out          )
-    );
-
-    always_comb begin
-      axi_out_req_o = meta_buf_req_out;
-      axi_out_req_o.aw_valid = aw_out_queue_valid;
-      axi_out_req_o.aw = axi_aw_queue_out;
-      meta_buf_rsp_in = axi_out_rsp_i;
-      meta_buf_rsp_in.aw_ready = aw_out_queue_ready;
-    end
-
   end else begin : gen_err_slv_port
     axi_err_slv #(
       .AxiIdWidth ( AxiCfg.InIdWidth  ),
@@ -287,6 +260,34 @@ module floo_axi_chimney #(
     assign floo_rsp_in = floo_rsp_i.rsp;
     assign floo_rsp_in_valid = floo_rsp_i.valid;
     assign floo_rsp_o.ready = floo_rsp_out_ready;
+  end
+
+
+  logic aw_out_queue_valid, aw_out_queue_ready;
+  axi_out_aw_chan_t axi_aw_queue_out;
+
+  // Since AW and W are transferred over the same link, it can happen that
+  // a downstream module does not accept the AW until the W is valid.
+  // Therefore, we need to add a spill register for the AW channel.
+  spill_register #(
+    .T (axi_out_aw_chan_t)
+  ) i_aw_out_queue (
+    .clk_i    ( clk_i                     ),
+    .rst_ni   ( rst_ni                    ),
+    .valid_i  ( meta_buf_req_out.aw_valid ),
+    .ready_o  ( aw_out_queue_ready        ),
+    .data_i   ( meta_buf_req_out.aw       ),
+    .valid_o  ( aw_out_queue_valid        ),
+    .ready_i  ( axi_out_rsp_i.aw_ready    ),
+    .data_o   ( axi_aw_queue_out          )
+  );
+
+  always_comb begin
+    axi_out_req_o = meta_buf_req_out;
+    axi_out_req_o.aw_valid = aw_out_queue_valid;
+    axi_out_req_o.aw = axi_aw_queue_out;
+    meta_buf_rsp_in = axi_out_rsp_i;
+    meta_buf_rsp_in.aw_ready = aw_out_queue_ready;
   end
 
   ///////////////////////
