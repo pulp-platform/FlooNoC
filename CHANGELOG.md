@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 ### Changed
 
 #### Hardware
+
 - The `floo_narrow_wide_*` modules and the corresponding testbenches were renamed to `floo_nw_*` to be more concise. (https://github.com/pulp-platform/FlooNoC/pull/65)
 - The flit type definitions are now implemented as SystemVerilog macros in `typedef.svh`. (https://github.com/pulp-platform/FlooNoC/pull/65)
 - The parametrization of the chimney modules has changed dramatically. They now use the newly introduced `*Cfg`'s from the `floo_pkg`. In the narrow-wide chimneys, both datapaths now have their own configs (i.e. `*CfgN` and `*CfgW`), to reduce the verbosity of the module instantiation. (https://github.com/pulp-platform/FlooNoC/pull/65)
@@ -39,6 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - The `ReorderBufferSize` parameters was shortened to `RoBSize`. (https://github.com/pulp-platform/FlooNoC/pull/65)
 - All testbenches were adapted to all changes. (https://github.com/pulp-platform/FlooNoC/pull/65)
 - All verification IPs were adapted to the new configuration structs. (https://github.com/pulp-platform/FlooNoC/pull/65)
+  Added spill registers for outgoing AW requests in the chimneys. This is necessary since AXI allows to wait for AW *and* W to be valid before asserting the ready. Since, the AW and W beats are sent over the same channel, this might cause a deadlock if there there are no buffers downstream.
 
 #### FlooGen
 - The link typedefs are now renderd with the macros in `typedef.svh` instead of rendering them in pure SystemVerilog. (https://github.com/pulp-platform/FlooNoC/pull/65)
