@@ -14,7 +14,7 @@ MKFILE_DIR  := $(dir $(MKFILE_PATH))
 
 .PHONY: all clean compile-sim run-sim run-sim-batch
 all: compile-sim
-clean: clean-sim clean-spyglass clean-jobs clean-sources clean-vcs
+clean: clean-vsim clean-spyglass clean-jobs clean-sources clean-vcs
 compile-sim: compile-vsim
 run-sim: run-vsim
 run-sim-batch: run-vsim-batch
