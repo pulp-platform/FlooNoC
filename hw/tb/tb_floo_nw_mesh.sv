@@ -21,6 +21,10 @@ module tb_floo_nw_mesh;
   localparam int unsigned NumHBMChannels = NumY;
   localparam int unsigned NumMax = (NumX > NumY) ? NumX : NumY;
 
+  // Add a buffer before the AXI monitors. Otherwise transactions
+  // are stalled which skews the latency measurements
+  localparam int unsigned FifoDepth = 100;
+
   typedef axi_narrow_in_addr_t addr_t;
   localparam int unsigned HBMLatency = 100;
   localparam addr_t HBMSize = 48'h10000; // 64KB
@@ -54,6 +58,11 @@ module tb_floo_nw_mesh;
   axi_narrow_out_rsp_t [NumHBMChannels-1:0] hbm_narrow_rsp;
   axi_wide_out_req_t [NumHBMChannels-1:0] hbm_wide_req;
   axi_wide_out_rsp_t [NumHBMChannels-1:0] hbm_wide_rsp;
+
+  axi_narrow_in_req_t [NumX-1:0][NumY-1:0] cluster_narrow_in_buf_req;
+  axi_narrow_in_rsp_t [NumX-1:0][NumY-1:0] cluster_narrow_in_buf_rsp;
+  axi_wide_in_req_t [NumX-1:0][NumY-1:0] cluster_wide_in_buf_req;
+  axi_wide_in_rsp_t [NumX-1:0][NumY-1:0] cluster_wide_in_buf_rsp;
 
   ///////////////////
   //   HBM Model   //
@@ -119,11 +128,11 @@ module tb_floo_nw_mesh;
   ////////////////////////
 
   for (genvar x = 0; x < NumX; x++) begin : gen_x
-    for (genvar y = 0; y < NumX; y++) begin : gen_y
+    for (genvar y = 0; y < NumY; y++) begin : gen_y
       localparam string NarrowDmaName = $sformatf("narrow_dma_%0d_%0d", x, y);
       localparam string WideDmaName   = $sformatf("wide_dma_%0d_%0d", x, y);
 
-      localparam int unsigned Index = x * NumX + y;
+      localparam int unsigned Index = x * NumY + y;
       localparam addr_t MemBaseAddr = Sam[ClusterNi00+Index].start_addr;
 
       floo_dma_test_node #(
@@ -170,6 +179,46 @@ module tb_floo_nw_mesh;
         .end_of_sim_o   ( end_of_sim[x][y][1]         )
       );
 
+      axi_fifo #(
+        .Depth        ( FifoDepth               ),
+        .FallThrough  ( 1'b1                    ),
+        .aw_chan_t    ( axi_narrow_in_aw_chan_t ),
+        .w_chan_t     ( axi_narrow_in_w_chan_t  ),
+        .b_chan_t     ( axi_narrow_in_b_chan_t  ),
+        .ar_chan_t    ( axi_narrow_in_ar_chan_t ),
+        .r_chan_t     ( axi_narrow_in_r_chan_t  ),
+        .axi_req_t    ( axi_narrow_in_req_t     ),
+        .axi_resp_t   ( axi_narrow_in_rsp_t     )
+      ) i_axi_narrow_buffer (
+        .clk_i      ( clk                             ),
+        .rst_ni     ( rst_n                           ),
+        .test_i     ( 1'b0                            ),
+        .slv_req_i  ( cluster_narrow_in_req[x][y]     ),
+        .slv_resp_o ( cluster_narrow_in_rsp[x][y]     ),
+        .mst_req_o  ( cluster_narrow_in_buf_req[x][y] ),
+        .mst_resp_i ( cluster_narrow_in_buf_rsp[x][y] )
+      );
+
+      axi_fifo #(
+        .Depth        ( FifoDepth             ),
+        .FallThrough  ( 1'b1                  ),
+        .aw_chan_t    ( axi_wide_in_aw_chan_t ),
+        .w_chan_t     ( axi_wide_in_w_chan_t  ),
+        .b_chan_t     ( axi_wide_in_b_chan_t  ),
+        .ar_chan_t    ( axi_wide_in_ar_chan_t ),
+        .r_chan_t     ( axi_wide_in_r_chan_t  ),
+        .axi_req_t    ( axi_wide_in_req_t     ),
+        .axi_resp_t   ( axi_wide_in_rsp_t     )
+      ) i_axi_wide_buffer (
+        .clk_i      ( clk                           ),
+        .rst_ni     ( rst_n                         ),
+        .test_i     ( 1'b0                          ),
+        .slv_req_i  ( cluster_wide_in_req[x][y]     ),
+        .slv_resp_o ( cluster_wide_in_rsp[x][y]     ),
+        .mst_req_o  ( cluster_wide_in_buf_req[x][y] ),
+        .mst_resp_i ( cluster_wide_in_buf_rsp[x][y] )
+      );
+
       axi_bw_monitor #(
         .req_t      ( axi_narrow_in_req_t ),
         .rsp_t      ( axi_narrow_in_rsp_t ),
@@ -183,7 +232,7 @@ module tb_floo_nw_mesh;
         .rsp_i          ( cluster_narrow_in_rsp[x][y] ),
         .ar_in_flight_o (                             ),
         .aw_in_flight_o (                             )
-        );
+      );
 
       axi_bw_monitor #(
         .req_t      ( axi_wide_in_req_t   ),
@@ -198,7 +247,7 @@ module tb_floo_nw_mesh;
         .rsp_i          ( cluster_wide_in_rsp[x][y] ),
         .ar_in_flight_o (                           ),
         .aw_in_flight_o (                           )
-        );
+      );
     end
   end
 
@@ -208,21 +257,21 @@ module tb_floo_nw_mesh;
   /////////////////////////
 
   floo_nw_mesh_noc i_floo_nw_mesh_noc (
-    .clk_i                    ( clk                     ),
-    .rst_ni                   ( rst_n                   ),
-    .test_enable_i            ( 1'b0                    ),
-    .cluster_narrow_in_req_i  ( cluster_narrow_in_req   ),
-    .cluster_narrow_in_rsp_o  ( cluster_narrow_in_rsp   ),
-    .cluster_narrow_out_req_o ( cluster_narrow_out_req  ),
-    .cluster_narrow_out_rsp_i ( cluster_narrow_out_rsp  ),
-    .cluster_wide_in_req_i    ( cluster_wide_in_req     ),
-    .cluster_wide_in_rsp_o    ( cluster_wide_in_rsp     ),
-    .cluster_wide_out_req_o   ( cluster_wide_out_req    ),
-    .cluster_wide_out_rsp_i   ( cluster_wide_out_rsp    ),
-    .hbm_narrow_out_req_o     ( hbm_narrow_req          ),
-    .hbm_narrow_out_rsp_i     ( hbm_narrow_rsp          ),
-    .hbm_wide_out_req_o       ( hbm_wide_req            ),
-    .hbm_wide_out_rsp_i       ( hbm_wide_rsp            )
+    .clk_i                    ( clk                       ),
+    .rst_ni                   ( rst_n                     ),
+    .test_enable_i            ( 1'b0                      ),
+    .cluster_narrow_in_req_i  ( cluster_narrow_in_buf_req ),
+    .cluster_narrow_in_rsp_o  ( cluster_narrow_in_buf_rsp ),
+    .cluster_narrow_out_req_o ( cluster_narrow_out_req    ),
+    .cluster_narrow_out_rsp_i ( cluster_narrow_out_rsp    ),
+    .cluster_wide_in_req_i    ( cluster_wide_in_buf_req   ),
+    .cluster_wide_in_rsp_o    ( cluster_wide_in_buf_rsp   ),
+    .cluster_wide_out_req_o   ( cluster_wide_out_req      ),
+    .cluster_wide_out_rsp_i   ( cluster_wide_out_rsp      ),
+    .hbm_narrow_out_req_o     ( hbm_narrow_req            ),
+    .hbm_narrow_out_rsp_i     ( hbm_narrow_rsp            ),
+    .hbm_wide_out_req_o       ( hbm_wide_req              ),
+    .hbm_wide_out_rsp_i       ( hbm_wide_rsp              )
   );
 
 

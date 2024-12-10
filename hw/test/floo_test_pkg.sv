@@ -9,6 +9,7 @@
 package floo_test_pkg;
 
   typedef enum {
+    IdealSlave,
     FastSlave,
     SlowSlave,
     MixedSlave

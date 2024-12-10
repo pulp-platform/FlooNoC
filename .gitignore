@@ -89,6 +89,7 @@ scripts/spyglass/*
 
 # experiment outputs
 util/output/*
+measurements
 
 # Misc
 *.csv
