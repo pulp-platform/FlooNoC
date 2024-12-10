@@ -226,14 +226,12 @@ def gen_mesh_traffic(
                 ext_addr = get_xy_base_addr(NUM_X//2, NUM_Y//2)
                 accesses = [(ext_addr, rw, wide_length)]
             elif traffic_type == "matmul":
-                # First access for matrix A, B, C from HBM
+                # access matrix A from HBM
                 accesses = [(get_hbm_base_addr(y), "read", wide_length//2)]
-                # accesses += [(get_hbm_base_addr(y), "read")]
-                accesses += [(get_hbm_base_addr((y + i) % NUM_Y), "read", (wide_length//2)//NUM_Y) for i in range(NUM_Y)]
-                # accesses += [(get_hbm_base_addr(y), "read")]
-                # Subsequent accesses for matrix A, B from mesh
-                # accesses += [(get_xy_base_addr((x + i) % NUM_X, y), "read") for i in range(1, NUM_X)]
-                # accesses += [(get_xy_base_addr(x, (y + i) % NUM_Y), "read") for i in range(1, NUM_Y)]
+                # access matrix B from HBM
+                for i in range(NUM_Y):
+                    hbm_addr = get_hbm_base_addr((y + i) % NUM_Y)
+                    accesses += [(hbm_addr, "read", (wide_length//2)//NUM_Y)]
                 # Writeback of matrix C to HBM
                 accesses += [(get_hbm_base_addr(y), "write", wide_length//4)]
             else:
