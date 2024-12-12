@@ -1183,7 +1183,7 @@ module floo_nw_chimney #(
       .slv_req_i  ( axi_narrow_meta_buf_req_in  ),
       .slv_resp_o ( axi_narrow_meta_buf_rsp_out )
     );
-    assign axi_narrow_out_req_o = '0;
+    assign axi_narrow_meta_buf_req_out = '0;
     assign narrow_ar_buf_hdr_out = '0;
     assign narrow_aw_buf_hdr_out = '0;
   end
@@ -1227,7 +1227,7 @@ module floo_nw_chimney #(
       .slv_req_i  ( axi_wide_meta_buf_req_in  ),
       .slv_resp_o ( axi_wide_meta_buf_rsp_out )
     );
-    assign axi_wide_out_req_o = '0;
+    assign axi_wide_meta_buf_req_out = '0;
     assign wide_ar_buf_hdr_out = '0;
     assign wide_aw_buf_hdr_out = '0;
   end

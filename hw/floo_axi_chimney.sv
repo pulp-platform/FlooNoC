@@ -716,7 +716,7 @@ module floo_axi_chimney #(
       .slv_req_i  ( meta_buf_req_in   ),
       .slv_resp_o ( meta_buf_rsp_out  )
     );
-
+    assign meta_buf_req_out = '0;
     assign ar_out_hdr_out = '0;
     assign aw_out_hdr_out = '0;
   end
