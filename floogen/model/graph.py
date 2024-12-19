@@ -5,7 +5,6 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-import re
 from typing import List, Tuple
 
 import networkx as nx
