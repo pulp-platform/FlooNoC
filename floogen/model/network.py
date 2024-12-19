@@ -504,6 +504,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 # 1D array case
                 case (_,):
                     node_idx = self.graph.get_node_arr_idx(ni_name)[0]
+                    ni_dict["arr_idx"] = SimpleId(id=node_idx)
                     if ep_desc.is_sbr():
                         ni_dict["addr_range"] = [
                             rng.model_copy().set_idx(node_idx) for rng in ep_desc.addr_range
@@ -749,9 +750,10 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     def render_ep_enum(self):
         """Render the endpoint enum in the generated code."""
-        fields_dict = {
-            ep.name: self.graph.get_node_uid(node_obj=ep).id for ep in self.graph.get_ni_nodes()
-        }
+        fields_dict = {}
+        for ni in self.graph.get_ni_nodes():
+            name = ni.render_enum_name()
+            fields_dict[name] = self.graph.get_node_uid(node_obj=ni).id
         fields_dict = dict(sorted(fields_dict.items(), key=lambda item: item[1]))
         fields_dict["num_endpoints"] = len(fields_dict)
         return sv_enum_typedef(name="ep_id_e", fields_dict=fields_dict)
