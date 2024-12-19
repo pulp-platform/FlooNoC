@@ -287,15 +287,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
     def create_unique_ep_id(self, node) -> int:
         """Return the endpoint id."""
         ep_nodes = [name for name, _ in self.get_ep_nodes(with_name=True)]
-
-        # Custom sorting function: extract numeric part after letters
-        def extract_number(name):
-            match = re.search(r"(\d+)$", name)
-            return int(match.group(1)) if match else -1
-
-        return sorted(
-            ep_nodes, key=lambda name: (re.sub(r"\d+$", "", name), extract_number(name))
-        ).index(node)
+        return ep_nodes.index(node)
 
     def get_node_id(self, node_name=None, node_obj=None):
         """Return the node id."""
