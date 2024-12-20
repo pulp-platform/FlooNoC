@@ -70,7 +70,7 @@ floo_nw_chimney  #(
   .id_i             ( id_t'(${ni.id.render()}) ),
 % endif
 % if ni.routing.route_algo.value == 'SourceRouting':
-  .route_table_i    ( RoutingTables[${snake_to_camel(ni.name)}]  ),
+  .route_table_i    ( RoutingTables[${snake_to_camel(ni.render_enum_name())}]  ),
 % else:
   .route_table_i    ( '0                          ),
 % endif

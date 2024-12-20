@@ -11,7 +11,7 @@ from importlib.resources import files, as_file
 from pydantic import BaseModel
 from mako.lookup import Template
 
-from floogen.model.routing import Id, SimpleId, AddrRange, Routing, RouteMap
+from floogen.model.routing import Id, SimpleId, Coord, AddrRange, Routing, RouteMap
 from floogen.model.protocol import AXI4
 from floogen.model.link import NarrowWideLink, AxiLink
 from floogen.model.endpoint import EndpointDesc
@@ -46,6 +46,15 @@ class NetworkInterface(BaseModel):
     def is_only_mgr(self) -> bool:
         """Return true if the network interface is only a manager."""
         return self.endpoint.is_mgr() and not self.endpoint.is_sbr()
+
+    def render_enum_name(self) -> str:
+        """Render the enum name."""
+        name = f"{self.endpoint.name}"
+        if isinstance(self.arr_idx, Coord):
+            name += f"_x{self.arr_idx.x}_y{self.arr_idx.y}"
+        elif isinstance(self.arr_idx, SimpleId):
+            name += f"_{self.arr_idx.id}"
+        return name
 
 
 class AxiNI(NetworkInterface):
