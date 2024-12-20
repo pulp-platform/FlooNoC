@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Added support for single-AXI configuration networks.
 - Support for negative increments when specifying a `src_range` or `dst_range` in the `connections` schema.
 - Add support for multiple non-contiguous address ranges for endpoints.
+- Support for 'floogen' installation in a Python virtual environment using `poetry`.
 
 ### Changed
 
