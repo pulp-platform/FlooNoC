@@ -156,7 +156,7 @@ module floo_axi_chimney #(
   // Routing
   dst_t [NumAxiChannels-1:0] dst_id;
   dst_t axi_aw_id_q;
-  id_t  [NumAxiChannels-1:0] dst_mask;
+  id_t  [NumAxiChannels-1:0] mask;
   id_t  axi_aw_mask_q;
 
   route_t [NumAxiChannels-1:0] route_out;
@@ -326,7 +326,6 @@ module floo_axi_chimney #(
     `ASSERT(NoAtopSupport, !(axi_aw_queue_valid_out && (axi_aw_queue.atop != axi_pkg::ATOP_NONE)))
   end
 
-  // TODO: whether to pass mask_out as input as well? check the reason for inputing id_out
   floo_rob_wrapper #(
     .RoBType        ( ChimneyCfg.BRoBType     ),
     .RoBSize        ( ChimneyCfg.BRoBSize     ),
@@ -477,7 +476,7 @@ module floo_axi_chimney #(
   if (RouteCfg.RouteAlgo == floo_pkg::SourceRouting) begin : gen_route_field
     assign route_out[AxiW] = axi_aw_id_q;
     assign dst_id = route_out;
-    assign  dst_mask = '0;
+    assign  mask = '0;
   end else begin : gen_dst_field
     assign dst_id[AxiAw] = id_out[AxiAw];
     assign dst_id[AxiAr] = id_out[AxiAr];
@@ -485,16 +484,16 @@ module floo_axi_chimney #(
     assign dst_id[AxiR]  = ar_out_hdr_out.hdr.src_id;
     assign dst_id[AxiW]  = axi_aw_id_q;
 
-    assign dst_mask[AxiAw] = mask_out[AxiAw];
-    assign dst_mask[AxiAr] = mask_out[AxiAr];
-    assign dst_mask[AxiB]  = '0;
-    assign dst_mask[AxiR]  = '0;
-    assign dst_mask[AxiW]  = axi_aw_mask_q;
+    assign mask[AxiAw] = mask_out[AxiAw];
+    assign mask[AxiAr] = mask_out[AxiAr];
+    assign mask[AxiB]  = '0;
+    assign mask[AxiR]  = '0;
+    assign mask[AxiW]  = axi_aw_mask_q;
   end
 
   `FFL(axi_aw_id_q, dst_id[AxiAw], axi_aw_queue_valid_out &&
                                    axi_aw_queue_ready_in, '0)
-  `FFL(axi_aw_mask_q, dst_mask[AxiAw], axi_aw_queue_valid_out &&
+  `FFL(axi_aw_mask_q, mask[AxiAw], axi_aw_queue_valid_out &&
                                    axi_aw_queue_ready_in, '0)
 
   ///////////////////
@@ -506,12 +505,13 @@ module floo_axi_chimney #(
     floo_axi_aw.hdr.rob_req = aw_rob_req_out;
     floo_axi_aw.hdr.rob_idx = aw_rob_idx_out;
     floo_axi_aw.hdr.dst_id  = dst_id[AxiAw];
-    floo_axi_aw.hdr.dst_mask    = dst_mask[AxiAw];
+    floo_axi_aw.hdr.mask    = mask[AxiAw];
     floo_axi_aw.hdr.src_id  = id_i;
     floo_axi_aw.hdr.last    = 1'b0;
     floo_axi_aw.hdr.axi_ch  = AxiAw;
     floo_axi_aw.hdr.atop    = axi_aw_queue.atop != axi_pkg::ATOP_NONE;
     floo_axi_aw.payload     = axi_aw_queue;
+    floo_axi_aw.hdr.commtype = mask[AxiAw]!='0? Multicast : Unicast;
   end
 
   always_comb begin
@@ -519,11 +519,12 @@ module floo_axi_chimney #(
     floo_axi_w.hdr.rob_req  = aw_rob_req_out;
     floo_axi_w.hdr.rob_idx  = aw_rob_idx_out;
     floo_axi_w.hdr.dst_id   = dst_id[AxiW];
-    floo_axi_w.hdr.dst_mask     = dst_mask[AxiW];
+    floo_axi_w.hdr.mask     = mask[AxiW];
     floo_axi_w.hdr.src_id   = id_i;
     floo_axi_w.hdr.last     = axi_req_in.w.last;
     floo_axi_w.hdr.axi_ch   = AxiW;
     floo_axi_w.payload      = axi_req_in.w;
+    floo_axi_w.hdr.commtype = mask[AxiW]!='0? Multicast : Unicast;
   end
 
   always_comb begin
@@ -531,7 +532,7 @@ module floo_axi_chimney #(
     floo_axi_ar.hdr.rob_req = ar_rob_req_out;
     floo_axi_ar.hdr.rob_idx = ar_rob_idx_out;
     floo_axi_ar.hdr.dst_id  = dst_id[AxiAr];
-    floo_axi_ar.hdr.dst_mask    = dst_mask[AxiAr];
+    floo_axi_ar.hdr.mask    = mask[AxiAr];
     floo_axi_ar.hdr.src_id  = id_i;
     floo_axi_ar.hdr.last    = 1'b1;
     floo_axi_ar.hdr.axi_ch  = AxiAr;
@@ -543,13 +544,14 @@ module floo_axi_chimney #(
     floo_axi_b.hdr.rob_req  = aw_out_hdr_out.hdr.rob_req;
     floo_axi_b.hdr.rob_idx  = aw_out_hdr_out.hdr.rob_idx;
     floo_axi_b.hdr.dst_id   = dst_id[AxiB];
-    floo_axi_b.hdr.dst_mask     = dst_mask[AxiB];
+    floo_axi_b.hdr.mask     = aw_out_hdr_out.hdr.mask;
     floo_axi_b.hdr.src_id   = id_i;
     floo_axi_b.hdr.last     = 1'b1;
     floo_axi_b.hdr.axi_ch   = AxiB;
     floo_axi_b.hdr.atop     = aw_out_hdr_out.hdr.atop;
     floo_axi_b.payload      = meta_buf_rsp_out.b;
     floo_axi_b.payload.id   = aw_out_hdr_out.id;
+    floo_axi_b.hdr.commtype = aw_out_hdr_out.hdr.commtype==Multicast? CollectB : Unicast;
   end
 
   always_comb begin
@@ -557,7 +559,7 @@ module floo_axi_chimney #(
     floo_axi_r.hdr.rob_req  = ar_out_hdr_out.hdr.rob_req;
     floo_axi_r.hdr.rob_idx  = ar_out_hdr_out.hdr.rob_idx;
     floo_axi_r.hdr.dst_id   = dst_id[AxiR];
-    floo_axi_r.hdr.dst_mask     = dst_mask[AxiR];
+    floo_axi_r.hdr.mask     = mask[AxiR];
     floo_axi_r.hdr.src_id   = id_i;
     floo_axi_r.hdr.last     = 1'b1; // There is no reason to do wormhole routing for R bursts
     floo_axi_r.hdr.axi_ch   = AxiR;

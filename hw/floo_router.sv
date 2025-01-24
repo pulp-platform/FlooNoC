@@ -28,7 +28,8 @@ module floo_router
   parameter int unsigned NumInput         = NumRoutes,
   parameter int unsigned NumOutput        = NumRoutes,
   parameter bit          XYRouteOpt       = 1'b1,
-  parameter bit          NoLoopback       = 1'b1
+  parameter bit          NoLoopback       = 1'b1,
+  parameter bit          ReductionEnabled = 1'b0
 ) (
   input  logic                                       clk_i,
   input  logic                                       rst_ni,
@@ -110,7 +111,6 @@ module floo_router
     end
   end
 
-  // TODO CHEN: buffer the mcast AW for each input port
 
   localparam int unsigned NumInputLimited = NoLoopback ? NumInput-1 : NumInput;
 
@@ -168,22 +168,41 @@ module floo_router
 
     // arbitrate input fifos per virtual channel
     for (genvar v_chan = 0; v_chan < NumVirtChannels; v_chan++) begin : gen_virt_output
+      if(!ReductionEnabled) begin : gen_no_reduction_output
+        floo_wormhole_arbiter #(
+          .NumRoutes  ( NumInputLimited ),
+          .flit_t     ( flit_t          )
+        ) i_wormhole_arbiter (
+          .clk_i,
+          .rst_ni,
 
-      floo_wormhole_arbiter #(
-        .NumRoutes  ( NumInputLimited ),
-        .flit_t     ( flit_t          )
-      ) i_wormhole_arbiter (
-        .clk_i,
-        .rst_ni,
+          .valid_i ( masked_valid[out_route][v_chan] ),
+          .ready_o ( masked_ready[out_route][v_chan] ),
+          .data_i  ( masked_data [out_route][v_chan] ),
 
-        .valid_i ( masked_valid[out_route][v_chan] ),
-        .ready_o ( masked_ready[out_route][v_chan] ),
-        .data_i  ( masked_data [out_route][v_chan] ),
+          .valid_o ( out_valid[out_route][v_chan] ),
+          .ready_i ( out_ready[out_route][v_chan] ),
+          .data_o  ( out_data [out_route][v_chan] )
+        );
+      end else begin : gen_reduction_output
+        floo_output_arbeiter #(
+          .NumRoutes  ( NumInputLimited ),
+          .flit_t     ( flit_t          ),
+          .id_t       ( id_t            )
+        ) i_output_arbeiter (
+          .clk_i,
+          .rst_ni,
 
-        .valid_o ( out_valid[out_route][v_chan] ),
-        .ready_i ( out_ready[out_route][v_chan] ),
-        .data_o  ( out_data [out_route][v_chan] )
-      );
+          .valid_i ( masked_valid[out_route][v_chan] ),
+          .ready_o ( masked_ready[out_route][v_chan] ),
+          .data_i  ( masked_data [out_route][v_chan] ),
+          .node_id_i( xy_id_i                       ),
+
+          .valid_o ( out_valid[out_route][v_chan] ),
+          .ready_i ( out_ready[out_route][v_chan] ),
+          .data_o  ( out_data [out_route][v_chan] )
+        );
+      end
 
       if (OutFifoDepth > 0) begin : gen_out_fifo
         (* ungroup *)

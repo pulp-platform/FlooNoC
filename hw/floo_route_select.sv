@@ -37,7 +37,7 @@ module floo_route_select
   output logic [RouteSelWidth-1:0]      route_sel_id_o
 );
 
-  logic [NumRoutes-1:0] route_sel;
+  logic [NumRoutes-1:0] route_sel, route_sel_masked;
   logic [RouteSelWidth-1:0] route_sel_id;
 
   if (RouteAlgo == IdTable) begin : gen_id_table
@@ -95,49 +95,16 @@ module floo_route_select
 
     // One-hot encoding of the decoded route
 
-    id_t id_in;
-    assign id_in = id_t'(channel_i.hdr.dst_id);
-    id_t mask_in;
-    assign mask_in = id_t'(channel_i.hdr.dst_mask);
-    id_t src_id;
-    assign src_id = id_t'(channel_i.hdr.src_id);
-
-    id_t dst_id_max;
-    assign dst_id_max.x = id_in.x | mask_in.x;
-    assign dst_id_max.y = id_in.y | mask_in.y;
-
-    id_t dst_id_min;
-    assign dst_id_min.x = id_in.x & (~mask_in.x);
-    assign dst_id_min.y = id_in.y & (~mask_in.y);
-
-    logic x_matched, y_matched;
-    assign x_matched = &(mask_in.x | ~(xy_id_i.x ^ id_in.x));
-    assign y_matched = &(mask_in.y | ~(xy_id_i.y ^ id_in.y));
-
-    always_comb begin : proc_route_sel
-      // now not one-hot?!
-      route_sel = '0;
-      if (x_matched && y_matched) begin
-        // route_sel[Eject + channel_i.hdr.dst_id.port_id] = 1;
-        route_sel[Eject] = 1;
-      end
-      if (xy_id_i.y == src_id.y) begin
-        if (xy_id_i.x >= src_id.x && xy_id_i.x < dst_id_max.x) begin
-          route_sel[East] = 1;
-        end
-        if (xy_id_i.x <= src_id.x && xy_id_i.x > dst_id_min.x) begin
-          route_sel[West] = 1;
-        end
-      end
-      if (x_matched) begin
-        if (xy_id_i.y >= src_id.y && xy_id_i.y < dst_id_max.y) begin
-          route_sel[North] = 1;
-        end
-        if (xy_id_i.y <= src_id.y && xy_id_i.y > dst_id_min.y) begin
-          route_sel[South] = 1;
-        end
-      end
-    end
+    floo_route_xymask #(
+      .NumRoutes     ( NumRoutes ),
+      .flit_t        ( flit_t    ),
+      .id_t          ( id_t      ),
+      .Mode          ( 1         )
+    ) i_route_xymask (
+      .channel_i   ( channel_i ),
+      .xy_id_i     ( xy_id_i   ),
+      .route_sel_o ( route_sel )
+    );
 
     // always_comb begin : proc_route_sel
     //   route_sel_id = East;

@@ -306,7 +306,7 @@ module axi_reorder_compare_multicast #(
         b = mon_slv_rsp_i[i].b;
         b.id = aw_id_queue[i].pop_front();
         b_queue[i][b.id].push_back(b);
-        if (Verbose) $info("Slave[%0d] Issued B: id=%0d", i, b.id);
+        if (Verbose) $info("Slave[%0d] Issued B: id=%0d, user=%0x", i, b.id, b.user);
       end
       if (mon_slv_rsp_i[i].r_valid && mon_slv_req_i[i].r_ready) begin
         automatic r_chan_t r;
@@ -329,7 +329,7 @@ module axi_reorder_compare_multicast #(
       automatic int unsigned slv_id;
       b_act = mon_mst_rsp_i.b;
       b_id = b_act.id;
-      if (Verbose) $info("Received B: id=%0d", b_id);
+      if (Verbose) $info("Received B: id=%0d, user=%0x", b_id, b_act.user);
       if (b_out_rsp_queue[b_id].size() == 0) $error("B: id=%0d out rsp queue is empty!", b_id);
       slv_id = b_out_rsp_queue[b_id][0].slv_id;
       if (b_queue[slv_id][b_id].size() == 0) $error("Slave [%0d] B queue is empty!", slv_id);
