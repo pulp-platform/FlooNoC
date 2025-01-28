@@ -6,11 +6,14 @@
 
 `include "axi/typedef.svh"
 `include "axi/assign.svh"
+`include "common_cells/assertions.svh"
 
-/// Joins a narrow and a wide AXI bus to a wide AXI bus.
-/// This module is intended to be used for instance in front
-/// of an HBM controller to enable access from both the
-/// narrow and the wide AXI bus.
+/// Joins a narrow and a wide AXI bus to a single AXI bus.
+/// This module is intended to be used to ensure accessibility
+/// of endpoints over both narrow and wide AXI busses. For instance,
+/// This module can be used in front of a DRAM controller with a wide
+/// interface, or in front of a host core like Cheshire with a narrow
+/// interface.
 module floo_nw_join #(
   /// Narrow AXI bus configuration
   parameter floo_pkg::axi_cfg_t AxiCfgN               = '0,
@@ -49,6 +52,8 @@ module floo_nw_join #(
   parameter int unsigned AxiWideMaxTxns              = 32,
   /// Maximum number of in-flight AXI wide write transactions
   parameter int unsigned AxiWideMaxWriteTxns          = AxiWideMaxTxns,
+  /// Maximum number of in-flight AXI wide read transactions
+  parameter int unsigned AxiWideMaxReadTxns           = AxiWideMaxTxns,
   /// Number of unique IDs on the wide AXI bus
   parameter int unsigned AxiWideSlvPortMaxUniqIds     = 2**AxiCfgW.InIdWidth,
   /// Maximum number of in-flight AXI transactions on the wide AXI bus
@@ -71,7 +76,7 @@ module floo_nw_join #(
   /// AXI type of the wide AXI bus
   parameter type axi_wide_req_t = logic,
   parameter type axi_wide_rsp_t = logic,
-  /// AXI type of the resulting wide AXI bus
+  /// AXI type of the resulting AXI bus
   parameter type axi_req_t = logic,
   parameter type axi_rsp_t = logic
 ) (
@@ -86,27 +91,23 @@ module floo_nw_join #(
   input  axi_rsp_t        axi_rsp_i
 );
 
-  typedef logic [AxiIdOutWidth-1:0] id_t;
-  typedef logic [AxiIdConvWidth-1:0] id_conv_t;
-  typedef logic [AxiCfgJoin.AddrWidth-1:0] addr_t;
+  // Narrow types
   typedef logic [AxiCfgN.DataWidth-1:0] narrow_data_t;
   typedef logic [AxiCfgN.DataWidth/8-1:0] narrow_strb_t;
+  typedef logic [AxiCfgN.UserWidth-1:0] narrow_user_t;
+
+  // Wide types
   typedef logic [AxiCfgW.DataWidth-1:0] wide_data_t;
   typedef logic [AxiCfgW.DataWidth/8-1:0] wide_strb_t;
-  typedef logic [AxiCfgN.UserWidth-1:0] narrow_user_t;
   typedef logic [AxiCfgW.UserWidth-1:0] wide_user_t;
-  typedef logic [AxiCfgJoin.UserWidth-1:0] user_t;
 
-  `AXI_TYPEDEF_ALL_CT(axi_narrow_iw_conv, axi_narrow_iw_conv_req_t, axi_narrow_iw_conv_rsp_t,
-                      addr_t, id_conv_t, narrow_data_t, narrow_strb_t, narrow_user_t)
-  `AXI_TYPEDEF_ALL_CT(axi_narrow_dw_conv, axi_narrow_dw_conv_req_t, axi_narrow_dw_conv_rsp_t,
-                      addr_t, id_conv_t, wide_data_t, wide_strb_t, narrow_user_t)
-  `AXI_TYPEDEF_ALL_CT(axi_wide_iw_conv, axi_wide_iw_conv_req_t, axi_wide_iw_conv_rsp_t,
-                      addr_t, id_conv_t, wide_data_t, wide_strb_t, wide_user_t)
-  `AXI_TYPEDEF_ALL_CT(axi_wide_uw_conv, axi_wide_uw_conv_req_t, axi_wide_uw_conv_rsp_t,
-                      addr_t, id_conv_t, wide_data_t, wide_strb_t, user_t)
-  `AXI_TYPEDEF_ALL_CT(axi_out, axi_out_req_t, axi_out_rsp_t,
-                      addr_t, id_t, wide_data_t, wide_strb_t, user_t)
+  // Joined types
+  typedef logic [AxiCfgJoin.AddrWidth-1:0] addr_t;
+  typedef logic [AxiIdOutWidth-1:0] join_id_t;
+  typedef logic [AxiIdConvWidth-1:0] join_id_conv_t;
+  typedef logic [AxiCfgJoin.DataWidth-1:0] join_data_t;
+  typedef logic [AxiCfgJoin.DataWidth/8-1:0] join_strb_t;
+  typedef logic [AxiCfgJoin.UserWidth-1:0] join_user_t;
 
   /////////////////////
   ///  Atop Filters  //
@@ -158,6 +159,11 @@ module floo_nw_join #(
   ////////////////////////////
   ///  ID width conversion  //
   ////////////////////////////
+
+  `AXI_TYPEDEF_ALL_CT(axi_narrow_iw_conv, axi_narrow_iw_conv_req_t, axi_narrow_iw_conv_rsp_t,
+                      addr_t, join_id_conv_t, narrow_data_t, narrow_strb_t, narrow_user_t)
+  `AXI_TYPEDEF_ALL_CT(axi_wide_iw_conv, axi_wide_iw_conv_req_t, axi_wide_iw_conv_rsp_t,
+                      addr_t, join_id_conv_t, wide_data_t, wide_strb_t, wide_user_t)
 
   axi_narrow_iw_conv_req_t axi_narrow_req_iw_conv;
   axi_narrow_iw_conv_rsp_t axi_narrow_rsp_iw_conv;
@@ -216,13 +222,20 @@ module floo_nw_join #(
   ///  Data width conversion  //
   //////////////////////////////
 
+  `AXI_TYPEDEF_ALL_CT(axi_narrow_dw_conv, axi_narrow_dw_conv_req_t, axi_narrow_dw_conv_rsp_t,
+                      addr_t, join_id_conv_t, join_data_t, join_strb_t, narrow_user_t)
+  `AXI_TYPEDEF_ALL_CT(axi_wide_dw_conv, axi_wide_dw_conv_req_t, axi_wide_dw_conv_rsp_t,
+                      addr_t, join_id_conv_t, join_data_t, join_strb_t, wide_user_t)
+
   axi_narrow_dw_conv_req_t axi_narrow_req_dw_conv;
   axi_narrow_dw_conv_rsp_t axi_narrow_rsp_dw_conv;
+  axi_wide_dw_conv_req_t axi_wide_req_dw_conv;
+  axi_wide_dw_conv_rsp_t axi_wide_rsp_dw_conv;
 
   axi_dw_converter #(
     .AxiMaxReads          ( AxiNarrowMaxReadTxns          ),
     .AxiSlvPortDataWidth  ( AxiCfgN.DataWidth             ),
-    .AxiMstPortDataWidth  ( AxiCfgW.DataWidth             ),
+    .AxiMstPortDataWidth  ( AxiCfgJoin.DataWidth          ),
     .AxiAddrWidth         ( AxiCfgJoin.AddrWidth          ),
     .AxiIdWidth           ( AxiIdConvWidth                ),
     .aw_chan_t            ( axi_narrow_iw_conv_aw_chan_t  ),
@@ -236,7 +249,7 @@ module floo_nw_join #(
     .axi_mst_resp_t       ( axi_narrow_dw_conv_rsp_t      ),
     .axi_slv_req_t        ( axi_narrow_iw_conv_req_t      ),
     .axi_slv_resp_t       ( axi_narrow_iw_conv_rsp_t      )
-  ) i_axi_dw_converter (
+  ) i_axi_narrow_dw_converter (
     .clk_i      ( clk_i       ),
     .rst_ni     ( rst_ni      ),
     .slv_req_i  ( axi_narrow_req_iw_conv  ),
@@ -245,21 +258,57 @@ module floo_nw_join #(
     .mst_resp_i ( axi_narrow_rsp_dw_conv  )
   );
 
-  //////////////////////////////
-  ///  User Width Conversion  //
-  //////////////////////////////
+  axi_dw_converter #(
+    .AxiMaxReads          ( AxiWideMaxReadTxns          ),
+    .AxiSlvPortDataWidth  ( AxiCfgN.DataWidth           ),
+    .AxiMstPortDataWidth  ( AxiCfgJoin.DataWidth        ),
+    .AxiAddrWidth         ( AxiCfgJoin.AddrWidth        ),
+    .AxiIdWidth           ( AxiIdConvWidth              ),
+    .aw_chan_t            ( axi_wide_iw_conv_aw_chan_t  ),
+    .mst_w_chan_t         ( axi_wide_dw_conv_w_chan_t   ),
+    .slv_w_chan_t         ( axi_wide_iw_conv_w_chan_t   ),
+    .b_chan_t             ( axi_wide_iw_conv_b_chan_t   ),
+    .ar_chan_t            ( axi_wide_iw_conv_ar_chan_t  ),
+    .mst_r_chan_t         ( axi_wide_dw_conv_r_chan_t   ),
+    .slv_r_chan_t         ( axi_wide_iw_conv_r_chan_t   ),
+    .axi_mst_req_t        ( axi_wide_dw_conv_req_t      ),
+    .axi_mst_resp_t       ( axi_wide_dw_conv_rsp_t      ),
+    .axi_slv_req_t        ( axi_wide_iw_conv_req_t      ),
+    .axi_slv_resp_t       ( axi_wide_iw_conv_rsp_t      )
+  ) i_axi_wide_dw_converter (
+    .clk_i      ( clk_i       ),
+    .rst_ni     ( rst_ni      ),
+    .slv_req_i  ( axi_wide_req_iw_conv  ),
+    .slv_resp_o ( axi_wide_rsp_iw_conv  ),
+    .mst_req_o  ( axi_wide_req_dw_conv  ),
+    .mst_resp_i ( axi_wide_rsp_dw_conv  )
+  );
 
-  axi_wide_uw_conv_req_t axi_wide_req_uw_conv, axi_narrow_req_uw_conv;
-  axi_wide_uw_conv_rsp_t axi_wide_rsp_uw_conv, axi_narrow_rsp_uw_conv;
+  ///////////////////////////////
+  ///  User Width Conversion  ///
+  ///////////////////////////////
 
-  `AXI_ASSIGN_REQ_STRUCT(axi_wide_req_uw_conv, axi_wide_req_iw_conv)
-  `AXI_ASSIGN_RESP_STRUCT(axi_wide_rsp_iw_conv, axi_wide_rsp_uw_conv)
+  `AXI_TYPEDEF_ALL_CT(axi_join_uw_conv, axi_join_uw_conv_req_t, axi_join_uw_conv_rsp_t,
+                      addr_t, join_id_conv_t, join_data_t, join_strb_t, join_user_t)
+
+  axi_join_uw_conv_req_t axi_wide_req_uw_conv, axi_narrow_req_uw_conv;
+  axi_join_uw_conv_rsp_t axi_wide_rsp_uw_conv, axi_narrow_rsp_uw_conv;
+
+  `AXI_ASSIGN_REQ_STRUCT(axi_wide_req_uw_conv, axi_wide_req_dw_conv)
+  `AXI_ASSIGN_RESP_STRUCT(axi_wide_rsp_dw_conv, axi_wide_rsp_uw_conv)
   `AXI_ASSIGN_REQ_STRUCT(axi_narrow_req_uw_conv, axi_narrow_req_dw_conv)
   `AXI_ASSIGN_RESP_STRUCT(axi_narrow_rsp_dw_conv, axi_narrow_rsp_uw_conv)
 
-  ////////////
-  ///  MUX  //
-  ////////////
+  // Check that no information is lost in the user field
+  `ASSERT_INIT(AxiNarrowUserWidth, AxiCfgJoin.UserWidth >= AxiCfgN.UserWidth)
+  `ASSERT_INIT(AxiWideUserWidth, AxiCfgJoin.UserWidth >= AxiCfgW.UserWidth)
+
+  /////////////
+  ///  MUX  ///
+  /////////////
+
+  `AXI_TYPEDEF_ALL_CT(axi_out, axi_out_req_t, axi_out_rsp_t,
+                      addr_t, join_id_t, join_data_t, join_strb_t, join_user_t)
 
   axi_out_req_t axi_out_req;
   axi_out_rsp_t axi_out_rsp;
@@ -268,17 +317,17 @@ module floo_nw_join #(
     .SlvAxiIDWidth  ( AxiIdConvWidth              ),
     .NoSlvPorts     ( 2                           ),
     .MaxWTrans      ( AxiWideMaxWriteTxns         ),
-    .slv_aw_chan_t  ( axi_wide_uw_conv_aw_chan_t  ),
+    .slv_aw_chan_t  ( axi_join_uw_conv_aw_chan_t  ),
     .mst_aw_chan_t  ( axi_out_aw_chan_t           ),
     .w_chan_t       ( axi_out_w_chan_t            ),
-    .slv_b_chan_t   ( axi_wide_uw_conv_b_chan_t   ),
+    .slv_b_chan_t   ( axi_join_uw_conv_b_chan_t   ),
     .mst_b_chan_t   ( axi_out_b_chan_t            ),
-    .slv_ar_chan_t  ( axi_wide_uw_conv_ar_chan_t  ),
+    .slv_ar_chan_t  ( axi_join_uw_conv_ar_chan_t  ),
     .mst_ar_chan_t  ( axi_out_ar_chan_t           ),
-    .slv_r_chan_t   ( axi_wide_uw_conv_r_chan_t   ),
+    .slv_r_chan_t   ( axi_join_uw_conv_r_chan_t   ),
     .mst_r_chan_t   ( axi_out_r_chan_t            ),
-    .slv_req_t      ( axi_wide_uw_conv_req_t      ),
-    .slv_resp_t     ( axi_wide_uw_conv_rsp_t      ),
+    .slv_req_t      ( axi_join_uw_conv_req_t      ),
+    .slv_resp_t     ( axi_join_uw_conv_rsp_t      ),
     .mst_req_t      ( axi_out_req_t               ),
     .mst_resp_t     ( axi_out_rsp_t               )
   ) i_axi_mux (
