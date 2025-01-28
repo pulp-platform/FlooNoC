@@ -64,6 +64,8 @@ module floo_nw_join #(
   parameter int unsigned AxiWideMstPortMaxUniqIds     = 2**AxiIdConvWidth,
   /// Maximum number of in-flight transactions with the same ID at the wide master port.
   parameter int unsigned AxiWideMstPortMaxTxnsPerId   = AxiWideMaxTxns,
+  /// Attach a Atop RISC-V adapter in the end to resolve atomic operations
+  parameter bit EnAtopAdapter                         = 1'b1,
   /// Use user signals for the ATOP adapter
   parameter bit AtopUserAsId                          = 1'b1,
   /// MSB of the ID field of the ATOP adapter
@@ -347,27 +349,32 @@ module floo_nw_join #(
   axi_out_req_t axi_out_req_atop;
   axi_out_rsp_t axi_out_rsp_atop;
 
-  axi_riscv_atomics_structs #(
-    .AxiAddrWidth    ( AxiCfgJoin.AddrWidth ),
-    .AxiDataWidth    ( AxiCfgJoin.DataWidth ),
-    .AxiIdWidth      ( AxiIdOutWidth        ),
-    .AxiUserWidth    ( AxiCfgJoin.UserWidth ),
-    .AxiMaxReadTxns  ( AxiWideMaxTxns       ),
-    .AxiMaxWriteTxns ( AxiWideMaxWriteTxns  ),
-    .AxiUserAsId     ( int'(AtopUserAsId)   ),
-    .AxiUserIdMsb    ( AtopAxiUserIdMsb     ),
-    .AxiUserIdLsb    ( AtopAxiUserIdLsb     ),
-    .RiscvWordWidth  ( AxiCfgN.DataWidth    ),
-    .axi_req_t       ( axi_out_req_t ),
-    .axi_rsp_t       ( axi_out_rsp_t )
-  ) i_axi_riscv_atomics_structs (
-    .clk_i,
-    .rst_ni,
-    .axi_slv_req_i ( axi_out_req      ),
-    .axi_slv_rsp_o ( axi_out_rsp      ),
-    .axi_mst_req_o ( axi_out_req_atop ),
-    .axi_mst_rsp_i ( axi_out_rsp_atop )
-  );
+  if (EnAtopAdapter) begin : gen_atop_adapter
+    axi_riscv_atomics_structs #(
+      .AxiAddrWidth    ( AxiCfgJoin.AddrWidth ),
+      .AxiDataWidth    ( AxiCfgJoin.DataWidth ),
+      .AxiIdWidth      ( AxiIdOutWidth        ),
+      .AxiUserWidth    ( AxiCfgJoin.UserWidth ),
+      .AxiMaxReadTxns  ( AxiWideMaxTxns       ),
+      .AxiMaxWriteTxns ( AxiWideMaxWriteTxns  ),
+      .AxiUserAsId     ( int'(AtopUserAsId)   ),
+      .AxiUserIdMsb    ( AtopAxiUserIdMsb     ),
+      .AxiUserIdLsb    ( AtopAxiUserIdLsb     ),
+      .RiscvWordWidth  ( AxiCfgN.DataWidth    ),
+      .axi_req_t       ( axi_out_req_t ),
+      .axi_rsp_t       ( axi_out_rsp_t )
+    ) i_axi_riscv_atomics_structs (
+      .clk_i,
+      .rst_ni,
+      .axi_slv_req_i ( axi_out_req      ),
+      .axi_slv_rsp_o ( axi_out_rsp      ),
+      .axi_mst_req_o ( axi_out_req_atop ),
+      .axi_mst_rsp_i ( axi_out_rsp_atop )
+    );
+  end else begin
+    assign axi_out_req_atop = axi_out_req;
+    assign axi_out_rsp = axi_out_rsp_atop;
+  end
 
   `AXI_ASSIGN_REQ_STRUCT(axi_req_o, axi_out_req_atop)
   `AXI_ASSIGN_RESP_STRUCT(axi_out_rsp_atop, axi_rsp_i)
