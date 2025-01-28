@@ -210,9 +210,9 @@ module axi_reorder_compare_multicast #(
           if (multiaddr_decode_sel[i]==1) begin
             aw_queue[i].push_back(mon_mst_req_i.aw);
             w_slv_idx.push_back(i);
-            b_out_rsp_queue[mon_mst_req_i.aw.id].push_back('{slv_id: i, num_rsp: 0});
           end
         end
+        b_out_rsp_queue[mon_mst_req_i.aw.id].push_back('{slv_id: 0, num_rsp: multiaddr_decode_sel});
       end
       // for (int i=0; i<w_slv_idx.size(); i++) begin
       //   $display("after new aw issued: w_slv_idx[%0d]=%0d",i,w_slv_idx[i]);
@@ -327,26 +327,60 @@ module axi_reorder_compare_multicast #(
       automatic b_chan_t b_exp, b_act;
       automatic id_t b_id;
       automatic int unsigned slv_id;
+      automatic b_chan_t b_mcast_exp [NumSlaves];
+      automatic int find_flag=0;
       b_act = mon_mst_rsp_i.b;
       b_id = b_act.id;
       if (Verbose) $info("Received B: id=%0d, user=%0x", b_id, b_act.user);
       if (b_out_rsp_queue[b_id].size() == 0) $error("B: id=%0d out rsp queue is empty!", b_id);
-      slv_id = b_out_rsp_queue[b_id][0].slv_id;
-      if (b_queue[slv_id][b_id].size() == 0) $error("Slave [%0d] B queue is empty!", slv_id);
-      b_exp = b_queue[slv_id][b_id].pop_front();
-      if (b_exp !== b_act) begin
-        $error("B mismatch");
-        print_b(b_exp, b_act);
-      end else begin
-        $display("B matched!");
-        print_b(b_exp, b_act);
-        // This should always be true for B
-        if (b_out_rsp_queue[b_id][0].num_rsp == 0) begin
-          if (b_out_rsp_queue[b_id].size() == 0)
-            $error("B: id=%0d out response queue is empty!", b_id);
-          void'(b_out_rsp_queue[b_id].pop_front());
+      // slv_id = b_out_rsp_queue[b_id][0].slv_id;
+      // if (b_queue[slv_id][b_id].size() == 0) $error("Slave [%0d] B queue is empty!", slv_id);
+      // b_exp = b_queue[slv_id][b_id].pop_front();
+      if(b_out_rsp_queue[b_id][0].num_rsp==0) begin
+        $display("This is a normal B");
+        slv_id = b_out_rsp_queue[b_id][0].slv_id;
+        if (b_queue[slv_id][b_id].size() == 0) $error("Slave [%0d] B queue is empty!", slv_id);
+        b_exp = b_queue[slv_id][b_id].pop_front();
+        if (b_exp !== b_act) begin
+          $error("B mismatch");
+          print_b(b_exp, b_act);
         end else begin
-          b_out_rsp_queue[b_id][0].num_rsp--;
+          $display("B matched!");
+          print_b(b_exp, b_act);
+          // This should always be true for B
+          if (b_out_rsp_queue[b_id][0].num_rsp == 0) begin
+            if (b_out_rsp_queue[b_id].size() == 0)
+              $error("B: id=%0d out response queue is empty!", b_id);
+            void'(b_out_rsp_queue[b_id].pop_front());
+          end else begin
+            b_out_rsp_queue[b_id][0].num_rsp--;
+          end
+        end
+      end else begin
+        $display("This is a mcast B");
+        for(int i=0; i<$bits(multiaddr_decode_sel); i++) begin
+          if(b_out_rsp_queue[b_id][0].num_rsp[i]==1 && b_queue[i][b_id][0]==b_act) begin
+            find_flag = 1;
+            $display("B matched with slave[%0d]",i);
+            break;
+          end
+        end
+        if(!find_flag) begin
+          $error("mcast B mismatch");
+        end else begin
+          // $display("B matched!");
+          $display("b_out_rsp_queue[b_id].size()=%0d",b_out_rsp_queue[b_id].size());
+          if (b_out_rsp_queue[b_id].size() == 0)
+              $error("B: id=%0d out response queue is empty!", b_id);
+          for(int i=0; i<$bits(multiaddr_decode_sel); i++) begin
+            if(b_out_rsp_queue[b_id][0].num_rsp[i]==1) begin
+              if (b_queue[i][b_id].size() == 0) $error("Slave [%0d] B queue is empty!", i);
+              void'(b_queue[i][b_id].pop_front());
+              $display("pop b_queue[%0d]",i);
+            end
+          end
+          void'(b_out_rsp_queue[b_id].pop_front());
+          $display("b_out_rsp_queue[b_id].size()=%0d",b_out_rsp_queue[b_id].size());
         end
       end
     end
@@ -374,6 +408,8 @@ module axi_reorder_compare_multicast #(
         end
       end
     end
+    $display("&aw_queue_empty=%0d, &w_queue_empty=%0d, &ar_queue_empty=%0d, &b_queue_empty=%0d, &r_queue_empty=%0d, &r_out_rsp_queue_empty=%0d, &b_out_rsp_queue_empty=%0d, end_of_sim_o=%0d",
+            &aw_queue_empty, &w_queue_empty, &ar_queue_empty, &b_queue_empty, &r_queue_empty, &r_out_rsp_queue_empty, &b_out_rsp_queue_empty, end_of_sim_o);
   end
   // verilog_lint: waive-stop always-ff-non-blocking
 

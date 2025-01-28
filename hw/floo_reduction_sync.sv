@@ -43,7 +43,7 @@ module floo_reduction_sync import floo_pkg::*;
       // compare_same[in_route] = (((current_mask & ~mask_in) | (mask_in & ~current_mask))==0)
       //                           && (((current_src_id ^ src_id) & ~(current_mask | mask_in)) == 0)
       //                           && (id_t'(data_i[in_route].hdr.dst_id) == dst_id);
-      compare_same[in_route] = (current_mask == mask_in) && (id_t'(data_i[in_route].hdr.dst_id) == dst_id);
+      compare_same[in_route] = (current_mask == mask_in) && (id_t'(data_i[in_route].hdr.dst_id) == dst_id); // only compare whether the same mask and dst_id
       same_and_valid[in_route] = compare_same[in_route] & valid_i[in_route];
     end
     valid_o = in_route_mask_o=='0? 0 : &(same_and_valid | ~in_route_mask_o);
