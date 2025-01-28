@@ -371,7 +371,7 @@ module floo_nw_join #(
       .axi_mst_req_o ( axi_out_req_atop ),
       .axi_mst_rsp_i ( axi_out_rsp_atop )
     );
-  end else begin
+  end else begin : gen_atop_passthrough
     assign axi_out_req_atop = axi_out_req;
     assign axi_out_rsp = axi_out_rsp_atop;
   end
