@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
   - The `ChimneyCfg` describes all other parameters for the data path of the chimney (e.g. Mgr/Sbr port enable, number of oustanding transactions, RoB types & sizes, etc.)
 - The `floo_test_pkg` now defines default configurations for all the new configuration structs that are used by the testbenches.
 - Add `floo_axi_router` module, which is a wrapper similar to the `floo_nw_router` but for single-AXI configurations, and can be used in conjunction with `floo_axi_chimney`.
+- `floo_nw_join` now also allows to convert to a narrow AXI interface, which is useful for accessing peripherals for instance.
+- The atomic adapter in `floo_nw_join` can now be disabled with `EnAtopAdapter`.
 
 #### FlooGen
 - The `data_width` and `user_width` fields for `protocols` are now also validated to be compatible with each other.
