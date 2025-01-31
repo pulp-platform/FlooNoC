@@ -262,7 +262,7 @@ module floo_nw_join #(
 
   axi_dw_converter #(
     .AxiMaxReads          ( AxiWideMaxReadTxns   ),
-    .AxiSlvPortDataWidth  ( AxiCfgN.DataWidth    ),
+    .AxiSlvPortDataWidth  ( AxiCfgW.DataWidth    ),
     .AxiMstPortDataWidth  ( AxiCfgJoin.DataWidth ),
     .AxiAddrWidth         ( AxiCfgJoin.AddrWidth ),
     .AxiIdWidth           ( AxiIdConvWidth       ),
