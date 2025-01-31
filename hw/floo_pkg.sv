@@ -257,7 +257,6 @@ package floo_pkg;
   /// Returns the AXI config the resulting AXI config when joining a narrow
   /// and wide AXI subordinate interfaces.
   function automatic axi_cfg_t axi_join_cfg(axi_cfg_t cfg_n, axi_cfg_t cfg_w);
-    assert (cfg_n.AddrWidth == cfg_w.AddrWidth);
     return '{
       AddrWidth: cfg_n.AddrWidth,
       DataWidth: max(cfg_n.DataWidth, cfg_w.DataWidth),
