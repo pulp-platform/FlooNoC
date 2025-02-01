@@ -18,8 +18,8 @@ module tb_floo_rob_multicast;
   localparam time ApplTime = 2ns;
   localparam time TestTime = 8ns;
 
-  localparam int unsigned NumReads = 20;
-  localparam int unsigned NumWrites = 20;
+  localparam int unsigned NumReads = 30;
+  localparam int unsigned NumWrites = 30;
 
   localparam int unsigned NumSlaves = 4;
 

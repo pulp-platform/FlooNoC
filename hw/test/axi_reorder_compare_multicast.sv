@@ -325,6 +325,7 @@ module axi_reorder_compare_multicast #(
   always_ff @(posedge clk_i) begin : step_4
     if (mon_mst_rsp_i.b_valid && mon_mst_req_i.b_ready) begin
       automatic b_chan_t b_exp, b_act;
+      automatic b_chan_t b_tmp;
       automatic id_t b_id;
       automatic int unsigned slv_id;
       automatic b_chan_t b_mcast_exp [NumSlaves];
@@ -375,8 +376,8 @@ module axi_reorder_compare_multicast #(
           for(int i=0; i<$bits(multiaddr_decode_sel); i++) begin
             if(b_out_rsp_queue[b_id][0].num_rsp[i]==1) begin
               if (b_queue[i][b_id].size() == 0) $error("Slave [%0d] B queue is empty!", i);
-              void'(b_queue[i][b_id].pop_front());
-              $display("pop b_queue[%0d]",i);
+              b_tmp = b_queue[i][b_id].pop_front();
+              $display("pop b_queue[%0d], id=%0d, user=%0x", i, b_tmp.id, b_tmp.user);
             end
           end
           void'(b_out_rsp_queue[b_id].pop_front());

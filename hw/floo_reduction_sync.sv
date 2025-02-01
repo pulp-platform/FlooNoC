@@ -3,12 +3,13 @@
 module floo_reduction_sync import floo_pkg::*;
 # (
   parameter int unsigned NumRoutes  = 1,
-  parameter int unsigned index      = 0,
+  parameter type         arb_idx_t  = logic,
   parameter type         flit_t     = logic,
   parameter type         id_t       = logic
 ) (
   input  logic                   clk_i,
   input  logic                   rst_ni,
+  input  arb_idx_t               index,
   input  flit_t [NumRoutes-1:0]  data_i,
   input  logic  [NumRoutes-1:0]  valid_i,
   input  id_t                    node_id_i,
