@@ -358,7 +358,7 @@ class RouteMap(BaseModel):
                     f"Overlapping ranges: {rules[i].addr_range} and {rules[i+1].addr_range}\n \
                     {self.pprint()}"
                 )
-        return rules
+        return self
 
     def trim(self):
         """Optimize the routing table."""
