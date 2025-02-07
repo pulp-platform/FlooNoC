@@ -5,6 +5,7 @@
 // Michael Rogenmoser <michaero@iis.ee.ethz.ch>
 
 `include "axi/assign.svh"
+import axi_test::*;
 
 /// A AXI4 Bus Master-Slave Node for generating random AXI transactions
 module floo_axi_test_node #(
