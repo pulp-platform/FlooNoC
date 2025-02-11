@@ -3,6 +3,12 @@
 <% in_prot = next((prot for prot in noc.protocols if prot.direction == "input"), None) %>\
 <% out_prot = next((prot for prot in noc.protocols if prot.direction == "output"), None) %>\
 
+% if ni.routing.route_algo.value == 'XYRouting':
+  localparam id_t ${ni.name.upper()}_ID = ${actual_xy_id.render()};
+% else:
+  localparam id_t ${ni.name.upper()}_ID = id_t'(${ni.id.render()});
+% endif
+
 floo_axi_chimney  #(
   .AxiCfg(AxiCfg),
   .ChimneyCfg(set_ports(ChimneyDefaultCfg, ${bool_to_sv(ni.sbr_port != None)}, ${bool_to_sv(ni.mgr_port != None)})),
@@ -41,11 +47,7 @@ floo_axi_chimney  #(
   .axi_out_req_o (    ),
   .axi_out_rsp_i ( '0 ),
 % endif
-% if ni.routing.route_algo.value == 'XYRouting':
-  .id_i             ( ${actual_xy_id.render()}    ),
-% else:
-  .id_i             ( id_t'(${ni.id.render()}) ),
-% endif
+  .id_i             ( ${ni.name.upper()}_ID       ),
 % if ni.routing.route_algo.value == 'SourceRouting':
   .route_table_i    ( RoutingTables[${snake_to_camel(ni.render_enum_name())}]  ),
 % else:

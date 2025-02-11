@@ -5,6 +5,12 @@
 <% wide_in_prot = next((prot for prot in noc.protocols if prot.type == "wide" and prot.direction == "input"), None) %>\
 <% wide_out_prot = next((prot for prot in noc.protocols if prot.type == "wide" and prot.direction == "output"), None) %>\
 
+% if ni.routing.route_algo.value == 'XYRouting':
+  localparam id_t ${ni.name.upper()}_ID = ${actual_xy_id.render()};
+% else:
+  localparam id_t ${ni.name.upper()}_ID = id_t'(${ni.id.render()});
+% endif
+
 floo_nw_chimney  #(
   .AxiCfgN(AxiCfgN),
   .AxiCfgW(AxiCfgW),
@@ -64,11 +70,7 @@ floo_nw_chimney  #(
   .axi_wide_out_req_o (    ),
   .axi_wide_out_rsp_i ( '0 ),
 % endif
-% if ni.routing.route_algo.value == 'XYRouting':
-  .id_i             ( ${actual_xy_id.render()}    ),
-% else:
-  .id_i             ( id_t'(${ni.id.render()}) ),
-% endif
+  .id_i             ( ${ni.name.upper()}_ID       ),
 % if ni.routing.route_algo.value == 'SourceRouting':
   .route_table_i    ( RoutingTables[${snake_to_camel(ni.render_enum_name())}]  ),
 % else:
