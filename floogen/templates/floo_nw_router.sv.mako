@@ -61,6 +61,10 @@ ${wide_type} [${len(router.outgoing)-1}:0] ${router.name}_wide_out;
   % endif
 % endfor
 
+% if router.route_algo == RouteAlgo.XY:
+  localparam id_t ${router.name.upper()}_ID = ${offset_xy_id.render()};
+% endif
+
 floo_nw_router #(
   .AxiCfgN(AxiCfgN),
   .AxiCfgW(AxiCfgW),
@@ -84,7 +88,7 @@ floo_nw_router #(
   .rst_ni,
   .test_enable_i,
 % if router.route_algo == RouteAlgo.XY:
-  .id_i (${offset_xy_id.render()}),
+  .id_i (${router.name.upper()}_ID),
 % else:
   .id_i ('0),
 % endif

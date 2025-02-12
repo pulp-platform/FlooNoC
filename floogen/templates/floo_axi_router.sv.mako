@@ -44,6 +44,10 @@ ${rsp_type} [${len(router.outgoing)-1}:0] ${router.name}_rsp_in;
   % endif
 % endfor
 
+% if router.route_algo == RouteAlgo.XY:
+  localparam id_t ${router.name.upper()}_ID = ${offset_xy_id.render()};
+% endif
+
 floo_axi_router #(
   .AxiCfg(AxiCfg),
   .RouteAlgo (${router.route_algo.value}),
@@ -65,7 +69,7 @@ floo_axi_router #(
   .rst_ni,
   .test_enable_i,
 % if router.route_algo == RouteAlgo.XY:
-  .id_i (${offset_xy_id.render()}),
+  .id_i (${router.name.upper()}_ID),
 % else:
   .id_i ('0),
 % endif
