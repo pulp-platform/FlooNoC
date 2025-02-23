@@ -36,7 +36,8 @@ package floo_pkg;
     /// and `XYAddrOffsetY`, or by indexing the system address map `Sam`. This
     /// is controlled with the `UseIdTable` parameter.
     XYRouting,
-    YXRouting
+    YXRouting,
+    O1Routing
   } route_algo_e;
 
   /// The directions in a 2D mesh network, mainly useful for indexing

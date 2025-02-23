@@ -83,6 +83,56 @@ module floo_router
         .ready_i    ( in_ready[in_route][v_chan]          )
       );
 
+      if (RouteAlgo == O1Routing) begin
+
+        if (v_chan % 2 == 0) begin
+          floo_route_select #(
+            .NumRoutes    ( NumOutput    ),
+            .flit_t       ( flit_t       ),
+            .RouteAlgo    ( XYRouting    ),
+            .IdWidth      ( IdWidth      ),
+            .id_t         ( id_t         ),
+            .NumAddrRules ( NumAddrRules ),
+            .addr_rule_t  ( addr_rule_t  )
+          ) i_route_select (
+            .clk_i,
+            .rst_ni,
+            .test_enable_i,
+
+            .xy_id_i        ( xy_id_i                          ),
+            .id_route_map_i ( id_route_map_i                   ),
+            .channel_i      ( in_data       [in_route][v_chan] ),
+            .valid_i        ( in_valid      [in_route][v_chan] ),
+            .ready_i        ( in_ready      [in_route][v_chan] ),
+            .channel_o      ( in_routed_data[in_route][v_chan] ),
+            .route_sel_o    ( route_mask    [in_route][v_chan] )
+          );
+        end else begin
+          floo_route_select #(
+            .NumRoutes    ( NumOutput    ),
+            .flit_t       ( flit_t       ),
+            .RouteAlgo    ( YXRouting    ),
+            .IdWidth      ( IdWidth      ),
+            .id_t         ( id_t         ),
+            .NumAddrRules ( NumAddrRules ),
+            .addr_rule_t  ( addr_rule_t  )
+          ) i_route_select (
+            .clk_i,
+            .rst_ni,
+            .test_enable_i,
+
+            .xy_id_i        ( xy_id_i                          ),
+            .id_route_map_i ( id_route_map_i                   ),
+            .channel_i      ( in_data       [in_route][v_chan] ),
+            .valid_i        ( in_valid      [in_route][v_chan] ),
+            .ready_i        ( in_ready      [in_route][v_chan] ),
+            .channel_o      ( in_routed_data[in_route][v_chan] ),
+            .route_sel_o    ( route_mask    [in_route][v_chan] )
+          );
+        end
+
+      end else begin
+
       floo_route_select #(
         .NumRoutes    ( NumOutput    ),
         .flit_t       ( flit_t       ),
@@ -105,6 +155,8 @@ module floo_router
         .route_sel_o    ( route_mask    [in_route][v_chan] ),
         .route_sel_id_o (                                  )
       );
+
+    end
 
     end
   end
