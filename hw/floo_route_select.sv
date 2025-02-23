@@ -121,6 +121,32 @@ if (RouteAlgo == IdTable) begin : gen_id_table
 
     assign channel_o = channel_i;
 
+  end else if (RouteAlgo == YXRouting) begin : gen_yx_routing
+
+    id_t id_in;
+    assign id_in = id_t'(channel_i.hdr.dst_id);
+
+    always_comb begin : proc_route_sel
+      route_sel = '0;
+      if (id_in == xy_id_i) begin
+        route_sel[Eject] = 1'b1;
+      end else if (id_in.y == xy_id_i.y) begin
+        if (id_in.x < xy_id_i.x) begin
+          route_sel[West] = 1'b1;
+        end else begin
+          route_sel[East] = 1'b1;
+        end
+      end else begin
+        if (id_in.y < xy_id_i.y) begin
+          route_sel[South] = 1'b1;
+        end else begin
+          route_sel[North] = 1'b1;
+        end
+      end
+    end
+
+    assign channel_o = channel_i;
+
   end else begin : gen_err
     // Unknown or unimplemented routing otherwise
     initial begin

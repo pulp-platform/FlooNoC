@@ -10,7 +10,7 @@
 package floo_pkg;
 
   /// Currently Supported Routing Algorithms
-  typedef enum logic[1:0] {
+  typedef enum logic[2:0] {
     /// `IdTable` routing uses a table of routing rules to determine to
     /// which output port a packet should be routed, based on the
     /// destination ID encoded in the header of the flit. Every router
@@ -35,7 +35,8 @@ package floo_pkg;
     ///  XY coordinates, which can be done with addressoffsets `XYAddrOffsetX`
     /// and `XYAddrOffsetY`, or by indexing the system address map `Sam`. This
     /// is controlled with the `UseIdTable` parameter.
-    XYRouting
+    XYRouting,
+    YXRouting
   } route_algo_e;
 
   /// The directions in a 2D mesh network, mainly useful for indexing
