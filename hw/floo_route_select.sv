@@ -147,6 +147,55 @@ if (RouteAlgo == IdTable) begin : gen_id_table
 
     assign channel_o = channel_i;
 
+  end else if (RouteAlgo == OddEvenRouting) begin : gen_oddeven_routing
+    id_t id_src, id_dst;
+    assign id_src = id_t'(channel_i.hdr.src_id);
+    assign id_dst = id_t'(channel_i.hdr.dst_id);
+
+    always_comb begin : proc_route_sel
+      route_sel = '0;
+      if (xy_id_i == id_dst) begin
+        route_sel[Eject] = 1'b1;
+      end else if (xy_id_i.x == id_dst.x) begin   //currently in the same column as destination
+        if (xy_id_i.y < id_dst.y) begin
+          route_sel[North] = 1'b1;
+        end else begin
+          route_sel[South] = 1'b1;
+        end
+      end else if (xy_id_i.x < id_dst.x) begin    //eastbound traffic
+        if (xy_id_i.y == id_dst.y) begin
+          route_sel[East] = 1'b1;
+        end else if (((xy_id_i.x % 2) == 1) || (xy_id_i.x == id_src.x)) begin
+          if ((((id_dst.x) % 2 == 1) || ((id_dst.x - xy_id_i.x) != 1)) && (^channel_i)) begin
+            route_sel[East] = 1'b1;
+          end else begin
+            if (xy_id_i.y < id_dst.y) begin
+              route_sel[North] = 1'b1;
+            end else begin
+              route_sel[South] = 1'b1;
+            end
+          end
+        end else begin
+          assert ((id_dst.x % 2 == 1) || (id_dst.x - xy_id_i.x != 1));
+          route_sel[East] = 1'b1;
+        end
+      end else begin                             //westbound traffic
+        if (xy_id_i.y == id_dst.y) begin
+          route_sel[West] = 1'b1;
+        end else if (((xy_id_i.x % 2) == 0) && (^channel_i)) begin
+          if (xy_id_i.y < id_dst.y) begin
+            route_sel[North] = 1'b1;
+          end else begin
+            route_sel[South] = 1'b1;
+          end
+        end else begin
+          route_sel[West] = 1'b1;
+        end
+      end
+    end
+
+    assign channel_o = channel_i;
+
   end else begin : gen_err
     // Unknown or unimplemented routing otherwise
     initial begin

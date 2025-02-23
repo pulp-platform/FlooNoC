@@ -37,6 +37,7 @@ package floo_pkg;
     /// is controlled with the `UseIdTable` parameter.
     XYRouting,
     YXRouting,
+    OddEvenRouting,
     O1Routing
   } route_algo_e;
 
