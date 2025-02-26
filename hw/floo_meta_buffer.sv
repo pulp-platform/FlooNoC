@@ -292,6 +292,10 @@ module floo_meta_buffer #(
                             !no_atop_id_available : !aw_no_atop_buf_full);
     end
   end else begin : gen_no_atop_support
+
+    assign atop_r_buf          = '0;
+    assign atop_b_buf          = '0;
+
     always_comb begin
       `AXI_SET_REQ_STRUCT(axi_req_o, axi_req_i)
       `AXI_SET_RESP_STRUCT(axi_rsp_o, axi_rsp_i)
