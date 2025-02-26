@@ -60,6 +60,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Routers with `XYRouting` do now use the global `id_offset`, which was previously not accounted for (or had to be specified manually).
 - Fixed elaboration errors in the chimneys that occured.
 - Fixed Synopsys DC elaboration error due to concatenation in `id_i` port connection of chimneys and routers.
+- Undriven signals in `floo_meta_buffer` if `AtopSupport` is disabled.
 
 ### Removed
 
