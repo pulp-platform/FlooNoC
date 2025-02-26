@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - The `ReorderBufferSize` parameters was shortened to `RoBSize`.
 - All testbenches were adapted to all changes.
 - All verification IPs were adapted to the new configuration structs.
+- Added spill registers for outgoing AW requests in the chimneys. This is necessary since AXI allows to wait for AW *and* W to be valid before asserting the ready. Since, the AW and W beats are sent over the same channel, this might cause a deadlock if there there are no buffers downstream.
 
 #### FlooGen
 - The link typedefs are now renderd with the macros in `typedef.svh` instead of rendering them in pure SystemVerilog.
@@ -59,6 +60,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Routers with `XYRouting` do now use the global `id_offset`, which was previously not accounted for (or had to be specified manually).
 - Fixed elaboration errors in the chimneys that occured.
 - Fixed Synopsys DC elaboration error due to concatenation in `id_i` port connection of chimneys and routers.
+- Undriven signals in `floo_meta_buffer` if `AtopSupport` is disabled.
 
 ### Removed
 
