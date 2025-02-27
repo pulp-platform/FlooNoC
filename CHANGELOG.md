@@ -52,9 +52,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - The system address map `Sam` is now sorted correctly and can be indexed with `ep_id_e` values.
 - `id_offset` was renamed to `xy_id_offset`, since this is now only applicable in `XYRouting` networks. An ID offset does not make sense for other types of routing algorithms. The use of `id_offset` is anyway not recommended anymore, since the direction of the connections can be specified in the `connections` schema.
 - Endpoint names in the `ep_id_e` enum, which are created as 2D arrays now have clearer naming scheme by prefixing them with `X` and `Y`.
-- The package and the top-module of the generated network are now seperated into its own modules `floo_*_noc.sv` and `floo_*_noc_pkg.sv`.
-- The `--only-pkg` and `-only-top` flags were added to the _FlooGen_ CLI to omit the generation of the package resp. the top-module.
-- If `--outdir` resp. `-o` is not specified _FlooGen_ will print the generated files to stdout instead of writing them to a file.
+- The package and the top-module of the generated network are now seperated into its own modules `floo_*_noc.sv` and `floo_*_noc_pkg.sv`. (https://github.com/pulp-platform/FlooNoC/pull/110)
+- The `--only-pkg` and `-only-top` flags were added to the _FlooGen_ CLI to omit the generation of the package resp. the top-module. (https://github.com/pulp-platform/FlooNoC/pull/110)
+- If `--outdir` resp. `-o` is not specified _FlooGen_ will print the generated files to stdout instead of writing them to a file. (https://github.com/pulp-platform/FlooNoC/pull/110)
 
 ### Fixed
 
