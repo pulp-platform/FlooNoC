@@ -9,72 +9,72 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 ### Added
 
 #### Hardware
-- The `floo_pkg` was extended with helper functions to calculate the size of AXI payloads and mapping of AXI to Floo Channels.
-- Multiple configuration structs were introduced to enable a more flexible and non-verbose configuration of the FlooNoC modules.
+- The `floo_pkg` was extended with helper functions to calculate the size of AXI payloads and mapping of AXI to Floo Channels. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- Multiple configuration structs were introduced to enable a more flexible and non-verbose configuration of the FlooNoC modules. (https://github.com/pulp-platform/FlooNoC/pull/65)
   - The `AxiCfg` describes all the necessary parameters needed for the type definitions of a bidirectional AXI interface
   - The `RouteCfg` describes all the necessary routing information parameters required by the chimneys.
   - The `ChimneyCfg` describes all other parameters for the data path of the chimney (e.g. Mgr/Sbr port enable, number of oustanding transactions, RoB types & sizes, etc.)
-- The `floo_test_pkg` now defines default configurations for all the new configuration structs that are used by the testbenches.
-- Add `floo_axi_router` module, which is a wrapper similar to the `floo_nw_router` but for single-AXI configurations, and can be used in conjunction with `floo_axi_chimney`.
+- The `floo_test_pkg` now defines default configurations for all the new configuration structs that are used by the testbenches. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- Add `floo_axi_router` module, which is a wrapper similar to the `floo_nw_router` but for single-AXI configurations, and can be used in conjunction with `floo_axi_chimney`. (https://github.com/pulp-platform/FlooNoC/pull/69)
 - `floo_nw_join` now also allows to convert to a narrow AXI interface, which is useful for accessing peripherals for instance.
 - The atomic adapter in `floo_nw_join` can now be disabled with `EnAtopAdapter`.
 
 #### FlooGen
-- The `data_width` and `user_width` fields for `protocols` are now also validated to be compatible with each other.
-- All the various `*Cfg`'s is now rendered by _FlooGen_, either in the `*_noc_pkg` or in the `*_noc` module itself.
-- Added support for single-AXI configuration networks.
-- Support for negative increments when specifying a `src_range` or `dst_range` in the `connections` schema.
-- Add support for multiple non-contiguous address ranges for endpoints.
+- The `data_width` and `user_width` fields for `protocols` are now also validated to be compatible with each other. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- All the various `*Cfg`'s is now rendered by _FlooGen_, either in the `*_noc_pkg` or in the `*_noc` module itself. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- Added support for single-AXI configuration networks. (https://github.com/pulp-platform/FlooNoC/pull/69)
+- Support for negative increments when specifying a `src_range` or `dst_range` in the `connections` schema. (https://github.com/pulp-platform/FlooNoC/pull/77)
+- Add support for multiple non-contiguous address ranges for endpoints. (https://github.com/pulp-platform/FlooNoC/pull/80)
 
 ### Changed
 
 #### Hardware
-- The `floo_narrow_wide_*` modules and the corresponding testbenches were renamed to `floo_nw_*` to be more concise.
-- The flit type definitions are now implemented as SystemVerilog macros in `typedef.svh`.
-- The parametrization of the chimney modules has changed dramatically. They now use the newly introduced `*Cfg`'s from the `floo_pkg`. In the narrow-wide chimneys, both datapaths now have their own configs (i.e. `*CfgN` and `*CfgW`), to reduce the verbosity of the module instantiation.
-- The payload field name in each `*_chan_t` type previously had its own name. This was unified to `payload` since `*_chan_t` already determines the type of the payload.
-- The input and output buffer FIFO depth of the routers were renamed to `InFifoDepth` and `OutFifoDepth` to be more consistent (previously `ChannelFifoDepth` and `OutputFifoDepth`).
-- The narrow-wide router wrapper now also requires the `AxiCfg` structs to redefine the link types internally.
-- The `ReorderBufferSize` parameters was shortened to `RoBSize`.
-- All testbenches were adapted to all changes.
-- All verification IPs were adapted to the new configuration structs.
+- The `floo_narrow_wide_*` modules and the corresponding testbenches were renamed to `floo_nw_*` to be more concise. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- The flit type definitions are now implemented as SystemVerilog macros in `typedef.svh`. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- The parametrization of the chimney modules has changed dramatically. They now use the newly introduced `*Cfg`'s from the `floo_pkg`. In the narrow-wide chimneys, both datapaths now have their own configs (i.e. `*CfgN` and `*CfgW`), to reduce the verbosity of the module instantiation. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- The payload field name in each `*_chan_t` type previously had its own name. This was unified to `payload` since `*_chan_t` already determines the type of the payload. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- The input and output buffer FIFO depth of the routers were renamed to `InFifoDepth` and `OutFifoDepth` to be more consistent (previously `ChannelFifoDepth` and `OutputFifoDepth`). (https://github.com/pulp-platform/FlooNoC/pull/65)
+- The narrow-wide router wrapper now also requires the `AxiCfg` structs to redefine the link types internally. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- The `ReorderBufferSize` parameters was shortened to `RoBSize`. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- All testbenches were adapted to all changes. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- All verification IPs were adapted to the new configuration structs. (https://github.com/pulp-platform/FlooNoC/pull/65)
 
 #### FlooGen
-- The link typedefs are now renderd with the macros in `typedef.svh` instead of rendering them in pure SystemVerilog.
-- The template files were renamed to use the more concise `nw` naming scheme.
-- The generated modules and packages of _FlooGen_ are now named `floo_*_noc` resp. `floo_*_noc_pkg` which is more consistent since all other modules have the `floo_*` prefix.
-- The `protocols` schema was adapted a bit to be more intuitive.
+- The link typedefs are now renderd with the macros in `typedef.svh` instead of rendering them in pure SystemVerilog. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- The template files were renamed to use the more concise `nw` naming scheme. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- The generated modules and packages of _FlooGen_ are now named `floo_*_noc` resp. `floo_*_noc_pkg` which is more consistent since all other modules have the `floo_*` prefix. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- The `protocols` schema was adapted a bit to be more intuitive. (https://github.com/pulp-platform/FlooNoC/pull/65)
   - The `type` field was renamed to `protocol`, which currently only accepts `AXI4`. A new `type` field now is used by _FlooGen_ to now where to attach the protocol in the network interface. Currently, _FlooGen_ only supports the narrow-wide AXI configuration, hence only `narrow|wide` is allowed as `type` values.
   - The `direction` field in the `protocol` schema is no longer required, since the direction is determined when specifying `mgr_port_protocol` and `sbr_port_protocol`.
   - The `name` field must be unique now, since it is used by `mgr_port_protocol` and `sbr_port_protocol` to reference the exact protocol.
   - All examples were adapted to reflect those changes.
-- A _FlooGen_ configuration file now requires a `network_type` field, to determine the type of network to generate. The options are `axi` for single-AXI networks and `narrow-wide` for the narrow-wide AXI configurations.
-- The system address map `Sam` is now sorted correctly and can be indexed with `ep_id_e` values.
-- `id_offset` was renamed to `xy_id_offset`, since this is now only applicable in `XYRouting` networks. An ID offset does not make sense for other types of routing algorithms. The use of `id_offset` is anyway not recommended anymore, since the direction of the connections can be specified in the `connections` schema.
-- Endpoint names in the `ep_id_e` enum, which are created as 2D arrays now have clearer naming scheme by prefixing them with `X` and `Y`.
+- A _FlooGen_ configuration file now requires a `network_type` field, to determine the type of network to generate. The options are `axi` for single-AXI networks and `narrow-wide` for the narrow-wide AXI configurations.  (https://github.com/pulp-platform/FlooNoC/pull/69)
+- The system address map `Sam` is now sorted correctly and can be indexed with `ep_id_e` values. (https://github.com/pulp-platform/FlooNoC/pull/72)
+- `id_offset` was renamed to `xy_id_offset`, since this is now only applicable in `XYRouting` networks. An ID offset does not make sense for other types of routing algorithms. The use of `id_offset` is anyway not recommended anymore, since the direction of the connections can be specified in the `connections` schema. (https://github.com/pulp-platform/FlooNoC/pull/72)
+- Endpoint names in the `ep_id_e` enum, which are created as 2D arrays now have clearer naming scheme by prefixing them with `X` and `Y`. (https://github.com/pulp-platform/FlooNoC/pull/90)
 - The package and the top-module of the generated network are now seperated into its own modules `floo_*_noc.sv` and `floo_*_noc_pkg.sv`. (https://github.com/pulp-platform/FlooNoC/pull/110)
 - The `--only-pkg` and `-only-top` flags were added to the _FlooGen_ CLI to omit the generation of the package resp. the top-module. (https://github.com/pulp-platform/FlooNoC/pull/110)
 - If `--outdir` resp. `-o` is not specified _FlooGen_ will print the generated files to stdout instead of writing them to a file. (https://github.com/pulp-platform/FlooNoC/pull/110)
 
 ### Fixed
 
-- A bug in the calcuation of the RoB offset in `floo_rob` was fixed. Previously, the allocation and the write process used the same counter in bursts for offset calculation, which resulted in wrong offsets.
-- Routers with `XYRouting` do now use the global `id_offset`, which was previously not accounted for (or had to be specified manually).
-- Fixed elaboration errors in the chimneys that occured.
-- Fixed Synopsys DC elaboration error due to concatenation in `id_i` port connection of chimneys and routers.
+- A bug in the calcuation of the RoB offset in `floo_rob` was fixed. Previously, the allocation and the write process used the same counter in bursts for offset calculation, which resulted in wrong offsets. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- Routers with `XYRouting` do now use the global `id_offset`, which was previously not accounted for (or had to be specified manually). (https://github.com/pulp-platform/FlooNoC/pull/72)
+- Fixed elaboration errors in the chimneys that occured. (https://github.com/pulp-platform/FlooNoC/pull/75)
+- Fixed Synopsys DC elaboration error due to concatenation in `id_i` port connection of chimneys and routers. (https://github.com/pulp-platform/FlooNoC/pull/103)
 
 ### Removed
 
 #### Hardware
 
-- As the flit type definitions were moved to `typedef.svh`, the auto-generated `floo_*_pkg` packages were removed from the repository. Furthermore, all the (global) imports of those packages in the modules were replaced by parameters.
-- The testbench `tb_floo_nw_chimney` was removed since it was neither used nor maintained anymore.
-- The `IdIsPort` routing algorithm was removed since it can only be used for routes over a single router. The same functionality can be achieved with the `SourceRouting` algorithm.
-- The `dma_mesh` testbench was removed in favor of `nw_mesh` and `axi_mesh` which use generated networks with _FlooGen_.
+- As the flit type definitions were moved to `typedef.svh`, the auto-generated `floo_*_pkg` packages were removed from the repository. Furthermore, all the (global) imports of those packages in the modules were replaced by parameters. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- The testbench `tb_floo_nw_chimney` was removed since it was neither used nor maintained anymore. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- The `IdIsPort` routing algorithm was removed since it can only be used for routes over a single router. The same functionality can be achieved with the `SourceRouting` algorithm. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- The `dma_mesh` testbench was removed in favor of `nw_mesh` and `axi_mesh` which use generated networks with _FlooGen_. (https://github.com/pulp-platform/FlooNoC/pull/72)
 
 #### FlooGen
-- The package generation was removed from _FlooGen_ since it is now handled by the `typedef.svh` file. Further, the `--only-pkg` and `--pkg-outdir` flags were removed from the _FlooGen_ CLI.
-- The calculation of link sizes and AXI to Floo channel mapping was removed from the _FlooGen_ configuration file. This is now handled by the `floo_pkg` helper functions.
+- The package generation was removed from _FlooGen_ since it is now handled by the `typedef.svh` file. Further, the `--only-pkg` and `--pkg-outdir` flags were removed from the _FlooGen_ CLI. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- The calculation of link sizes and AXI to Floo channel mapping was removed from the _FlooGen_ configuration file. This is now handled by the `floo_pkg` helper functions. (https://github.com/pulp-platform/FlooNoC/pull/65)
 
 ## [0.5.0] - 2024-09-13
 
