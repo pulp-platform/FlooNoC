@@ -36,6 +36,7 @@ VLOGAN  	  ?= vcs-2022.06 vlogan
 
 BENDER_FLAGS += -t rtl
 BENDER_FLAGS += -t test
+BENDER_FLAGS += -t floo_test
 BENDER_FLAGS += -t snitch_cluster
 BENDER_FLAGS += -t idma_test
 BENDER_FLAGS := $(BENDER_FLAGS) $(EXTRA_BENDER_FLAGS)
