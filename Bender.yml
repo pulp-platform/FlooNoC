@@ -59,7 +59,7 @@ sources:
   - hw/floo_nw_vc_chimney.sv
   - hw/floo_nw_vc_router.sv
 
-  - target: test
+  - target: floo_test
     include_dirs:
       - hw/test/include
     files:
@@ -80,16 +80,18 @@ sources:
       - hw/tb/tb_floo_rob.sv
       - hw/tb/tb_floo_vc_router.sv
 
-  - target: all(test, axi_mesh)
+  - target: all(floo_test, axi_mesh)
     include_dirs:
       - hw/test/include
     files:
+      - generated/floo_axi_mesh_noc_pkg.sv
       - generated/floo_axi_mesh_noc.sv
       - hw/tb/tb_floo_axi_mesh.sv
 
-  - target: all(test, nw_mesh)
+  - target: all(floo_test, nw_mesh)
     include_dirs:
       - hw/test/include
     files:
+      - generated/floo_nw_mesh_noc_pkg.sv
       - generated/floo_nw_mesh_noc.sv
       - hw/tb/tb_floo_nw_mesh.sv
