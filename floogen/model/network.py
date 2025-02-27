@@ -766,6 +766,13 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         fields_dict["num_endpoints"] = len(fields_dict)
         return sv_enum_typedef(name="ep_id_e", fields_dict=fields_dict)
 
+    def render_sam_idx_enum(self):
+        """Render the system address map index enum in the generated code."""
+        fields_dict = {}
+        for i, desc in enumerate(reversed(self.routing.sam.rules)):
+            fields_dict[desc.desc] = i
+        return sv_enum_typedef(name="sam_idx_e", fields_dict=fields_dict)
+
     def render_network(self):
         """Render the network in the generated code."""
         return self.noc_tpl.render(noc=self)
