@@ -175,6 +175,7 @@ class AddrRange(BaseModel):
     size: int
     base: Optional[int] = None
     idx: Optional[int] = None
+    desc: Optional[str] = None
 
     def __str__(self):
         return f"[{self.start:X}:{self.end:X}]"
