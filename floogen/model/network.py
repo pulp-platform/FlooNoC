@@ -36,7 +36,9 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
     with as_file(files(floogen.templates).joinpath("floo_top_noc.sv.mako")) as _tpl_path:
-        tpl: ClassVar = Template(filename=str(_tpl_path))
+        noc_tpl: ClassVar = Template(filename=str(_tpl_path))
+    with as_file(files(floogen.templates).joinpath("floo_top_noc_pkg.sv.mako")) as _tpl_path:
+        pkg_tpl: ClassVar = Template(filename=str(_tpl_path))
 
     name: str
     description: Optional[str]
@@ -760,7 +762,11 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     def render_network(self):
         """Render the network in the generated code."""
-        return self.tpl.render(noc=self)
+        return self.noc_tpl.render(noc=self)
+
+    def render_package(self):
+        """Render the network package in the generated code."""
+        return self.pkg_tpl.render(noc=self)
 
     def visualize(self, savefig=True, filename: pathlib.Path = "network.png"):
         """Visualize the network graph."""
