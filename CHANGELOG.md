@@ -48,10 +48,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
   - The `direction` field in the `protocol` schema is no longer required, since the direction is determined when specifying `mgr_port_protocol` and `sbr_port_protocol`.
   - The `name` field must be unique now, since it is used by `mgr_port_protocol` and `sbr_port_protocol` to reference the exact protocol.
   - All examples were adapted to reflect those changes.
-- A FlooGen configuration file now requires a `network_type` field, to determine the type of network to generate. The options are `axi` for single-AXI networks and `narrow-wide` for the narrow-wide AXI configurations.
+- A _FlooGen_ configuration file now requires a `network_type` field, to determine the type of network to generate. The options are `axi` for single-AXI networks and `narrow-wide` for the narrow-wide AXI configurations.
 - The system address map `Sam` is now sorted correctly and can be indexed with `ep_id_e` values.
 - `id_offset` was renamed to `xy_id_offset`, since this is now only applicable in `XYRouting` networks. An ID offset does not make sense for other types of routing algorithms. The use of `id_offset` is anyway not recommended anymore, since the direction of the connections can be specified in the `connections` schema.
 - Endpoint names in the `ep_id_e` enum, which are created as 2D arrays now have clearer naming scheme by prefixing them with `X` and `Y`.
+- The package and the top-module of the generated network are now seperated into its own modules `floo_*_noc.sv` and `floo_*_noc_pkg.sv`.
+- The `--only-pkg` and `-only-top` flags were added to the _FlooGen_ CLI to omit the generation of the package resp. the top-module.
+- If `--outdir` resp. `-o` is not specified _FlooGen_ will print the generated files to stdout instead of writing them to a file.
 
 ### Fixed
 
