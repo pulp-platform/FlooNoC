@@ -24,7 +24,7 @@ run-sim-batch: run-vsim-batch
 ############
 
 BENDER     	?= bender
-VSIM       	?= questa-2023.4 vsim
+VSIM       	?= vsim
 SPYGLASS   	?= sg_shell
 VERIBLE_FMT	?= verible-verilog-format
 VCS		      ?= vcs-2022.06 vcs
