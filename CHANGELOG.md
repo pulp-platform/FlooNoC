@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Added support for single-AXI configuration networks. (https://github.com/pulp-platform/FlooNoC/pull/69)
 - Support for negative increments when specifying a `src_range` or `dst_range` in the `connections` schema. (https://github.com/pulp-platform/FlooNoC/pull/77)
 - Add support for multiple non-contiguous address ranges for endpoints. (https://github.com/pulp-platform/FlooNoC/pull/80)
+- Added a `sam_idx_e` enum in the package, which allows to directly index into the system address map. (https://github.com/pulp-platform/FlooNoC/pull/111)
 
 ### Changed
 

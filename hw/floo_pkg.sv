@@ -254,6 +254,11 @@ package floo_pkg;
     return (a > b) ? a : b;
   endfunction
 
+  /// Helper function to calculate the minimum of two unsigned integers
+  function automatic int unsigned min(int unsigned a, int unsigned b);
+    return (a < b) ? a : b;
+  endfunction
+
   /// Returns the AXI config the resulting AXI config when joining a narrow
   /// and wide AXI subordinate interfaces.
   function automatic axi_cfg_t axi_join_cfg(axi_cfg_t cfg_n, axi_cfg_t cfg_w);

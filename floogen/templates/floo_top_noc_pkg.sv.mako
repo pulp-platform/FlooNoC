@@ -20,6 +20,8 @@ package floo_${noc.name}_noc_pkg;
 
   ${noc.render_ep_enum()}
 
+  ${noc.render_sam_idx_enum()}
+
   ${noc.routing.render_typedefs()}
 
 % if noc.routing.use_id_table:

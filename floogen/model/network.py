@@ -660,8 +660,14 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             dest = ni.id
             if self.routing.xy_id_offset is not None:
                 dest -= self.routing.xy_id_offset
-            for addr_range in ni.addr_range:
-                addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, desc=ni.name)
+            for i, addr_range in enumerate(ni.addr_range):
+                rule_name = ni.render_enum_name()
+                if addr_range.desc is not None:
+                    rule_name += f"_{addr_range.desc}"
+                elif len(ni.addr_range) > 1:
+                    rule_name += f"_{i}"
+                rule_name += "_sam_idx"
+                addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, desc=rule_name)
                 addr_table.append(addr_rule)
         return RouteMap(name="sam", rules=addr_table)
 
@@ -759,6 +765,13 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         fields_dict = dict(sorted(fields_dict.items(), key=lambda item: item[1]))
         fields_dict["num_endpoints"] = len(fields_dict)
         return sv_enum_typedef(name="ep_id_e", fields_dict=fields_dict)
+
+    def render_sam_idx_enum(self):
+        """Render the system address map index enum in the generated code."""
+        fields_dict = {}
+        for i, desc in enumerate(reversed(self.routing.sam.rules)):
+            fields_dict[desc.desc] = i
+        return sv_enum_typedef(name="sam_idx_e", fields_dict=fields_dict)
 
     def render_network(self):
         """Render the network in the generated code."""
