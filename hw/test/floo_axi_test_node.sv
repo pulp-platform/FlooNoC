@@ -68,8 +68,8 @@ module floo_axi_test_node #(
     .W_MIN_WAIT_CYCLES    ( 0              ),
     .W_MAX_WAIT_CYCLES    ( 0              ),
     .RESP_MIN_WAIT_CYCLES ( 0              ),
-    .RESP_MAX_WAIT_CYCLES ( 0              ),
-    .ENABLE_MULTICAST     ( 1              )
+    .RESP_MAX_WAIT_CYCLES ( 0              )
+    // .ENABLE_MULTICAST     ( 0              )
   ) axi_rand_master_t;
 
   AXI_BUS_DV #(

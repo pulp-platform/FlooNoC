@@ -1,9 +1,12 @@
 // Chen Wu
 
-module floo_output_arbeiter import floo_pkg::*;
+module floo_output_arbiter import floo_pkg::*;
 #(
   parameter int unsigned NumRoutes  = 1,
   parameter type         flit_t     = logic,
+  parameter type         payload_t  = logic,
+  parameter payload_t    NarrowRspMask = '0,
+  parameter payload_t    WideRspMask = '0,
   parameter type         id_t       = logic
 ) (
   input  logic                   clk_i,
@@ -66,14 +69,14 @@ module floo_output_arbeiter import floo_pkg::*;
   assign in_reducing_valid = valid_i & ~path_mask;
   assign in_reducing_data  = data_i ;
 
-  floo_reduction_arbeiter #(
+  floo_reduction_arbiter #(
     .NumRoutes  ( NumRoutes ),
     .flit_t     ( flit_t          ),
+    .payload_t  ( payload_t       ),
+    .NarrowRspMask ( NarrowRspMask ),
+    .WideRspMask   ( WideRspMask   ),
     .id_t       ( id_t            )
-  ) i_reduction_arbeiter (
-    .clk_i,
-    .rst_ni,
-
+  ) i_reduction_arbiter (
     .valid_i ( in_reducing_valid ),
     .ready_o ( in_reducing_ready ),
     .data_i  ( in_reducing_data  ),
@@ -85,8 +88,8 @@ module floo_output_arbeiter import floo_pkg::*;
   );
 
   // choose which side to output, prefer the reduced side
-  assign valid_o = (out_reduced_valid) ? out_reduced_valid : out_normal_valid;
-  assign data_o  = (out_reduced_valid) ? out_reduced_data  : out_normal_data;
-  assign ready_o = (out_reduced_valid) ? in_reducing_ready : in_normal_ready;
+  assign valid_o = (out_reduced_valid & |in_reducing_valid) ? out_reduced_valid : out_normal_valid;
+  assign data_o  = (out_reduced_valid & |in_reducing_valid) ? out_reduced_data  : out_normal_data;
+  assign ready_o = (out_reduced_valid & |in_reducing_valid) ? in_reducing_ready : in_normal_ready;
   
 endmodule

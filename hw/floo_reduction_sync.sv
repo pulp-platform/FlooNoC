@@ -7,8 +7,6 @@ module floo_reduction_sync import floo_pkg::*;
   parameter type         flit_t     = logic,
   parameter type         id_t       = logic
 ) (
-  input  logic                   clk_i,
-  input  logic                   rst_ni,
   input  arb_idx_t               index,
   input  flit_t [NumRoutes-1:0]  data_i,
   input  logic  [NumRoutes-1:0]  valid_i,
@@ -30,10 +28,9 @@ module floo_reduction_sync import floo_pkg::*;
     .route_sel_o( in_route_mask_o )
   );
 
-  id_t mask_in, src_id, src_list, dst_id;
+  id_t mask_in, src_id, dst_id;
   assign mask_in = id_t'(data_i[index].hdr.mask);
   assign src_id = id_t'(data_i[index].hdr.src_id);
-  assign src_list = mask_in | src_id;
   assign dst_id = id_t'(data_i[index].hdr.dst_id);
 
   always_comb begin
@@ -45,7 +42,7 @@ module floo_reduction_sync import floo_pkg::*;
       //                           && (((current_src_id ^ src_id) & ~(current_mask | mask_in)) == 0)
       //                           && (id_t'(data_i[in_route].hdr.dst_id) == dst_id);
       compare_same[in_route] = (current_mask == mask_in) && (id_t'(data_i[in_route].hdr.dst_id) == dst_id); // only compare whether the same mask and dst_id
-      same_and_valid[in_route] = compare_same[in_route] & valid_i[in_route];
+      same_and_valid[in_route] = (dst_id==node_id_i && in_route==Eject)? 1 : (compare_same[in_route] & valid_i[in_route]);
     end
     valid_o = in_route_mask_o=='0? 0 : &(same_and_valid | ~in_route_mask_o);
   end

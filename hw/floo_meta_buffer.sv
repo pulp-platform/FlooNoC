@@ -33,11 +33,20 @@ module floo_meta_buffer #(
   /// AXI out response channel
   parameter type axi_out_rsp_t  = logic,
   /// Information to be buffered for responses
-  parameter type buf_t          = logic
+  parameter type buf_t          = logic,
+  // used for AXI mask <-> NoC mask conversion
+  parameter floo_pkg::route_cfg_t RouteCfg = '0,
+  parameter type addr_t = logic,
+  parameter type id_t   = logic,
+  parameter type mask_rule_t = logic,
+  parameter type mask_sel_t  = logic,
+  parameter bit ENABLE_MULTICAST = 0
 ) (
   input  logic clk_i,
   input  logic rst_ni,
   input  logic test_enable_i,
+  input  mask_rule_t [RouteCfg.NumSamRules-1:0] mask_map_i,
+  input  id_t id_i,
   input  axi_in_req_t axi_req_i,
   output axi_in_rsp_t axi_rsp_o,
   output axi_out_req_t axi_req_o,
@@ -64,6 +73,8 @@ module floo_meta_buffer #(
   buf_t [MaxAtomicTxns-1:0] atop_r_buf, atop_b_buf;
 
   id_out_t no_atop_aw_req_id, no_atop_ar_req_id;
+
+  addr_t axi_addr;
 
   if (MaxUniqueIds == 1) begin : gen_no_atop_fifos
 
@@ -200,6 +211,49 @@ module floo_meta_buffer #(
   assign r_buf_o = (is_atop_r_rsp && AtopSupport)? atop_r_buf[axi_rsp_i.r.id] : no_atop_r_buf;
   assign b_buf_o = (is_atop_b_rsp && AtopSupport)? atop_b_buf[axi_rsp_i.b.id] : no_atop_b_buf;
 
+  // NoC addr/mask to AXI addr/mask conversion
+  
+  if (ENABLE_MULTICAST && RouteCfg.UseIdTable && 
+     (RouteCfg.RouteAlgo == floo_pkg::XYRouting))
+  begin : gen_mcast_table_conversion
+    id_t out, in_mask, in_id;
+    mask_sel_t x_mask_sel, y_mask_sel;
+    addr_t x_addr_mask, y_addr_mask;
+    addr_t in_addr;
+    logic dec_error;
+
+    assign in_mask = aw_buf_i.hdr.mask;
+    assign in_id = aw_buf_i.hdr.dst_id;
+    assign out = (~in_mask & in_id) | (in_mask & id_i);
+    floo_mask_decode #(
+      .NumMaskRules ( RouteCfg.NumSamRules ),
+      .mask_rule_t  ( mask_rule_t          ),
+      .id_t         ( id_t                 ),
+      .mask_sel_t   ( mask_sel_t           )
+    ) i_mask_decode (
+      .id_i         ( id_i                 ),
+      .mask_x_mask  ( x_mask_sel          ),
+      .mask_y_mask  ( y_mask_sel          ),
+      .mask_map_i   ( mask_map_i           ),
+      .dec_error_o  ( dec_error         )
+    );
+    `ASSERT(MaskDecodeError, !dec_error)
+    always_comb begin : gen_xy_addr_mask
+      x_addr_mask = '0;
+      y_addr_mask = '0;
+      for (int i = x_mask_sel.offset; i < x_mask_sel.offset + x_mask_sel.len; i++) begin
+        x_addr_mask[i] = 1;
+      end
+      for (int i = y_mask_sel.offset; i < y_mask_sel.offset + y_mask_sel.len; i++) begin
+        y_addr_mask[i] = 1;
+      end
+    end
+    assign in_addr = axi_req_i.aw.addr;
+    assign axi_addr = (in_addr & ~(x_addr_mask | y_addr_mask)) | ((out.x << x_mask_sel.offset) | (out.y << y_mask_sel.offset));
+  end else begin
+    assign axi_addr = axi_req_i.aw.addr;
+  end
+
   if (AtopSupport) begin : gen_atop_support
 
     logic [MaxAtomicTxns-1:0] ar_atop_reg_full, aw_atop_reg_full;
@@ -290,6 +344,7 @@ module floo_meta_buffer #(
                             !no_atop_id_available : !aw_no_atop_buf_full);
       axi_rsp_o.aw_ready = axi_rsp_i.aw_ready && ((is_atop_aw)?
                             !no_atop_id_available : !aw_no_atop_buf_full);
+      axi_req_o.aw.addr = (ENABLE_MULTICAST && aw_buf_i.hdr.commtype==floo_pkg::Multicast)? axi_addr : axi_req_i.aw.addr;
     end
   end else begin : gen_no_atop_support
 

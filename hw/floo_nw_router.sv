@@ -6,6 +6,7 @@
 
 `include "axi/typedef.svh"
 `include "floo_noc/typedef.svh"
+`include "common_cells/registers.svh"
 
 /// Wrapper of a multi-link router for narrow and wide links
 module floo_nw_router #(
@@ -43,7 +44,8 @@ module floo_nw_router #(
   /// Floo `rsp` link type
   parameter type floo_rsp_t                   = logic,
   /// Floo `wide` link type
-  parameter type floo_wide_t                  = logic
+  parameter type floo_wide_t                  = logic,
+  parameter bit          ENABLE_MULTICAST = 1'b0
 ) (
   input  logic   clk_i,
   input  logic   rst_ni,
@@ -131,7 +133,10 @@ module floo_nw_router #(
     .XYRouteOpt       ( XYRouteOpt              ),
     .id_t             ( id_t                    ),
     .NumAddrRules     ( NumAddrRules            ),
-    .addr_rule_t      ( addr_rule_t             )
+    .addr_rule_t      ( addr_rule_t             ),
+    .NoLoopback       ( 1'b1                    ),
+    .ENABLE_MULTICAST ( ENABLE_MULTICAST        ),
+    .ENABLE_REDUCTION ( 1'b0                    )
   ) i_req_floo_router (
     .clk_i,
     .rst_ni,
@@ -146,6 +151,12 @@ module floo_nw_router #(
     .data_o         ( req_out       )
   );
 
+  // localparam floo_rsp_payload_t NarrowRspMask = floo_rsp_payload_t'('{payload: axi_narrow_rsp_t'('{b.resp: 2'b11, default: '0}), '0});
+  // localparam floo_rsp_payload_t WideRspMask = floo_rsp_payload_t'('{payload: axi_wide_rsp_t'('{b.resp: 2'b11, default: '0}), '0});
+  // localparam floo_rsp_payload_t NarrowRspMask = '0;
+  // localparam floo_rsp_payload_t WideRspMask = '0;
+  localparam floo_rsp_payload_t NarrowRspMask = floo_rsp_payload_t'({axi_narrow_b_chan_t'('{resp: 2'b11, id: '0, user:'0}), '0});
+  localparam floo_rsp_payload_t WideRspMask = floo_rsp_payload_t'({axi_wide_b_chan_t'('{resp: 2'b11, id: '0, user: '0}), '0});
 
   floo_router #(
     .NumPhysChannels  ( 1                       ),
@@ -157,9 +168,15 @@ module floo_nw_router #(
     .RouteAlgo        ( RouteAlgo               ),
     .XYRouteOpt       ( XYRouteOpt              ),
     .flit_t           ( floo_rsp_generic_flit_t ),
+    .payload_t          ( floo_rsp_payload_t      ),
+    .NarrowRspMask       ( NarrowRspMask),
+    .WideRspMask       ( WideRspMask),
     .id_t             ( id_t                    ),
     .NumAddrRules     ( NumAddrRules            ),
-    .addr_rule_t      ( addr_rule_t             )
+    .addr_rule_t      ( addr_rule_t             ),
+    .NoLoopback       ( 1'b1                    ),
+    .ENABLE_MULTICAST ( 1'b0                    ),
+    .ENABLE_REDUCTION ( ENABLE_MULTICAST        )
   ) i_rsp_floo_router (
     .clk_i,
     .rst_ni,
@@ -186,7 +203,10 @@ module floo_nw_router #(
     .XYRouteOpt       ( XYRouteOpt                ),
     .id_t             ( id_t                      ),
     .NumAddrRules     ( NumAddrRules              ),
-    .addr_rule_t      ( addr_rule_t               )
+    .addr_rule_t      ( addr_rule_t               ),
+    .NoLoopback       ( 1'b1                      ),
+    .ENABLE_MULTICAST ( ENABLE_MULTICAST          ),
+    .ENABLE_REDUCTION ( 1'b0                      )
   ) i_wide_req_floo_router (
     .clk_i,
     .rst_ni,

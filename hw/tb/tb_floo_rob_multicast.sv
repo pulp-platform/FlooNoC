@@ -231,7 +231,7 @@ module tb_floo_rob_multicast;
     .InFifoDepth ( 2                       ),
     .RouteAlgo        ( floo_pkg::XYRouting     ),
     .id_t             ( id_t                    ),
-    .ReductionEnabled ( 1                       )
+    .ENABLE_MULTICAST ( 1                       )
   ) i_floo_rsp_router (
     .clk_i          ( clk                     ),
     .rst_ni         ( rst_n                   ),

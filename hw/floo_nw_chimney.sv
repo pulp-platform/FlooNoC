@@ -7,6 +7,7 @@
 `include "common_cells/registers.svh"
 `include "common_cells/assertions.svh"
 `include "axi/typedef.svh"
+`include "axi/assign.svh"
 `include "floo_noc/typedef.svh"
 
 /// A bidirectional network interface for connecting narrow & wide AXI Buses to the multi-link NoC
@@ -50,22 +51,28 @@ module floo_nw_chimney #(
   /// The System Address Map (SAM) rules
   /// (only used if `RouteCfg.UseIdTable == 1'b1`)
   parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam   = '0,
+  parameter type mask_rule_t                            = logic,
+  parameter mask_rule_t [RouteCfg.NumSamRules-1:0] MaskTable = '0,
   /// Narrow AXI manager request channel type
   parameter type axi_narrow_in_req_t                    = logic,
   /// Narrow AXI manager response channel type
   parameter type axi_narrow_in_rsp_t                    = logic,
   /// Narrow AXI subordinate request channel type
   parameter type axi_narrow_out_req_t                   = logic,
+  parameter type axi_narrow_pre_out_req_t               = axi_narrow_out_req_t,
   /// Narrow AXI subordinate response channel type
   parameter type axi_narrow_out_rsp_t                   = logic,
+  parameter type axi_narrow_pre_out_rsp_t               = axi_narrow_out_rsp_t,
   /// Wide AXI manager request channel type
   parameter type axi_wide_in_req_t                      = logic,
   /// Wide AXI manager response channel type
   parameter type axi_wide_in_rsp_t                      = logic,
   /// Wide AXI subordinate request channel type
   parameter type axi_wide_out_req_t                     = logic,
+  parameter type axi_wide_pre_out_req_t                 = axi_wide_out_req_t,
   /// Wide AXI subordinate response channel type
   parameter type axi_wide_out_rsp_t                     = logic,
+  parameter type axi_wide_pre_out_rsp_t                 = axi_wide_out_rsp_t,
   /// Floo `req` link type
   parameter type floo_req_t                             = logic,
   /// Floo `rsp` link type
@@ -74,7 +81,11 @@ module floo_nw_chimney #(
   parameter type floo_wide_t                            = logic,
   /// SRAM configuration type `tc_sram_impl` in RoB
   /// Only used if technology-dependent SRAM is used
-  parameter type sram_cfg_t                             = logic
+  parameter type sram_cfg_t                             = logic,
+  parameter type user_struct_t                          = logic,
+  parameter type user_mask_t                            = logic [AxiCfgN.UserWidth-1:0],
+  parameter type mask_sel_t                             = logic,
+  parameter bit ENABLE_MULTICAST = 1'b0
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -136,6 +147,8 @@ module floo_nw_chimney #(
   axi_wide_req_t axi_wide_req_in;
   axi_wide_rsp_t axi_wide_rsp_out;
 
+  user_mask_t axi_narrow_req_in_mask, axi_wide_req_in_mask;
+
   // AX queue
   axi_narrow_aw_chan_t axi_narrow_aw_queue;
   axi_narrow_ar_chan_t axi_narrow_ar_queue;
@@ -145,6 +158,7 @@ module floo_nw_chimney #(
   logic axi_narrow_ar_queue_valid_out, axi_narrow_ar_queue_ready_in;
   logic axi_wide_aw_queue_valid_out, axi_wide_aw_queue_ready_in;
   logic axi_wide_ar_queue_valid_out, axi_wide_ar_queue_ready_in;
+  user_mask_t axi_narrow_mask_queue, axi_wide_mask_queue;
 
   floo_req_chan_t [WideAr:NarrowAw] floo_req_arb_in;
   floo_rsp_chan_t [WideB:NarrowB] floo_rsp_arb_in;
@@ -217,8 +231,11 @@ module floo_nw_chimney #(
   // Routing
   dst_t [NumNWAxiChannels-1:0] dst_id;
   dst_t narrow_aw_id_q, wide_aw_id_q;
+  id_t [NumNWAxiChannels-1:0] mask;
+  id_t narrow_aw_mask_q, wide_aw_mask_q;
   route_t [NumNWAxiChannels-1:0] route_out;
   id_t [NumNWAxiChannels-1:0] id_out;
+  id_t [NumNWAxiChannels-1:0] mask_out;
 
 
   narrow_meta_buf_t narrow_aw_buf_hdr_in, narrow_aw_buf_hdr_out;
@@ -232,17 +249,25 @@ module floo_nw_chimney #(
 
   if (ChimneyCfgN.EnMgrPort) begin : gen_narrow_sbr_port
 
-    assign axi_narrow_req_in = axi_narrow_in_req_i;
-    assign axi_narrow_in_rsp_o = axi_narrow_rsp_out;
-
+    // assign axi_narrow_req_in = axi_narrow_in_req_i;
+    // assign axi_narrow_in_rsp_o = axi_narrow_rsp_out;
+    `AXI_ASSIGN_REQ_STRUCT(axi_narrow_req_in, axi_narrow_in_req_i)
+    `AXI_ASSIGN_RESP_STRUCT(axi_narrow_in_rsp_o, axi_narrow_rsp_out)
+    if (ENABLE_MULTICAST) begin
+      user_struct_t user;
+      assign user = axi_narrow_in_req_i.aw.user;
+      assign axi_narrow_req_in_mask = user.mask;
+    end else begin
+      assign axi_narrow_req_in_mask = '0;
+    end
     if (ChimneyCfgN.CutAx) begin : gen_ax_cuts
       spill_register #(
         .T ( axi_narrow_aw_chan_t )
       ) i_narrow_aw_queue (
         .clk_i,
         .rst_ni,
-        .data_i   ( axi_narrow_in_req_i.aw        ),
-        .valid_i  ( axi_narrow_in_req_i.aw_valid  ),
+        .data_i   ( axi_narrow_req_in.aw        ),
+        .valid_i  ( axi_narrow_req_in.aw_valid  ),
         .ready_o  ( axi_narrow_rsp_out.aw_ready   ),
         .data_o   ( axi_narrow_aw_queue           ),
         .valid_o  ( axi_narrow_aw_queue_valid_out ),
@@ -254,21 +279,40 @@ module floo_nw_chimney #(
       ) i_narrow_ar_queue (
         .clk_i,
         .rst_ni,
-        .data_i   ( axi_narrow_in_req_i.ar        ),
-        .valid_i  ( axi_narrow_in_req_i.ar_valid  ),
+        .data_i   ( axi_narrow_req_in.ar        ),
+        .valid_i  ( axi_narrow_req_in.ar_valid  ),
         .ready_o  ( axi_narrow_rsp_out.ar_ready   ),
         .data_o   ( axi_narrow_ar_queue           ),
         .valid_o  ( axi_narrow_ar_queue_valid_out ),
         .ready_i  ( axi_narrow_ar_queue_ready_in  )
       );
 
+      if (ENABLE_MULTICAST) begin
+        spill_register #(
+          .T (user_mask_t)
+        ) i_narrow_usermask_queue (
+          .clk_i,
+          .rst_ni,
+          .data_i   ( axi_narrow_req_in_mask ),
+          .valid_i  ( axi_narrow_req_in.aw_valid ),
+          .ready_o  (  ),
+          .data_o   ( axi_narrow_mask_queue ),
+          .valid_o  (  ),
+          .ready_i  ( axi_narrow_aw_queue_ready_in )
+        );
+      end else begin
+        assign axi_narrow_mask_queue = '0;
+      end
+
+
     end else begin : gen_ax_no_cuts
-      assign axi_narrow_aw_queue = axi_narrow_in_req_i.aw;
-      assign axi_narrow_aw_queue_valid_out = axi_narrow_in_req_i.aw_valid;
+      assign axi_narrow_aw_queue = axi_narrow_req_in.aw;
+      assign axi_narrow_aw_queue_valid_out = axi_narrow_req_in.aw_valid;
       assign axi_narrow_rsp_out.aw_ready = axi_narrow_aw_queue_ready_in;
-      assign axi_narrow_ar_queue = axi_narrow_in_req_i.ar;
-      assign axi_narrow_ar_queue_valid_out = axi_narrow_in_req_i.ar_valid;
+      assign axi_narrow_ar_queue = axi_narrow_req_in.ar;
+      assign axi_narrow_ar_queue_valid_out = axi_narrow_req_in.ar_valid;
       assign axi_narrow_rsp_out.ar_ready = axi_narrow_ar_queue_ready_in;
+      assign axi_narrow_mask_queue = axi_narrow_req_in_mask;
     end
 
   end else begin : gen_narrow_err_slv_port
@@ -289,21 +333,30 @@ module floo_nw_chimney #(
     assign axi_narrow_ar_queue = '0;
     assign axi_narrow_aw_queue_valid_out = 1'b0;
     assign axi_narrow_ar_queue_valid_out = 1'b0;
+    assign axi_narrow_mask_queue = '0;
   end
 
   if (ChimneyCfgW.EnMgrPort) begin : gen_wide_sbr_port
 
-    assign axi_wide_req_in = axi_wide_in_req_i;
-    assign axi_wide_in_rsp_o = axi_wide_rsp_out;
-
+    // assign axi_wide_req_in = axi_wide_in_req_i;
+    // assign axi_wide_in_rsp_o = axi_wide_rsp_out;
+    `AXI_ASSIGN_REQ_STRUCT(axi_wide_req_in, axi_wide_in_req_i)
+    `AXI_ASSIGN_RESP_STRUCT(axi_wide_in_rsp_o, axi_wide_rsp_out)
+    if (ENABLE_MULTICAST) begin
+      user_struct_t user;
+      assign user = axi_wide_in_req_i.aw.user;
+      assign axi_wide_req_in_mask = user.mask;
+    end else begin
+      assign axi_wide_req_in_mask = '0;
+    end
     if (ChimneyCfgW.CutAx) begin : gen_ax_cuts
       spill_register #(
         .T ( axi_wide_aw_chan_t )
       ) i_wide_aw_queue (
         .clk_i,
         .rst_ni,
-        .data_i   ( axi_wide_in_req_i.aw        ),
-        .valid_i  ( axi_wide_in_req_i.aw_valid  ),
+        .data_i   ( axi_wide_req_in.aw        ),
+        .valid_i  ( axi_wide_req_in.aw_valid  ),
         .ready_o  ( axi_wide_rsp_out.aw_ready   ),
         .data_o   ( axi_wide_aw_queue           ),
         .valid_o  ( axi_wide_aw_queue_valid_out ),
@@ -315,20 +368,39 @@ module floo_nw_chimney #(
       ) i_wide_ar_queue (
         .clk_i,
         .rst_ni,
-        .data_i   ( axi_wide_in_req_i.ar        ),
-        .valid_i  ( axi_wide_in_req_i.ar_valid  ),
+        .data_i   ( axi_wide_req_in.ar        ),
+        .valid_i  ( axi_wide_req_in.ar_valid  ),
         .ready_o  ( axi_wide_rsp_out.ar_ready   ),
         .data_o   ( axi_wide_ar_queue           ),
         .valid_o  ( axi_wide_ar_queue_valid_out ),
         .ready_i  ( axi_wide_ar_queue_ready_in  )
       );
+
+      if (ENABLE_MULTICAST) begin
+        spill_register #(
+          .T (user_mask_t)
+        ) i_wide_usermask_queue (
+          .clk_i,
+          .rst_ni,
+          .data_i   ( axi_wide_req_in_mask ),
+          .valid_i  ( axi_wide_req_in.aw_valid ),
+          .ready_o  (  ),
+          .data_o   ( axi_wide_mask_queue ),
+          .valid_o  (  ),
+          .ready_i  ( axi_wide_aw_queue_ready_in )
+        );
+      end else begin
+        assign axi_wide_mask_queue = '0;
+      end
+
     end else begin : gen_ax_no_cuts
-      assign axi_wide_aw_queue = axi_wide_in_req_i.aw;
-      assign axi_wide_aw_queue_valid_out = axi_wide_in_req_i.aw_valid;
+      assign axi_wide_aw_queue = axi_wide_req_in.aw;
+      assign axi_wide_aw_queue_valid_out = axi_wide_req_in.aw_valid;
       assign axi_wide_rsp_out.aw_ready = axi_wide_aw_queue_ready_in;
-      assign axi_wide_ar_queue = axi_wide_in_req_i.ar;
-      assign axi_wide_ar_queue_valid_out = axi_wide_in_req_i.ar_valid;
+      assign axi_wide_ar_queue = axi_wide_req_in.ar;
+      assign axi_wide_ar_queue_valid_out = axi_wide_req_in.ar_valid;
       assign axi_wide_rsp_out.ar_ready = axi_wide_ar_queue_ready_in;
+      assign axi_wide_mask_queue = axi_wide_req_in_mask;
     end
 
   end else begin : gen_wide_err_slv_port
@@ -349,6 +421,7 @@ module floo_nw_chimney #(
     assign axi_wide_ar_queue = '0;
     assign axi_wide_aw_queue_valid_out = 1'b0;
     assign axi_wide_ar_queue_valid_out = 1'b0;
+    assign axi_wide_mask_queue = '0;
   end
 
   if (ChimneyCfgN.CutRsp && ChimneyCfgW.CutRsp) begin : gen_rsp_cuts
@@ -689,12 +762,17 @@ module floo_nw_chimney #(
   /////////////////
 
   axi_addr_t [NumNWAxiChannels-1:0] axi_req_addr;
+  user_mask_t [NumNWAxiChannels-1:0] axi_req_user;
   id_t [NumNWAxiChannels-1:0] axi_rsp_src_id;
 
   assign axi_req_addr[NarrowAw] = axi_narrow_aw_queue.addr;
   assign axi_req_addr[NarrowAr] = axi_narrow_ar_queue.addr;
   assign axi_req_addr[WideAw]   = axi_wide_aw_queue.addr;
   assign axi_req_addr[WideAr]   = axi_wide_ar_queue.addr;
+  assign axi_req_user[NarrowAw] = axi_narrow_mask_queue;
+  assign axi_req_user[NarrowAr] = '0;
+  assign axi_req_user[WideAw]   = axi_wide_mask_queue;
+  assign axi_req_user[WideAr]   = '0;
 
   assign axi_rsp_src_id[NarrowB] = narrow_aw_buf_hdr_out.hdr.src_id;
   assign axi_rsp_src_id[NarrowR] = narrow_ar_buf_hdr_out.hdr.src_id;
@@ -712,17 +790,24 @@ module floo_nw_chimney #(
         .RouteCfg     ( RouteCfg    ),
         .id_t         ( id_t        ),
         .addr_t       ( axi_addr_t  ),
+        .mask_t       ( user_mask_t ),
         .addr_rule_t  ( sam_rule_t  ),
-        .route_t      ( route_t     )
+        .mask_rule_t  ( mask_rule_t ),
+        .mask_sel_t   ( mask_sel_t  ),
+        .route_t      ( route_t     ),
+        .ENABLE_MULTICAST ( ENABLE_MULTICAST )
       ) i_floo_req_route_comp (
         .clk_i,
         .rst_ni,
         .route_table_i,
         .addr_map_i ( Sam               ),
+        .mask_map_i ( MaskTable         ),
         .id_i       ( id_t'('0)         ),
         .addr_i     ( axi_req_addr[ch]  ),
+        .mask_i     ( axi_req_user[ch]  ),
         .route_o    ( route_out[ch]     ),
-        .id_o       ( id_out[ch]        )
+        .id_o       ( id_out[ch]        ),
+        .mask_o     ( mask_out[ch]      )
       );
     end else if (RouteCfg.RouteAlgo == floo_pkg::SourceRouting &&
                  (Ch == NarrowB || Ch == NarrowR ||
@@ -742,10 +827,13 @@ module floo_nw_chimney #(
         .rst_ni,
         .route_table_i,
         .addr_i     ( '0                  ),
+        .mask_i     ( '0                  ),
         .addr_map_i ( '0                  ),
+        .mask_map_i ( '0                  ),
         .id_i       ( axi_rsp_src_id[ch]  ),
         .route_o    ( route_out[ch]       ),
-        .id_o       ( id_out[ch]          )
+        .id_o       ( id_out[ch]          ),
+        .mask_o     (         )
       );
     end
   end
@@ -754,6 +842,7 @@ module floo_nw_chimney #(
     assign route_out[NarrowW] = narrow_aw_id_q;
     assign route_out[WideW]   = wide_aw_id_q;
     assign dst_id = route_out;
+    assign mask = '0;
   end else begin : gen_dst_field
     assign dst_id[NarrowAw] = id_out[NarrowAw];
     assign dst_id[NarrowAr] = id_out[NarrowAr];
@@ -765,11 +854,26 @@ module floo_nw_chimney #(
     assign dst_id[WideR]    = wide_ar_buf_hdr_out.hdr.src_id;
     assign dst_id[NarrowW]  = narrow_aw_id_q;
     assign dst_id[WideW]    = wide_aw_id_q;
+
+    assign mask[NarrowAw] = mask_out[NarrowAw];
+    assign mask[NarrowAr] = mask_out[NarrowAr];
+    assign mask[WideAw]   = mask_out[WideAw];
+    assign mask[WideAr]   = mask_out[WideAr];
+    assign mask[NarrowB]  = '0;
+    assign mask[NarrowR]  = '0;
+    assign mask[WideB]    = '0;
+    assign mask[WideR]    = '0;
+    assign mask[NarrowW]  = narrow_aw_mask_q;
+    assign mask[WideW]    = wide_aw_mask_q;
   end
 
   `FFL(narrow_aw_id_q, dst_id[NarrowAw], axi_narrow_aw_queue_valid_out &&
                                          axi_narrow_aw_queue_ready_in, '0)
   `FFL(wide_aw_id_q, dst_id[WideAw], axi_wide_aw_queue_valid_out &&
+                                     axi_wide_aw_queue_ready_in, '0)
+  `FFL(narrow_aw_mask_q, mask[NarrowAw], axi_narrow_aw_queue_valid_out &&
+                                         axi_narrow_aw_queue_ready_in, '0)
+  `FFL(wide_aw_mask_q, mask[WideAw], axi_wide_aw_queue_valid_out &&
                                      axi_wide_aw_queue_ready_in, '0)
 
   ///////////////////
@@ -781,11 +885,13 @@ module floo_nw_chimney #(
     floo_narrow_aw.hdr.rob_req  = narrow_aw_rob_req_out;
     floo_narrow_aw.hdr.rob_idx  = rob_idx_t'(narrow_aw_rob_idx_out);
     floo_narrow_aw.hdr.dst_id   = dst_id[NarrowAw];
+    floo_narrow_aw.hdr.mask     = mask[NarrowAw];
     floo_narrow_aw.hdr.src_id   = id_i;
     floo_narrow_aw.hdr.last     = 1'b0;  // AW and W need to be sent together
     floo_narrow_aw.hdr.axi_ch   = NarrowAw;
     floo_narrow_aw.hdr.atop     = axi_narrow_aw_queue.atop != axi_pkg::ATOP_NONE;
     floo_narrow_aw.payload      = axi_narrow_aw_queue;
+    floo_narrow_aw.hdr.commtype = mask[NarrowAw]!=0? Multicast : Unicast;
   end
 
   always_comb begin
@@ -793,10 +899,12 @@ module floo_nw_chimney #(
     floo_narrow_w.hdr.rob_req   = narrow_aw_rob_req_out;
     floo_narrow_w.hdr.rob_idx   = rob_idx_t'(narrow_aw_rob_idx_out);
     floo_narrow_w.hdr.dst_id    = dst_id[NarrowW];
+    floo_narrow_w.hdr.mask      = mask[NarrowW];
     floo_narrow_w.hdr.src_id    = id_i;
     floo_narrow_w.hdr.last      = axi_narrow_req_in.w.last;
     floo_narrow_w.hdr.axi_ch    = NarrowW;
     floo_narrow_w.payload       = axi_narrow_req_in.w;
+    floo_narrow_w.hdr.commtype  = mask[NarrowW]!=0? Multicast : Unicast;
   end
 
   always_comb begin
@@ -804,6 +912,7 @@ module floo_nw_chimney #(
     floo_narrow_ar.hdr.rob_req  = narrow_ar_rob_req_out;
     floo_narrow_ar.hdr.rob_idx  = rob_idx_t'(narrow_ar_rob_idx_out);
     floo_narrow_ar.hdr.dst_id   = dst_id[NarrowAr];
+    floo_narrow_ar.hdr.mask     = mask[NarrowAr];
     floo_narrow_ar.hdr.src_id   = id_i;
     floo_narrow_ar.hdr.last     = 1'b1;
     floo_narrow_ar.hdr.axi_ch   = NarrowAr;
@@ -815,12 +924,14 @@ module floo_nw_chimney #(
     floo_narrow_b.hdr.rob_req = narrow_aw_buf_hdr_out.hdr.rob_req;
     floo_narrow_b.hdr.rob_idx = rob_idx_t'(narrow_aw_buf_hdr_out.hdr.rob_idx);
     floo_narrow_b.hdr.dst_id  = dst_id[NarrowB];
-    floo_narrow_b.hdr.src_id  = id_i;
+    floo_narrow_b.hdr.mask    = narrow_aw_buf_hdr_out.hdr.mask;
+    floo_narrow_b.hdr.src_id  = id_i; // narrow_aw_buf_hdr_out.hdr.commtype == Multicast? narrow_aw_buf_hdr_out.hdr.dst_id : id_i;
     floo_narrow_b.hdr.last    = 1'b1;
     floo_narrow_b.hdr.axi_ch  = NarrowB;
     floo_narrow_b.hdr.atop    = narrow_aw_buf_hdr_out.hdr.atop;
     floo_narrow_b.payload     = axi_narrow_meta_buf_rsp_out.b;
     floo_narrow_b.payload.id  = narrow_aw_buf_hdr_out.id;
+    floo_narrow_b.hdr.commtype = narrow_aw_buf_hdr_out.hdr.commtype==Multicast? CollectB : Unicast;
   end
 
   always_comb begin
@@ -828,6 +939,7 @@ module floo_nw_chimney #(
     floo_narrow_r.hdr.rob_req = narrow_ar_buf_hdr_out.hdr.rob_req;
     floo_narrow_r.hdr.rob_idx = rob_idx_t'(narrow_ar_buf_hdr_out.hdr.rob_idx);
     floo_narrow_r.hdr.dst_id  = dst_id[NarrowR];
+    floo_narrow_r.hdr.mask    = mask[NarrowR];
     floo_narrow_r.hdr.src_id  = id_i;
     floo_narrow_r.hdr.axi_ch  = NarrowR;
     floo_narrow_r.hdr.last    = 1'b1; // There is no reason to do wormhole routing for R bursts
@@ -841,10 +953,12 @@ module floo_nw_chimney #(
     floo_wide_aw.hdr.rob_req  = wide_aw_rob_req_out;
     floo_wide_aw.hdr.rob_idx  = rob_idx_t'(wide_aw_rob_idx_out);
     floo_wide_aw.hdr.dst_id   = dst_id[WideAw];
+    floo_wide_aw.hdr.mask     = mask[WideAw];
     floo_wide_aw.hdr.src_id   = id_i;
     floo_wide_aw.hdr.last     = 1'b0;  // AW and W need to be sent together
     floo_wide_aw.hdr.axi_ch   = WideAw;
     floo_wide_aw.payload      = axi_wide_aw_queue;
+    floo_wide_aw.hdr.commtype = mask[WideAw]!=0? Multicast : Unicast;
   end
 
   always_comb begin
@@ -852,10 +966,12 @@ module floo_nw_chimney #(
     floo_wide_w.hdr.rob_req = wide_aw_rob_req_out;
     floo_wide_w.hdr.rob_idx = rob_idx_t'(wide_aw_rob_idx_out);
     floo_wide_w.hdr.dst_id  = dst_id[WideW];
+    floo_wide_w.hdr.mask    = mask[WideW];
     floo_wide_w.hdr.src_id  = id_i;
     floo_wide_w.hdr.last    = axi_wide_req_in.w.last;
     floo_wide_w.hdr.axi_ch  = WideW;
     floo_wide_w.payload     = axi_wide_req_in.w;
+    floo_wide_w.hdr.commtype = mask[WideW]!=0? Multicast : Unicast;
   end
 
   always_comb begin
@@ -863,6 +979,7 @@ module floo_nw_chimney #(
     floo_wide_ar.hdr.rob_req  = wide_ar_rob_req_out;
     floo_wide_ar.hdr.rob_idx  = rob_idx_t'(wide_ar_rob_idx_out);
     floo_wide_ar.hdr.dst_id   = dst_id[WideAr];
+    floo_wide_ar.hdr.mask     = mask[WideAr];
     floo_wide_ar.hdr.src_id   = id_i;
     floo_wide_ar.hdr.last     = 1'b1;
     floo_wide_ar.hdr.axi_ch   = WideAr;
@@ -874,11 +991,13 @@ module floo_nw_chimney #(
     floo_wide_b.hdr.rob_req = wide_aw_buf_hdr_out.hdr.rob_req;
     floo_wide_b.hdr.rob_idx = rob_idx_t'(wide_aw_buf_hdr_out.hdr.rob_idx);
     floo_wide_b.hdr.dst_id  = dst_id[WideB];
-    floo_wide_b.hdr.src_id  = id_i;
+    floo_wide_b.hdr.mask    = wide_aw_buf_hdr_out.hdr.mask;
+    floo_wide_b.hdr.src_id  = id_i; // wide_aw_buf_hdr_out.hdr.commtype == Multicast? wide_aw_buf_hdr_out.hdr.dst_id : id_i;
     floo_wide_b.hdr.last    = 1'b1;
     floo_wide_b.hdr.axi_ch  = WideB;
     floo_wide_b.payload     = axi_wide_meta_buf_rsp_out.b;
     floo_wide_b.payload.id  = wide_aw_buf_hdr_out.id;
+    floo_wide_b.hdr.commtype = wide_aw_buf_hdr_out.hdr.commtype==Multicast? CollectB : Unicast;
   end
 
   always_comb begin
@@ -886,6 +1005,7 @@ module floo_nw_chimney #(
     floo_wide_r.hdr.rob_req = wide_ar_buf_hdr_out.hdr.rob_req;
     floo_wide_r.hdr.rob_idx = rob_idx_t'(wide_ar_buf_hdr_out.hdr.rob_idx);
     floo_wide_r.hdr.dst_id  = dst_id[WideR];
+    floo_wide_r.hdr.mask    = mask[WideR];
     floo_wide_r.hdr.src_id  = id_i;
     floo_wide_r.hdr.axi_ch  = WideR;
     floo_wide_r.hdr.last    = 1'b1; // There is no reason to do wormhole routing for R bursts
@@ -1145,6 +1265,7 @@ module floo_nw_chimney #(
   };
 
   if (ChimneyCfgN.EnSbrPort) begin : gen_narrow_mgr_port
+    // `AXI_ASSIGN_RESP_STRUCT(axi_narrow_pre_out_rsp_in, axi_narrow_out_rsp_i)
     floo_meta_buffer #(
       .InIdWidth      ( AxiCfgN.InIdWidth         ),
       .OutIdWidth     ( AxiCfgN.OutIdWidth        ),
@@ -1153,14 +1274,22 @@ module floo_nw_chimney #(
       .AtopSupport    ( AtopSupport               ),
       .MaxAtomicTxns  ( MaxAtomicTxns             ),
       .buf_t          ( narrow_meta_buf_t         ),
-      .axi_in_req_t   ( axi_narrow_in_req_t       ),
-      .axi_in_rsp_t   ( axi_narrow_in_rsp_t       ),
+      .axi_in_req_t   ( axi_narrow_req_t       ),
+      .axi_in_rsp_t   ( axi_narrow_rsp_t       ),
       .axi_out_req_t  ( axi_narrow_out_req_t      ),
-      .axi_out_rsp_t  ( axi_narrow_out_rsp_t      )
+      .axi_out_rsp_t  ( axi_narrow_out_rsp_t      ),
+      .RouteCfg       ( RouteCfg                  ),
+      .addr_t         ( axi_addr_t               ),
+      .id_t           ( id_t                     ),
+      .mask_rule_t    ( mask_rule_t              ),
+      .mask_sel_t     ( mask_sel_t               ),
+      .ENABLE_MULTICAST ( ENABLE_MULTICAST )
     ) i_narrow_meta_buffer (
       .clk_i,
       .rst_ni,
       .test_enable_i,
+      .mask_map_i  ( MaskTable  ),
+      .id_i       ( id_i       ),
       .axi_req_i  ( axi_narrow_meta_buf_req_in  ),
       .axi_rsp_o  ( axi_narrow_meta_buf_rsp_out ),
       .axi_req_o  ( axi_narrow_meta_buf_req_out ),
@@ -1170,6 +1299,7 @@ module floo_nw_chimney #(
       .r_buf_o    ( narrow_ar_buf_hdr_out       ),
       .b_buf_o    ( narrow_aw_buf_hdr_out       )
     );
+    // `AXI_ASSIGN_REQ_STRUCT(axi_narrow_out_req_o, axi_narrow_pre_out_req_out)
   end else begin : gen_no_narrow_mgr_port
     axi_err_slv #(
       .AxiIdWidth ( AxiCfgN.InIdWidth ),
@@ -1189,6 +1319,7 @@ module floo_nw_chimney #(
   end
 
   if (ChimneyCfgW.EnSbrPort) begin : gen_wide_mgr_port
+    `AXI_ASSIGN_RESP_STRUCT(axi_wide_pre_out_rsp_in, axi_wide_out_rsp_i)
     floo_meta_buffer #(
       .InIdWidth      ( AxiCfgW.InIdWidth         ),
       .OutIdWidth     ( AxiCfgW.OutIdWidth        ),
@@ -1197,14 +1328,16 @@ module floo_nw_chimney #(
       .AtopSupport    ( 1'b0                      ),
       .MaxAtomicTxns  ( '0                        ),
       .buf_t          ( wide_meta_buf_t           ),
-      .axi_in_req_t   ( axi_wide_in_req_t         ),
-      .axi_in_rsp_t   ( axi_wide_in_rsp_t         ),
-      .axi_out_req_t  ( axi_wide_out_req_t        ),
-      .axi_out_rsp_t  ( axi_wide_out_rsp_t        )
+      .axi_in_req_t   ( axi_wide_req_t         ),
+      .axi_in_rsp_t   ( axi_wide_rsp_t         ),
+      .axi_out_req_t  ( axi_wide_pre_out_req_t        ),
+      .axi_out_rsp_t  ( axi_wide_pre_out_rsp_t        )
     ) i_wide_meta_buffer (
       .clk_i,
       .rst_ni,
       .test_enable_i,
+      .id_i('0),
+      .mask_map_i('0),
       .axi_req_i  ( axi_wide_meta_buf_req_in  ),
       .axi_rsp_o  ( axi_wide_meta_buf_rsp_out ),
       .axi_req_o  ( axi_wide_meta_buf_req_out ),
@@ -1214,12 +1347,13 @@ module floo_nw_chimney #(
       .r_buf_o    ( wide_ar_buf_hdr_out       ),
       .b_buf_o    ( wide_aw_buf_hdr_out       )
     );
+    `AXI_ASSIGN_REQ_STRUCT(axi_wide_out_req_o, axi_wide_pre_out_req_out)
   end else begin : gen_no_wide_mgr_port
     axi_err_slv #(
       .AxiIdWidth ( AxiCfgW.InIdWidth ),
       .ATOPs      ( 1'b1              ),
-      .axi_req_t  ( axi_wide_in_req_t ),
-      .axi_resp_t ( axi_wide_in_rsp_t )
+      .axi_req_t  ( axi_wide_req_t ),
+      .axi_resp_t ( axi_wide_rsp_t )
     ) i_axi_err_slv (
       .clk_i      ( clk_i                     ),
       .rst_ni     ( rst_ni                    ),
