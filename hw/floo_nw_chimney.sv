@@ -59,20 +59,16 @@ module floo_nw_chimney #(
   parameter type axi_narrow_in_rsp_t                    = logic,
   /// Narrow AXI subordinate request channel type
   parameter type axi_narrow_out_req_t                   = logic,
-  parameter type axi_narrow_pre_out_req_t               = axi_narrow_out_req_t,
   /// Narrow AXI subordinate response channel type
   parameter type axi_narrow_out_rsp_t                   = logic,
-  parameter type axi_narrow_pre_out_rsp_t               = axi_narrow_out_rsp_t,
   /// Wide AXI manager request channel type
   parameter type axi_wide_in_req_t                      = logic,
   /// Wide AXI manager response channel type
   parameter type axi_wide_in_rsp_t                      = logic,
   /// Wide AXI subordinate request channel type
   parameter type axi_wide_out_req_t                     = logic,
-  parameter type axi_wide_pre_out_req_t                 = axi_wide_out_req_t,
   /// Wide AXI subordinate response channel type
   parameter type axi_wide_out_rsp_t                     = logic,
-  parameter type axi_wide_pre_out_rsp_t                 = axi_wide_out_rsp_t,
   /// Floo `req` link type
   parameter type floo_req_t                             = logic,
   /// Floo `rsp` link type
@@ -343,9 +339,10 @@ module floo_nw_chimney #(
     `AXI_ASSIGN_REQ_STRUCT(axi_wide_req_in, axi_wide_in_req_i)
     `AXI_ASSIGN_RESP_STRUCT(axi_wide_in_rsp_o, axi_wide_rsp_out)
     if (ENABLE_MULTICAST) begin
-      user_struct_t user;
-      assign user = axi_wide_in_req_i.aw.user;
-      assign axi_wide_req_in_mask = user.mask;
+      // user_struct_t user;
+      // assign user = axi_wide_in_req_i.aw.user;
+      // assign axi_wide_req_in_mask = user.mask;
+      assign axi_wide_req_in_mask = axi_wide_in_req_i.aw.user;
     end else begin
       assign axi_wide_req_in_mask = '0;
     end
@@ -1319,7 +1316,7 @@ module floo_nw_chimney #(
   end
 
   if (ChimneyCfgW.EnSbrPort) begin : gen_wide_mgr_port
-    `AXI_ASSIGN_RESP_STRUCT(axi_wide_pre_out_rsp_in, axi_wide_out_rsp_i)
+    // `AXI_ASSIGN_RESP_STRUCT(axi_wide_pre_out_rsp_in, axi_wide_out_rsp_i)
     floo_meta_buffer #(
       .InIdWidth      ( AxiCfgW.InIdWidth         ),
       .OutIdWidth     ( AxiCfgW.OutIdWidth        ),
@@ -1330,14 +1327,20 @@ module floo_nw_chimney #(
       .buf_t          ( wide_meta_buf_t           ),
       .axi_in_req_t   ( axi_wide_req_t         ),
       .axi_in_rsp_t   ( axi_wide_rsp_t         ),
-      .axi_out_req_t  ( axi_wide_pre_out_req_t        ),
-      .axi_out_rsp_t  ( axi_wide_pre_out_rsp_t        )
+      .axi_out_req_t  ( axi_wide_out_req_t        ),
+      .axi_out_rsp_t  ( axi_wide_out_rsp_t        ),
+      .RouteCfg       ( RouteCfg                  ),
+      .addr_t         ( axi_addr_t               ),
+      .id_t           ( id_t                     ),
+      .mask_rule_t    ( mask_rule_t              ),
+      .mask_sel_t     ( mask_sel_t               ),
+      .ENABLE_MULTICAST ( ENABLE_MULTICAST )
     ) i_wide_meta_buffer (
       .clk_i,
       .rst_ni,
       .test_enable_i,
-      .id_i('0),
-      .mask_map_i('0),
+      .mask_map_i  ( MaskTable  ),
+      .id_i       ( id_i       ),
       .axi_req_i  ( axi_wide_meta_buf_req_in  ),
       .axi_rsp_o  ( axi_wide_meta_buf_rsp_out ),
       .axi_req_o  ( axi_wide_meta_buf_req_out ),
@@ -1347,7 +1350,7 @@ module floo_nw_chimney #(
       .r_buf_o    ( wide_ar_buf_hdr_out       ),
       .b_buf_o    ( wide_aw_buf_hdr_out       )
     );
-    `AXI_ASSIGN_REQ_STRUCT(axi_wide_out_req_o, axi_wide_pre_out_req_out)
+    // `AXI_ASSIGN_REQ_STRUCT(axi_wide_out_req_o, axi_wide_pre_out_req_out)
   end else begin : gen_no_wide_mgr_port
     axi_err_slv #(
       .AxiIdWidth ( AxiCfgW.InIdWidth ),

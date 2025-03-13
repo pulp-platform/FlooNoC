@@ -155,8 +155,18 @@ module floo_nw_router #(
   // localparam floo_rsp_payload_t WideRspMask = floo_rsp_payload_t'('{payload: axi_wide_rsp_t'('{b.resp: 2'b11, default: '0}), '0});
   // localparam floo_rsp_payload_t NarrowRspMask = '0;
   // localparam floo_rsp_payload_t WideRspMask = '0;
-  localparam floo_rsp_payload_t NarrowRspMask = floo_rsp_payload_t'({axi_narrow_b_chan_t'('{resp: 2'b11, id: '0, user:'0}), '0});
-  localparam floo_rsp_payload_t WideRspMask = floo_rsp_payload_t'({axi_wide_b_chan_t'('{resp: 2'b11, id: '0, user: '0}), '0});
+  // localparam floo_rsp_payload_t NarrowRspMask = floo_rsp_payload_t'({axi_narrow_b_chan_t'('{resp: 2'b11, id: '0, user:'0}), '0});
+  // localparam floo_rsp_payload_t WideRspMask = floo_rsp_payload_t'({axi_wide_b_chan_t'('{resp: 2'b11, id: '0, user: '0}), '0});
+  localparam floo_rsp_payload_t NarrowRspMask = 
+    floo_rsp_payload_t'({
+        axi_narrow_b_chan_t'(axi_narrow_b_chan_t'{resp: 2'b11, id: '0, user:'0}), 
+        '0
+    });
+  localparam floo_rsp_payload_t WideRspMask = 
+    floo_rsp_payload_t'({
+        axi_wide_b_chan_t'(axi_wide_b_chan_t'{resp: 2'b11, id: '0, user: '0}), 
+        '0
+    });
 
   floo_router #(
     .NumPhysChannels  ( 1                       ),
