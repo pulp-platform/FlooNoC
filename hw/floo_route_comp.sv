@@ -89,11 +89,23 @@ module floo_route_comp
       always_comb begin : gen_xy_addr_mask
         x_addr_mask = '0;
         y_addr_mask = '0;
-        for (int i = x_mask_sel.offset; i < x_mask_sel.offset + x_mask_sel.len; i++) begin
+        // for (int i = x_mask_sel.offset; i < x_mask_sel.offset + x_mask_sel.len; i++) begin
+        //   x_addr_mask[i] = 1;
+        // end
+        // for (int i = y_mask_sel.offset; i < y_mask_sel.offset + y_mask_sel.len; i++) begin
+        //   y_addr_mask[i] = 1;
+        // end
+        int i;
+        i = x_mask_sel.offset
+        while (i < x_mask_sel.offset + x_mask_sel.len) begin
           x_addr_mask[i] = 1;
+          i++;
         end
-        for (int i = y_mask_sel.offset; i < y_mask_sel.offset + y_mask_sel.len; i++) begin
+
+        i = y_mask_sel.offset;
+        while (i < y_mask_sel.offset + y_mask_sel.len) begin
           y_addr_mask[i] = 1;
+          i++;
         end
       end
       assign mask_o.x = (mask_i & x_addr_mask) >> x_mask_sel.offset;
