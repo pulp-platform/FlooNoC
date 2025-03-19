@@ -83,9 +83,9 @@ module floo_router
         .ready_i    ( in_ready[in_route][v_chan]          )
       );
 
-      if (RouteAlgo == O1Routing) begin
+      if (RouteAlgo == O1Routing) begin: gen_o1routing
 
-        if (v_chan % 2 == 0) begin
+        if (v_chan % 2 == 0) begin: gen_o1routing_xy
           floo_route_select #(
             .NumRoutes    ( NumOutput    ),
             .flit_t       ( flit_t       ),
@@ -107,7 +107,7 @@ module floo_router
             .channel_o      ( in_routed_data[in_route][v_chan] ),
             .route_sel_o    ( route_mask    [in_route][v_chan] )
           );
-        end else begin
+        end else begin: gen_o1routing_yx
           floo_route_select #(
             .NumRoutes    ( NumOutput    ),
             .flit_t       ( flit_t       ),
@@ -131,7 +131,7 @@ module floo_router
           );
         end
 
-      end else begin
+      end else begin: gen_xyrouting
 
         floo_route_select #(
           .NumRoutes    ( NumOutput    ),
