@@ -40,7 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - The `ReorderBufferSize` parameters was shortened to `RoBSize`. (https://github.com/pulp-platform/FlooNoC/pull/65)
 - All testbenches were adapted to all changes. (https://github.com/pulp-platform/FlooNoC/pull/65)
 - All verification IPs were adapted to the new configuration structs. (https://github.com/pulp-platform/FlooNoC/pull/65)
-  Added spill registers for outgoing AW requests in the chimneys. This is necessary since AXI allows to wait for AW *and* W to be valid before asserting the ready. Since, the AW and W beats are sent over the same channel, this might cause a deadlock if there there are no buffers downstream.
+- Added default spill registers for outgoing AW requests in the chimneys. This is necessary since AXI allows to wait for AW *and* W to be valid before asserting the ready. AW and W beats are sent over the same channel, so this might lead to deadlocks otherwise. (https://github.com/pulp-platform/FlooNoC/pull/89)
 
 #### FlooGen
 - The link typedefs are now renderd with the macros in `typedef.svh` instead of rendering them in pure SystemVerilog. (https://github.com/pulp-platform/FlooNoC/pull/65)
@@ -65,7 +65,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Routers with `XYRouting` do now use the global `id_offset`, which was previously not accounted for (or had to be specified manually). (https://github.com/pulp-platform/FlooNoC/pull/72)
 - Fixed elaboration errors in the chimneys that occured. (https://github.com/pulp-platform/FlooNoC/pull/75)
 - Fixed Synopsys DC elaboration error due to concatenation in `id_i` port connection of chimneys and routers. (https://github.com/pulp-platform/FlooNoC/pull/103)
-- Undriven signals in `floo_meta_buffer` if `AtopSupport` is disabled.
+- Undriven signals in `floo_meta_buffer` if `AtopSupport` is disabled. (https://github.com/pulp-platform/FlooNoC/pull/89)
 
 ### Removed
 
