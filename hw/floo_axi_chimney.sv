@@ -86,6 +86,7 @@ module floo_axi_chimney #(
 
   typedef logic [AxiCfg.AddrWidth-1:0] axi_addr_t;
   typedef logic [AxiCfg.InIdWidth-1:0] axi_in_id_t;
+  typedef logic [AxiCfg.OutIdWidth-1:0] axi_out_id_t;
   typedef logic [AxiCfg.UserWidth-1:0] axi_user_t;
   typedef logic [AxiCfg.DataWidth-1:0] axi_data_t;
   typedef logic [AxiCfg.DataWidth/8-1:0] axi_strb_t;
@@ -93,6 +94,7 @@ module floo_axi_chimney #(
   // (Re-) definitons of `axi_in` and `floo` types, for transport
   `AXI_TYPEDEF_ALL_CT(axi, axi_req_t, axi_rsp_t, axi_addr_t, axi_in_id_t,
                       axi_data_t, axi_strb_t, axi_user_t)
+  `AXI_TYPEDEF_AW_CHAN_T(axi_out_aw_chan_t, axi_addr_t, axi_out_id_t, axi_user_t)
   `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi, AxiCfg, hdr_t)
 
   // Duplicate AXI port signals to degenerate ports
@@ -138,6 +140,8 @@ module floo_axi_chimney #(
   // Meta Buffer
   axi_req_t meta_buf_req_in;
   axi_rsp_t meta_buf_rsp_out;
+  axi_out_req_t meta_buf_req_out;
+  axi_out_rsp_t meta_buf_rsp_in;
 
   // Flit arbitration
   typedef enum logic {SelAw, SelW} aw_w_sel_e;
@@ -202,6 +206,7 @@ module floo_axi_chimney #(
       assign axi_ar_queue_valid_out = axi_in_req_i.ar_valid;
       assign axi_rsp_out.ar_ready = axi_ar_queue_ready_in;
     end
+
   end else begin : gen_err_slv_port
     axi_err_slv #(
       .AxiIdWidth ( AxiCfg.InIdWidth  ),
@@ -255,6 +260,34 @@ module floo_axi_chimney #(
     assign floo_rsp_in = floo_rsp_i.rsp;
     assign floo_rsp_in_valid = floo_rsp_i.valid;
     assign floo_rsp_o.ready = floo_rsp_out_ready;
+  end
+
+
+  logic aw_out_queue_valid, aw_out_queue_ready;
+  axi_out_aw_chan_t axi_aw_queue_out;
+
+  // Since AW and W are transferred over the same link, it can happen that
+  // a downstream module does not accept the AW until the W is valid.
+  // Therefore, we need to add a spill register for the AW channel.
+  spill_register #(
+    .T (axi_out_aw_chan_t)
+  ) i_aw_out_queue (
+    .clk_i    ( clk_i                     ),
+    .rst_ni   ( rst_ni                    ),
+    .valid_i  ( meta_buf_req_out.aw_valid ),
+    .ready_o  ( aw_out_queue_ready        ),
+    .data_i   ( meta_buf_req_out.aw       ),
+    .valid_o  ( aw_out_queue_valid        ),
+    .ready_i  ( axi_out_rsp_i.aw_ready    ),
+    .data_o   ( axi_aw_queue_out          )
+  );
+
+  always_comb begin
+    axi_out_req_o = meta_buf_req_out;
+    axi_out_req_o.aw_valid = aw_out_queue_valid;
+    axi_out_req_o.aw = axi_aw_queue_out;
+    meta_buf_rsp_in = axi_out_rsp_i;
+    meta_buf_rsp_in.aw_ready = aw_out_queue_ready;
   end
 
   ///////////////////////
@@ -663,8 +696,8 @@ module floo_axi_chimney #(
       .test_enable_i,
       .axi_req_i  ( meta_buf_req_in   ),
       .axi_rsp_o  ( meta_buf_rsp_out  ),
-      .axi_req_o  ( axi_out_req_o     ),
-      .axi_rsp_i  ( axi_out_rsp_i     ),
+      .axi_req_o  ( meta_buf_req_out  ),
+      .axi_rsp_i  ( meta_buf_rsp_in   ),
       .aw_buf_i   ( aw_out_hdr_in     ),
       .ar_buf_i   ( ar_out_hdr_in     ),
       .r_buf_o    ( ar_out_hdr_out    ),
@@ -683,8 +716,7 @@ module floo_axi_chimney #(
       .slv_req_i  ( meta_buf_req_in   ),
       .slv_resp_o ( meta_buf_rsp_out  )
     );
-
-    assign axi_out_req_o = '0;
+    assign meta_buf_req_out = '0;
     assign ar_out_hdr_out = '0;
     assign aw_out_hdr_out = '0;
   end
