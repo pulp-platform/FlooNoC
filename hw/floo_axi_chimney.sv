@@ -206,7 +206,6 @@ module floo_axi_chimney #(
       assign axi_ar_queue_valid_out = axi_in_req_i.ar_valid;
       assign axi_rsp_out.ar_ready = axi_ar_queue_ready_in;
     end
-
   end else begin : gen_err_slv_port
     axi_err_slv #(
       .AxiIdWidth ( AxiCfg.InIdWidth  ),

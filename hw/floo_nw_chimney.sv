@@ -330,7 +330,6 @@ module floo_nw_chimney #(
       assign axi_wide_ar_queue_valid_out = axi_wide_in_req_i.ar_valid;
       assign axi_wide_rsp_out.ar_ready = axi_wide_ar_queue_ready_in;
     end
-
   end else begin : gen_wide_err_slv_port
     axi_err_slv #(
       .AxiIdWidth ( AxiCfgW.InIdWidth ),
