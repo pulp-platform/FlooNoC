@@ -43,5 +43,13 @@ Source-based routing is handled a bit different, since the route instead of the 
 
 ### AXI Transaction ID handling
 
+In order to guarantee the correct ordering of AXI transactions, _FlooNoC_ does some special handling of the AXI `txnID` in the following ways:
+
+* The `txnID` is part of the payload of a flit and is not used by the routers to implement any kind of ordering. This also means that inside the NoC, there might be multiple AXI transactions from different managers in flight, which might have the same `txnID`, but are not ordered with respect to each other.
+
+* When transactions exit the NoC over a network interface, the transactions are serialized to the AXI network downstream by remapping the original `txnID` to `'1`. The main reason behind this approach, is that the network interface needs to store the `src_id`'s for the resulting response. The `src_id` of a request is stored in a FIFO, meaning the requests and the responses need have the same order. The serialization should not cause any big performance problems if the downstream AXI subordinates cannot handle out-of-order transactions. Alternatively, the _FlooNoC_ network interfaces also have the option to generate downstream requests with different `txnID`'s by setting the `ChimneyCfg.MaxUniqueIds` to a value higher than `1`. This comes at a higher cost, since the `src_id` and additional information need to be stored in an ID queue, that allows out-of-order access.
+
+* Atomic Transactions are issued with `txnID` that are unique amongst all AXI transactions in flight. The number of atomic transactions in flight can be configured with the `MaxAtomicTxns` parameter. Atomic transactions are then issued with `txnID` in the range `[0, '1)`. This also means that the number of outstanding atomic transaction is limited by the ID width.
+
 ### Configuration
 * spill registers
