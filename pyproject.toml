@@ -23,6 +23,7 @@ dependencies = [
   "mako",
   "ruamel.yaml",
   "click",
+  "pygame"
 ]
 
 [project.optional-dependencies]
@@ -35,8 +36,7 @@ docs = [
   "mkdocs-git-committers-plugin-2"
 ]
 dev = [
-  "black",
-  "pylint",
+  "ruff",
   "pytest"
 ]
 
