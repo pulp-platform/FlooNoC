@@ -24,8 +24,6 @@ dependencies = [
   "mako",
   "ruamel.yaml",
   "click",
-  "pylint",
-  "pytest",
   "pygame"
 ]
 
