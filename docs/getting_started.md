@@ -51,10 +51,9 @@ Now you can compile and run the testbenches with the following command:
 make compile-sim
 make run-sim VSIM_TB_DUT=tb_floo_dut
 ```
+where you replace `tb_floo_dut` with the testbench that you want to simulate.
 
 ### Generating a _FlooNoC_ Network
-
-where you replace `tb_floo_dut` with the testbench that you want to simulate.
 
 To generate a _FlooNoC_ network using the _FlooGen_ generator, you can use the following command:
 
