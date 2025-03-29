@@ -44,7 +44,7 @@ _FlooNoC_, is a Network-on-Chip (NoC) research project, which is part of the [PU
 
     Read the publication of _FlooNoC_.
 
-    [:octicons-arrow-right-24: Publication](https://arxiv.org/abs/2305.08562)
+    [:octicons-arrow-right-24: Publication](https://arxiv.org/abs/2409.17606)
 
 -   :material-file-document:{ .lg .middle } __Changelog__
 
