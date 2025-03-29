@@ -52,4 +52,20 @@ In order to guarantee the correct ordering of AXI transactions, _FlooNoC_ does s
 * Atomic Transactions are issued with `txnID` that are unique amongst all AXI transactions in flight. The number of atomic transactions in flight can be configured with the `MaxAtomicTxns` parameter. Atomic transactions are then issued with `txnID` in the range `[0, '1)`. This also means that the number of outstanding atomic transaction is limited by the ID width.
 
 ### Configuration
-* spill registers
+
+Network interfaces are typically configued over the `ChimneyCfg` struct. For `nw_chimney`'s there is a configuration struct for narrow and wide data path each. The `ChimneyCfg` has the following configurations:
+
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `EnSbrPort` | `bit` | Whether an AXI subordinate (e.g. DRAM controller) is attached to the network interfaces. If not, the network interface will parametrize away some internal modules that are not needed in that case. |
+| `EnMgrPort` | `bit` | Whether an AXI manager (e.g. host core) is attached to the network interfaces. If not, the network interface will parametrize away some internal modules that are not needed in that case. |
+| `MaxTxns` | `int` | The number of both incoming and outgoing transactions that can be handled by the network interface. |
+| `MaxUniqueIds` | `int` | The number of unique transaction IDs that can be issued by the network to AXI subordinates downstream. By default the network interface issues with a single txnID, effectively serializing incoming transactions from all managers in the entire system. If multiple txnIDs are used, incoming transactions with different TxnIDs _might_ not be serialized. This is results in more complex logic in the network interfaces, but might be useful for downstream AXI networks that can handle out-of-order transactions. |
+| `MaxTxnsPerId` | `int` | Number of outstanding transactions per txnID. Only used if `RoBType == NormalRoB`. |
+| `BRoBType` | `rob_type_e` | The type of Reoder Buffer (RoB) that is used for B responses. |
+| `BRoBSize` | `int` | The depth of the RoB for B responses. Only used if `BRoBType != NoRoB`. |
+| `RRoBType` | `rob_type_e` | The type of Reoder Buffer (RoB) that is used for R responses. |
+| `RRoBSize` | `int` | The depth of the RoB for R responses. Only used if `RRoBType != NoRoB`. |
+| `CutAx` | `bit` | Whether to buffer incoming AXI requests at the network interface, to ease timing closure. |
+| `CutRsp` | `bit` | Whether to buffer incoming links at the network interface |
