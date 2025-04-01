@@ -43,7 +43,7 @@ module floo_route_comp
   // Further, the `rule_t` requires an additional field `id`, which can be used for the return route.
   // The reason for that is that a request destination is given by a physical address, while the
   // response destination is given by the ID of the source.
-  localparam int ADDR_WIDTH = $bits(addr_t);
+  localparam int unsigned AddrWidth = $bits(addr_t);
   if (UseIdTable &&
     ((RouteCfg.RouteAlgo == IdTable) ||
      (RouteCfg.RouteAlgo == XYRouting) ||
@@ -74,7 +74,9 @@ module floo_route_comp
       .en_default_idx_i ( 1'b0        ),
       .default_idx_i    ( '0          )
     );
-    if (ENABLE_MULTICAST && RouteCfg.RouteAlgo == XYRouting) begin
+    if (ENABLE_MULTICAST && RouteCfg.UseIdTable &&
+        (RouteCfg.RouteAlgo == floo_pkg::XYRouting))
+    begin : gen_mcast_mask
       floo_mask_decode #(
         .NumMaskRules ( RouteCfg.NumSamRules ),
         .mask_rule_t  ( mask_rule_t          ),
@@ -82,33 +84,21 @@ module floo_route_comp
         .mask_sel_t   ( mask_sel_t           )
       ) i_mask_decode (
         .id_i         ( id_o            ),
-        .mask_x_mask  ( x_mask_sel     ),
-        .mask_y_mask  ( y_mask_sel     ),
+        .mask_x_mask  ( x_mask_sel      ),
+        .mask_y_mask  ( y_mask_sel      ),
         .mask_map_i   ( mask_map_i      ),
         .dec_error_o  ( mask_dec_error  )
       );
-      // always_comb begin : gen_xy_addr_mask
-      //   x_addr_mask = '0;
-      //   y_addr_mask = '0;
-      //   for (int i = x_mask_sel.offset; i < x_mask_sel.offset + x_mask_sel.len && i < 48; i++) begin
-      //     x_addr_mask[i] = 1'b1;
-      //   end
-      
-      //   for (int i = y_mask_sel.offset; i < y_mask_sel.offset + y_mask_sel.len && i < 48; i++) begin
-      //     y_addr_mask[i] = 1'b1;
-      //   end
-      // end
       always_comb begin
-        x_addr_mask = (({ADDR_WIDTH{1'b1}} >> (ADDR_WIDTH - x_mask_sel.len)) << x_mask_sel.offset) & {ADDR_WIDTH{1'b1}};
-        y_addr_mask = (({ADDR_WIDTH{1'b1}} >> (ADDR_WIDTH - y_mask_sel.len)) << y_mask_sel.offset) & {ADDR_WIDTH{1'b1}};
+        x_addr_mask = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel.len)) << x_mask_sel.offset);
+        y_addr_mask = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel.len)) << y_mask_sel.offset);
       end
-      
       assign mask_o.x = (mask_i & x_addr_mask) >> x_mask_sel.offset;
       assign mask_o.y = (mask_i & y_addr_mask) >> y_mask_sel.offset;
       assign mask_o.port_id = '0;
       `ASSERT(MaskDecodeError, !mask_dec_error)
     end
-    else begin
+    else begin : gen_no_mcast_mask
       assign mask_o = '0;
     end
 
@@ -117,9 +107,13 @@ module floo_route_comp
     assign id_o.port_id = '0;
     assign id_o.x = addr_i[RouteCfg.XYAddrOffsetX +: $bits(id_o.x)];
     assign id_o.y = addr_i[RouteCfg.XYAddrOffsetY +: $bits(id_o.y)];
-    assign mask_o.port_id = '0;
-    assign mask_o.x = ENABLE_MULTICAST? mask_i[RouteCfg.XYAddrOffsetX +: $bits(id_o.x)] : '0;
-    assign mask_o.y = ENABLE_MULTICAST? mask_i[RouteCfg.XYAddrOffsetY +: $bits(id_o.y)] : '0;
+    if(ENABLE_MULTICAST) begin : gen_mcast_mask
+      assign mask_o.x = mask_i[RouteCfg.XYAddrOffsetX +: $bits(id_o.x)];
+      assign mask_o.y = mask_i[RouteCfg.XYAddrOffsetY +: $bits(id_o.y)];
+      assign mask_o.port_id = '0;
+    end else begin : gen_no_mcast_mask
+      assign mask_o = '0;
+    end
   end else if (RouteCfg.RouteAlgo == IdTable) begin : gen_id_bits_routing
     assign id_o = addr_i[RouteCfg.IdAddrOffset +: $bits(id_o)];
   end else if (RouteCfg.RouteAlgo == SourceRouting) begin : gen_source_routing

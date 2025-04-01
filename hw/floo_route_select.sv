@@ -9,18 +9,19 @@
 module floo_route_select
   import floo_pkg::*;
 #(
-  parameter int unsigned NumRoutes     = 0,
-  parameter type         flit_t        = logic,
-  parameter route_algo_e RouteAlgo     = IdTable,
-  parameter bit          LockRouting   = 1'b1,
+  parameter int unsigned NumRoutes        = 0,
+  parameter type         flit_t           = logic,
+  parameter route_algo_e RouteAlgo        = IdTable,
+  parameter bit          LockRouting      = 1'b1,
   /// Used for ID-based and XY routing
-  parameter int unsigned IdWidth       = 0,
+  parameter int unsigned IdWidth          = 0,
   /// Used for ID-based routing
-  parameter int unsigned NumAddrRules  = 0,
-  parameter type         addr_rule_t   = logic,
-  parameter type         id_t          = logic[IdWidth-1:0],
+  parameter int unsigned NumAddrRules     = 0,
+  parameter type         addr_rule_t      = logic,
+  parameter type         id_t             = logic[IdWidth-1:0],
   /// Used for source-based routing
-  parameter int unsigned RouteSelWidth = $clog2(NumRoutes)
+  parameter int unsigned RouteSelWidth    = $clog2(NumRoutes),
+  parameter bit          ENABLE_MULTICAST = 1'b0
 ) (
   input  logic                          clk_i,
   input  logic                          rst_ni,
@@ -95,37 +96,41 @@ module floo_route_select
 
     // One-hot encoding of the decoded route
 
-    floo_route_xymask #(
-      .NumRoutes     ( NumRoutes ),
-      .flit_t        ( flit_t    ),
-      .id_t          ( id_t      ),
-      .Mode          ( 1         )
-    ) i_route_xymask (
-      .channel_i   ( channel_i ),
-      .xy_id_i     ( xy_id_i   ),
-      .route_sel_o ( route_sel )
-    );
-
-    // always_comb begin : proc_route_sel
-    //   route_sel_id = East;
-    //   if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
-    //     route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
-    //   end else if (id_in.x == xy_id_i.x) begin
-    //     if (id_in.y < xy_id_i.y) begin
-    //       route_sel_id = South;
-    //     end else begin
-    //       route_sel_id = North;
-    //     end
-    //   end else begin
-    //     if (id_in.x < xy_id_i.x) begin
-    //       route_sel_id = West;
-    //     end else begin
-    //       route_sel_id = East;
-    //     end
-    //   end
-    //   route_sel = '0;
-    //   route_sel[route_sel_id] = 1'b1;
-    // end
+    if (ENABLE_MULTICAST) begin : gen_mcast_route_sel
+      floo_route_xymask #(
+        .NumRoutes     ( NumRoutes ),
+        .flit_t        ( flit_t    ),
+        .id_t          ( id_t      ),
+        .Mode          ( 1         )
+      ) i_route_xymask (
+        .channel_i   ( channel_i ),
+        .xy_id_i     ( xy_id_i   ),
+        .route_sel_o ( route_sel )
+      );
+    end else begin : gen_route_sel
+      id_t id_in;
+      assign id_in = id_t'(channel_i.hdr.dst_id);
+      always_comb begin
+        route_sel_id = East;
+        if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
+          route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
+        end else if (id_in.x == xy_id_i.x) begin
+          if (id_in.y < xy_id_i.y) begin
+            route_sel_id = South;
+          end else begin
+            route_sel_id = North;
+          end
+        end else begin
+          if (id_in.x < xy_id_i.x) begin
+            route_sel_id = West;
+          end else begin
+            route_sel_id = East;
+          end
+        end
+        route_sel = '0;
+        route_sel[route_sel_id] = 1'b1;
+      end
+    end
 
     assign channel_o = channel_i;
 

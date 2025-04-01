@@ -20,8 +20,8 @@ module floo_reduction_arbiter import floo_pkg::*;
   output flit_t                  data_o
 );
 
-  // logic [NumRoutes-1:0]  reducing_valid;
-  logic [NumRoutes-1:0]  in_route_mask; // calculated expected input source lists for each input flit
+  // calculated expected input source lists for each input flit
+  logic [NumRoutes-1:0]  in_route_mask;
 
   typedef logic [cf_math_pkg::idx_width(NumRoutes)-1:0] arb_idx_t;
   arb_idx_t selected_idx;
@@ -80,7 +80,6 @@ module floo_reduction_arbiter import floo_pkg::*;
     end
   end
 
-  // assign valid_o = |reducing_valid;
   assign ready_o = (ready_i&valid_o)? valid_i&in_route_mask : '0;
-  
+
 endmodule

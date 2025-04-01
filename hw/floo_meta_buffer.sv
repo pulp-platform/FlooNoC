@@ -212,8 +212,8 @@ module floo_meta_buffer #(
   assign b_buf_o = (is_atop_b_rsp && AtopSupport)? atop_b_buf[axi_rsp_i.b.id] : no_atop_b_buf;
 
   // NoC addr/mask to AXI addr/mask conversion
-  localparam int ADDR_WIDTH = $bits(addr_t);
-  if (ENABLE_MULTICAST && RouteCfg.UseIdTable && 
+  localparam int unsigned AddrWidth = $bits(addr_t);
+  if (ENABLE_MULTICAST && RouteCfg.UseIdTable &&
      (RouteCfg.RouteAlgo == floo_pkg::XYRouting))
   begin : gen_mcast_table_conversion
     id_t out, in_mask, in_id;
@@ -238,24 +238,14 @@ module floo_meta_buffer #(
       .dec_error_o  ( dec_error         )
     );
     `ASSERT(MaskDecodeError, !dec_error)
-    // always_comb begin : gen_xy_addr_mask
-    //   x_addr_mask = '0;
-    //   y_addr_mask = '0;
-    //   for (int i = x_mask_sel.offset; i < x_mask_sel.offset + x_mask_sel.len && i < 48; i++) begin
-    //     x_addr_mask[i] = 1'b1;
-    //   end
-    
-    //   for (int i = y_mask_sel.offset; i < y_mask_sel.offset + y_mask_sel.len && i < 48; i++) begin
-    //     y_addr_mask[i] = 1'b1;
-    //   end
-    // end
     always_comb begin
-      x_addr_mask = (({ADDR_WIDTH{1'b1}} >> (ADDR_WIDTH - x_mask_sel.len)) << x_mask_sel.offset) & {ADDR_WIDTH{1'b1}};
-      y_addr_mask = (({ADDR_WIDTH{1'b1}} >> (ADDR_WIDTH - y_mask_sel.len)) << y_mask_sel.offset) & {ADDR_WIDTH{1'b1}};
-    end   
+      x_addr_mask = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel.len)) << x_mask_sel.offset);
+      y_addr_mask = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel.len)) << y_mask_sel.offset);
+    end
     assign in_addr = axi_req_i.aw.addr;
-    assign axi_addr = (in_addr & ~(x_addr_mask | y_addr_mask)) | ((out.x << x_mask_sel.offset) | (out.y << y_mask_sel.offset));
-  end else begin
+    assign axi_addr = (in_addr & ~(x_addr_mask | y_addr_mask))
+                     | ((out.x << x_mask_sel.offset) | (out.y << y_mask_sel.offset));
+  end else begin : gen_no_mcast
     assign axi_addr = axi_req_i.aw.addr;
   end
 
@@ -349,7 +339,9 @@ module floo_meta_buffer #(
                             !no_atop_id_available : !aw_no_atop_buf_full);
       axi_rsp_o.aw_ready = axi_rsp_i.aw_ready && ((is_atop_aw)?
                             !no_atop_id_available : !aw_no_atop_buf_full);
-      axi_req_o.aw.addr = (ENABLE_MULTICAST && aw_buf_i.hdr.commtype==floo_pkg::Multicast)? axi_addr : axi_req_i.aw.addr;
+      axi_req_o.aw.addr = (ENABLE_MULTICAST && aw_buf_i.hdr.commtype == floo_pkg::Multicast)?
+                           axi_addr : axi_req_i.aw.addr;
+      // axi_req_o.aw.addr = axi_addr;
     end
   end else begin : gen_no_atop_support
 
@@ -369,7 +361,9 @@ module floo_meta_buffer #(
       axi_rsp_o.ar_ready = axi_rsp_i.ar_ready && !ar_no_atop_buf_full;
       axi_req_o.aw_valid = axi_req_i.aw_valid && !aw_no_atop_buf_full;
       axi_rsp_o.aw_ready = axi_rsp_i.aw_ready && !aw_no_atop_buf_full;
-      axi_req_o.aw.addr = (ENABLE_MULTICAST && aw_buf_i.hdr.commtype==floo_pkg::Multicast)? axi_addr : axi_req_i.aw.addr;
+      axi_req_o.aw.addr = (ENABLE_MULTICAST && aw_buf_i.hdr.commtype == floo_pkg::Multicast)?
+                           axi_addr : axi_req_i.aw.addr;
+      // axi_req_o.aw.addr = axi_addr;
     end
   end
 

@@ -90,13 +90,14 @@ module floo_router
       );
 
       floo_route_select #(
-        .NumRoutes    ( NumOutput    ),
-        .flit_t       ( flit_t       ),
-        .RouteAlgo    ( RouteAlgo    ),
-        .IdWidth      ( IdWidth      ),
-        .id_t         ( id_t         ),
-        .NumAddrRules ( NumAddrRules ),
-        .addr_rule_t  ( addr_rule_t  )
+        .NumRoutes        ( NumOutput        ),
+        .flit_t           ( flit_t           ),
+        .RouteAlgo        ( RouteAlgo        ),
+        .IdWidth          ( IdWidth          ),
+        .id_t             ( id_t             ),
+        .NumAddrRules     ( NumAddrRules     ),
+        .addr_rule_t      ( addr_rule_t      ),
+        .ENABLE_MULTICAST ( ENABLE_MULTICAST )
       ) i_route_select (
         .clk_i,
         .rst_ni,
@@ -118,7 +119,8 @@ module floo_router
 
   logic [NumOutput-1:0][NumVirtChannels-1:0][NumInput-1:0] masked_valid, masked_ready;
   logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] masked_all_ready;
-  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] accum_masked_ready_q, accum_masked_ready_d, current_accumulated;
+  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] acc_masked_ready_q, acc_masked_ready_d;
+  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] current_accumulated;
 
   flit_t [NumOutput-1:0][NumVirtChannels-1:0][NumInput-1:0] masked_data;
 
@@ -143,7 +145,7 @@ module floo_router
               masked_ready[out_route][v_chan][in_route];
             assign masked_valid[out_route][v_chan][in_route] =
               in_valid[in_route][v_chan] & route_mask[in_route][v_chan][out_route]
-              & (ENABLE_MULTICAST? ~accum_masked_ready_q[in_route][v_chan][out_route] : 1'b1);
+              & (ENABLE_MULTICAST? ~acc_masked_ready_q[in_route][v_chan][out_route] : 1'b1);
             assign masked_data[out_route][v_chan][in_route] =
               in_routed_data[in_route][v_chan];
           end
@@ -153,7 +155,7 @@ module floo_router
               masked_ready[out_route][v_chan][in_route];
           assign masked_valid[out_route][v_chan][in_route] =
             in_valid[in_route][v_chan] & route_mask[in_route][v_chan][out_route]
-            & (ENABLE_MULTICAST? ~accum_masked_ready_q[in_route][v_chan][out_route] : 1'b1);
+            & (ENABLE_MULTICAST? ~acc_masked_ready_q[in_route][v_chan][out_route] : 1'b1);
           assign masked_data[out_route][v_chan][in_route] =
             in_routed_data[in_route][v_chan];
         end
@@ -162,14 +164,14 @@ module floo_router
         assign in_ready[in_route][v_chan] =
           |(masked_all_ready[in_route][v_chan] & route_mask[in_route][v_chan]);
       end else begin : gen_multicast
-        assign accum_masked_ready_d[in_route][v_chan] = 
-          (in_ready[in_route][v_chan]) ? '0 : (accum_masked_ready_q[in_route][v_chan] | masked_all_ready[in_route][v_chan]);
-        `FF(accum_masked_ready_q[in_route][v_chan], accum_masked_ready_d[in_route][v_chan], '0)
-        assign current_accumulated[in_route][v_chan] = 
-          accum_masked_ready_q[in_route][v_chan] | masked_all_ready[in_route][v_chan];
-        assign in_ready[in_route][v_chan] = 
-          &(current_accumulated[in_route][v_chan] | 
-            ~(NoLoopback? (route_mask[in_route][v_chan] & ~(1 << in_route)) : route_mask[in_route][v_chan]));    
+        assign acc_masked_ready_d[in_route][v_chan] = (in_ready[in_route][v_chan]) ?
+            '0 : (acc_masked_ready_q[in_route][v_chan] | masked_all_ready[in_route][v_chan]);
+        `FF(acc_masked_ready_q[in_route][v_chan], acc_masked_ready_d[in_route][v_chan], '0)
+        assign current_accumulated[in_route][v_chan] =
+          acc_masked_ready_q[in_route][v_chan] | masked_all_ready[in_route][v_chan];
+        assign in_ready[in_route][v_chan] =
+          &(current_accumulated[in_route][v_chan] | ~(NoLoopback?
+            (route_mask[in_route][v_chan] & ~(1 << in_route)) : route_mask[in_route][v_chan]));
       end
     end
   end
@@ -186,7 +188,7 @@ module floo_router
       if(!ENABLE_REDUCTION) begin : gen_no_reduction_output
         floo_wormhole_arbiter #(
           .NumRoutes  ( NumInput ),
-          .flit_t     ( flit_t          )
+          .flit_t     ( flit_t   )
         ) i_wormhole_arbiter (
           .clk_i,
           .rst_ni,
@@ -201,20 +203,20 @@ module floo_router
         );
       end else begin : gen_reduction_output
         floo_output_arbiter #(
-          .NumRoutes  ( NumInput ),
-          .flit_t     ( flit_t          ),
-          .payload_t  ( payload_t       ),
+          .NumRoutes     ( NumInput      ),
+          .flit_t        ( flit_t        ),
+          .payload_t     ( payload_t     ),
           .NarrowRspMask ( NarrowRspMask ),
           .WideRspMask   ( WideRspMask   ),
-          .id_t       ( id_t            )
+          .id_t          ( id_t          )
         ) i_output_arbiter (
           .clk_i,
           .rst_ni,
 
-          .valid_i ( masked_valid[out_route][v_chan] ),
-          .ready_o ( masked_ready[out_route][v_chan] ),
-          .data_i  ( masked_data [out_route][v_chan] ),
-          .node_id_i( xy_id_i                       ),
+          .valid_i  ( masked_valid[out_route][v_chan] ),
+          .ready_o  ( masked_ready[out_route][v_chan] ),
+          .data_i   ( masked_data [out_route][v_chan] ),
+          .node_id_i( xy_id_i                         ),
 
           .valid_o ( out_valid[out_route][v_chan] ),
           .ready_i ( out_ready[out_route][v_chan] ),
@@ -231,8 +233,8 @@ module floo_router
           .clk_i      ( clk_i         ),
           .rst_ni     ( rst_ni        ),
           .testmode_i ( test_enable_i ),
-          .flush_i    ( 1'b0   ),
-          .usage_o    (  ),
+          .flush_i    ( 1'b0                                  ),
+          .usage_o    (                                       ),
           .data_i     ( out_data          [out_route][v_chan] ),
           .valid_i    ( out_valid         [out_route][v_chan] ),
           .ready_o    ( out_ready         [out_route][v_chan] ),

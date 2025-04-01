@@ -26,7 +26,8 @@ module floo_output_arbiter import floo_pkg::*;
   logic [NumRoutes-1:0]  in_reducing_valid, in_reducing_ready;
   logic [NumRoutes-1:0]  in_normal_valid, in_normal_ready;
 
-  logic [NumRoutes-1:0]  path_mask; // 1 for every bit means that flit coming from the input port is normal, 0 means that it needs to be reduced
+  // 1 for every bit means that the corresponding flit is normal, 0 means that it needs to be reduced
+  logic [NumRoutes-1:0]  path_mask;
 
   flit_t out_reduced_data, out_normal_data;
   logic out_reduced_valid, out_reduced_ready;
@@ -91,5 +92,5 @@ module floo_output_arbiter import floo_pkg::*;
   assign valid_o = (out_reduced_valid & |in_reducing_valid) ? out_reduced_valid : out_normal_valid;
   assign data_o  = (out_reduced_valid & |in_reducing_valid) ? out_reduced_data  : out_normal_data;
   assign ready_o = (out_reduced_valid & |in_reducing_valid) ? in_reducing_ready : in_normal_ready;
-  
+
 endmodule

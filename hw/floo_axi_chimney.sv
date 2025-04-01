@@ -545,13 +545,13 @@ module floo_axi_chimney #(
     floo_axi_b.hdr.rob_idx  = aw_out_hdr_out.hdr.rob_idx;
     floo_axi_b.hdr.dst_id   = dst_id[AxiB];
     floo_axi_b.hdr.mask     = aw_out_hdr_out.hdr.mask;
-    floo_axi_b.hdr.src_id   = aw_out_hdr_out.hdr.commtype==Multicast? aw_out_hdr_out.hdr.dst_id : id_i; //id_i;
+    floo_axi_b.hdr.src_id   = id_i;
     floo_axi_b.hdr.last     = 1'b1;
     floo_axi_b.hdr.axi_ch   = AxiB;
     floo_axi_b.hdr.atop     = aw_out_hdr_out.hdr.atop;
     floo_axi_b.payload      = meta_buf_rsp_out.b;
     floo_axi_b.payload.id   = aw_out_hdr_out.id;
-    floo_axi_b.hdr.commtype = aw_out_hdr_out.hdr.commtype==Multicast? CollectB : Unicast;
+    floo_axi_b.hdr.commtype = aw_out_hdr_out.hdr.commtype == Multicast? CollectB : Unicast;
   end
 
   always_comb begin

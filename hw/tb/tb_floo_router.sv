@@ -157,7 +157,6 @@ module tb_floo_router;
       begin : apply_valid_data
         stimuli = stimuli_queue[port][virt_channel].pop_front();
         pre_data_in[port][virt_channel] = stimuli;
-        $info("apply stimuli to src port %0d: dst %d, payload %0x", port, stimuli.hdr.dst_id, stimuli.payload);
         pre_valid_in[port][virt_channel] = 1'b1;
       end
       begin
@@ -315,7 +314,6 @@ module tb_floo_router;
         started_cycle_end();
         if (delayed_valid_out[port][virt_channel]) begin
           result_queue[port][virt_channel].push_back(delayed_data_out[port][virt_channel]);
-          $info("collect output of dst %0d: src %0d, payload %0x", port, delayed_data_out[port][virt_channel].hdr.src_id, delayed_data_out[port][virt_channel].payload);
         end
       end
     join
@@ -353,8 +351,6 @@ module tb_floo_router;
       if (result.payload != golden.payload) begin
         $error("ERROR! Mismatch for port %d channel %d (from %d, target port %d)",
                port, virt_channel, result.hdr.src_id, result.hdr.dst_id);
-      end else begin
-        $info("Matched! for dst %0d from src %0d, payload %0x", port, result.hdr.src_id, result.payload);
       end
 
       all_golden_size = 0;

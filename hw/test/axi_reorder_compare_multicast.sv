@@ -214,10 +214,6 @@ module axi_reorder_compare_multicast #(
         end
         b_out_rsp_queue[mon_mst_req_i.aw.id].push_back('{slv_id: 0, num_rsp: multiaddr_decode_sel});
       end
-      // for (int i=0; i<w_slv_idx.size(); i++) begin
-      //   $display("after new aw issued: w_slv_idx[%0d]=%0d",i,w_slv_idx[i]);
-      // end
-      if (Verbose) $info("Issued AW: id=%0d, len=%0d, route_mask=%0b", mon_mst_req_i.aw.id, mon_mst_req_i.aw.len+1, multiaddr_decode_sel);
     end
     if (mon_mst_req_i.w_valid && mon_mst_rsp_i.w_ready) begin
       // w_queue[w_slv_idx[0]].push_back(mon_mst_req_i.w);
@@ -256,7 +252,6 @@ module axi_reorder_compare_multicast #(
         aw_exp.id = 'X;
         if (aw_exp !== aw_act) begin
           $error("AW mismatch");
-          $info("Slave[%0d] port output AW: id=%0d, len=%0d (not added to compare queue)", i, aw_id, aw_exp.len+1);
           print_aw(aw_exp, aw_act);
         end else begin
           aw_id_queue[i].push_back(aw_id);
@@ -409,8 +404,6 @@ module axi_reorder_compare_multicast #(
         end
       end
     end
-    $display("&aw_queue_empty=%0d, &w_queue_empty=%0d, &ar_queue_empty=%0d, &b_queue_empty=%0d, &r_queue_empty=%0d, &r_out_rsp_queue_empty=%0d, &b_out_rsp_queue_empty=%0d, end_of_sim_o=%0d",
-            &aw_queue_empty, &w_queue_empty, &ar_queue_empty, &b_queue_empty, &r_queue_empty, &r_out_rsp_queue_empty, &b_out_rsp_queue_empty, end_of_sim_o);
   end
   // verilog_lint: waive-stop always-ff-non-blocking
 

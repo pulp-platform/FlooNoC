@@ -45,7 +45,7 @@ module floo_nw_router #(
   parameter type floo_rsp_t                   = logic,
   /// Floo `wide` link type
   parameter type floo_wide_t                  = logic,
-  parameter bit          ENABLE_MULTICAST = 1'b0
+  parameter bit          ENABLE_MULTICAST     = 1'b0
 ) (
   input  logic   clk_i,
   input  logic   rst_ni,
@@ -151,20 +151,14 @@ module floo_nw_router #(
     .data_o         ( req_out       )
   );
 
-  // localparam floo_rsp_payload_t NarrowRspMask = floo_rsp_payload_t'('{payload: axi_narrow_rsp_t'('{b.resp: 2'b11, default: '0}), '0});
-  // localparam floo_rsp_payload_t WideRspMask = floo_rsp_payload_t'('{payload: axi_wide_rsp_t'('{b.resp: 2'b11, default: '0}), '0});
-  // localparam floo_rsp_payload_t NarrowRspMask = '0;
-  // localparam floo_rsp_payload_t WideRspMask = '0;
-  // localparam floo_rsp_payload_t NarrowRspMask = floo_rsp_payload_t'({axi_narrow_b_chan_t'('{resp: 2'b11, id: '0, user:'0}), '0});
-  // localparam floo_rsp_payload_t WideRspMask = floo_rsp_payload_t'({axi_wide_b_chan_t'('{resp: 2'b11, id: '0, user: '0}), '0});
-  localparam floo_rsp_payload_t NarrowRspMask = 
+  localparam floo_rsp_payload_t NarrowRspMask =
     floo_rsp_payload_t'({
-        axi_narrow_b_chan_t'(axi_narrow_b_chan_t'{resp: 2'b11, id: '0, user:'0}), 
+        axi_narrow_b_chan_t'(axi_narrow_b_chan_t'{resp: 2'b11, id: '0, user:'0}),
         '0
     });
-  localparam floo_rsp_payload_t WideRspMask = 
+  localparam floo_rsp_payload_t WideRspMask =
     floo_rsp_payload_t'({
-        axi_wide_b_chan_t'(axi_wide_b_chan_t'{resp: 2'b11, id: '0, user: '0}), 
+        axi_wide_b_chan_t'(axi_wide_b_chan_t'{resp: 2'b11, id: '0, user: '0}),
         '0
     });
 
@@ -178,9 +172,9 @@ module floo_nw_router #(
     .RouteAlgo        ( RouteAlgo               ),
     .XYRouteOpt       ( XYRouteOpt              ),
     .flit_t           ( floo_rsp_generic_flit_t ),
-    .payload_t          ( floo_rsp_payload_t      ),
-    .NarrowRspMask       ( NarrowRspMask),
-    .WideRspMask       ( WideRspMask),
+    .payload_t        ( floo_rsp_payload_t      ),
+    .NarrowRspMask    ( NarrowRspMask           ),
+    .WideRspMask      ( WideRspMask             ),
     .id_t             ( id_t                    ),
     .NumAddrRules     ( NumAddrRules            ),
     .addr_rule_t      ( addr_rule_t             ),

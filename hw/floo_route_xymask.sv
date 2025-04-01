@@ -5,7 +5,8 @@ module floo_route_xymask import floo_pkg::*;
   parameter int unsigned NumRoutes     = 0,
   parameter type         flit_t        = logic,
   parameter type         id_t          = logic,
-  /// Mode 1 for deciding the output directions, Mode 0 for spefifying the expected input directions 
+  /// Mode 1 for deciding the output directions
+  /// Mode 0 for spefifying the expected input directions
   parameter bit          Mode          = 1
 ) (
   input  flit_t                         channel_i,
@@ -14,15 +15,17 @@ module floo_route_xymask import floo_pkg::*;
 );
 
   logic [NumRoutes-1:0] route_sel;
-  
+
   id_t dst_id, mask_in, src_id;
   id_t dst_id_max, dst_id_min;
   logic x_matched, y_matched;
 
   assign dst_id = Mode? id_t'(channel_i.hdr.dst_id) : id_t'(channel_i.hdr.src_id);
-  assign mask_in = Mode? (channel_i.hdr.commtype==CollectB? '0 : id_t'(channel_i.hdr.mask)) : id_t'(channel_i.hdr.mask);
+  assign mask_in = Mode?
+                    (channel_i.hdr.commtype==CollectB? '0 : id_t'(channel_i.hdr.mask))
+                     : id_t'(channel_i.hdr.mask);
   assign src_id = Mode? id_t'(channel_i.hdr.src_id) : id_t'(channel_i.hdr.dst_id);
-  
+
   assign dst_id_max.x = dst_id.x | mask_in.x;
   assign dst_id_max.y = dst_id.y | mask_in.y;
   assign dst_id_min.x = dst_id.x & (~mask_in.x);
