@@ -212,7 +212,7 @@ module floo_meta_buffer #(
   assign b_buf_o = (is_atop_b_rsp && AtopSupport)? atop_b_buf[axi_rsp_i.b.id] : no_atop_b_buf;
 
   // NoC addr/mask to AXI addr/mask conversion
-  
+  localparam int ADDR_WIDTH = $bits(addr_t);
   if (ENABLE_MULTICAST && RouteCfg.UseIdTable && 
      (RouteCfg.RouteAlgo == floo_pkg::XYRouting))
   begin : gen_mcast_table_conversion
@@ -238,28 +238,21 @@ module floo_meta_buffer #(
       .dec_error_o  ( dec_error         )
     );
     `ASSERT(MaskDecodeError, !dec_error)
-    always_comb begin : gen_xy_addr_mask
-      x_addr_mask = '0;
-      y_addr_mask = '0;
-      // for (int i = x_mask_sel.offset; i < x_mask_sel.offset + x_mask_sel.len; i++) begin
-      //   x_addr_mask[i] = 1;
-      // end
-      // for (int i = y_mask_sel.offset; i < y_mask_sel.offset + y_mask_sel.len; i++) begin
-      //   y_addr_mask[i] = 1;
-      // end
-      int i;
-      i = x_mask_sel.offset
-      while (i < x_mask_sel.offset + x_mask_sel.len) begin
-        x_addr_mask[i] = 1;
-        i++;
-      end
-
-      i = y_mask_sel.offset;
-      while (i < y_mask_sel.offset + y_mask_sel.len) begin
-        y_addr_mask[i] = 1;
-        i++;
-      end
-    end
+    // always_comb begin : gen_xy_addr_mask
+    //   x_addr_mask = '0;
+    //   y_addr_mask = '0;
+    //   for (int i = x_mask_sel.offset; i < x_mask_sel.offset + x_mask_sel.len && i < 48; i++) begin
+    //     x_addr_mask[i] = 1'b1;
+    //   end
+    
+    //   for (int i = y_mask_sel.offset; i < y_mask_sel.offset + y_mask_sel.len && i < 48; i++) begin
+    //     y_addr_mask[i] = 1'b1;
+    //   end
+    // end
+    always_comb begin
+      x_addr_mask = (({ADDR_WIDTH{1'b1}} >> (ADDR_WIDTH - x_mask_sel.len)) << x_mask_sel.offset) & {ADDR_WIDTH{1'b1}};
+      y_addr_mask = (({ADDR_WIDTH{1'b1}} >> (ADDR_WIDTH - y_mask_sel.len)) << y_mask_sel.offset) & {ADDR_WIDTH{1'b1}};
+    end   
     assign in_addr = axi_req_i.aw.addr;
     assign axi_addr = (in_addr & ~(x_addr_mask | y_addr_mask)) | ((out.x << x_mask_sel.offset) | (out.y << y_mask_sel.offset));
   end else begin

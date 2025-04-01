@@ -51,7 +51,14 @@ module floo_nw_chimney #(
   /// The System Address Map (SAM) rules
   /// (only used if `RouteCfg.UseIdTable == 1'b1`)
   parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam   = '0,
+  /// Struct consisting of offset and len to speficy the position of the mask bits
+  /// (only used if `ENABLE_MULTICAST && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
+  parameter type mask_sel_t                             = logic,
+  /// Rule type for the mask table, consisting of id, position of the mask bits for x and y
+  /// (only used if `ENABLE_MULTICAST && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
   parameter type mask_rule_t                            = logic,
+  /// The mask table
+  /// (only used if `ENABLE_MULTICAST && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
   parameter mask_rule_t [RouteCfg.NumSamRules-1:0] MaskTable = '0,
   /// Narrow AXI manager request channel type
   parameter type axi_narrow_in_req_t                    = logic,
@@ -78,9 +85,12 @@ module floo_nw_chimney #(
   /// SRAM configuration type `tc_sram_impl` in RoB
   /// Only used if technology-dependent SRAM is used
   parameter type sram_cfg_t                             = logic,
+  /// Struct for user field in AXI
+  /// currently only used if ENABLE_MULTICAST
   parameter type user_struct_t                          = logic,
+  /// Speficy the correct length of mask
+  /// currently only used if ENABLE_MULTICAST
   parameter type user_mask_t                            = logic [AxiCfgN.UserWidth-1:0],
-  parameter type mask_sel_t                             = logic,
   parameter bit ENABLE_MULTICAST = 1'b0
 ) (
   input  logic clk_i,
@@ -142,7 +152,6 @@ module floo_nw_chimney #(
   axi_narrow_rsp_t axi_narrow_rsp_out;
   axi_wide_req_t axi_wide_req_in;
   axi_wide_rsp_t axi_wide_rsp_out;
-
   user_mask_t axi_narrow_req_in_mask, axi_wide_req_in_mask;
 
   // AX queue

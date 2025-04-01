@@ -43,6 +43,7 @@ module floo_route_comp
   // Further, the `rule_t` requires an additional field `id`, which can be used for the return route.
   // The reason for that is that a request destination is given by a physical address, while the
   // response destination is given by the ID of the source.
+  localparam int ADDR_WIDTH = $bits(addr_t);
   if (UseIdTable &&
     ((RouteCfg.RouteAlgo == IdTable) ||
      (RouteCfg.RouteAlgo == XYRouting) ||
@@ -86,28 +87,22 @@ module floo_route_comp
         .mask_map_i   ( mask_map_i      ),
         .dec_error_o  ( mask_dec_error  )
       );
-      always_comb begin : gen_xy_addr_mask
-        x_addr_mask = '0;
-        y_addr_mask = '0;
-        // for (int i = x_mask_sel.offset; i < x_mask_sel.offset + x_mask_sel.len; i++) begin
-        //   x_addr_mask[i] = 1;
-        // end
-        // for (int i = y_mask_sel.offset; i < y_mask_sel.offset + y_mask_sel.len; i++) begin
-        //   y_addr_mask[i] = 1;
-        // end
-        int i;
-        i = x_mask_sel.offset
-        while (i < x_mask_sel.offset + x_mask_sel.len) begin
-          x_addr_mask[i] = 1;
-          i++;
-        end
-
-        i = y_mask_sel.offset;
-        while (i < y_mask_sel.offset + y_mask_sel.len) begin
-          y_addr_mask[i] = 1;
-          i++;
-        end
+      // always_comb begin : gen_xy_addr_mask
+      //   x_addr_mask = '0;
+      //   y_addr_mask = '0;
+      //   for (int i = x_mask_sel.offset; i < x_mask_sel.offset + x_mask_sel.len && i < 48; i++) begin
+      //     x_addr_mask[i] = 1'b1;
+      //   end
+      
+      //   for (int i = y_mask_sel.offset; i < y_mask_sel.offset + y_mask_sel.len && i < 48; i++) begin
+      //     y_addr_mask[i] = 1'b1;
+      //   end
+      // end
+      always_comb begin
+        x_addr_mask = (({ADDR_WIDTH{1'b1}} >> (ADDR_WIDTH - x_mask_sel.len)) << x_mask_sel.offset) & {ADDR_WIDTH{1'b1}};
+        y_addr_mask = (({ADDR_WIDTH{1'b1}} >> (ADDR_WIDTH - y_mask_sel.len)) << y_mask_sel.offset) & {ADDR_WIDTH{1'b1}};
       end
+      
       assign mask_o.x = (mask_i & x_addr_mask) >> x_mask_sel.offset;
       assign mask_o.y = (mask_i & y_addr_mask) >> y_mask_sel.offset;
       assign mask_o.port_id = '0;
