@@ -4,7 +4,7 @@
 
 [project]
 name = "floogen"
-version = "0.1.0"
+version = "0.6.0"
 authors = [
   { name="Tim Fischer", email="fischeti@iis.ee.ethz.ch" },
 ]
