@@ -69,7 +69,6 @@ class EndpointDesc(BaseModel):
         """Set the number of endpoints based on `array`"""
         if self.array is None:
             self.num = 1
-            return self
         elif len(self.array) == 1:
             self.num = self.array[0]
         elif len(self.array) == 2:

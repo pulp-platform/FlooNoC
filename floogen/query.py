@@ -5,6 +5,7 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
+import sys
 
 def handle_query(network, expr):
     """Safely evaluates an expression within the context of the network."""
@@ -65,8 +66,8 @@ def handle_query(network, expr):
     env.update({k: ConfigNS(v) for k, v in data.items()})
 
     try:
-        result = eval(expr, {"__builtins__": {}}, env)
+        result = eval(expr, {"__builtins__": {}}, env) # pylint: disable=eval-used
         print(result)
-    except Exception as e:
+    except (SyntaxError, NameError, TypeError, ValueError) as e:
         print(f"Query evaluation error: {e}")
-        exit(1)
+        sys.exit(1)
