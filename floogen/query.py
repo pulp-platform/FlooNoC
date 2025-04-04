@@ -5,11 +5,14 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
+
 def handle_query(network, expr):
     """Safely evaluates an expression within the context of the network."""
     data = network.dict() if hasattr(network, "dict") else network.__dict__
 
     class ConfigNS:
+        """Namespace for configuration data to allow attribute access."""
+
         def __init__(self, obj):
             self._obj = obj
 
@@ -19,7 +22,7 @@ def handle_query(network, expr):
         def __getattr__(self, key):
             if isinstance(self._obj, dict):
                 return self._wrap(self._obj[key])
-            elif isinstance(self._obj, list):
+            if isinstance(self._obj, list):
                 for item in self._obj:
                     if hasattr(item, "name") and getattr(item, "name") == key:
                         return self._wrap(item)
@@ -28,14 +31,14 @@ def handle_query(network, expr):
                     if hasattr(item, "name") and getattr(item, "name") == key:
                         return item
                 raise AttributeError(f"No item with name '{key}' in list")
-            elif hasattr(self._obj, key):
+            if hasattr(self._obj, key):
                 return self._wrap(getattr(self._obj, key))
             raise AttributeError(key)
 
         def _wrap(self, val):
             if isinstance(val, dict):
                 return ConfigNS(val)
-            elif isinstance(val, list):
+            if isinstance(val, list):
                 return [ConfigNS(item) if isinstance(item, (dict, list)) else item for item in val]
             return val
 
@@ -59,7 +62,6 @@ def handle_query(network, expr):
     }
 
     env = dict(safe_builtins)
-    cfg = ConfigNS(data)
     env.update({k: ConfigNS(v) for k, v in data.items()})
 
     try:

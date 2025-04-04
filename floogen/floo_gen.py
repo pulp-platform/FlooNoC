@@ -14,6 +14,7 @@ from floogen.query import handle_query
 from floogen.model.network import Network
 from floogen.utils import verible_format
 
+
 def render_sources(network: Network, args: argparse.Namespace):
     """Render the sources for the network."""
 
@@ -94,7 +95,9 @@ def parse_args():
         help="Do not format the output.",
     )
     parser.add_argument("--visualize", action="store_true", help="Visualize the network graph.")
-    parser.add_argument("-q", "--query", type=str, help="Query a specific key in the configuration.")
+    parser.add_argument(
+        "-q", "--query", type=str, help="Query a specific key in the configuration."
+    )
 
     return parser.parse_args()
 
