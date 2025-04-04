@@ -339,9 +339,9 @@ module floo_meta_buffer #(
                             !no_atop_id_available : !aw_no_atop_buf_full);
       axi_rsp_o.aw_ready = axi_rsp_i.aw_ready && ((is_atop_aw)?
                             !no_atop_id_available : !aw_no_atop_buf_full);
-      axi_req_o.aw.addr = (ENABLE_MULTICAST && aw_buf_i.hdr.commtype == floo_pkg::Multicast)?
-                           axi_addr : axi_req_i.aw.addr;
-      // axi_req_o.aw.addr = axi_addr;
+      // axi_req_o.aw.addr = (ENABLE_MULTICAST && aw_buf_i.hdr.commtype == floo_pkg::Multicast)?
+      //                      axi_addr : axi_req_i.aw.addr;
+      axi_req_o.aw.addr = axi_addr;
     end
   end else begin : gen_no_atop_support
 
@@ -361,9 +361,9 @@ module floo_meta_buffer #(
       axi_rsp_o.ar_ready = axi_rsp_i.ar_ready && !ar_no_atop_buf_full;
       axi_req_o.aw_valid = axi_req_i.aw_valid && !aw_no_atop_buf_full;
       axi_rsp_o.aw_ready = axi_rsp_i.aw_ready && !aw_no_atop_buf_full;
-      axi_req_o.aw.addr = (ENABLE_MULTICAST && aw_buf_i.hdr.commtype == floo_pkg::Multicast)?
-                           axi_addr : axi_req_i.aw.addr;
-      // axi_req_o.aw.addr = axi_addr;
+      // axi_req_o.aw.addr = (ENABLE_MULTICAST && aw_buf_i.hdr.commtype == floo_pkg::Multicast)?
+      //                      axi_addr : axi_req_i.aw.addr;
+      axi_req_o.aw.addr = axi_addr;
     end
   end
 

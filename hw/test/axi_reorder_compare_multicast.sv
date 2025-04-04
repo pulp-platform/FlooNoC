@@ -333,7 +333,6 @@ module axi_reorder_compare_multicast #(
       // if (b_queue[slv_id][b_id].size() == 0) $error("Slave [%0d] B queue is empty!", slv_id);
       // b_exp = b_queue[slv_id][b_id].pop_front();
       if(b_out_rsp_queue[b_id][0].num_rsp==0) begin
-        $display("This is a normal B");
         slv_id = b_out_rsp_queue[b_id][0].slv_id;
         if (b_queue[slv_id][b_id].size() == 0) $error("Slave [%0d] B queue is empty!", slv_id);
         b_exp = b_queue[slv_id][b_id].pop_front();

@@ -42,7 +42,8 @@ BENDER_FLAGS += -t idma_test
 BENDER_FLAGS := $(BENDER_FLAGS) $(EXTRA_BENDER_FLAGS)
 
 WORK 	 		?= work
-TB_DUT 		?= tb_floo_rob_multicast #floo_noc_router_test
+# TB_DUT 		?= tb_floo_rob_multicast #floo_noc_router_test
+TB_DUT ?= tb_floo_rob_multicast
 
 VLOG_ARGS += -suppress vlog-2583
 VLOG_ARGS += -suppress vlog-13314

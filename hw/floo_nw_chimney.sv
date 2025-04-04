@@ -165,6 +165,7 @@ module floo_nw_chimney #(
   logic axi_wide_ar_queue_valid_out, axi_wide_ar_queue_ready_in;
   user_mask_t axi_narrow_mask_queue, axi_wide_mask_queue;
 
+  // AXI req/rsp arbiter
   floo_req_chan_t [WideAr:NarrowAw] floo_req_arb_in;
   floo_rsp_chan_t [WideB:NarrowB] floo_rsp_arb_in;
   floo_wide_chan_t [WideR:WideAw] floo_wide_arb_in;
@@ -253,8 +254,6 @@ module floo_nw_chimney #(
   ///////////////////////
 
   if (ChimneyCfgN.EnMgrPort) begin : gen_narrow_sbr_port
-    // assign axi_narrow_req_in = axi_narrow_in_req_i;
-    // assign axi_narrow_in_rsp_o = axi_narrow_rsp_out;
     `AXI_ASSIGN_REQ_STRUCT(axi_narrow_req_in, axi_narrow_in_req_i)
     `AXI_ASSIGN_RESP_STRUCT(axi_narrow_in_rsp_o, axi_narrow_rsp_out)
 
@@ -343,8 +342,6 @@ module floo_nw_chimney #(
   end
 
   if (ChimneyCfgW.EnMgrPort) begin : gen_wide_sbr_port
-    // assign axi_wide_req_in = axi_wide_in_req_i;
-    // assign axi_wide_in_rsp_o = axi_wide_rsp_out;
     `AXI_ASSIGN_REQ_STRUCT(axi_wide_req_in, axi_wide_in_req_i)
     `AXI_ASSIGN_RESP_STRUCT(axi_wide_in_rsp_o, axi_wide_rsp_out)
 
@@ -522,13 +519,11 @@ module floo_nw_chimney #(
     axi_narrow_out_req_o = axi_narrow_meta_buf_req_out;
     axi_narrow_out_req_o.aw_valid = narrow_aw_out_queue_valid;
     `AXI_SET_AW_STRUCT(axi_narrow_out_req_o.aw, axi_narrow_aw_queue_out);
-    // axi_narrow_out_req_o.aw = axi_narrow_aw_queue_out;
     axi_narrow_meta_buf_rsp_in = axi_narrow_out_rsp_i;
     axi_narrow_meta_buf_rsp_in.aw_ready = narrow_aw_out_queue_ready;
     axi_wide_out_req_o = axi_wide_meta_buf_req_out;
     axi_wide_out_req_o.aw_valid = wide_aw_out_queue_valid;
     `AXI_SET_AW_STRUCT(axi_wide_out_req_o.aw, axi_wide_aw_queue_out);
-    // axi_wide_out_req_o.aw = axi_wide_aw_queue_out;
     axi_wide_meta_buf_rsp_in = axi_wide_out_rsp_i;
     axi_wide_meta_buf_rsp_in.aw_ready = wide_aw_out_queue_ready;
   end
@@ -1275,7 +1270,6 @@ module floo_nw_chimney #(
   };
 
   if (ChimneyCfgN.EnSbrPort) begin : gen_narrow_mgr_port
-    // `AXI_ASSIGN_RESP_STRUCT(axi_narrow_pre_out_rsp_in, axi_narrow_out_rsp_i)
     floo_meta_buffer #(
       .InIdWidth      ( AxiCfgN.InIdWidth         ),
       .OutIdWidth     ( AxiCfgN.OutIdWidth        ),
@@ -1309,7 +1303,6 @@ module floo_nw_chimney #(
       .r_buf_o    ( narrow_ar_buf_hdr_out       ),
       .b_buf_o    ( narrow_aw_buf_hdr_out       )
     );
-    // `AXI_ASSIGN_REQ_STRUCT(axi_narrow_out_req_o, axi_narrow_pre_out_req_out)
   end else begin : gen_no_narrow_mgr_port
     axi_err_slv #(
       .AxiIdWidth ( AxiCfgN.InIdWidth ),
@@ -1329,7 +1322,6 @@ module floo_nw_chimney #(
   end
 
   if (ChimneyCfgW.EnSbrPort) begin : gen_wide_mgr_port
-    // `AXI_ASSIGN_RESP_STRUCT(axi_wide_pre_out_rsp_in, axi_wide_out_rsp_i)
     floo_meta_buffer #(
       .InIdWidth      ( AxiCfgW.InIdWidth         ),
       .OutIdWidth     ( AxiCfgW.OutIdWidth        ),
@@ -1363,7 +1355,6 @@ module floo_nw_chimney #(
       .r_buf_o    ( wide_ar_buf_hdr_out       ),
       .b_buf_o    ( wide_aw_buf_hdr_out       )
     );
-    // `AXI_ASSIGN_REQ_STRUCT(axi_wide_out_req_o, axi_wide_pre_out_req_out)
   end else begin : gen_no_wide_mgr_port
     axi_err_slv #(
       .AxiIdWidth ( AxiCfgW.InIdWidth ),

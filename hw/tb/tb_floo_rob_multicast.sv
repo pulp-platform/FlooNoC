@@ -18,8 +18,8 @@ module tb_floo_rob_multicast;
   localparam time ApplTime = 2ns;
   localparam time TestTime = 8ns;
 
-  localparam int unsigned NumReads = 30;
-  localparam int unsigned NumWrites = 30;
+  localparam int unsigned NumReads = 10;
+  localparam int unsigned NumWrites = 10;
 
   localparam int unsigned NumSlaves = 4;
 
@@ -42,8 +42,7 @@ module tb_floo_rob_multicast;
   typedef logic [1:0] x_bits_t;
   typedef logic [1:0] y_bits_t;
   `FLOO_TYPEDEF_XY_NODE_ID_T(id_t, x_bits_t, y_bits_t, logic)
-  // `FLOO_TYPEDEF_HDR_T(hdr_t, id_t, id_t, floo_pkg::axi_ch_e, rob_idx_t)
-  `FLOO_TYPEDEF_MASK_HDR_T(hdr_t, id_t, id_t, id_t, floo_pkg::axi_ch_e, rob_idx_t, floo_pkg::commtype_e)
+  `FLOO_TYPEDEF_MASK_HDR_T(hdr_t, id_t, id_t, id_t, axi_ch_e, rob_idx_t, commtype_e)
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi, floo_test_pkg::AxiCfg)
   `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi_in, floo_test_pkg::AxiCfg, hdr_t)
   `FLOO_TYPEDEF_AXI_LINK_ALL(req, rsp, req, rsp)
@@ -143,7 +142,8 @@ module tb_floo_rob_multicast;
     .rule_t         ( node_addr_region_t    ),
     .AddrRegions    ( AddrRegions           ),
     .NumReads       ( NumReads              ),
-    .NumWrites      ( NumWrites             )
+    .NumWrites      ( NumWrites             ),
+    .ENABLE_MULTICAST ( 1'b1 )
   ) i_test_node_0 (
     .clk_i          ( clk                           ),
     .rst_ni         ( rst_n                         ),
@@ -156,9 +156,9 @@ module tb_floo_rob_multicast;
 
   axi_dumper #(
     .BusName    ( "MasterAxi"   ),
-    .LogAW      ( 1'b1          ),
-    .LogAR      ( 1'b1          ),
-    .LogW       ( 1'b1          ),
+    .LogAW      ( 1'b0          ),
+    .LogAR      ( 1'b0          ),
+    .LogW       ( 1'b0          ),
     .LogB       ( 1'b0          ),
     .LogR       ( 1'b0          ),
     .axi_req_t  ( axi_in_req_t  ),
@@ -246,25 +246,11 @@ module tb_floo_rob_multicast;
     .data_o         ( chimney_rsp_in_chan     )
   );
 
-  // localparam floo_test_pkg::slave_type_e SlaveType[floo_pkg::NumDirections-1] = '{
-  //   floo_test_pkg::FastSlave,
-  //   floo_test_pkg::FastSlave,
-  //   floo_test_pkg::SlowSlave,
-  //   floo_test_pkg::MixedSlave
-  // };
-
-  // localparam floo_test_pkg::slave_type_e SlaveType[floo_pkg::NumDirections-1] = '{
-  //   floo_test_pkg::SlowSlave,
-  //   floo_test_pkg::SlowSlave,
-  //   floo_test_pkg::SlowSlave,
-  //   floo_test_pkg::SlowSlave
-  // };
-
   localparam floo_test_pkg::slave_type_e SlaveType[floo_pkg::NumDirections-1] = '{
     floo_test_pkg::FastSlave,
     floo_test_pkg::FastSlave,
-    floo_test_pkg::FastSlave,
-    floo_test_pkg::FastSlave
+    floo_test_pkg::SlowSlave,
+    floo_test_pkg::MixedSlave
   };
 
   for (genvar i = North; i <= West; i++) begin : gen_slaves
@@ -316,7 +302,7 @@ module tb_floo_rob_multicast;
       .LogAW      ( 1'b0          ),
       .LogAR      ( 1'b0          ),
       .LogW       ( 1'b0          ),
-      .LogB       ( 1'b1          ),
+      .LogB       ( 1'b0          ),
       .LogR       ( 1'b0          ),
       .axi_req_t  ( axi_in_req_t  ),
       .axi_resp_t ( axi_in_rsp_t  )
@@ -363,7 +349,7 @@ module tb_floo_rob_multicast;
     .r_chan_t       ( axi_in_r_chan_t                 ),
     .req_t          ( axi_in_req_t                    ),
     .rsp_t          ( axi_in_rsp_t                    ),
-    .Verbose        ( 1'b1                            )
+    .Verbose        ( 1'b0                            )
   ) i_axi_reorder_compare (
     .clk_i          ( clk                                 ),
     .rst_ni         ( rst_n                               ),

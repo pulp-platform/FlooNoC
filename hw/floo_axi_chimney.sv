@@ -7,6 +7,7 @@
 `include "common_cells/registers.svh"
 `include "common_cells/assertions.svh"
 `include "axi/typedef.svh"
+`include "axi/assign.svh"
 `include "floo_noc/typedef.svh"
 
 /// A bidirectional network interface for connecting AXI4 Buses to the NoC
@@ -45,6 +46,15 @@ module floo_axi_chimney #(
   /// The System Address Map (SAM) rules
   /// (only used if `RouteCfg.UseIdTable == 1'b1`)
   parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam   = '0,
+  /// Struct consisting of offset and len to speficy the position of the mask bits
+  /// (only used if `ENABLE_MULTICAST && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
+  parameter type mask_sel_t                             = logic,
+  /// Rule type for the mask table, consisting of id, position of the mask bits for x and y
+  /// (only used if `ENABLE_MULTICAST && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
+  parameter type mask_rule_t                            = logic,
+  /// The mask table
+  /// (only used if `ENABLE_MULTICAST && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
+  parameter mask_rule_t [RouteCfg.NumSamRules-1:0] MaskTable = '0,
   /// AXI manager request channel type
   parameter type axi_in_req_t               = logic,
   /// AXI manager response channel type
@@ -58,7 +68,14 @@ module floo_axi_chimney #(
   /// Floo `rsp` link type
   parameter type floo_rsp_t                 = logic,
   /// SRAM configuration type
-  parameter type sram_cfg_t                 = logic
+  parameter type sram_cfg_t                 = logic,
+  /// Struct for user field in AXI
+  /// currently only used if ENABLE_MULTICAST
+  parameter type user_struct_t                          = logic,
+  /// Speficy the correct length of mask
+  /// currently only used if ENABLE_MULTICAST
+  parameter type user_mask_t                            = logic [AxiCfg.UserWidth-1:0],
+  parameter bit ENABLE_MULTICAST = 1'b0
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -101,12 +118,14 @@ module floo_axi_chimney #(
   // in case they are not used
   axi_req_t axi_req_in;
   axi_rsp_t axi_rsp_out;
+  user_mask_t axi_req_in_mask;
 
   // AX queue
   axi_aw_chan_t axi_aw_queue;
   axi_ar_chan_t axi_ar_queue;
   logic axi_aw_queue_valid_out, axi_aw_queue_ready_in;
   logic axi_ar_queue_valid_out, axi_ar_queue_ready_in;
+  user_mask_t axi_mask_queue;
 
   // AXI req/rsp arbiter
   floo_req_chan_t [AxiW:AxiAr] floo_req_arb_in;
@@ -158,10 +177,9 @@ module floo_axi_chimney #(
   dst_t axi_aw_id_q;
   id_t  [NumAxiChannels-1:0] mask;
   id_t  axi_aw_mask_q;
-
   route_t [NumAxiChannels-1:0] route_out;
   id_t [NumAxiChannels-1:0] id_out;
-  id_t [NumAxiChannels-1:0] mask_out; // TODO is type correct?
+  id_t [NumAxiChannels-1:0] mask_out;
 
   meta_buf_t aw_out_hdr_in, aw_out_hdr_out;
   meta_buf_t ar_out_hdr_in, ar_out_hdr_out;
@@ -171,9 +189,18 @@ module floo_axi_chimney #(
   ///////////////////////
 
   if (ChimneyCfg.EnMgrPort) begin : gen_sbr_port
+    // assign axi_req_in = axi_in_req_i;
+    // assign axi_in_rsp_o = axi_rsp_out;
+    `AXI_ASSIGN_REQ_STRUCT(axi_req_in, axi_in_req_i)
+    `AXI_ASSIGN_RESP_STRUCT(axi_in_rsp_o, axi_rsp_out)
 
-    assign axi_req_in = axi_in_req_i;
-    assign axi_in_rsp_o = axi_rsp_out;
+    if (ENABLE_MULTICAST) begin : gen_mask
+      user_struct_t user;
+      assign user = axi_in_req_i.aw.user;
+      assign axi_req_in_mask = user.mask;
+    end else begin : gen_no_mask
+      assign axi_req_in_mask = '0;
+    end
 
     if (ChimneyCfg.CutAx) begin : gen_ax_cuts
       spill_register #(
@@ -201,14 +228,30 @@ module floo_axi_chimney #(
         .valid_o    ( axi_ar_queue_valid_out  ),
         .ready_i    ( axi_ar_queue_ready_in   )
       );
+      if (ENABLE_MULTICAST) begin : gen_mask_cuts
+        spill_register #(
+          .T (user_mask_t)
+        ) i_usermask_queue (
+          .clk_i,
+          .rst_ni,
+          .data_i   ( axi_req_in_mask ),
+          .valid_i  ( axi_req_in.aw_valid ),
+          .ready_o  (  ),
+          .data_o   ( axi_mask_queue ),
+          .valid_o  (  ),
+          .ready_i  ( axi_aw_queue_ready_in )
+        );
+      end else begin : gen_no_mask_cuts
+        assign axi_mask_queue = '0;
+      end
     end else begin : gen_no_ax_cuts
       assign axi_aw_queue = axi_in_req_i.aw;
       assign axi_aw_queue_valid_out = axi_in_req_i.aw_valid;
       assign axi_rsp_out.aw_ready = axi_aw_queue_ready_in;
-
       assign axi_ar_queue = axi_in_req_i.ar;
       assign axi_ar_queue_valid_out = axi_in_req_i.ar_valid;
       assign axi_rsp_out.ar_ready = axi_ar_queue_ready_in;
+      assign axi_mask_queue = axi_req_in_mask;
     end
 
   end else begin : gen_err_slv_port
@@ -229,6 +272,7 @@ module floo_axi_chimney #(
     assign axi_ar_queue = '0;
     assign axi_aw_queue_valid_out = 1'b0;
     assign axi_ar_queue_valid_out = 1'b0;
+    assign axi_mask_queue = '0;
   end
 
   if (ChimneyCfg.CutRsp) begin : gen_rsp_cuts
@@ -268,7 +312,9 @@ module floo_axi_chimney #(
 
 
   logic aw_out_queue_valid, aw_out_queue_ready;
-  axi_out_aw_chan_t axi_aw_queue_out;
+  axi_out_aw_chan_t axi_aw_queue_out, axi_aw_queue_in;
+
+  `AXI_ASSIGN_AW_STRUCT(axi_aw_queue_in, meta_buf_req_out.aw)
 
   // Since AW and W are transferred over the same link, it can happen that
   // a downstream module does not accept the AW until the W is valid.
@@ -280,7 +326,7 @@ module floo_axi_chimney #(
     .rst_ni   ( rst_ni                    ),
     .valid_i  ( meta_buf_req_out.aw_valid ),
     .ready_o  ( aw_out_queue_ready        ),
-    .data_i   ( meta_buf_req_out.aw       ),
+    .data_i   ( axi_aw_queue_in           ),
     .valid_o  ( aw_out_queue_valid        ),
     .ready_i  ( axi_out_rsp_i.aw_ready    ),
     .data_o   ( axi_aw_queue_out          )
@@ -289,7 +335,7 @@ module floo_axi_chimney #(
   always_comb begin
     axi_out_req_o = meta_buf_req_out;
     axi_out_req_o.aw_valid = aw_out_queue_valid;
-    axi_out_req_o.aw = axi_aw_queue_out;
+    `AXI_SET_AW_STRUCT(axi_out_req_o.aw, axi_aw_queue_out);
     meta_buf_rsp_in = axi_out_rsp_i;
     meta_buf_rsp_in.aw_ready = aw_out_queue_ready;
   end
@@ -412,13 +458,13 @@ module floo_axi_chimney #(
   /////////////////
 
   axi_addr_t [NumAxiChannels-1:0] axi_req_addr;
-  axi_addr_t [NumAxiChannels-1:0] axi_req_mask; // TODO is type correct?
+  user_mask_t [NumAxiChannels-1:0] axi_req_user;
   id_t [NumAxiChannels-1:0] axi_rsp_src_id;
 
   assign axi_req_addr[AxiAw] = axi_aw_queue.addr;
   assign axi_req_addr[AxiAr] = axi_ar_queue.addr;
-  assign axi_req_mask[AxiAw] = axi_aw_queue.user;
-  assign axi_req_mask[AxiAr] = axi_ar_queue.user;
+  assign axi_req_user[AxiAw] = axi_mask_queue;
+  assign axi_req_user[AxiAr] = '0;
 
   assign axi_rsp_src_id[AxiB] = aw_out_hdr_out.hdr.src_id;
   assign axi_rsp_src_id[AxiR] = ar_out_hdr_out.hdr.src_id;
@@ -432,16 +478,21 @@ module floo_axi_chimney #(
         .RouteCfg     ( RouteCfg    ),
         .id_t         ( id_t        ),
         .addr_t       ( axi_addr_t  ),
+        .mask_t       ( user_mask_t ),
         .addr_rule_t  ( sam_rule_t  ),
-        .route_t      ( route_t     )
+        .mask_rule_t  ( mask_rule_t ),
+        .mask_sel_t   ( mask_sel_t  ),
+        .route_t      ( route_t     ),
+        .ENABLE_MULTICAST ( ENABLE_MULTICAST )
       ) i_floo_req_route_comp (
         .clk_i,
         .rst_ni,
         .route_table_i,
         .addr_map_i ( Sam               ),
+        .mask_map_i ( MaskTable         ),
         .id_i       ( id_t'('0)         ),
         .addr_i     ( axi_req_addr[ch]  ),
-        .mask_i     ( axi_req_mask[ch]  ),
+        .mask_i     ( axi_req_user[ch]  ),
         .route_o    ( route_out[ch]     ),
         .id_o       ( id_out[ch]        ),
         .mask_o     ( mask_out[ch]      )
@@ -465,6 +516,7 @@ module floo_axi_chimney #(
         .addr_i     ( '0                  ),
         .mask_i     ( '0                  ),
         .addr_map_i ( '0                  ),
+        .mask_map_i ( '0                  ),
         .id_i       ( axi_rsp_src_id[ch]  ),
         .route_o    ( route_out[ch]       ),
         .id_o       ( id_out[ch]          ),
@@ -714,14 +766,22 @@ module floo_axi_chimney #(
       .AtopSupport    ( AtopSupport             ),
       .MaxAtomicTxns  ( MaxAtomicTxns           ),
       .buf_t          ( meta_buf_t              ),
-      .axi_in_req_t   ( axi_in_req_t            ),
-      .axi_in_rsp_t   ( axi_in_rsp_t            ),
+      .axi_in_req_t   ( axi_req_t               ),
+      .axi_in_rsp_t   ( axi_rsp_t               ),
       .axi_out_req_t  ( axi_out_req_t           ),
-      .axi_out_rsp_t  ( axi_out_rsp_t           )
+      .axi_out_rsp_t  ( axi_out_rsp_t           ),
+      .RouteCfg       ( RouteCfg                ),
+      .addr_t         ( axi_addr_t              ),
+      .id_t           ( id_t                    ),
+      .mask_rule_t    ( mask_rule_t             ),
+      .mask_sel_t     ( mask_sel_t              ),
+      .ENABLE_MULTICAST ( ENABLE_MULTICAST )
     ) i_floo_meta_buffer (
       .clk_i,
       .rst_ni,
       .test_enable_i,
+      .mask_map_i ( MaskTable ),
+      .id_i       ( id_i      ),
       .axi_req_i  ( meta_buf_req_in   ),
       .axi_rsp_o  ( meta_buf_rsp_out  ),
       .axi_req_o  ( meta_buf_req_out  ),
@@ -735,8 +795,8 @@ module floo_axi_chimney #(
     axi_err_slv #(
       .AxiIdWidth ( AxiCfg.InIdWidth  ),
       .ATOPs      ( AtopSupport       ),
-      .axi_req_t  ( axi_in_req_t      ),
-      .axi_resp_t ( axi_in_rsp_t      )
+      .axi_req_t  ( axi_req_t         ),
+      .axi_resp_t ( axi_rsp_t         )
     ) i_axi_err_slv (
       .clk_i      ( clk_i             ),
       .rst_ni     ( rst_ni            ),
