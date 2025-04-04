@@ -7,10 +7,10 @@
 
 import os
 import argparse
-import sys
 from pathlib import Path
 
 from floogen.config_parser import parse_config
+from floogen.query import handle_query
 from floogen.model.network import Network
 from floogen.utils import verible_format
 
@@ -55,37 +55,6 @@ def render_sources(network: Network, args: argparse.Namespace):
             print(rendered_pkg)
         if not args.only_pkg:
             print(rendered_top)
-
-
-def resolve_query(obj, path: str):
-    """Resolves a smart dot-path like 'endpoints.cluster.name' or 'protocols.0.data_width'."""
-    for part in path.split("."):
-        if isinstance(obj, list):
-            # Try int index
-            try:
-                idx = int(part)
-                obj = obj[idx]
-            except ValueError:
-                # Try match by .name
-                match = next((item for item in obj if getattr(item, "name", None) == part), None)
-                if match is None:
-                    raise KeyError(f"No item with name '{part}' in list")
-                obj = match
-        elif isinstance(obj, dict):
-            obj = obj[part]
-        elif hasattr(obj, part):
-            obj = getattr(obj, part)
-        else:
-            raise AttributeError(f"Cannot resolve '{part}' in path")
-    return obj
-
-def handle_query(network: Network, query: str):
-    """Handles the query command."""
-    try:
-        print(resolve_query(network, query))
-    except Exception as e:
-        print(f"Query error: {e}")
-        exit(1)
 
 
 def parse_args():
