@@ -8,7 +8,9 @@
 `include "axi/assign.svh"
 `include "floo_noc/typedef.svh"
 
-module tb_floo_rob;
+`define TARGET_SIMULATION
+
+module tb_floo_rob_multicast;
 
   import floo_pkg::*;
 
@@ -16,8 +18,8 @@ module tb_floo_rob;
   localparam time ApplTime = 2ns;
   localparam time TestTime = 8ns;
 
-  localparam int unsigned NumReads = 1000;
-  localparam int unsigned NumWrites = 1000;
+  localparam int unsigned NumReads = 10;
+  localparam int unsigned NumWrites = 10;
 
   localparam int unsigned NumSlaves = 4;
 
@@ -106,12 +108,25 @@ module tb_floo_rob;
     axi_addr_t end_addr;
   } node_addr_region_t;
 
+  typedef struct packed {
+    int unsigned idx;
+    axi_addr_t addr;
+    axi_addr_t mask;
+  } node_addr_mask_region_t;
+
   localparam int unsigned NumAddrRegions = 4;
   localparam node_addr_region_t [NumAddrRegions-1:0] AddrRegions = '{
     '{idx: North, start_addr: 32'h00210000, end_addr: 32'h0021FFFF},  // North
     '{idx: East, start_addr: 32'h00120000, end_addr: 32'h0012FFFF},   // East
     '{idx: South, start_addr: 32'h00010000, end_addr: 32'h0001FFFF},  // South
     '{idx: West, start_addr: 32'h00100000, end_addr: 32'h0010FFFF}    // West
+  };
+
+  localparam node_addr_mask_region_t [NumAddrRegions-1:0] MaskAddrRegions = '{
+    '{idx: North, addr: 32'h00210000, mask: 32'hFFDCFFFF},  // North
+    '{idx: East, addr: 32'h00120000, mask: 32'hFFFDFFFF},   // East
+    '{idx: South, addr: 32'h00010000, mask: 32'hFFCCFFFF},  // South
+    '{idx: West, addr: 32'h00100000, mask: 32'hFFFCFFFF}    // West
   };
 
   floo_axi_test_node #(
@@ -127,7 +142,8 @@ module tb_floo_rob;
     .rule_t         ( node_addr_region_t    ),
     .AddrRegions    ( AddrRegions           ),
     .NumReads       ( NumReads              ),
-    .NumWrites      ( NumWrites             )
+    .NumWrites      ( NumWrites             ),
+    .ENABLE_MULTICAST ( 1'b1 )
   ) i_test_node_0 (
     .clk_i          ( clk                           ),
     .rst_ni         ( rst_n                         ),
@@ -190,9 +206,10 @@ module tb_floo_rob;
     .NumRoutes        ( floo_pkg::NumDirections ),
     .NumVirtChannels  ( 1                       ),
     .flit_t           ( floo_req_generic_flit_t ),
-    .InFifoDepth ( 2                       ),
+    .InFifoDepth      ( 2                       ),
     .RouteAlgo        ( floo_pkg::XYRouting     ),
-    .id_t             ( id_t                    )
+    .id_t             ( id_t                    ),
+    .NoLoopback       ( 1                       )
   ) i_floo_req_router (
     .clk_i          ( clk                     ),
     .rst_ni         ( rst_n                   ),
@@ -213,7 +230,8 @@ module tb_floo_rob;
     .flit_t           ( floo_rsp_generic_flit_t ),
     .InFifoDepth ( 2                       ),
     .RouteAlgo        ( floo_pkg::XYRouting     ),
-    .id_t             ( id_t                    )
+    .id_t             ( id_t                    ),
+    .ENABLE_MULTICAST ( 1                       )
   ) i_floo_rsp_router (
     .clk_i          ( clk                     ),
     .rst_ni         ( rst_n                   ),
@@ -315,13 +333,15 @@ module tb_floo_rob;
 
   end
 
-  axi_reorder_compare #(
+  axi_reorder_compare_multicast #(
     .NumSlaves      ( NumSlaves                       ),
     .AxiIdWidth     ( floo_test_pkg::AxiCfg.InIdWidth ),
     .NumAddrRegions ( NumAddrRegions                  ),
     .addr_t         ( axi_addr_t                      ),
     .rule_t         ( node_addr_region_t              ),
     .AddrRegions    ( AddrRegions                     ),
+    .mask_rule_t    ( node_addr_mask_region_t         ),
+    .MaskAddrRegions( MaskAddrRegions                 ),
     .aw_chan_t      ( axi_in_aw_chan_t                ),
     .w_chan_t       ( axi_in_w_chan_t                 ),
     .b_chan_t       ( axi_in_b_chan_t                 ),

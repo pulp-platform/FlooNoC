@@ -43,7 +43,8 @@ package floo_test_pkg;
   localparam floo_pkg::axi_cfg_t AxiCfg = '{
     AddrWidth: 32,
     DataWidth: 64,
-    UserWidth: 1,
+    // UserWidth: 1,
+    UserWidth: 32, //same as addr width
     InIdWidth: 3,
     OutIdWidth: 3
   };
