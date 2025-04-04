@@ -79,10 +79,10 @@ def resolve_query(obj, path: str):
             raise AttributeError(f"Cannot resolve '{part}' in path")
     return obj
 
-def handle_query(network: Network, args: argparse.Namespace):
+def handle_query(network: Network, query: str):
     """Handles the query command."""
     try:
-        print(resolve_query(network, args.key))
+        print(resolve_query(network, query))
     except Exception as e:
         print(f"Query error: {e}")
         exit(1)
@@ -91,14 +91,10 @@ def handle_query(network: Network, args: argparse.Namespace):
 def parse_args():
     """Parse the command line arguments."""
     parser = argparse.ArgumentParser(description="FlooGen: A Network-on-Chip Generator")
-    subparsers = parser.add_subparsers(dest="command")
-    parser.set_defaults(command="generate")
-
-    generate_parser = subparsers.add_parser("generate", help="Generate the NoC")
-    generate_parser.add_argument(
+    parser.add_argument(
         "-c", "--config", type=Path, required=True, help="Path to the configuration file."
     )
-    generate_parser.add_argument(
+    parser.add_argument(
         "-o",
         "--outdir",
         type=Path,
@@ -108,43 +104,34 @@ def parse_args():
             "If not specified, the files are printed to stdout."
         ),
     )
-    generate_parser.add_argument(
+    parser.add_argument(
         "--only-pkg",
         dest="only_pkg",
         action="store_true",
         default=False,
         help="Only generate the NoC package.",
     )
-    generate_parser.add_argument(
+    parser.add_argument(
         "--only-top",
         dest="only_top",
         action="store_true",
         default=False,
         help="Only generate the NoC top-module.",
     )
-    generate_parser.add_argument(
+    parser.add_argument(
         "--no-format",
         dest="no_format",
         action="store_true",
         help="Do not format the output.",
     )
-    generate_parser.add_argument("--visualize", action="store_true", help="Visualize the network graph.")
-
-    query_parser = subparsers.add_parser("query", help="Query configuration")
-    query_parser.add_argument(
-        "-c", "--config", type=Path, required=True, help="Path to the configuration file."
-    )
-    query_parser.add_argument("key", type=str, help="Key to query (dot notation)")
+    parser.add_argument("--visualize", action="store_true", help="Visualize the network graph.")
+    parser.add_argument("-q", "--query", type=str, help="Query a specific key in the configuration.")
 
     return parser.parse_args()
 
 
 def main():
     """Generates the network."""
-
-    # If no subcommand is provided, default to "generate", to retain backwards compatibility
-    if len(sys.argv) > 1 and sys.argv[1] not in {"generate", "query", "-h", "--help"}:
-        sys.argv.insert(1, "generate")
 
     args = parse_args()
 
@@ -154,8 +141,8 @@ def main():
     network.compile_network()
     network.gen_routing_info()
 
-    if args.command == "query":
-        handle_query(network, args)
+    if args.query:
+        handle_query(network, args.query)
     else:
         render_sources(network, args)
 
