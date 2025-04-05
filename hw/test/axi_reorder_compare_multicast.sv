@@ -214,6 +214,11 @@ module axi_reorder_compare_multicast #(
         end
         b_out_rsp_queue[mon_mst_req_i.aw.id].push_back('{slv_id: 0, num_rsp: multiaddr_decode_sel});
       end
+      // for (int i=0; i<w_slv_idx.size(); i++) begin
+      //   $display("after new aw issued: w_slv_idx[%0d]=%0d",i,w_slv_idx[i]);
+      // end
+      if (Verbose) $info("Issued AW: id=%0d, len=%0d, route_mask=%0b",
+                          mon_mst_req_i.aw.id, mon_mst_req_i.aw.len+1, multiaddr_decode_sel);
     end
     if (mon_mst_req_i.w_valid && mon_mst_rsp_i.w_ready) begin
       // w_queue[w_slv_idx[0]].push_back(mon_mst_req_i.w);
@@ -252,6 +257,8 @@ module axi_reorder_compare_multicast #(
         aw_exp.id = 'X;
         if (aw_exp !== aw_act) begin
           $error("AW mismatch");
+          $info("Slave[%0d] port output AW: id=%0d, len=%0d (not added to compare queue)",
+                  i, aw_id, aw_exp.len+1);
           print_aw(aw_exp, aw_act);
         end else begin
           aw_id_queue[i].push_back(aw_id);
@@ -320,7 +327,6 @@ module axi_reorder_compare_multicast #(
   always_ff @(posedge clk_i) begin : step_4
     if (mon_mst_rsp_i.b_valid && mon_mst_req_i.b_ready) begin
       automatic b_chan_t b_exp, b_act;
-      automatic b_chan_t b_tmp;
       automatic id_t b_id;
       automatic int unsigned slv_id;
       automatic b_chan_t b_mcast_exp [NumSlaves];
@@ -333,6 +339,7 @@ module axi_reorder_compare_multicast #(
       // if (b_queue[slv_id][b_id].size() == 0) $error("Slave [%0d] B queue is empty!", slv_id);
       // b_exp = b_queue[slv_id][b_id].pop_front();
       if(b_out_rsp_queue[b_id][0].num_rsp==0) begin
+        $display("This is a normal B");
         slv_id = b_out_rsp_queue[b_id][0].slv_id;
         if (b_queue[slv_id][b_id].size() == 0) $error("Slave [%0d] B queue is empty!", slv_id);
         b_exp = b_queue[slv_id][b_id].pop_front();
@@ -370,8 +377,8 @@ module axi_reorder_compare_multicast #(
           for(int i=0; i<$bits(multiaddr_decode_sel); i++) begin
             if(b_out_rsp_queue[b_id][0].num_rsp[i]==1) begin
               if (b_queue[i][b_id].size() == 0) $error("Slave [%0d] B queue is empty!", i);
-              b_tmp = b_queue[i][b_id].pop_front();
-              $display("pop b_queue[%0d], id=%0d, user=%0x", i, b_tmp.id, b_tmp.user);
+              void'(b_queue[i][b_id].pop_front());
+              $display("pop b_queue[%0d]",i);
             end
           end
           void'(b_out_rsp_queue[b_id].pop_front());

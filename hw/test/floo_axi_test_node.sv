@@ -105,7 +105,7 @@ module floo_axi_test_node #(
                                         AddrRegions[i].end_addr,
                                         axi_pkg::DEVICE_NONBUFFERABLE);
     end
-    if(ENABLE_MULTICAST) begin 
+    if(ENABLE_MULTICAST) begin
       axi_rand_master.set_multicast_probability(50);
     end
     axi_rand_master.reset();
