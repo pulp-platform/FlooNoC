@@ -21,6 +21,7 @@ class EndpointDesc(BaseModel):
     name: str
     description: Optional[str] = ""
     array: Optional[Union[Tuple[int], Tuple[int, int]]] = None
+    num: Optional[int] = None
     addr_range: List[AddrRange] = []
     xy_id_offset: Optional[Id] = None
     mgr_port_protocol: Optional[List[str]] = None
@@ -62,6 +63,20 @@ class EndpointDesc(BaseModel):
             case (_, None):
                 raise ValueError("Endpoint is a Subordinate and requires an address range")
         return self
+
+    @model_validator(mode="after")
+    def set_number_eps(self):
+        """Set the number of endpoints based on `array`"""
+        if self.array is None:
+            self.num = 1
+        elif len(self.array) == 1:
+            self.num = self.array[0]
+        elif len(self.array) == 2:
+            self.num = self.array[0] * self.array[1]
+        else:
+            raise ValueError("Invalid array size")
+        return self
+
 
     def is_sbr(self) -> bool:
         """Return true if the endpoint is a subordinate."""

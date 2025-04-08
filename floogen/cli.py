@@ -10,59 +10,13 @@ import argparse
 from pathlib import Path
 
 from floogen.config_parser import parse_config
+from floogen.query import handle_query
 from floogen.model.network import Network
 from floogen.utils import verible_format
 
 
-def parse_args():
-    """Parse the command line arguments."""
-    parser = argparse.ArgumentParser(description="FlooGen: A Network-on-Chip Generator")
-    parser.add_argument(
-        "-c", "--config", type=Path, required=True, help="Path to the configuration file."
-    )
-    parser.add_argument(
-        "-o",
-        "--outdir",
-        type=Path,
-        required=False,
-        help=(
-            "Path to the output directory of the generated output files. "
-            "If not specified, the files are printed to stdout."
-        ),
-    )
-    parser.add_argument(
-        "--only-pkg",
-        dest="only_pkg",
-        action="store_true",
-        default=False,
-        help="Only generate the NoC package.",
-    )
-    parser.add_argument(
-        "--only-top",
-        dest="only_top",
-        action="store_true",
-        default=False,
-        help="Only generate the NoC top-module.",
-    )
-    parser.add_argument(
-        "--no-format",
-        dest="no_format",
-        action="store_true",
-        help="Do not format the output.",
-    )
-    parser.add_argument("--visualize", action="store_true", help="Visualize the network graph.")
-    args = parser.parse_args()
-    return args
-
-
-def main(): # pylint: disable=too-many-branches
-    """Generates the network."""
-    args = parse_args()
-    network = parse_config(Network, args.config)
-
-    network.create_network()
-    network.compile_network()
-    network.gen_routing_info()
+def render_sources(network: Network, args: argparse.Namespace):
+    """Render the sources for the network."""
 
     # Create the output directory if it doesn't exist
     if args.outdir:
@@ -102,6 +56,67 @@ def main(): # pylint: disable=too-many-branches
             print(rendered_pkg)
         if not args.only_pkg:
             print(rendered_top)
+
+
+def parse_args():
+    """Parse the command line arguments."""
+    parser = argparse.ArgumentParser(description="FlooGen: A Network-on-Chip Generator")
+    parser.add_argument(
+        "-c", "--config", type=Path, required=True, help="Path to the configuration file."
+    )
+    parser.add_argument(
+        "-o",
+        "--outdir",
+        type=Path,
+        required=False,
+        help=(
+            "Path to the output directory of the generated output files. "
+            "If not specified, the files are printed to stdout."
+        ),
+    )
+    parser.add_argument(
+        "--only-pkg",
+        dest="only_pkg",
+        action="store_true",
+        default=False,
+        help="Only generate the NoC package.",
+    )
+    parser.add_argument(
+        "--only-top",
+        dest="only_top",
+        action="store_true",
+        default=False,
+        help="Only generate the NoC top-module.",
+    )
+    parser.add_argument(
+        "--no-format",
+        dest="no_format",
+        action="store_true",
+        help="Do not format the output.",
+    )
+    parser.add_argument("--visualize", action="store_true", help="Visualize the network graph.")
+    parser.add_argument(
+        "-q", "--query", type=str, help="Query a specific key in the configuration."
+    )
+
+    return parser.parse_args()
+
+
+def main():
+    """Generates the network."""
+
+    args = parse_args()
+
+    network = parse_config(Network, args.config)
+
+    network.create_network()
+    network.compile_network()
+    network.gen_routing_info()
+
+    if args.query:
+        handle_query(network, args.query)
+    else:
+        render_sources(network, args)
 
 
 if __name__ == "__main__":
