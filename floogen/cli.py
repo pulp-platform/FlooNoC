@@ -38,8 +38,8 @@ def render_sources(network: Network, args: argparse.Namespace):
 
     # Format the output if requested
     if not args.no_format:
-        rendered_top = verible_format(rendered_top)
-        rendered_pkg = verible_format(rendered_pkg)
+        rendered_top = verible_format(rendered_top, args.verible_fmt_bin, args.verible_fmt_args)
+        rendered_pkg = verible_format(rendered_pkg, args.verible_fmt_bin, args.verible_fmt_args)
 
     # Write the network description to file or print it to stdout
     if args.outdir:
@@ -93,6 +93,18 @@ def parse_args():
         dest="no_format",
         action="store_true",
         help="Do not format the output.",
+    )
+    parser.add_argument(
+        "--verible-fmt-bin",
+        type=str,
+        default=None,
+        help="Overwrite default `verible-verilog-format` binary.",
+    )
+    parser.add_argument(
+        "--verible-fmt-args",
+        type=str,
+        default=None,
+        help="Additional arguments to pass to `verible-verilog-format`.",
     )
     parser.add_argument("--visualize", action="store_true", help="Visualize the network graph.")
     parser.add_argument(
