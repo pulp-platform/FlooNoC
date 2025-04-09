@@ -1,4 +1,8 @@
-// Chen Wu
+// Copyright 2025 ETH Zurich and University of Bologna.
+// Solderpad Hardware License, Version 0.51, see LICENSE for details.
+// SPDX-License-Identifier: SHL-0.51
+//
+// Author: Chen Wu <chenwu@student.ethz.ch>
 
 module floo_reduction_sync import floo_pkg::*;
 # (

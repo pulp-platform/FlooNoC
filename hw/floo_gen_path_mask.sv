@@ -1,8 +1,12 @@
-// Chen Wu
+// Copyright 2025 ETH Zurich and University of Bologna.
+// Solderpad Hardware License, Version 0.51, see LICENSE for details.
+// SPDX-License-Identifier: SHL-0.51
+//
+// Author: Chen Wu <chenwu@student.ethz.ch>
 
 /// This module generates a mask to speficy whether inputs are to be reduced or not
-// the bit that is set to 0 means that the flit coming from the input port is to be reduced
-// the bit that is set to 1 means that the flit coming from the input port is normal
+/// the bit that is set to 0 means that the flit coming from the input port is to be reduced
+/// the bit that is set to 1 means that the flit coming from the input port is normal
 module floo_gen_path_mask import floo_pkg::*;
 # (
   parameter int unsigned NumRoutes  = 1,
