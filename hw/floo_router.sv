@@ -210,7 +210,7 @@ module floo_router
           .valid_i  ( masked_valid[out][v] ),
           .ready_o  ( masked_ready[out][v] ),
           .data_i   ( masked_data [out][v] ),
-          .node_id_i( xy_id_i              ),
+          .xy_id_i  ( xy_id_i              ),
 
           .valid_o ( out_valid[out][v] ),
           .ready_i ( out_ready[out][v] ),
