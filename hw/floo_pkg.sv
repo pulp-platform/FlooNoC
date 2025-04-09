@@ -85,10 +85,13 @@ package floo_pkg;
 
   /// The types of collective communication
   typedef enum logic [1:0] {
+    /// Normal communication
     Unicast = 2'd0,
+    /// Multicast communication
     Multicast = 2'd1,
+    /// Reduction of AXI B-responses
     CollectB = 2'd2
-  } commtype_e;
+  } collect_comm_e;
 
   /// The types of AXI channels in narrow-wide AXI network interfaces
   typedef enum logic [3:0] {

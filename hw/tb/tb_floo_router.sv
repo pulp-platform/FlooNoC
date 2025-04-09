@@ -44,7 +44,7 @@ module tb_floo_router;
   typedef logic [FlitWidth-1:0] payload_t;
   typedef logic [IdWidth-1:0] id_t;
 
-  `FLOO_TYPEDEF_MASK_HDR_T(hdr_t, id_t, id_t, id_t, logic, logic, floo_pkg::commtype_e)
+  `FLOO_TYPEDEF_MASK_HDR_T(hdr_t, id_t, id_t, id_t, logic, logic, floo_pkg::collect_comm_e)
   `FLOO_TYPEDEF_GENERIC_FLIT_T(req, hdr_t, payload_t)
 
   logic clk, rst_n;

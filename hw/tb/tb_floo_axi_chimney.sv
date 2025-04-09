@@ -26,7 +26,7 @@ module tb_floo_axi_chimney;
   typedef logic [1:0] x_bits_t;
   typedef logic [1:0] y_bits_t;
   `FLOO_TYPEDEF_XY_NODE_ID_T(id_t, x_bits_t, y_bits_t, logic)
-  `FLOO_TYPEDEF_MASK_HDR_T(hdr_t, id_t, id_t, id_t, floo_pkg::axi_ch_e, logic, floo_pkg::commtype_e)
+  `FLOO_TYPEDEF_MASK_HDR_T(hdr_t, id_t, id_t, id_t, floo_pkg::axi_ch_e, logic, floo_pkg::collect_comm_e)
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi, floo_test_pkg::AxiCfg)
   `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi_in, floo_test_pkg::AxiCfg, hdr_t)
   `FLOO_TYPEDEF_AXI_LINK_ALL(req, rsp, req, rsp)
