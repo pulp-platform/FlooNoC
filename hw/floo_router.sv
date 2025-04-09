@@ -299,4 +299,8 @@ module floo_router
       end
     end
   end
+
+  // Multicast is currently only supported for `XYRouting`
+  `ASSERT_INIT(NoMultiCastSupport, !(EnMultiCast && RouteAlgo != XYRouting))
+
 endmodule
