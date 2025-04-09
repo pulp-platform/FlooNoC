@@ -291,4 +291,12 @@ module floo_router
     end
   end
 
+  // If `NoLoopback` is enabled, assert that no loopback occurs
+  if (NoLoopback) begin: gen_no_loopback_assert
+    for (genvar in = 0; in < NumInput; in++) begin : gen_input
+      for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt
+        `ASSERT(NoLoopback, !(in_valid[in][v] && route_mask[in][v][in]))
+      end
+    end
+  end
 endmodule
