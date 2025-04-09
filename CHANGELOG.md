@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+#### FlooGen
+- New query feature in _FlooGen_ to be able to query the objects of the internal representation of the networks. For instance, the following command returns the number of endpoints defined in a 2D array instantiation: `floogen -c config.yml --query "endpoints.some_ep.num"` (https://github.com/pulp-platform/FlooNoC/pull/119)
+- New CLI flags `--verible-fmt-bin` and `--verible-fmt-args` to define specific verible binary and additional arguments. (https://github.com/pulp-platform/FlooNoC/pull/120)
+
+### Changed
+
+#### FlooGen
+- The error of not finding a `verible-verilog-format` binary in the `PATH` has been downgraded to a warning, which can be disabled entirely with the `--no-format` flag. (https://github.com/pulp-platform/FlooNoC/pull/120)
+
 ## [0.6.0] - 2025-04-03
 
 ### Added

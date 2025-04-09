@@ -115,16 +115,29 @@ def sv_enum_typedef(name: str, fields_dict: dict=None, fields_list: list=None) -
     return typedef
 
 
-def verible_format(string: str) -> str:
+def verible_format(string: str, verible_fmt_bin=None, verible_fmt_args=None) -> str:
     """Format the string using verible-verilog-format."""
-    if shutil.which("verible-verilog-format") is None:
-        raise RuntimeError(
-            "verible-verilog-format not found. Please install it or use the --no-format flag."
+    if verible_fmt_bin is None:
+        verible_fmt_bin = shutil.which("verible-verilog-format")  # Fallback to `which`
+    if verible_fmt_bin is None:
+        print(
+            "\033[93mWarning:\033[0m Output formatting is skipped because \
+            `verible-verilog-format` was not found in the `PATH` \
+             Please install it or use the `--no-format` flag to skip formatting. \
+             Alternatively, you can also specify the path to the binary with the \
+            `--verible-fmt-bin` flag."
         )
+        return string
+
+    if verible_fmt_args is None:
+        verible_fmt_args = []
+    else:
+        verible_fmt_args = verible_fmt_args.split()
+
     # Format the output using verible-verilog-format, by piping it into the stdin
     # of the formatter and capturing the stdout
     return subprocess.run(
-        ["verible-verilog-format", "-"],
+        verible_fmt_bin.split() + verible_fmt_args + ["-"],
         input=string,
         capture_output=True,
         text=True,
