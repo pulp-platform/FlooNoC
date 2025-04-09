@@ -9,19 +9,25 @@
 module floo_route_select
   import floo_pkg::*;
 #(
+  /// Number of output ports
   parameter int unsigned NumRoutes        = 0,
-  parameter type         flit_t           = logic,
+  /// Routing algorithm
   parameter route_algo_e RouteAlgo        = IdTable,
+  /// Enable wormhole routing i.e. locking the direction
+  /// until the `last` flag is received
   parameter bit          LockRouting      = 1'b1,
-  /// Used for ID-based and XY routing
+  /// Id Width, only used for `XYRouting` and `IdTable`
   parameter int unsigned IdWidth          = 0,
-  /// Used for ID-based routing
+  /// Number of address rules, only used for `IdTable`
   parameter int unsigned NumAddrRules     = 0,
-  parameter type         addr_rule_t      = logic,
-  parameter type         id_t             = logic[IdWidth-1:0],
-  /// Used for source-based routing
+  /// Width of port index, only used for `SrcRouting`
   parameter int unsigned RouteSelWidth    = $clog2(NumRoutes),
-  parameter bit          EnMultiCast      = 1'b0
+  /// Enable multicast routing, currently only supported for `XYRouting`
+  parameter bit          EnMultiCast      = 1'b0,
+  /// Various types used in the routing algorithm
+  parameter type         flit_t           = logic,
+  parameter type         addr_rule_t      = logic,
+  parameter type         id_t             = logic[IdWidth-1:0]
 ) (
   input  logic                          clk_i,
   input  logic                          rst_ni,
@@ -34,11 +40,11 @@ module floo_route_select
   input  logic                          valid_i,
   input  logic                          ready_i,
   output flit_t                         channel_o,
-  output logic [NumRoutes-1:0]          route_sel_o, // One-hot route
+  output logic [NumRoutes-1:0]          route_sel_o,
   output logic [RouteSelWidth-1:0]      route_sel_id_o
 );
 
-  logic [NumRoutes-1:0] route_sel, route_sel_masked;
+  logic [NumRoutes-1:0] route_sel;
   logic [RouteSelWidth-1:0] route_sel_id;
 
   if (RouteAlgo == IdTable) begin : gen_id_table
@@ -107,6 +113,7 @@ module floo_route_select
         .xy_id_i     ( xy_id_i   ),
         .route_sel_o ( route_sel )
       );
+      assign route_sel_id = '0; // Not defined in multicast
     end else begin : gen_route_sel
       id_t id_in;
       assign id_in = id_t'(channel_i.hdr.dst_id);
