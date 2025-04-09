@@ -17,11 +17,12 @@ module floo_output_arbiter import floo_pkg::*;
 ) (
   input  logic                   clk_i,
   input  logic                   rst_ni,
+  /// Current XY-coordinate of the router
+  input  id_t                    xy_id_i,
   /// Input ports
   input  logic  [NumRoutes-1:0]  valid_i,
   output logic  [NumRoutes-1:0]  ready_o,
   input  flit_t [NumRoutes-1:0]  data_i,
-  input  id_t                    xy_id_i,
   /// Output port
   output logic                   valid_o,
   input  logic                   ready_i,
@@ -75,7 +76,7 @@ module floo_output_arbiter import floo_pkg::*;
     .valid_i   ( reduce_valid_in   ),
     .ready_o   ( reduce_ready_in   ),
     .data_i    ( reduce_data_in    ),
-    .node_id_i ( xy_id_i           ),
+    .xy_id_i   ( xy_id_i           ),
     .valid_o   ( reduced_valid_out ),
     .ready_i   ( ready_i           ),
     .data_o    ( reduced_data_out  )
