@@ -23,12 +23,23 @@ dependencies = [
   "matplotlib",
   "mako",
   "ruamel.yaml",
-  "hjson",
-  "jsonref",
   "click",
-  "pylint",
-  "pytest",
   "pygame"
+]
+
+[project.optional-dependencies]
+docs = [
+  "mkdocs",
+  "mkdocs-material",
+  "pillow",
+  "cairosvg",
+  "mkdocs-git-revision-date-localized-plugin",
+  "mkdocs-git-committers-plugin-2"
+]
+dev = [
+  "black",
+  "pylint",
+  "pytest"
 ]
 
 [build-system]
