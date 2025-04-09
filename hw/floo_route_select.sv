@@ -21,7 +21,7 @@ module floo_route_select
   parameter type         id_t             = logic[IdWidth-1:0],
   /// Used for source-based routing
   parameter int unsigned RouteSelWidth    = $clog2(NumRoutes),
-  parameter bit          ENABLE_MULTICAST = 1'b0
+  parameter bit          EnMultiCast      = 1'b0
 ) (
   input  logic                          clk_i,
   input  logic                          rst_ni,
@@ -96,7 +96,7 @@ module floo_route_select
 
     // One-hot encoding of the decoded route
 
-    if (ENABLE_MULTICAST) begin : gen_mcast_route_sel
+    if (EnMultiCast) begin : gen_mcast_route_sel
       floo_route_xymask #(
         .NumRoutes     ( NumRoutes ),
         .flit_t        ( flit_t    ),

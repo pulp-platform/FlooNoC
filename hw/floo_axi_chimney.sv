@@ -25,6 +25,8 @@ module floo_axi_chimney #(
   /// Every atomic transactions needs to have a unique ID
   /// and one ID is reserved for non-atomic transactions
   parameter int unsigned MaxAtomicTxns      = 1,
+  /// Enable multicast feature
+  parameter bit EnMultiCast                 = 1'b0,
   /// Node ID type for routing
   parameter type id_t                                   = logic,
   /// RoB index type for reordering.
@@ -47,13 +49,13 @@ module floo_axi_chimney #(
   /// (only used if `RouteCfg.UseIdTable == 1'b1`)
   parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam   = '0,
   /// Struct consisting of offset and len to speficy the position of the mask bits
-  /// (only used if `ENABLE_MULTICAST && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
+  /// (only used if `EnMultiCast && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
   parameter type mask_sel_t                             = logic,
   /// Rule type for the mask table, consisting of id, position of the mask bits for x and y
-  /// (only used if `ENABLE_MULTICAST && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
+  /// (only used if `EnMultiCast && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
   parameter type mask_rule_t                            = logic,
   /// The mask table
-  /// (only used if `ENABLE_MULTICAST && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
+  /// (only used if `EnMultiCast && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
   parameter mask_rule_t [RouteCfg.NumSamRules-1:0] MaskTable = '0,
   /// AXI manager request channel type
   parameter type axi_in_req_t               = logic,
@@ -70,12 +72,11 @@ module floo_axi_chimney #(
   /// SRAM configuration type
   parameter type sram_cfg_t                 = logic,
   /// Struct for user field in AXI
-  /// currently only used if ENABLE_MULTICAST
+  /// currently only used if EnMultiCast
   parameter type user_struct_t                          = logic,
   /// Speficy the correct length of mask
-  /// currently only used if ENABLE_MULTICAST
-  parameter type user_mask_t                            = logic [AxiCfg.UserWidth-1:0],
-  parameter bit ENABLE_MULTICAST = 1'b0
+  /// currently only used if EnMultiCast
+  parameter type user_mask_t                            = logic [AxiCfg.UserWidth-1:0]
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -194,7 +195,7 @@ module floo_axi_chimney #(
     `AXI_ASSIGN_REQ_STRUCT(axi_req_in, axi_in_req_i)
     `AXI_ASSIGN_RESP_STRUCT(axi_in_rsp_o, axi_rsp_out)
 
-    if (ENABLE_MULTICAST) begin : gen_mask
+    if (EnMultiCast) begin : gen_mask
       user_struct_t user;
       assign user = axi_in_req_i.aw.user;
       assign axi_req_in_mask = user.mask;
@@ -228,7 +229,7 @@ module floo_axi_chimney #(
         .valid_o    ( axi_ar_queue_valid_out  ),
         .ready_i    ( axi_ar_queue_ready_in   )
       );
-      if (ENABLE_MULTICAST) begin : gen_mask_cuts
+      if (EnMultiCast) begin : gen_mask_cuts
         spill_register #(
           .T (user_mask_t)
         ) i_usermask_queue (
@@ -476,14 +477,14 @@ module floo_axi_chimney #(
       // (or route if `SourceRouting` is used)
       floo_route_comp #(
         .RouteCfg     ( RouteCfg    ),
+        .EnMultiCast  ( EnMultiCast ),
         .id_t         ( id_t        ),
         .addr_t       ( axi_addr_t  ),
         .mask_t       ( user_mask_t ),
         .addr_rule_t  ( sam_rule_t  ),
         .mask_rule_t  ( mask_rule_t ),
         .mask_sel_t   ( mask_sel_t  ),
-        .route_t      ( route_t     ),
-        .ENABLE_MULTICAST ( ENABLE_MULTICAST )
+        .route_t      ( route_t     )
       ) i_floo_req_route_comp (
         .clk_i,
         .rst_ni,
@@ -765,6 +766,7 @@ module floo_axi_chimney #(
       .MaxUniqueIds   ( ChimneyCfg.MaxUniqueIds ),
       .AtopSupport    ( AtopSupport             ),
       .MaxAtomicTxns  ( MaxAtomicTxns           ),
+      .EnMultiCast    ( EnMultiCast             ),
       .buf_t          ( meta_buf_t              ),
       .axi_in_req_t   ( axi_req_t               ),
       .axi_in_rsp_t   ( axi_rsp_t               ),
@@ -774,8 +776,7 @@ module floo_axi_chimney #(
       .addr_t         ( axi_addr_t              ),
       .id_t           ( id_t                    ),
       .mask_rule_t    ( mask_rule_t             ),
-      .mask_sel_t     ( mask_sel_t              ),
-      .ENABLE_MULTICAST ( ENABLE_MULTICAST )
+      .mask_sel_t     ( mask_sel_t              )
     ) i_floo_meta_buffer (
       .clk_i,
       .rst_ni,

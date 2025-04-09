@@ -29,6 +29,8 @@ module floo_nw_router #(
   /// Disable illegal connections in router
   /// (only applies for `RouteAlgo == XYRouting`)
   parameter bit          XYRouteOpt           = 1'b1,
+  /// Enable multicast feature
+  parameter bit          EnMultiCast          = 1'b0,
   /// Node ID type
   parameter type id_t                         = logic,
   /// Header type
@@ -44,8 +46,7 @@ module floo_nw_router #(
   /// Floo `rsp` link type
   parameter type floo_rsp_t                   = logic,
   /// Floo `wide` link type
-  parameter type floo_wide_t                  = logic,
-  parameter bit          ENABLE_MULTICAST     = 1'b0
+  parameter type floo_wide_t                  = logic
 ) (
   input  logic   clk_i,
   input  logic   rst_ni,
@@ -135,8 +136,8 @@ module floo_nw_router #(
     .NumAddrRules     ( NumAddrRules            ),
     .addr_rule_t      ( addr_rule_t             ),
     .NoLoopback       ( 1'b1                    ),
-    .ENABLE_MULTICAST ( ENABLE_MULTICAST        ),
-    .ENABLE_REDUCTION ( 1'b0                    )
+    .EnMultiCast      ( EnMultiCast             ),
+    .EnReduction      ( 1'b0                    )
   ) i_req_floo_router (
     .clk_i,
     .rst_ni,
@@ -179,8 +180,8 @@ module floo_nw_router #(
     .NumAddrRules     ( NumAddrRules            ),
     .addr_rule_t      ( addr_rule_t             ),
     .NoLoopback       ( 1'b1                    ),
-    .ENABLE_MULTICAST ( 1'b0                    ),
-    .ENABLE_REDUCTION ( ENABLE_MULTICAST        )
+    .EnMultiCast      ( 1'b0                    ),
+    .EnReduction      ( EnMultiCast             )
   ) i_rsp_floo_router (
     .clk_i,
     .rst_ni,
@@ -209,8 +210,8 @@ module floo_nw_router #(
     .NumAddrRules     ( NumAddrRules              ),
     .addr_rule_t      ( addr_rule_t               ),
     .NoLoopback       ( 1'b1                      ),
-    .ENABLE_MULTICAST ( ENABLE_MULTICAST          ),
-    .ENABLE_REDUCTION ( 1'b0                      )
+    .EnMultiCast      ( EnMultiCast               ),
+    .EnReduction      ( 1'b0                      )
   ) i_wide_req_floo_router (
     .clk_i,
     .rst_ni,

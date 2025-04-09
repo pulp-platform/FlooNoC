@@ -32,8 +32,8 @@ module floo_router
   parameter int unsigned NumOutput        = NumRoutes,
   parameter bit          XYRouteOpt       = 1'b1,
   parameter bit          NoLoopback       = 1'b1,
-  parameter bit          ENABLE_MULTICAST = 1'b0,
-  parameter bit          ENABLE_REDUCTION = 1'b0
+  parameter bit          EnMultiCast      = 1'b0,
+  parameter bit          EnReduction      = 1'b0
 ) (
   input  logic                                       clk_i,
   input  logic                                       rst_ni,
@@ -97,7 +97,7 @@ module floo_router
         .id_t             ( id_t             ),
         .NumAddrRules     ( NumAddrRules     ),
         .addr_rule_t      ( addr_rule_t      ),
-        .ENABLE_MULTICAST ( ENABLE_MULTICAST )
+        .EnMultiCast      ( EnMultiCast      )
       ) i_route_select (
         .clk_i,
         .rst_ni,
@@ -145,7 +145,7 @@ module floo_router
               masked_ready[out_route][v_chan][in_route];
             assign masked_valid[out_route][v_chan][in_route] =
               in_valid[in_route][v_chan] & route_mask[in_route][v_chan][out_route]
-              & (ENABLE_MULTICAST? ~acc_masked_ready_q[in_route][v_chan][out_route] : 1'b1);
+              & (EnMultiCast? ~acc_masked_ready_q[in_route][v_chan][out_route] : 1'b1);
             assign masked_data[out_route][v_chan][in_route] =
               in_routed_data[in_route][v_chan];
           end
@@ -155,12 +155,12 @@ module floo_router
               masked_ready[out_route][v_chan][in_route];
           assign masked_valid[out_route][v_chan][in_route] =
             in_valid[in_route][v_chan] & route_mask[in_route][v_chan][out_route]
-            & (ENABLE_MULTICAST? ~acc_masked_ready_q[in_route][v_chan][out_route] : 1'b1);
+            & (EnMultiCast? ~acc_masked_ready_q[in_route][v_chan][out_route] : 1'b1);
           assign masked_data[out_route][v_chan][in_route] =
             in_routed_data[in_route][v_chan];
         end
       end
-      if (!ENABLE_MULTICAST) begin : gen_unicast
+      if (!EnMultiCast) begin : gen_unicast
         assign in_ready[in_route][v_chan] =
           |(masked_all_ready[in_route][v_chan] & route_mask[in_route][v_chan]);
       end else begin : gen_multicast
@@ -185,7 +185,7 @@ module floo_router
 
     // arbitrate input fifos per virtual channel
     for (genvar v_chan = 0; v_chan < NumVirtChannels; v_chan++) begin : gen_virt_output
-      if(!ENABLE_REDUCTION) begin : gen_no_reduction_output
+      if(!EnReduction) begin : gen_no_reduction_output
         floo_wormhole_arbiter #(
           .NumRoutes  ( NumInput ),
           .flit_t     ( flit_t   )

@@ -12,6 +12,7 @@ module floo_route_comp
   /// The route config
   parameter floo_pkg::route_cfg_t RouteCfg = '0,
   parameter bit UseIdTable = RouteCfg.UseIdTable,
+  parameter bit EnMultiCast = 1'b0,
   parameter type id_t = logic,
   /// The type of the address
   parameter type addr_t = logic,
@@ -21,8 +22,7 @@ module floo_route_comp
   /// The type of the address rules
   parameter type addr_rule_t = logic,
   parameter type mask_rule_t = logic,
-  parameter type mask_sel_t = logic,
-  parameter bit ENABLE_MULTICAST = 0
+  parameter type mask_sel_t = logic
 ) (
   input  logic  clk_i,
   input  logic  rst_ni,
@@ -74,7 +74,7 @@ module floo_route_comp
       .en_default_idx_i ( 1'b0        ),
       .default_idx_i    ( '0          )
     );
-    if (ENABLE_MULTICAST && RouteCfg.UseIdTable &&
+    if (EnMultiCast && RouteCfg.UseIdTable &&
         (RouteCfg.RouteAlgo == floo_pkg::XYRouting))
     begin : gen_mcast_mask
       floo_mask_decode #(
@@ -107,7 +107,7 @@ module floo_route_comp
     assign id_o.port_id = '0;
     assign id_o.x = addr_i[RouteCfg.XYAddrOffsetX +: $bits(id_o.x)];
     assign id_o.y = addr_i[RouteCfg.XYAddrOffsetY +: $bits(id_o.y)];
-    if(ENABLE_MULTICAST) begin : gen_mcast_mask
+    if(EnMultiCast) begin : gen_mcast_mask
       assign mask_o.x = mask_i[RouteCfg.XYAddrOffsetX +: $bits(id_o.x)];
       assign mask_o.y = mask_i[RouteCfg.XYAddrOffsetY +: $bits(id_o.y)];
       assign mask_o.port_id = '0;

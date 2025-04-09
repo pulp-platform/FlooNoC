@@ -154,7 +154,7 @@ module tb_floo_rob_multicast;
     .AddrRegions    ( AddrRegions           ),
     .NumReads       ( NumReads              ),
     .NumWrites      ( NumWrites             ),
-    .ENABLE_MULTICAST ( 1 )
+    .EnMultiCast ( 1 )
   ) i_test_node_0 (
     .clk_i          ( clk                           ),
     .rst_ni         ( rst_n                         ),
@@ -182,11 +182,12 @@ module tb_floo_rob_multicast;
   );
 
   floo_axi_chimney #(
-    .AxiCfg             ( McastAxiCfg         ),
+    .AxiCfg             ( McastAxiCfg                   ),
     .ChimneyCfg         ( RoBChimneyCfg                 ), // Needs RoB
     .RouteCfg           ( floo_test_pkg::RouteCfg       ),
     .AtopSupport        ( floo_test_pkg::AtopSupport    ),
     .MaxAtomicTxns      ( floo_test_pkg::MaxAtomicTxns  ),
+    .EnMultiCast        ( 1'b1                          ),
     .axi_in_req_t       ( axi_in_req_t                  ),
     .axi_in_rsp_t       ( axi_in_rsp_t                  ),
     .axi_out_req_t      ( axi_out_req_t                 ),
@@ -196,8 +197,7 @@ module tb_floo_rob_multicast;
     .hdr_t              ( hdr_t                         ),
     .floo_req_t         ( floo_req_t                    ),
     .floo_rsp_t         ( floo_rsp_t                    ),
-    .user_struct_t      ( mcast_user_t ),
-    .ENABLE_MULTICAST   ( 1 )
+    .user_struct_t      ( mcast_user_t                  )
   ) i_floo_axi_chimney (
     .clk_i          ( clk                               ),
     .rst_ni         ( rst_n                             ),
@@ -222,8 +222,8 @@ module tb_floo_rob_multicast;
     .InFifoDepth      ( 2                       ),
     .RouteAlgo        ( floo_pkg::XYRouting     ),
     .id_t             ( id_t                    ),
-    .NoLoopback       ( 1                       ),
-    .ENABLE_MULTICAST ( 1                       )
+    .NoLoopback       ( 1'b1                    ),
+    .EnMultiCast      ( 1'b1                    )
   ) i_floo_req_router (
     .clk_i          ( clk                     ),
     .rst_ni         ( rst_n                   ),
@@ -242,10 +242,10 @@ module tb_floo_rob_multicast;
     .NumRoutes        ( floo_pkg::NumDirections ),
     .NumVirtChannels  ( 1                       ),
     .flit_t           ( floo_rsp_generic_flit_t ),
-    .InFifoDepth ( 2                       ),
+    .InFifoDepth      ( 2                       ),
     .RouteAlgo        ( floo_pkg::XYRouting     ),
     .id_t             ( id_t                    ),
-    .ENABLE_REDUCTION ( 1                       )
+    .EnReduction      ( 1                       )
   ) i_floo_rsp_router (
     .clk_i          ( clk                     ),
     .rst_ni         ( rst_n                   ),
@@ -299,6 +299,7 @@ module tb_floo_rob_multicast;
       .RouteCfg       ( floo_test_pkg::RouteCfg       ),
       .AtopSupport    ( floo_test_pkg::AtopSupport    ),
       .MaxAtomicTxns  ( floo_test_pkg::MaxAtomicTxns  ),
+      .EnMultiCast    ( 1'b1                          ),
       .axi_in_req_t   ( axi_in_req_t                  ),
       .axi_in_rsp_t   ( axi_in_rsp_t                  ),
       .axi_out_req_t  ( axi_out_req_t                 ),
@@ -308,8 +309,7 @@ module tb_floo_rob_multicast;
       .hdr_t          ( hdr_t                         ),
       .floo_req_t     ( floo_req_t                    ),
       .floo_rsp_t     ( floo_rsp_t                    ),
-      .user_struct_t  ( mcast_user_t ),
-      .ENABLE_MULTICAST ( 1 )
+      .user_struct_t  ( mcast_user_t                  )
     ) i_floo_axi_chimney (
       .clk_i          ( clk                   ),
       .rst_ni         ( rst_n                 ),

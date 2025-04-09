@@ -24,6 +24,8 @@ module floo_meta_buffer #(
   parameter bit AtopSupport   = 1'b1,
   /// Number of outstanding atomic requests
   parameter int MaxAtomicTxns = 32'd1,
+  /// Enable multicast support
+  parameter bit EnMultiCast   = 1'b0,
   /// AXI in request channel
   parameter type axi_in_req_t   = logic,
   /// AXI in response channel
@@ -39,8 +41,7 @@ module floo_meta_buffer #(
   parameter type addr_t = logic,
   parameter type id_t   = logic,
   parameter type mask_rule_t = logic,
-  parameter type mask_sel_t  = logic,
-  parameter bit ENABLE_MULTICAST = 0
+  parameter type mask_sel_t  = logic
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -213,7 +214,7 @@ module floo_meta_buffer #(
 
   // NoC addr/mask to AXI addr/mask conversion
   localparam int unsigned AddrWidth = $bits(addr_t);
-  if (ENABLE_MULTICAST && RouteCfg.UseIdTable &&
+  if (EnMultiCast && RouteCfg.UseIdTable &&
      (RouteCfg.RouteAlgo == floo_pkg::XYRouting))
   begin : gen_mcast_table_conversion
     id_t out, in_mask, in_id;
@@ -339,7 +340,7 @@ module floo_meta_buffer #(
                             !no_atop_id_available : !aw_no_atop_buf_full);
       axi_rsp_o.aw_ready = axi_rsp_i.aw_ready && ((is_atop_aw)?
                             !no_atop_id_available : !aw_no_atop_buf_full);
-      // axi_req_o.aw.addr = (ENABLE_MULTICAST && aw_buf_i.hdr.commtype == floo_pkg::Multicast)?
+      // axi_req_o.aw.addr = (EnMultiCast && aw_buf_i.hdr.commtype == floo_pkg::Multicast)?
       //                      axi_addr : axi_req_i.aw.addr;
       axi_req_o.aw.addr = axi_addr;
     end
@@ -361,7 +362,7 @@ module floo_meta_buffer #(
       axi_rsp_o.ar_ready = axi_rsp_i.ar_ready && !ar_no_atop_buf_full;
       axi_req_o.aw_valid = axi_req_i.aw_valid && !aw_no_atop_buf_full;
       axi_rsp_o.aw_ready = axi_rsp_i.aw_ready && !aw_no_atop_buf_full;
-      // axi_req_o.aw.addr = (ENABLE_MULTICAST && aw_buf_i.hdr.commtype == floo_pkg::Multicast)?
+      // axi_req_o.aw.addr = (EnMultiCast && aw_buf_i.hdr.commtype == floo_pkg::Multicast)?
       //                      axi_addr : axi_req_i.aw.addr;
       axi_req_o.aw.addr = axi_addr;
     end

@@ -23,7 +23,7 @@ module floo_axi_test_node #(
   parameter rule_t [NumAddrRegions-1:0] AddrRegions = '0,
   parameter int unsigned NumReads = 0,
   parameter int unsigned NumWrites = 0,
-  parameter bit ENABLE_MULTICAST = 0
+  parameter bit EnMultiCast = 0
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -70,7 +70,7 @@ module floo_axi_test_node #(
     .W_MAX_WAIT_CYCLES    ( 0              ),
     .RESP_MIN_WAIT_CYCLES ( 0              ),
     .RESP_MAX_WAIT_CYCLES ( 0              ),
-    .ENABLE_MULTICAST     ( ENABLE_MULTICAST )
+    .ENABLE_MULTICAST     ( EnMultiCast    )
   ) axi_rand_master_t;
 
   AXI_BUS_DV #(
@@ -105,7 +105,7 @@ module floo_axi_test_node #(
                                         AddrRegions[i].end_addr,
                                         axi_pkg::DEVICE_NONBUFFERABLE);
     end
-    if(ENABLE_MULTICAST) begin
+    if(EnMultiCast) begin
       axi_rand_master.set_multicast_probability(50);
     end
     axi_rand_master.reset();
