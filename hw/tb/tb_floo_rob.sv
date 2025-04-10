@@ -40,7 +40,7 @@ module tb_floo_rob;
   typedef logic [1:0] x_bits_t;
   typedef logic [1:0] y_bits_t;
   `FLOO_TYPEDEF_XY_NODE_ID_T(id_t, x_bits_t, y_bits_t, logic)
-  `FLOO_TYPEDEF_MASK_HDR_T(hdr_t, id_t, id_t, id_t, axi_ch_e, rob_idx_t, collect_comm_e)
+  `FLOO_TYPEDEF_HDR_T(hdr_t, id_t, id_t, axi_ch_e, rob_idx_t)
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi, floo_test_pkg::AxiCfg)
   `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi_in, floo_test_pkg::AxiCfg, hdr_t)
   `FLOO_TYPEDEF_AXI_LINK_ALL(req, rsp, req, rsp)
@@ -190,7 +190,7 @@ module tb_floo_rob;
     .NumRoutes        ( floo_pkg::NumDirections ),
     .NumVirtChannels  ( 1                       ),
     .flit_t           ( floo_req_generic_flit_t ),
-    .InFifoDepth ( 2                       ),
+    .InFifoDepth      ( 2                       ),
     .RouteAlgo        ( floo_pkg::XYRouting     ),
     .id_t             ( id_t                    )
   ) i_floo_req_router (
@@ -211,7 +211,7 @@ module tb_floo_rob;
     .NumRoutes        ( floo_pkg::NumDirections ),
     .NumVirtChannels  ( 1                       ),
     .flit_t           ( floo_rsp_generic_flit_t ),
-    .InFifoDepth ( 2                       ),
+    .InFifoDepth      ( 2                       ),
     .RouteAlgo        ( floo_pkg::XYRouting     ),
     .id_t             ( id_t                    )
   ) i_floo_rsp_router (
