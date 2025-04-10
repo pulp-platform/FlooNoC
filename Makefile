@@ -92,7 +92,7 @@ endif
 
 FLOOGEN ?= floogen
 FLOO_CFG_DIR ?= $(MKFILE_DIR)floogen/examples
-FLOOGEN_CFG ?= $(FLOO_CFG_DIR)/single_cluster.yml
+FLOOGEN_CFG ?= $(FLOO_CFG_DIR)/axi_mesh_xy.yml
 
 FLOOGEN_OUT_DIR ?= $(MKFILE_DIR)generated
 
