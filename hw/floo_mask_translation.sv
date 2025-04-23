@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: SHL-0.51
 //
 // Lorenzo Leone <lleone@iis.ee.ethz.ch>
+// Chen Wu <chenwu@student.ethz.ch>
 //
 // This module computes the mask to be injected into the NoC
 // for multicast transactions. It receives the ID of the
