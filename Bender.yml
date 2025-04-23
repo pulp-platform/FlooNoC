@@ -35,6 +35,7 @@ sources:
   - hw/floo_rob_wrapper.sv
   - hw/floo_reduction_sync.sv
   - hw/floo_route_xymask.sv
+  - hw/floo_mask_extract.sv
   # Level 2
   - hw/floo_route_select.sv
   - hw/floo_route_comp.sv
