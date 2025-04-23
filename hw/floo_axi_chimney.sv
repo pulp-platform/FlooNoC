@@ -117,6 +117,9 @@ module floo_axi_chimney #(
   `AXI_TYPEDEF_AW_CHAN_T(axi_out_aw_chan_t, axi_addr_t, axi_out_id_t, axi_user_t)
   `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi, AxiCfg, hdr_t)
 
+  // Definition of multicast types
+  typedef axi_addr_t user_mask_t ;
+
   // Duplicate AXI port signals to degenerate ports
   // in case they are not used
   axi_req_t axi_req_in;
@@ -181,6 +184,7 @@ module floo_axi_chimney #(
   id_t  [NumAxiChannels-1:0] mcast_mask;
   id_t  axi_aw_mask_q;
   id_t [NumAxiChannels-1:0] id_out;
+  id_t [NumAxiChannels-1:0] mask_out;
 
   meta_buf_t aw_out_hdr_in, aw_out_hdr_out;
   meta_buf_t ar_out_hdr_in, ar_out_hdr_out;
@@ -461,12 +465,16 @@ module floo_axi_chimney #(
 
   axi_addr_t [NumAxiChannels-1:0] axi_req_addr;
   id_t [NumAxiChannels-1:0] axi_rsp_src_id;
+  user_mask_t [NumAxiChannels-1:0] axi_req_user;
 
   assign axi_req_addr[AxiAw] = axi_aw_queue.addr;
   assign axi_req_addr[AxiAr] = axi_ar_queue.addr;
 
   assign axi_rsp_src_id[AxiB] = aw_out_hdr_out.hdr.src_id;
   assign axi_rsp_src_id[AxiR] = ar_out_hdr_out.hdr.src_id;
+
+  assign axi_req_user [AxiAw] = axi_mask_queue;
+  assign axi_req_user [AxiAr] = '0;
 
   for (genvar ch = 0; ch < NumAxiChannels; ch++) begin : gen_route_comp
     localparam axi_ch_e Ch = axi_ch_e'(ch);
@@ -507,9 +515,28 @@ module floo_axi_chimney #(
   `FFL(axi_aw_id_q, dst_id[AxiAw], axi_aw_queue_valid_out &&
                                    axi_aw_queue_ready_in, '0)
 
-  if (EnMultiCast) begin : gen_mcast_mask
-    assign mcast_mask[AxiAw] = '0; // TODO: compute mask
-    assign mcast_mask[AxiAr] = '0; // TODO: compute mask
+  if (EnMultiCast) begin : gen_mcast
+    // Compute ID Mask to inject in the NoC for multicast operation
+    // Compute the mask for Aw and Ar only
+    for (genvar Ch = 0; Ch < NumAxiChannels; Ch++) begin: gen_mcast_mask
+      if (Ch == AxiAw || Ch == AxiAr) begin : gen_req_mcast_mask
+        floo_mask_translation #(
+        .RouteCfg     ( RouteCfg    ),
+        .Sam          ( Sam         ),
+        .id_t         ( id_t        ),
+        .addr_t       ( axi_addr_t  ),
+        .addr_rule_t  ( sam_rule_t  ),
+        .mask_sel_t   ( mask_sel_t  )
+      ) floo_mask_translation (
+        .id_i         (id_out[Ch]       ),
+        .mask_i       (axi_req_user[Ch] ),
+        .mask_o       (mask_out[Ch]     )
+      );
+      end
+    end
+
+    assign mcast_mask[AxiAw] = mask_out[AxiAw];
+    assign mcast_mask[AxiAr] = mask_out[AxiAr];
     assign mcast_mask[AxiW]  = axi_aw_mask_q;
     assign mcast_mask[AxiR] = ar_out_hdr_out.hdr.mcast_mask;
     assign mcast_mask[AxiB] = aw_out_hdr_out.hdr.mcast_mask;

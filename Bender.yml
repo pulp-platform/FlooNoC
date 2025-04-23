@@ -7,6 +7,7 @@ package:
   authors:
     - "Michael Rogenmoser <michaero@iis.ee.ethz.ch>"
     - "Tim Fischer <fischeti@iis.ee.ethz.ch>"
+    - "Lorenzo leone <lleone@iis.ee.ethz.ch>"
 
 dependencies:
   idma: { git: "https://github.com/pulp-platform/iDMA.git", version: 0.6.2 }
@@ -36,6 +37,7 @@ sources:
   - hw/floo_reduction_sync.sv
   - hw/floo_route_xymask.sv
   - hw/floo_mask_extract.sv
+  - hw/floo_mask_translation.sv
   # Level 2
   - hw/floo_route_select.sv
   - hw/floo_route_comp.sv
