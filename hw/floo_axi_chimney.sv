@@ -71,12 +71,14 @@ module floo_axi_chimney #(
   parameter type floo_rsp_t                 = logic,
   /// SRAM configuration type
   parameter type sram_cfg_t                 = logic,
-  /// Struct for user field in AXI
-  /// currently only used if EnMultiCast
-  parameter type user_struct_t                          = logic,
-  /// Speficy the correct length of mask
-  /// currently only used if EnMultiCast
-  parameter type user_mask_t                            = logic [AxiCfg.UserWidth-1:0]
+  /// Struct to interpret the multicast mask in the user bits. Only used if `EnMultiCast == 1'b1`.
+  /// It expects at least a field `mask`, which has the same size as the address:
+  /// typedef struct packed {
+  ///   logic [AxiCfg.AddrWidth-1:0] mask;
+  ///   logic [AxiCfg.UserWidth-1:0] user;
+  /// } user_struct_t;
+  /// The `mask` field will not be transported over the NoC, while the `user` field will be.
+  parameter type user_struct_t              = logic
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -176,11 +178,9 @@ module floo_axi_chimney #(
   // Routing
   dst_t [NumAxiChannels-1:0] dst_id;
   dst_t axi_aw_id_q;
-  id_t  [NumAxiChannels-1:0] mask;
+  id_t  [NumAxiChannels-1:0] mcast_mask;
   id_t  axi_aw_mask_q;
-  route_t [NumAxiChannels-1:0] route_out;
   id_t [NumAxiChannels-1:0] id_out;
-  id_t [NumAxiChannels-1:0] mask_out;
 
   meta_buf_t aw_out_hdr_in, aw_out_hdr_out;
   meta_buf_t ar_out_hdr_in, ar_out_hdr_out;
@@ -190,15 +190,16 @@ module floo_axi_chimney #(
   ///////////////////////
 
   if (ChimneyCfg.EnMgrPort) begin : gen_sbr_port
-    // assign axi_req_in = axi_in_req_i;
-    // assign axi_in_rsp_o = axi_rsp_out;
+    // We cast the incoming AXI types to the ones that are actually transported
+    // If multicast is enabled, the bits holding the mask are dropped.
     `AXI_ASSIGN_REQ_STRUCT(axi_req_in, axi_in_req_i)
     `AXI_ASSIGN_RESP_STRUCT(axi_in_rsp_o, axi_rsp_out)
 
+    // Extract the multicast mask bits from the AXI user bits
     if (EnMultiCast) begin : gen_mask
       user_struct_t user;
       assign user = axi_in_req_i.aw.user;
-      assign axi_req_in_mask = user.mask;
+      assign axi_req_in_mask = user.mcast_mask;
     end else begin : gen_no_mask
       assign axi_req_in_mask = '0;
     end
@@ -231,7 +232,7 @@ module floo_axi_chimney #(
       );
       if (EnMultiCast) begin : gen_mask_cuts
         spill_register #(
-          .T (user_mask_t)
+          .T (logic [AxiCfg.UserWidth-1:0])
         ) i_usermask_queue (
           .clk_i,
           .rst_ni,
@@ -459,13 +460,10 @@ module floo_axi_chimney #(
   /////////////////
 
   axi_addr_t [NumAxiChannels-1:0] axi_req_addr;
-  user_mask_t [NumAxiChannels-1:0] axi_req_user;
   id_t [NumAxiChannels-1:0] axi_rsp_src_id;
 
   assign axi_req_addr[AxiAw] = axi_aw_queue.addr;
   assign axi_req_addr[AxiAr] = axi_ar_queue.addr;
-  assign axi_req_user[AxiAw] = axi_mask_queue;
-  assign axi_req_user[AxiAr] = '0;
 
   assign axi_rsp_src_id[AxiB] = aw_out_hdr_out.hdr.src_id;
   assign axi_rsp_src_id[AxiR] = ar_out_hdr_out.hdr.src_id;
@@ -474,80 +472,53 @@ module floo_axi_chimney #(
     localparam axi_ch_e Ch = axi_ch_e'(ch);
     if (Ch == AxiAw || Ch == AxiAr) begin : gen_req_route_comp
       // Translate the address from AXI requests to a destination ID
-      // (or route if `SourceRouting` is used)
-      floo_route_comp #(
-        .RouteCfg     ( RouteCfg    ),
-        .EnMultiCast  ( EnMultiCast ),
-        .id_t         ( id_t        ),
-        .addr_t       ( axi_addr_t  ),
-        .mask_t       ( user_mask_t ),
-        .addr_rule_t  ( sam_rule_t  ),
-        .mask_rule_t  ( mask_rule_t ),
-        .mask_sel_t   ( mask_sel_t  ),
-        .route_t      ( route_t     )
-      ) i_floo_req_route_comp (
+      floo_id_translation #(
+        .RouteCfg   (RouteCfg),
+        .Sam        (Sam),
+        .id_t       (id_t),
+        .addr_t     (axi_addr_t),
+        .addr_rule_t(sam_rule_t)
+      ) i_floo_id_translation (
         .clk_i,
         .rst_ni,
-        .route_table_i,
-        .addr_map_i ( Sam               ),
-        .mask_map_i ( MaskTable         ),
-        .id_i       ( id_t'('0)         ),
-        .addr_i     ( axi_req_addr[ch]  ),
-        .mask_i     ( axi_req_user[ch]  ),
-        .route_o    ( route_out[ch]     ),
-        .id_o       ( id_out[ch]        ),
-        .mask_o     ( mask_out[ch]      )
+        .valid_i(axi_aw_queue_valid_out),
+        .addr_i (axi_req_addr[ch]),
+        .id_o   (id_out[ch])
       );
-    end else if (RouteCfg.RouteAlgo == floo_pkg::SourceRouting &&
-                 (Ch == AxiB || Ch == AxiR)) begin : gen_rsp_route_comp
-      // Generally, the source ID from the request is used to route back
-      // the responses. However, in the case of `SourceRouting`, the source ID
-      // first needs to be translated into a route.
-      floo_route_comp #(
-        .RouteCfg     ( RouteCfg    ),
-        .UseIdTable   ( 1'b0        ), // Overwrite `RouteCfg`
-        .id_t         ( id_t        ),
-        .addr_t       ( axi_addr_t  ),
-        .addr_rule_t  ( sam_rule_t  ),
-        .route_t      ( route_t     )
-      ) i_floo_rsp_route_comp (
-        .clk_i,
-        .rst_ni,
-        .route_table_i,
-        .addr_i     ( '0                  ),
-        .mask_i     ( '0                  ),
-        .addr_map_i ( '0                  ),
-        .mask_map_i ( '0                  ),
-        .id_i       ( axi_rsp_src_id[ch]  ),
-        .route_o    ( route_out[ch]       ),
-        .id_o       ( id_out[ch]          ),
-        .mask_o     (                     )
-      );
+    end else if ((Ch == AxiB || Ch == AxiR)) begin : gen_rsp_route_comp
+      // For responses, the `src_id` from the request is used to route back
+      // the responses.
+      assign id_out[ch] = axi_rsp_src_id[ch];
+    end else if (Ch == AxiW) begin : gen_w_route_comp
+      // The destination ID of W's is the previous AW's ID
+      assign id_out[ch] = axi_aw_id_q;
     end
-  end
 
-  if (RouteCfg.RouteAlgo == floo_pkg::SourceRouting) begin : gen_route_field
-    assign route_out[AxiW] = axi_aw_id_q;
-    assign dst_id = route_out;
-    assign  mask = '0;
-  end else begin : gen_dst_field
-    assign dst_id[AxiAw] = id_out[AxiAw];
-    assign dst_id[AxiAr] = id_out[AxiAr];
-    assign dst_id[AxiB]  = aw_out_hdr_out.hdr.src_id;
-    assign dst_id[AxiR]  = ar_out_hdr_out.hdr.src_id;
-    assign dst_id[AxiW]  = axi_aw_id_q;
-
-    assign mask[AxiAw] = mask_out[AxiAw];
-    assign mask[AxiAr] = mask_out[AxiAr];
-    assign mask[AxiB]  = '0;
-    assign mask[AxiR]  = '0;
-    assign mask[AxiW]  = axi_aw_mask_q;
+    // The actual `dst_id` depends on the routing algorithm
+    if (RouteCfg.RouteAlgo == floo_pkg::SourceRouting) begin : gen_route_comp
+      // Look up the `route` in the routing table
+      assign dst_id[ch] = route_table_i[id_out[ch]];
+    end else begin : gen_no_route_comp
+      // Otherwise, assign the destination ID directly
+      assign dst_id[ch] = id_out[ch];
+    end
   end
 
   `FFL(axi_aw_id_q, dst_id[AxiAw], axi_aw_queue_valid_out &&
                                    axi_aw_queue_ready_in, '0)
-  `FFL(axi_aw_mask_q, mask[AxiAw], axi_aw_queue_valid_out &&
-                                   axi_aw_queue_ready_in, '0)
+
+  if (EnMultiCast) begin : gen_mcast_mask
+    assign mcast_mask[AxiAw] = '0; // TODO: compute mask
+    assign mcast_mask[AxiAr] = '0; // TODO: compute mask
+    assign mcast_mask[AxiW]  = axi_aw_mask_q;
+    assign mcast_mask[AxiR] = ar_out_hdr_out.hdr.mcast_mask;
+    assign mcast_mask[AxiB] = aw_out_hdr_out.hdr.mcast_mask;
+
+    `FFL(axi_aw_mask_q, mcast_mask[AxiAw], axi_aw_queue_valid_out &&
+                                     axi_aw_queue_ready_in, '0)
+  end else begin
+    assign mcast_mask = '0;
+  end
 
   ///////////////////
   // FLIT PACKING  //
@@ -558,13 +529,13 @@ module floo_axi_chimney #(
     floo_axi_aw.hdr.rob_req = aw_rob_req_out;
     floo_axi_aw.hdr.rob_idx = aw_rob_idx_out;
     floo_axi_aw.hdr.dst_id  = dst_id[AxiAw];
-    floo_axi_aw.hdr.mask    = mask[AxiAw];
+    floo_axi_aw.hdr.mcast_mask = mcast_mask[AxiAw];
     floo_axi_aw.hdr.src_id  = id_i;
     floo_axi_aw.hdr.last    = 1'b0;
     floo_axi_aw.hdr.axi_ch  = AxiAw;
     floo_axi_aw.hdr.atop    = axi_aw_queue.atop != axi_pkg::ATOP_NONE;
     floo_axi_aw.payload     = axi_aw_queue;
-    floo_axi_aw.hdr.commtype = mask[AxiAw]!='0? Multicast : Unicast;
+    floo_axi_aw.hdr.commtype = (mcast_mask[AxiAw] != '0)? Multicast : Unicast;
   end
 
   always_comb begin
@@ -572,12 +543,12 @@ module floo_axi_chimney #(
     floo_axi_w.hdr.rob_req  = aw_rob_req_out;
     floo_axi_w.hdr.rob_idx  = aw_rob_idx_out;
     floo_axi_w.hdr.dst_id   = dst_id[AxiW];
-    floo_axi_w.hdr.mask     = mask[AxiW];
+    floo_axi_w.hdr.mcast_mask = mcast_mask[AxiW];
     floo_axi_w.hdr.src_id   = id_i;
     floo_axi_w.hdr.last     = axi_req_in.w.last;
     floo_axi_w.hdr.axi_ch   = AxiW;
     floo_axi_w.payload      = axi_req_in.w;
-    floo_axi_w.hdr.commtype = mask[AxiW]!='0? Multicast : Unicast;
+    floo_axi_w.hdr.commtype = (mcast_mask[AxiW] != '0)? Multicast : Unicast;
   end
 
   always_comb begin
@@ -585,7 +556,7 @@ module floo_axi_chimney #(
     floo_axi_ar.hdr.rob_req = ar_rob_req_out;
     floo_axi_ar.hdr.rob_idx = ar_rob_idx_out;
     floo_axi_ar.hdr.dst_id  = dst_id[AxiAr];
-    floo_axi_ar.hdr.mask    = mask[AxiAr];
+    floo_axi_ar.hdr.mcast_mask = mcast_mask[AxiAr];
     floo_axi_ar.hdr.src_id  = id_i;
     floo_axi_ar.hdr.last    = 1'b1;
     floo_axi_ar.hdr.axi_ch  = AxiAr;
@@ -597,14 +568,14 @@ module floo_axi_chimney #(
     floo_axi_b.hdr.rob_req  = aw_out_hdr_out.hdr.rob_req;
     floo_axi_b.hdr.rob_idx  = aw_out_hdr_out.hdr.rob_idx;
     floo_axi_b.hdr.dst_id   = dst_id[AxiB];
-    floo_axi_b.hdr.mask     = aw_out_hdr_out.hdr.mask;
+    floo_axi_b.hdr.mcast_mask = mcast_mask[AxiB];
     floo_axi_b.hdr.src_id   = id_i;
     floo_axi_b.hdr.last     = 1'b1;
     floo_axi_b.hdr.axi_ch   = AxiB;
     floo_axi_b.hdr.atop     = aw_out_hdr_out.hdr.atop;
     floo_axi_b.payload      = meta_buf_rsp_out.b;
     floo_axi_b.payload.id   = aw_out_hdr_out.id;
-    floo_axi_b.hdr.commtype = aw_out_hdr_out.hdr.commtype == Multicast? CollectB : Unicast;
+    floo_axi_b.hdr.commtype = (aw_out_hdr_out.hdr.commtype == Multicast)? CollectB : Unicast;
   end
 
   always_comb begin
@@ -612,7 +583,7 @@ module floo_axi_chimney #(
     floo_axi_r.hdr.rob_req  = ar_out_hdr_out.hdr.rob_req;
     floo_axi_r.hdr.rob_idx  = ar_out_hdr_out.hdr.rob_idx;
     floo_axi_r.hdr.dst_id   = dst_id[AxiR];
-    floo_axi_r.hdr.mask     = mask[AxiR];
+    floo_axi_r.hdr.mcast_mask = mcast_mask[AxiR];
     floo_axi_r.hdr.src_id   = id_i;
     floo_axi_r.hdr.last     = 1'b1; // There is no reason to do wormhole routing for R bursts
     floo_axi_r.hdr.axi_ch   = AxiR;
