@@ -29,12 +29,9 @@ module floo_output_arbiter import floo_pkg::*;
   output flit_t                  data_o
 );
 
-  flit_t[NumRoutes-1:0]  reduce_data_in, unicast_data_in;
-  logic [NumRoutes-1:0]  reduce_valid_in, reduce_ready_in;
-  logic [NumRoutes-1:0]  unicast_valid_in, unicast_ready_in;
-
-  flit_t reduced_data_out, unicast_data_out;
-  logic reduced_valid_out, unicast_valid_out;
+  flit_t[NumRoutes-1:0]  reduce_data_out, unicast_data_out;
+  logic [NumRoutes-1:0]  reduce_valid_in, unicast_valid_in, reduce_ready_out, unicast_ready_out;
+  logic reduce_valid_out, unicast_valid_out, reduce_ready_in, unicast_ready_in;
 
   logic [NumRoutes-1:0]  reduce_mask;
 
@@ -45,7 +42,6 @@ module floo_output_arbiter import floo_pkg::*;
 
   // Arbitrate unicasts
   assign unicast_valid_in = valid_i & ~reduce_mask;
-  assign unicast_data_in  = data_i;
 
   floo_wormhole_arbiter #(
     .NumRoutes  ( NumRoutes ),
@@ -53,17 +49,16 @@ module floo_output_arbiter import floo_pkg::*;
   ) i_wormhole_arbiter (
     .clk_i,
     .rst_ni,
+    .data_i,
     .valid_i ( unicast_valid_in  ),
-    .ready_o ( unicast_ready_in  ),
-    .data_i  ( unicast_data_in   ),
+    .ready_o ( unicast_ready_out ),
     .valid_o ( unicast_valid_out ),
-    .ready_i ( ready_i           ),
+    .ready_i ( unicast_ready_in  ),
     .data_o  ( unicast_data_out  )
   );
 
   // Arbitrate reductions
   assign reduce_valid_in = valid_i & reduce_mask;
-  assign reduce_data_in  = data_i;
 
   floo_reduction_arbiter #(
     .NumRoutes      ( NumRoutes     ),
@@ -73,20 +68,32 @@ module floo_output_arbiter import floo_pkg::*;
     .NarrowRspMask  ( NarrowRspMask ),
     .WideRspMask    ( WideRspMask   )
   ) i_reduction_arbiter (
-    .valid_i   ( reduce_valid_in   ),
-    .ready_o   ( reduce_ready_in   ),
-    .data_i    ( reduce_data_in    ),
-    .xy_id_i   ( xy_id_i           ),
-    .valid_o   ( reduced_valid_out ),
-    .ready_i   ( ready_i           ),
-    .data_o    ( reduced_data_out  )
+    .xy_id_i,
+    .data_i,
+    .valid_i   ( reduce_valid_in  ),
+    .ready_o   ( reduce_ready_out ),
+    .valid_o   ( reduce_valid_out ),
+    .ready_i   ( reduce_ready_in  ),
+    .data_o    ( reduce_data_out  )
   );
 
   // Arbitrate between wormhole and reduction arbiter
-  // TODO(fischeti): Discuss with Chen if the handshaking is correctly handled
-  // I believe that the `ready_i` of the two arbiters should be masked.
-  assign valid_o = (reduced_valid_out & |reduce_valid_in) ? reduced_valid_out : unicast_valid_out;
-  assign data_o  = (reduced_valid_out & |reduce_valid_in) ? reduced_data_out  : unicast_data_out;
-  assign ready_o = (reduced_valid_out & |reduce_valid_in) ? reduce_ready_in : unicast_ready_in;
+  // Reductions have higher priority than unicasts (index 0)
+  stream_arbiter #(
+    .N_INP  (2),
+    .ARBITER("prio"),
+    .DATA_T (flit_t)
+  ) i_stream_arbiter (
+    .clk_i,
+    .rst_ni,
+    .inp_data_i ({unicast_data_out, reduce_data_out}),
+    .inp_valid_i({unicast_valid_out, reduce_valid_out}),
+    .inp_ready_o({unicast_ready_in, reduce_ready_in}),
+    .oup_data_o (data_o),
+    .oup_valid_o(valid_o),
+    .oup_ready_i(ready_i)
+  );
+
+  assign ready_o = (reduce_valid_out)? reduce_ready_out : unicast_ready_out;
 
 endmodule
