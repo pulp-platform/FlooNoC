@@ -64,11 +64,11 @@ module floo_route_comp
       .NoRules    ( RouteCfg.NumSamRules ),
       .addr_t     ( addr_t               ),
       .rule_t     ( addr_rule_t          ),
-      .idx_t      ( id_t                )
+      .idx_t      ( id_t                 )
     ) i_addr_dst_decode (
       .addr_i           ( addr_i      ),
       .addr_map_i       ( addr_map_i  ),
-      .idx_o            ( id_o         ),
+      .idx_o            ( id_o        ),
       .dec_valid_o      (             ),
       .dec_error_o      ( dec_error   ),
       .en_default_idx_i ( 1'b0        ),

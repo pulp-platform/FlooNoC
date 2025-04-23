@@ -84,7 +84,6 @@ module floo_reduction_arbiter import floo_pkg::*;
     end
   end
 
-  // TODO(fischeti): Check with Chen
   assign ready_o = (ready_i & valid_o)? valid_i & in_route_mask : '0;
 
 endmodule

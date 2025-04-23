@@ -6,7 +6,7 @@
 
 /// This module is similar to addr decoder
 module floo_mask_decode
-# (
+#(
     parameter int unsigned NumMaskRules = '0,
     parameter type id_t        = logic,
     parameter type mask_rule_t = logic,
