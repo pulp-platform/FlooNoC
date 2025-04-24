@@ -186,7 +186,7 @@ module floo_axi_chimney #(
   id_t  [NumAxiChannels-1:0] mcast_mask;
   id_t  axi_aw_mask_q;
   id_t [NumAxiChannels-1:0] id_out;
-  id_t [NumAxiChannels-1:0] mask_out;
+  id_t [NumAxiChannels-1:0] mask_id;
 
   meta_buf_t aw_out_hdr_in, aw_out_hdr_out;
   meta_buf_t ar_out_hdr_in, ar_out_hdr_out;
@@ -468,6 +468,7 @@ module floo_axi_chimney #(
   axi_addr_t [NumAxiChannels-1:0] axi_req_addr;
   id_t [NumAxiChannels-1:0] axi_rsp_src_id;
   user_mask_t [NumAxiChannels-1:0] axi_req_user;
+  mask_sel_t [NumAxiChannels-1:0] x_mask_sel, y_mask_sel;
 
   assign axi_req_addr[AxiAw] = axi_aw_queue.addr;
   assign axi_req_addr[AxiAr] = axi_ar_queue.addr;
@@ -488,15 +489,16 @@ module floo_axi_chimney #(
         .sam_idx_t  (sam_idx_t),
         .id_t       (id_t),
         .addr_t     (axi_addr_t),
-        .addr_rule_t(sam_rule_t)
+        .addr_rule_t(sam_rule_t),
+        .mask_sel_t (mask_sel_t)
       ) i_floo_id_translation (
         .clk_i,
         .rst_ni,
-        .valid_i(axi_aw_queue_valid_out),
-        .addr_i (axi_req_addr[ch]),
-        .mask_i (axi_req_user[Ch]),
-        .id_o   (id_out[ch]),
-        .mask_o (mask_out[Ch])
+        .valid_i       (axi_aw_queue_valid_out),
+        .addr_i        (axi_req_addr[ch]),
+        .id_o          (id_out[ch]),
+        .mask_addr_x_o (x_mask_sel[ch]),
+        .mask_addr_y_o (y_mask_sel[ch])
       );
     end else if ((Ch == AxiB || Ch == AxiR)) begin : gen_rsp_route_comp
       // For responses, the `src_id` from the request is used to route back
@@ -521,8 +523,27 @@ module floo_axi_chimney #(
                                    axi_aw_queue_ready_in, '0)
 
   if (EnMultiCast) begin : gen_mcast
-    assign mcast_mask[AxiAw] = mask_out[AxiAw];
-    assign mcast_mask[AxiAr] = mask_out[AxiAr];
+    localparam int unsigned AddrWidth = $bits(axi_addr_t);
+    axi_addr_t [NumAxiChannels-1:0] x_addr_mask;
+    axi_addr_t [NumAxiChannels-1:0] y_addr_mask;
+
+    for (genvar ch = 0; ch < NumAxiChannels; ch++) begin : gen_mcast_id_mask
+      // Evaluate the ID Mask according to the info read from the SAM through the flooo_id_translation module
+      if (RouteCfg.UseIdTable) begin
+        assign x_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel[ch].len)) << x_mask_sel[ch].offset);
+        assign y_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel[ch].len)) << y_mask_sel[ch].offset);
+        assign mask_id[ch].x = (axi_req_user[ch] & x_addr_mask[ch]) >> x_mask_sel[ch].offset;
+        assign mask_id[ch].y = (axi_req_user[ch] & y_addr_mask[ch]) >> y_mask_sel[ch].offset;
+        assign mask_id[ch].port_id = '0;
+      end else if (RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin
+        assign mask_id[ch].x = axi_req_user[ch][RouteCfg.XYAddrOffsetX +: $bits(id_out.x)];
+        assign mask_id[ch].y = axi_req_user[ch][RouteCfg.XYAddrOffsetY +: $bits(id_out.y)];
+        assign mask_id[ch].port_id = '0;
+      end
+    end
+
+    assign mcast_mask[AxiAw] = mask_id[AxiAw];
+    assign mcast_mask[AxiAr] = mask_id[AxiAr];
     assign mcast_mask[AxiW]  = axi_aw_mask_q;
     assign mcast_mask[AxiR] = ar_out_hdr_out.hdr.mcast_mask;
     assign mcast_mask[AxiB] = aw_out_hdr_out.hdr.mcast_mask;
