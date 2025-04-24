@@ -529,7 +529,7 @@ module floo_axi_chimney #(
 
     `FFL(axi_aw_mask_q, mcast_mask[AxiAw], axi_aw_queue_valid_out &&
                                      axi_aw_queue_ready_in, '0)
-  end else begin
+  end else begin: gen_no_mcast
     assign mcast_mask = '0;
   end
 

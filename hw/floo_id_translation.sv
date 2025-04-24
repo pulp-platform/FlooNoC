@@ -95,7 +95,7 @@ module floo_id_translation #(
     end
   end else if (RouteCfg.RouteAlgo == floo_pkg::IdTable) begin : gen_id_offset
     assign id_o = addr_i[RouteCfg.IdAddrOffset +: $bits(id_o)];
-  end else begin
+  end else begin: gen_unsupported_routing
     $fatal(1, "Routing algorithm %0s only supports table-based address translation",
         RouteCfg.RouteAlgo);
   end
