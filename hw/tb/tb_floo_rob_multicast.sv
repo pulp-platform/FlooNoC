@@ -49,7 +49,7 @@ module tb_floo_rob_multicast;
   typedef logic [1:0] x_bits_t;
   typedef logic [1:0] y_bits_t;
   `FLOO_TYPEDEF_XY_NODE_ID_T(id_t, x_bits_t, y_bits_t, logic)
-  `FLOO_TYPEDEF_MASK_HDR_T(hdr_t, id_t, id_t, id_t, axi_ch_e, rob_idx_t, collect_comm_e)
+  `FLOO_TYPEDEF_HDR_T(hdr_t, id_t, id_t, axi_ch_e, rob_idx_t, id_t, collect_comm_e)
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi, McastAxiCfg)
   `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi_in, McastAxiCfg, hdr_t)
   `FLOO_TYPEDEF_AXI_LINK_ALL(req, rsp, req, rsp)

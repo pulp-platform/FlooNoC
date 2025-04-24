@@ -50,7 +50,7 @@ module tb_floo_nw_chimney;
   typedef logic [1:0] y_bits_t;
   `FLOO_TYPEDEF_XY_NODE_ID_T(id_t, x_bits_t, y_bits_t, logic)
   // `FLOO_TYPEDEF_HDR_T(hdr_t, id_t, id_t, floo_pkg::nw_ch_e, logic)
-  `FLOO_TYPEDEF_MASK_HDR_T(hdr_t, id_t, id_t, id_t, floo_pkg::nw_ch_e, logic,
+  `FLOO_TYPEDEF_HDR_T(hdr_t, id_t, id_t, floo_pkg::nw_ch_e, logic, id_t,
       floo_pkg::collect_comm_e)
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi_narrow, floo_test_pkg::AxiCfgN)
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi_wide, floo_test_pkg::AxiCfgW)
