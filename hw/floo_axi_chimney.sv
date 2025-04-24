@@ -56,9 +56,6 @@ module floo_axi_chimney #(
   /// Rule type for the mask table, consisting of id, position of the mask bits for x and y
   /// (only used if `EnMultiCast && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
   parameter type mask_rule_t                            = logic,
-  /// The mask table
-  /// (only used if `EnMultiCast && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
-  parameter mask_rule_t [RouteCfg.NumSamRules-1:0] MaskTable = '0,
   /// AXI manager request channel type
   parameter type axi_in_req_t               = logic,
   /// AXI manager response channel type
@@ -490,7 +487,8 @@ module floo_axi_chimney #(
         .id_t       (id_t),
         .addr_t     (axi_addr_t),
         .addr_rule_t(sam_rule_t),
-        .mask_sel_t (mask_sel_t)
+        .mask_sel_t (mask_sel_t),
+        .EnMultiCast(EnMultiCast)
       ) i_floo_id_translation (
         .clk_i,
         .rst_ni,
@@ -772,6 +770,7 @@ module floo_axi_chimney #(
       .AtopSupport    ( AtopSupport             ),
       .MaxAtomicTxns  ( MaxAtomicTxns           ),
       .EnMultiCast    ( EnMultiCast             ),
+      .Sam            ( Sam                     ),
       .buf_t          ( meta_buf_t              ),
       .axi_in_req_t   ( axi_req_t               ),
       .axi_in_rsp_t   ( axi_rsp_t               ),
@@ -779,14 +778,14 @@ module floo_axi_chimney #(
       .axi_out_rsp_t  ( axi_out_rsp_t           ),
       .RouteCfg       ( RouteCfg                ),
       .addr_t         ( axi_addr_t              ),
+      .sam_rule_t     ( sam_rule_t              ),
       .id_t           ( id_t                    ),
-      .mask_rule_t    ( mask_rule_t             ),
+      .sam_idx_t      ( sam_idx_t               ),
       .mask_sel_t     ( mask_sel_t              )
     ) i_floo_meta_buffer (
       .clk_i,
       .rst_ni,
       .test_enable_i,
-      .mask_map_i ( MaskTable ),
       .id_i       ( id_i      ),
       .axi_req_i  ( meta_buf_req_in   ),
       .axi_rsp_o  ( meta_buf_rsp_out  ),

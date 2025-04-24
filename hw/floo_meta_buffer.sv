@@ -39,14 +39,18 @@ module floo_meta_buffer #(
   // used for AXI mask <-> NoC mask conversion
   parameter floo_pkg::route_cfg_t RouteCfg = '0,
   parameter type addr_t = logic,
+  /// The type of the address rules
+  parameter type sam_rule_t = logic,
+  /// The System Address Map
+  parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam,
   parameter type id_t   = logic,
-  parameter type mask_rule_t = logic,
+  /// SAM Index type to support multicast info
+  parameter type sam_idx_t   = id_t,
   parameter type mask_sel_t  = logic
 ) (
   input  logic clk_i,
   input  logic rst_ni,
   input  logic test_enable_i,
-  input  mask_rule_t [RouteCfg.NumSamRules-1:0] mask_map_i,
   input  id_t id_i,
   input  axi_in_req_t axi_req_i,
   output axi_in_rsp_t axi_rsp_o,
@@ -226,24 +230,30 @@ module floo_meta_buffer #(
     assign in_mask = aw_buf_i.hdr.mask;
     assign in_id = aw_buf_i.hdr.dst_id;
     assign out = (~in_mask & in_id) | (in_mask & id_i);
-    floo_mask_decode #(
-      .NumMaskRules ( RouteCfg.NumSamRules ),
-      .mask_rule_t  ( mask_rule_t          ),
-      .id_t         ( id_t                 ),
-      .mask_sel_t   ( mask_sel_t           )
-    ) i_mask_decode (
-      .id_i         ( id_i                 ),
-      .mask_x_mask  ( x_mask_sel          ),
-      .mask_y_mask  ( y_mask_sel          ),
-      .mask_map_i   ( mask_map_i           ),
-      .dec_error_o  ( dec_error         )
-    );
+    assign in_addr = axi_req_i.aw.addr;
+    floo_id_translation #(
+        .RouteCfg   (RouteCfg),
+        .Sam        (Sam),
+        .sam_idx_t  (sam_idx_t),
+        .id_t       (id_t),
+        .addr_t     (addr_t),
+        .addr_rule_t(sam_rule_t),
+        .mask_sel_t (mask_sel_t),
+        .EnMultiCast(EnMultiCast)
+      ) i_floo_id_translation (
+        .clk_i,
+        .rst_ni,
+        .valid_i       (axi_req_i.aw_valid),
+        .addr_i        (in_addr),
+        .id_o          (),
+        .mask_addr_x_o (x_mask_sel),
+        .mask_addr_y_o (y_mask_sel)
+      );
     `ASSERT(MaskDecodeError, !dec_error)
     always_comb begin
       x_addr_mask = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel.len)) << x_mask_sel.offset);
       y_addr_mask = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel.len)) << y_mask_sel.offset);
     end
-    assign in_addr = axi_req_i.aw.addr;
     assign axi_addr = (in_addr & ~(x_addr_mask | y_addr_mask))
                      | ((out.x << x_mask_sel.offset) | (out.y << y_mask_sel.offset));
   end else begin : gen_no_mcast
@@ -340,8 +350,6 @@ module floo_meta_buffer #(
                             !no_atop_id_available : !aw_no_atop_buf_full);
       axi_rsp_o.aw_ready = axi_rsp_i.aw_ready && ((is_atop_aw)?
                             !no_atop_id_available : !aw_no_atop_buf_full);
-      // axi_req_o.aw.addr = (EnMultiCast && aw_buf_i.hdr.commtype == floo_pkg::Multicast)?
-      //                      axi_addr : axi_req_i.aw.addr;
       axi_req_o.aw.addr = axi_addr;
     end
   end else begin : gen_no_atop_support
@@ -362,8 +370,6 @@ module floo_meta_buffer #(
       axi_rsp_o.ar_ready = axi_rsp_i.ar_ready && !ar_no_atop_buf_full;
       axi_req_o.aw_valid = axi_req_i.aw_valid && !aw_no_atop_buf_full;
       axi_rsp_o.aw_ready = axi_rsp_i.aw_ready && !aw_no_atop_buf_full;
-      // axi_req_o.aw.addr = (EnMultiCast && aw_buf_i.hdr.commtype == floo_pkg::Multicast)?
-      //                      axi_addr : axi_req_i.aw.addr;
       axi_req_o.aw.addr = axi_addr;
     end
   end
