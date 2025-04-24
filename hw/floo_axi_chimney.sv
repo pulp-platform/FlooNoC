@@ -485,7 +485,7 @@ module floo_axi_chimney #(
       floo_id_translation #(
         .RouteCfg   (RouteCfg),
         .Sam        (Sam),
-        .sam_idx_t  (sam_idxt_t),
+        .sam_idx_t  (sam_idx_t),
         .id_t       (id_t),
         .addr_t     (axi_addr_t),
         .addr_rule_t(sam_rule_t)
