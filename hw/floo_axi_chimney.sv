@@ -527,13 +527,15 @@ module floo_axi_chimney #(
 
     for (genvar ch = 0; ch < NumAxiChannels; ch++) begin : gen_mcast_id_mask
       // Evaluate the ID Mask according to the info read from the SAM through the flooo_id_translation module
-      if (RouteCfg.UseIdTable) begin
-        assign x_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel[ch].len)) << x_mask_sel[ch].offset);
-        assign y_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel[ch].len)) << y_mask_sel[ch].offset);
+      if (RouteCfg.UseIdTable) begin: gen_mcast_idtable
+        assign x_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel[ch].len))
+                                 << x_mask_sel[ch].offset);
+        assign y_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel[ch].len))
+                                 << y_mask_sel[ch].offset);
         assign mask_id[ch].x = (axi_req_user[ch] & x_addr_mask[ch]) >> x_mask_sel[ch].offset;
         assign mask_id[ch].y = (axi_req_user[ch] & y_addr_mask[ch]) >> y_mask_sel[ch].offset;
         assign mask_id[ch].port_id = '0;
-      end else if (RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin
+      end else if (RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin: gen_mcast_xyrouting
         assign mask_id[ch].x = axi_req_user[ch][RouteCfg.XYAddrOffsetX +: $bits(id_out.x)];
         assign mask_id[ch].y = axi_req_user[ch][RouteCfg.XYAddrOffsetY +: $bits(id_out.y)];
         assign mask_id[ch].port_id = '0;
@@ -548,7 +550,7 @@ module floo_axi_chimney #(
 
     `FFL(axi_aw_mask_q, mcast_mask[AxiAw], axi_aw_queue_valid_out &&
                                      axi_aw_queue_ready_in, '0)
-  end else begin
+  end else begin: gen_no_mcast_mask
     assign mcast_mask = '0;
   end
 
