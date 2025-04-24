@@ -29,6 +29,8 @@ module floo_axi_chimney #(
   parameter bit EnMultiCast                 = 1'b0,
   /// Node ID type for routing
   parameter type id_t                                   = logic,
+  /// SAM Index type to support multicast info
+  parameter type sam_idx_t                              = id_t,
   /// RoB index type for reordering.
   // (can be ignored if `RoBType == NoRoB`)
   parameter type rob_idx_t                              = logic,
@@ -483,6 +485,7 @@ module floo_axi_chimney #(
       floo_id_translation #(
         .RouteCfg   (RouteCfg),
         .Sam        (Sam),
+        .sam_idx_t  (sam_idxt_t),
         .id_t       (id_t),
         .addr_t     (axi_addr_t),
         .addr_rule_t(sam_rule_t)
@@ -491,7 +494,9 @@ module floo_axi_chimney #(
         .rst_ni,
         .valid_i(axi_aw_queue_valid_out),
         .addr_i (axi_req_addr[ch]),
-        .id_o   (id_out[ch])
+        .mask_i (axi_req_user[Ch]),
+        .id_o   (id_out[ch]),
+        .mask_o (mask_out[Ch])
       );
     end else if ((Ch == AxiB || Ch == AxiR)) begin : gen_rsp_route_comp
       // For responses, the `src_id` from the request is used to route back
@@ -516,25 +521,6 @@ module floo_axi_chimney #(
                                    axi_aw_queue_ready_in, '0)
 
   if (EnMultiCast) begin : gen_mcast
-    // Compute ID Mask to inject in the NoC for multicast operation
-    // Compute the mask for Aw and Ar only
-    for (genvar Ch = 0; Ch < NumAxiChannels; Ch++) begin: gen_mcast_mask
-      if (Ch == AxiAw || Ch == AxiAr) begin : gen_req_mcast_mask
-        floo_mask_translation #(
-        .RouteCfg     ( RouteCfg    ),
-        .Sam          ( Sam         ),
-        .id_t         ( id_t        ),
-        .addr_t       ( axi_addr_t  ),
-        .addr_rule_t  ( sam_rule_t  ),
-        .mask_sel_t   ( mask_sel_t  )
-      ) floo_mask_translation (
-        .id_i         (id_out[Ch]       ),
-        .mask_i       (axi_req_user[Ch] ),
-        .mask_o       (mask_out[Ch]     )
-      );
-      end
-    end
-
     assign mcast_mask[AxiAw] = mask_out[AxiAw];
     assign mcast_mask[AxiAr] = mask_out[AxiAr];
     assign mcast_mask[AxiW]  = axi_aw_mask_q;
