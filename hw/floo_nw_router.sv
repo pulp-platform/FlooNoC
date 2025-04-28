@@ -160,14 +160,16 @@ module floo_nw_router #(
       resp: 2'b11,
       default: '0
     }),
-    default: '0
+    hdr: '0,
+    rsvd: '0
   });
   localparam floo_rsp_generic_flit_t WideBFlitMask = floo_axi_wide_b_flit_t'('{
     payload: axi_wide_b_chan_t'('{
       resp: 2'b11,
       default: '0
     }),
-    default: '0
+    hdr: '0,
+    rsvd: '0
   });
 
   floo_router #(
