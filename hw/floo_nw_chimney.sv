@@ -947,7 +947,8 @@ module floo_nw_chimney #(
     floo_narrow_b.hdr.atop     = narrow_aw_buf_hdr_out.hdr.atop;
     floo_narrow_b.payload      = axi_narrow_meta_buf_rsp_out.b;
     floo_narrow_b.payload.id   = narrow_aw_buf_hdr_out.id;
-    floo_narrow_b.hdr.commtype = (narrow_aw_buf_hdr_out.hdr.commtype == Multicast)? CollectB : Unicast;
+    floo_narrow_b.hdr.commtype = (narrow_aw_buf_hdr_out.hdr.commtype == Multicast)?
+                                 CollectB : Unicast;
   end
 
   always_comb begin
