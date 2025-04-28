@@ -526,6 +526,7 @@ module floo_axi_chimney #(
     axi_addr_t [NumAxiChannels-1:0] y_addr_mask;
 
     for (genvar ch = 0; ch < NumAxiChannels; ch++) begin : gen_mcast_id_mask
+      localparam axi_ch_e Ch = axi_ch_e'(ch);
       if (Ch == AxiAw || Ch == AxiAr) begin : gen_req_mcast_id_mask
         // Evaluate the ID Mask according to the info read from the SAM through the flooo_id_translation module
         if (RouteCfg.UseIdTable) begin: gen_mcast_idtable
