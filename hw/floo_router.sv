@@ -164,7 +164,8 @@ module floo_router
         assign acc_masked_ready_d[in][v] = (in_ready[in][v]) ? '0 :
                                             (acc_masked_ready_q[in][v] | masked_all_ready[in][v]);
         assign current_accumulated[in][v] = acc_masked_ready_q[in][v] | masked_all_ready[in][v];
-        assign in_ready[in][v] = &(current_accumulated[in][v] | ~(NoLoopback? (route_mask[in][v] & ~(1 << in)) : route_mask[in][v]));
+        assign in_ready[in][v] = &(current_accumulated[in][v] |
+                               ~(NoLoopback? (route_mask[in][v] & ~(1 << in)) : route_mask[in][v]));
       end
     end
   end

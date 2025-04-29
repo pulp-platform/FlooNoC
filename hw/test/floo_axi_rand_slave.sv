@@ -74,9 +74,9 @@ module floo_axi_rand_slave #(
     UniqueIds:          0,
     AxiAddrWidth:       AxiCfg.AddrWidth,
     AxiDataWidth:       AxiCfg.DataWidth,
-    NoAddrRules:        NumSlaves,
-    NoMulticastPorts:   0,
-    NoMulticastRules:   0
+    NoAddrRules:        NumSlaves
+    // NoMulticastPorts:   0,
+    // NoMulticastRules:   0
   };
 
   axi_xbar_req_t xbar_in_req;

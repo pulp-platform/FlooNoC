@@ -69,8 +69,8 @@ module floo_axi_test_node #(
     .W_MIN_WAIT_CYCLES    ( 0              ),
     .W_MAX_WAIT_CYCLES    ( 0              ),
     .RESP_MIN_WAIT_CYCLES ( 0              ),
-    .RESP_MAX_WAIT_CYCLES ( 0              ),
-    .ENABLE_MULTICAST     ( EnMultiCast    )
+    .RESP_MAX_WAIT_CYCLES ( 0              )
+    // .ENABLE_MULTICAST     ( EnMultiCast    )
   ) axi_rand_master_t;
 
   AXI_BUS_DV #(
@@ -105,9 +105,9 @@ module floo_axi_test_node #(
                                         AddrRegions[i].end_addr,
                                         axi_pkg::DEVICE_NONBUFFERABLE);
     end
-    if(EnMultiCast) begin
-      axi_rand_master.set_multicast_probability(50);
-    end
+    // if(EnMultiCast) begin
+    //   axi_rand_master.set_multicast_probability(50);
+    // end
     axi_rand_master.reset();
     @(posedge rst_ni)
     axi_rand_master.run(NumReads, NumWrites);

@@ -152,9 +152,9 @@ module floo_dma_test_node  #(
     AxiAddrWidth:       AxiCfg.AddrWidth,
     AxiDataWidth:       AxiCfg.DataWidth,
     NoAddrRules:        1,
-    PipelineStages:     0,
-    NoMulticastPorts:   0,
-    NoMulticastRules:   0
+    PipelineStages:     0
+    // NoMulticastPorts:   0,
+    // NoMulticastRules:   0
   };
 
   //--------------------------------------
