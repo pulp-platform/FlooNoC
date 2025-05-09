@@ -29,9 +29,9 @@ module floo_output_arbiter import floo_pkg::*;
   output flit_t                  data_o
 );
 
-  flit_t[NumRoutes-1:0]  reduce_data_out, unicast_data_out;
+  flit_t                 reduce_data_out, unicast_data_out;
   logic [NumRoutes-1:0]  reduce_valid_in, unicast_valid_in, reduce_ready_out, unicast_ready_out;
-  logic reduce_valid_out, unicast_valid_out, reduce_ready_in, unicast_ready_in;
+  logic                  reduce_valid_out, unicast_valid_out, reduce_ready_in, unicast_ready_in;
 
   logic [NumRoutes-1:0]  reduce_mask;
 
