@@ -19,6 +19,8 @@ module tb_floo_rob_multicast;
   localparam time TestTime = 8ns;
 
   localparam int unsigned NumReads = 5;
+  // Keep number of NumWrites lower than 10 to make it works.
+  // If NumWrites > 10 it'll stall. This is only a TB issue.
   localparam int unsigned NumWrites = 5;
 
   localparam int unsigned NumSlaves = 4;
@@ -55,7 +57,7 @@ module tb_floo_rob_multicast;
   `FLOO_TYPEDEF_AXI_LINK_ALL(req, rsp, req, rsp)
   typedef logic [McastAxiCfg.UserWidth-1:0] user_mask_t;
   typedef struct packed {
-    user_mask_t mask;
+    user_mask_t mcast_mask;
   } mcast_user_t;
 
   axi_in_req_t  node_mst_req;
@@ -125,6 +127,9 @@ module tb_floo_rob_multicast;
     axi_addr_t mask;
   } node_addr_mask_region_t;
 
+  // TODO(lleone): There is a problem here with the regions ordering.
+  // The first entryy is the MSB. So the order should be from the top:
+  // West, South, East, North
   localparam int unsigned NumAddrRegions = 4;
   localparam node_addr_region_t [NumAddrRegions-1:0] AddrRegions = '{
     '{idx: North, start_addr: 32'h00210000, end_addr: 32'h0021FFFF},  // North

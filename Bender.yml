@@ -12,6 +12,7 @@ package:
 dependencies:
   idma: { git: "https://github.com/pulp-platform/iDMA.git", version: 0.6.2 }
   common_cells: { git: "https://github.com/pulp-platform/common_cells.git", version: 1.35.0 }
+  # common_cells: { git: "https://github.com/pulp-platform/common_cells.git", rev: "multicast-xbar" }
   common_verification: { git: "https://github.com/pulp-platform/common_verification.git", version: 0.2.3 }
   axi: { git: "https://github.com/pulp-platform/axi.git", version: 0.39.3 } # TODO: Use release once merged
   axi_riscv_atomics: { git: "https://github.com/pulp-platform/axi_riscv_atomics.git", version: 0.8.2 }
@@ -37,7 +38,7 @@ sources:
   - hw/floo_reduction_sync.sv
   - hw/floo_route_xymask.sv
   - hw/floo_mask_extract.sv
-  - hw/floo_mask_translation.sv
+  # - hw/floo_mask_translation.sv
   # Level 2
   - hw/floo_route_select.sv
   - hw/floo_route_comp.sv

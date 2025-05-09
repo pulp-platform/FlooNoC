@@ -852,10 +852,10 @@ module floo_nw_chimney #(
 
     for (genvar ch = 0; ch < NumNWAxiChannels; ch++) begin : gen_mcast_id_mask
       localparam nw_ch_e Ch = nw_ch_e'(ch);
-      if (Ch == NarrowAw || Ch == NarrowAr ||
-        Ch == WideAw || Ch == WideAr) begin : gen_req_mcast_id_mask
+      if (Ch == NarrowAw || Ch == WideAw ) begin : gen_req_mcast_id_mask
         // Evaluate the ID Mask according to the info read from the SAM through the flooo_id_translation module
-        if (RouteCfg.UseIdTable) begin: gen_mcast_idtable
+        if (RouteCfg.UseIdTable &&
+            RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin: gen_mcast_idtable
           assign x_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel[ch].len))
                                     << x_mask_sel[ch].offset);
           assign y_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel[ch].len))
@@ -863,18 +863,20 @@ module floo_nw_chimney #(
           assign mask_id[ch].x = (axi_req_user[ch] & x_addr_mask[ch]) >> x_mask_sel[ch].offset;
           assign mask_id[ch].y = (axi_req_user[ch] & y_addr_mask[ch]) >> y_mask_sel[ch].offset;
           assign mask_id[ch].port_id = '0;
-        end else if (RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin: gen_mcast_xyrouting
+        end else if (RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin: gen_mcast_noidtable
           assign mask_id[ch].x = axi_req_user[ch][RouteCfg.XYAddrOffsetX +: $bits(id_out.x)];
           assign mask_id[ch].y = axi_req_user[ch][RouteCfg.XYAddrOffsetY +: $bits(id_out.y)];
           assign mask_id[ch].port_id = '0;
+        end else begin: gen_mcast_nosupported
+          assign mask_id[ch] = '0; // We don't support multicast for other routing algorithms
         end
       end
     end
 
     assign mcast_mask[NarrowAw] = mask_id[NarrowAw];
-    assign mcast_mask[NarrowAr] = mask_id[NarrowAr];
+    assign mcast_mask[NarrowAr] = '0;
     assign mcast_mask[WideAw]   = mask_id[WideAw];
-    assign mcast_mask[WideAr]   = mask_id[WideAr];
+    assign mcast_mask[WideAr]   = '0;
     assign mcast_mask[NarrowW]  = narrow_aw_mask_q;
     assign mcast_mask[WideW]    = wide_aw_mask_q;
 
@@ -933,6 +935,7 @@ module floo_nw_chimney #(
     floo_narrow_ar.hdr.last     = 1'b1;
     floo_narrow_ar.hdr.axi_ch   = NarrowAr;
     floo_narrow_ar.payload      = axi_narrow_ar_queue;
+    floo_narrow_ar.hdr.commtype = '0;
   end
 
   always_comb begin
@@ -963,6 +966,7 @@ module floo_nw_chimney #(
     floo_narrow_r.hdr.atop    = narrow_ar_buf_hdr_out.hdr.atop;
     floo_narrow_r.payload     = axi_narrow_meta_buf_rsp_out.r;
     floo_narrow_r.payload.id  = narrow_ar_buf_hdr_out.id;
+    floo_narrow_r.hdr.commtype = '0;
   end
 
   always_comb begin
@@ -1001,6 +1005,7 @@ module floo_nw_chimney #(
     floo_wide_ar.hdr.last     = 1'b1;
     floo_wide_ar.hdr.axi_ch   = WideAr;
     floo_wide_ar.payload      = axi_wide_ar_queue;
+    floo_wide_ar.hdr.commtype = '0;
   end
 
   always_comb begin
@@ -1028,6 +1033,7 @@ module floo_nw_chimney #(
     floo_wide_r.hdr.last    = 1'b1; // There is no reason to do wormhole routing for R bursts
     floo_wide_r.payload     = axi_wide_meta_buf_rsp_out.r;
     floo_wide_r.payload.id  = wide_ar_buf_hdr_out.id;
+    floo_wide_r.hdr.commtype = '0;
   end
 
   always_comb begin

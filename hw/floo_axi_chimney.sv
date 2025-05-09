@@ -527,9 +527,10 @@ module floo_axi_chimney #(
 
     for (genvar ch = 0; ch < NumAxiChannels; ch++) begin : gen_mcast_id_mask
       localparam axi_ch_e Ch = axi_ch_e'(ch);
-      if (Ch == AxiAw || Ch == AxiAr) begin : gen_req_mcast_id_mask
+      if (Ch == AxiAw) begin : gen_req_mcast_id_mask
         // Evaluate the ID Mask according to the info read from the SAM through the flooo_id_translation module
-        if (RouteCfg.UseIdTable) begin: gen_mcast_idtable
+        if (RouteCfg.UseIdTable &&
+            RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin: gen_mcast_idtable
           assign x_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel[ch].len))
                                     << x_mask_sel[ch].offset);
           assign y_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel[ch].len))
@@ -537,19 +538,21 @@ module floo_axi_chimney #(
           assign mask_id[ch].x = (axi_req_user[ch] & x_addr_mask[ch]) >> x_mask_sel[ch].offset;
           assign mask_id[ch].y = (axi_req_user[ch] & y_addr_mask[ch]) >> y_mask_sel[ch].offset;
           assign mask_id[ch].port_id = '0;
-        end else if (RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin: gen_mcast_xyrouting
+        end else if (RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin: gen_mcast_noidtable
           assign mask_id[ch].x = axi_req_user[ch][RouteCfg.XYAddrOffsetX +: $bits(id_out.x)];
           assign mask_id[ch].y = axi_req_user[ch][RouteCfg.XYAddrOffsetY +: $bits(id_out.y)];
           assign mask_id[ch].port_id = '0;
+        end else begin: gen_mcast_nosupported
+          assign mask_id[ch] = '0; // We don't support multicast for other routing algorithms
         end
       end
     end
 
     assign mcast_mask[AxiAw] = mask_id[AxiAw];
-    assign mcast_mask[AxiAr] = mask_id[AxiAr];
+    assign mcast_mask[AxiAr] = '0;
     assign mcast_mask[AxiW]  = axi_aw_mask_q;
-    assign mcast_mask[AxiR] = ar_out_hdr_out.hdr.mcast_mask;
-    assign mcast_mask[AxiB] = aw_out_hdr_out.hdr.mcast_mask;
+    assign mcast_mask[AxiR]  = ar_out_hdr_out.hdr.mcast_mask;
+    assign mcast_mask[AxiB]  = aw_out_hdr_out.hdr.mcast_mask;
 
     `FFL(axi_aw_mask_q, mcast_mask[AxiAw], axi_aw_queue_valid_out &&
                                      axi_aw_queue_ready_in, '0)
@@ -598,6 +601,7 @@ module floo_axi_chimney #(
     floo_axi_ar.hdr.last    = 1'b1;
     floo_axi_ar.hdr.axi_ch  = AxiAr;
     floo_axi_ar.payload     = axi_ar_queue;
+    floo_axi_ar.hdr.commtype = '0;
   end
 
   always_comb begin
@@ -627,6 +631,7 @@ module floo_axi_chimney #(
     floo_axi_r.hdr.atop     = ar_out_hdr_out.hdr.atop;
     floo_axi_r.payload      = meta_buf_rsp_out.r;
     floo_axi_r.payload.id   = ar_out_hdr_out.id;
+    floo_axi_r.hdr.commtype = '0;
   end
 
   always_comb begin
