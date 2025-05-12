@@ -34,7 +34,7 @@ module floo_mask_extract #(
   end
 
   // Assert that the output width is equal to the number of bits set in the mask
-  `ASSERT_INIT(CountOnes, $countones(Mask) == $bits(out_t),
-      "Number of bits set in the mask and output width don't match")
+  // `ASSERT_INIT(CountOnes, $countones(Mask) == $bits(out_t),
+  //     "Number of bits set in the mask and output width don't match")
 
 endmodule

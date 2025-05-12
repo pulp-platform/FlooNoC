@@ -551,8 +551,8 @@ module floo_axi_chimney #(
     assign mcast_mask[AxiAw] = mask_id[AxiAw];
     assign mcast_mask[AxiAr] = '0;
     assign mcast_mask[AxiW]  = axi_aw_mask_q;
-    assign mcast_mask[AxiR]  = ar_out_hdr_out.hdr.mcast_mask;
-    assign mcast_mask[AxiB]  = aw_out_hdr_out.hdr.mcast_mask;
+    assign mcast_mask[AxiR]  = ar_out_hdr_out.hdr.mask;
+    assign mcast_mask[AxiB]  = aw_out_hdr_out.hdr.mask;
 
     `FFL(axi_aw_mask_q, mcast_mask[AxiAw], axi_aw_queue_valid_out &&
                                      axi_aw_queue_ready_in, '0)

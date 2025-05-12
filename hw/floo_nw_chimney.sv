@@ -880,10 +880,10 @@ module floo_nw_chimney #(
     assign mcast_mask[NarrowW]  = narrow_aw_mask_q;
     assign mcast_mask[WideW]    = wide_aw_mask_q;
 
-    assign mcast_mask[NarrowR] = narrow_ar_buf_hdr_out.hdr.mcast_mask;
-    assign mcast_mask[NarrowB] = narrow_aw_buf_hdr_out.hdr.mcast_mask;
-    assign mcast_mask[WideR]   = wide_ar_buf_hdr_out.hdr.mcast_mask;
-    assign mcast_mask[WideB]   = wide_aw_buf_hdr_out.hdr.mcast_mask;
+    assign mcast_mask[NarrowR] = narrow_ar_buf_hdr_out.hdr.mask;
+    assign mcast_mask[NarrowB] = narrow_aw_buf_hdr_out.hdr.mask;
+    assign mcast_mask[WideR]   = wide_ar_buf_hdr_out.hdr.mask;
+    assign mcast_mask[WideB]   = wide_aw_buf_hdr_out.hdr.mask;
 
     `FFL(narrow_aw_mask_q, mask[NarrowAw], axi_narrow_aw_queue_valid_out &&
                                            axi_narrow_aw_queue_ready_in, '0)
@@ -1357,6 +1357,7 @@ module floo_nw_chimney #(
       .axi_out_rsp_t  ( axi_wide_out_rsp_t        ),
       .RouteCfg       ( RouteCfg                  ),
       .addr_t         ( axi_addr_t                ),
+      .sam_rule_t     ( sam_rule_t               ),
       .id_t           ( id_t                      ),
       .sam_idx_t      ( sam_idx_t                 ),
       .mask_sel_t     ( mask_sel_t                )

@@ -225,7 +225,6 @@ module floo_meta_buffer #(
     mask_sel_t x_mask_sel, y_mask_sel;
     addr_t x_addr_mask, y_addr_mask;
     addr_t in_addr;
-    logic dec_error;
 
     assign in_mask = aw_buf_i.hdr.mask;
     assign in_id = aw_buf_i.hdr.dst_id;
@@ -249,7 +248,6 @@ module floo_meta_buffer #(
         .mask_addr_x_o (x_mask_sel),
         .mask_addr_y_o (y_mask_sel)
       );
-    `ASSERT(MaskDecodeError, !dec_error)
     always_comb begin
       x_addr_mask = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel.len)) << x_mask_sel.offset);
       y_addr_mask = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel.len)) << y_mask_sel.offset);

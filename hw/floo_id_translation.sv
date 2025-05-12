@@ -45,9 +45,9 @@ module floo_id_translation #(
 
     // This is simply to pass the assertions in addr_decode
     // It is not used otherwise, since we specify `idx_t`
-    localparam int unsigned MaxPossibleId = 1 << $bits(id_o);
+    localparam int unsigned MaxPossibleId = '1;
 
-    addr_decode #(
+    addr_decode_dync #(
       .NoIndices  ( MaxPossibleId        ),
       .NoRules    ( RouteCfg.NumSamRules ),
       .addr_t     ( addr_t               ),
@@ -60,7 +60,8 @@ module floo_id_translation #(
       .dec_valid_o      (             ),
       .dec_error_o      ( dec_error   ),
       .en_default_idx_i ( 1'b0        ),
-      .default_idx_i    ( '0          )
+      .default_idx_i    ( '0          ),
+      .config_ongoing_i ( 1'b0 )
     );
 
     `ASSERT(DecodeError, !(dec_error && valid_i))
