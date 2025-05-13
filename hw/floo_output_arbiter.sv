@@ -4,6 +4,8 @@
 //
 // Author: Chen Wu <chenwu@student.ethz.ch>
 
+`include "common_cells/assertions.svh"
+
 module floo_output_arbiter import floo_pkg::*;
 #(
   /// Number of input ports
@@ -95,5 +97,8 @@ module floo_output_arbiter import floo_pkg::*;
   );
 
   assign ready_o = (reduce_valid_out)? reduce_ready_out : unicast_ready_out;
+
+  // Cannot have an output valid without at least one input valid
+  `ASSERT(ValidOutInvalidIn, valid_o |-> |valid_i)
 
 endmodule

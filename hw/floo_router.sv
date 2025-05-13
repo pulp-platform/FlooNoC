@@ -161,6 +161,7 @@ module floo_router
         assign in_ready[in][v] = |(masked_all_ready[in][v] & route_mask[in][v]);
       end else begin : gen_multicast
         // TODO(fischeti): Clarify with Chen
+        // Logic to fork the multicast packet into multiple ports
         assign acc_masked_ready_d[in][v] = (in_ready[in][v]) ? '0 :
                                             (acc_masked_ready_q[in][v] | masked_all_ready[in][v]);
         assign current_accumulated[in][v] = acc_masked_ready_q[in][v] | masked_all_ready[in][v];
@@ -197,6 +198,8 @@ module floo_router
           .data_o  ( out_data [out][v] )
         );
       end else begin : gen_red_arb
+        // Arbiter to be instantiated for reduction operations.
+        // Repsonses from a multicast request are also treated as reductions.
         floo_output_arbiter #(
           .NumRoutes     ( NumInput      ),
           .flit_t        ( flit_t        ),
@@ -296,7 +299,7 @@ module floo_router
   if (NoLoopback) begin: gen_no_loopback_assert
     for (genvar in = 0; in < NumInput; in++) begin : gen_input
       for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt
-        `ASSERT(NoLoopback, !(in_valid[in][v] && route_mask[in][v][in]))
+        `ASSERT(NoLoopback, !(in_valid[in][v] && route_mask[in][v][in] && (in_data[in][v].hdr.commtype == Unicast)))
       end
     end
   end

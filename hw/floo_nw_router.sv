@@ -172,6 +172,8 @@ module floo_nw_router #(
     rsvd: '0
   });
 
+  // Enable reduction for the B response.
+  // Disable multicast for the B response.
   floo_router #(
     .NumInput         ( NumInputs               ),
     .NumOutput        ( NumOutputs              ),

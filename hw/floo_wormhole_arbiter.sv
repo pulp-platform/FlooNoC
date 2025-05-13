@@ -5,6 +5,7 @@
 // Michael Rogenmoser <michaero@iis.ee.ethz.ch>
 
 `include "common_cells/registers.svh"
+`include "common_cells/assertions.svh"
 
 /// A wormhole arbiter
 module floo_wormhole_arbiter import floo_pkg::*;
@@ -74,5 +75,7 @@ module floo_wormhole_arbiter import floo_pkg::*;
 
   `FF(valid_q, valid_d, '0)
   `FF(last_q, last_out & ready_i, '0)
+
+  `ASSERT(InvalidCreation, valid_o |-> |valid_i)
 
 endmodule

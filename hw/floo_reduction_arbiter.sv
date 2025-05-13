@@ -11,6 +11,8 @@ module floo_reduction_arbiter import floo_pkg::*;
   /// Type definitions
   parameter type         flit_t     = logic,
   parameter type         payload_t  = logic,
+  // Masks used to select which bits of the payload are part of the response,
+  // allowing extraction of relevant bits and detection of any participant errors.
   parameter payload_t    NarrowRspMask = '0,
   parameter payload_t    WideRspMask = '0,
   parameter type         id_t       = logic
@@ -67,7 +69,8 @@ module floo_reduction_arbiter import floo_pkg::*;
     // We check every input port from which we expect a response
     for (int i = 0; i < NumRoutes; i++) begin
       if(in_route_mask[i]) begin
-        // For every bit that is set in the mask, we assemble the response
+        // Select only the bits of the payload that are part of the response
+        // and check if at least one of the participants sent an error.
         automatic int j = 0;
         for (int k = 0; k < $bits(ReduceMask); k++) begin
           if (ReduceMask[k]) begin
@@ -76,6 +79,7 @@ module floo_reduction_arbiter import floo_pkg::*;
           end
         end
         // If one of the responses is an error, we return an error
+        // otherwise we return the first response
         if(resp == axi_pkg::RESP_SLVERR) begin
           data_o = data_i[i];
           break;

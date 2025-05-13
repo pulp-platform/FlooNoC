@@ -236,11 +236,8 @@ module floo_nw_chimney #(
   // Routing
   dst_t [NumNWAxiChannels-1:0] dst_id;
   dst_t narrow_aw_id_q, wide_aw_id_q;
-  id_t [NumNWAxiChannels-1:0] mask;
   id_t narrow_aw_mask_q, wide_aw_mask_q;
-  route_t [NumNWAxiChannels-1:0] route_out;
   id_t [NumNWAxiChannels-1:0] mcast_mask;
-  id_t axi_aw_mask_q;
   id_t [NumNWAxiChannels-1:0] id_out;
   id_t [NumNWAxiChannels-1:0] mask_id;
 
@@ -885,9 +882,9 @@ module floo_nw_chimney #(
     assign mcast_mask[WideR]   = wide_ar_buf_hdr_out.hdr.mask;
     assign mcast_mask[WideB]   = wide_aw_buf_hdr_out.hdr.mask;
 
-    `FFL(narrow_aw_mask_q, mask[NarrowAw], axi_narrow_aw_queue_valid_out &&
+    `FFL(narrow_aw_mask_q, mcast_mask[NarrowAw], axi_narrow_aw_queue_valid_out &&
                                            axi_narrow_aw_queue_ready_in, '0)
-    `FFL(wide_aw_mask_q, mask[WideAw], axi_wide_aw_queue_valid_out &&
+    `FFL(wide_aw_mask_q, mcast_mask[WideAw], axi_wide_aw_queue_valid_out &&
                                        axi_wide_aw_queue_ready_in, '0)
 
   end else begin: gen_no_mcast_mask
