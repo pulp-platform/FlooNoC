@@ -461,7 +461,8 @@ class RouteMap(BaseModel):
         # uniquify the names
         rdl_names = list(set(rdl_names))
         for rule in rdl_names:
-            string += f"`include \"{rule}.rdl\"\n"
+            rule_part = rule.split()[0].split('#')[0]
+            string += f"`include \"{rule_part}.rdl\"\n"
         return string
 
     def pprint(self):
