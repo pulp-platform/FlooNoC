@@ -256,7 +256,9 @@ class RouteMapRule(BaseModel):
         """Render the SystemRDL routing rule."""
         if self.addr_range.rdl_name is None:
             return []
-        return [{"start_addr": self.addr_range.start, "rdl_name": self.addr_range.rdl_name, "instance_name": instance_name}]
+        return [{"start_addr": self.addr_range.start,
+                 "rdl_name": self.addr_range.rdl_name,
+                 "instance_name": instance_name}]
 
 
 class RouteRule(BaseModel):
@@ -453,7 +455,7 @@ class RouteMap(BaseModel):
         string = ""
         rules = self.rules.copy()
         rdl_names = []
-        for i, rule in enumerate(rules):
+        for rule in rules:
             if rule.addr_range.rdl_name is not None:
                 rdl_names.append(rule.addr_range.rdl_name)
         # uniquify the names

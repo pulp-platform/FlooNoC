@@ -43,15 +43,15 @@ def render_sources(network: Network, args: argparse.Namespace):
 
     # Write the network description to file or print it to stdout
     if args.outdir:
-        if not args.only_top and not args.only_rdl:
+        if not args.only_top and not args.rdl:
             pkg_file_name = outdir / f"floo_{network.name}_noc_pkg.sv"
             with open(pkg_file_name, "w+", encoding="utf-8") as pkg_file:
                 pkg_file.write(rendered_pkg)
-        if not args.only_pkg and not args.only_rdl:
+        if not args.only_pkg and not args.rdl:
             top_file_name = outdir / f"floo_{network.name}_noc.sv"
             with open(top_file_name, "w+", encoding="utf-8") as top_file:
                 top_file.write(rendered_top)
-        if not args.only_top and not args.only_pkg:
+        if args.rdl:
             rdl_file_name = outdir / f"{network.name}.rdl"
             with open(rdl_file_name, "w+", encoding="utf-8") as rdl_file:
                 rdl_file.write(network.render_rdl())
@@ -95,11 +95,11 @@ def parse_args():
         help="Only generate the NoC top-module.",
     )
     parser.add_argument(
-        "--only-rdl",
-        dest="only_rdl",
+        "--rdl",
+        dest="rdl",
         action="store_true",
         default=False,
-        help="Only generate the system's RDL.",
+        help="Generate the system's RDL.",
     )
     parser.add_argument(
         "--no-format",
