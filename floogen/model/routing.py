@@ -457,12 +457,11 @@ class RouteMap(BaseModel):
         rdl_names = []
         for rule in rules:
             if rule.addr_range.rdl_name is not None:
-                rdl_names.append(rule.addr_range.rdl_name)
+                rdl_names.append(rule.addr_range.rdl_name.split()[0].split('#')[0])
         # uniquify the names
-        rdl_names = list(set(rdl_names))
+        rdl_names = sorted(list(set(rdl_names)))
         for rule in rdl_names:
-            rule_part = rule.split()[0].split('#')[0]
-            string += f"`include \"{rule_part}.rdl\"\n"
+            string += f"`include \"{rule}.rdl\"\n"
         return string
 
     def pprint(self):
