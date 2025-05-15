@@ -15,6 +15,7 @@ from floogen.model.network import Network
 from floogen.utils import verible_format
 
 
+# pylint: disable=too-many-branches
 def render_sources(network: Network, args: argparse.Namespace):
     """Render the sources for the network."""
 
@@ -56,11 +57,11 @@ def render_sources(network: Network, args: argparse.Namespace):
             with open(rdl_file_name, "w+", encoding="utf-8") as rdl_file:
                 rdl_file.write(network.render_rdl())
     else:
-        if not args.only_top and not args.only_rdl:
+        if not args.only_top and not args.rdl:
             print(rendered_pkg)
-        if not args.only_pkg and not args.only_rdl:
+        if not args.only_pkg and not args.rdl:
             print(rendered_top)
-        if not args.only_top and not args.only_pkg:
+        if args.rdl:
             print(network.render_rdl())
 
 
