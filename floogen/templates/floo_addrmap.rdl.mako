@@ -11,6 +11,6 @@ ${noc.routing.sam.render_rdl_inc()}
 
 addrmap ${noc.name}_addrmap {
 
-${noc.routing.sam.render_rdl()}
+${noc.routing.sam.render_rdl(rdl_as_mem)}
 
 };

@@ -783,9 +783,9 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         """Render the network package in the generated code."""
         return self.pkg_tpl.render(noc=self)
 
-    def render_rdl(self):
+    def render_rdl(self, rdl_as_mem=False):
         """Render the network RDL in the generated code."""
-        return self.rdl_tpl.render(noc=self)
+        return self.rdl_tpl.render(noc=self, rdl_as_mem=rdl_as_mem)
 
     def visualize(self, savefig=True, filename: pathlib.Path = "network.png"):
         """Visualize the network graph."""
