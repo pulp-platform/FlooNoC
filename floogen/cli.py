@@ -15,6 +15,7 @@ from floogen.model.network import Network
 from floogen.utils import verible_format
 
 
+# pylint: disable=too-many-branches
 def render_sources(network: Network, args: argparse.Namespace):
     """Render the sources for the network."""
 
@@ -43,19 +44,25 @@ def render_sources(network: Network, args: argparse.Namespace):
 
     # Write the network description to file or print it to stdout
     if args.outdir:
-        if not args.only_top:
+        if not args.only_top and not args.rdl:
             pkg_file_name = outdir / f"floo_{network.name}_noc_pkg.sv"
             with open(pkg_file_name, "w+", encoding="utf-8") as pkg_file:
                 pkg_file.write(rendered_pkg)
-        if not args.only_pkg:
+        if not args.only_pkg and not args.rdl:
             top_file_name = outdir / f"floo_{network.name}_noc.sv"
             with open(top_file_name, "w+", encoding="utf-8") as top_file:
                 top_file.write(rendered_top)
+        if args.rdl:
+            rdl_file_name = outdir / f"{network.name}.rdl"
+            with open(rdl_file_name, "w+", encoding="utf-8") as rdl_file:
+                rdl_file.write(network.render_rdl(rdl_as_mem=args.rdl_as_mem))
     else:
-        if not args.only_top:
+        if not args.only_top and not args.rdl:
             print(rendered_pkg)
-        if not args.only_pkg:
+        if not args.only_pkg and not args.rdl:
             print(rendered_top)
+        if args.rdl:
+            print(network.render_rdl(rdl_as_mem=args.rdl_as_mem))
 
 
 def parse_args():
@@ -87,6 +94,20 @@ def parse_args():
         action="store_true",
         default=False,
         help="Only generate the NoC top-module.",
+    )
+    parser.add_argument(
+        "--rdl",
+        dest="rdl",
+        action="store_true",
+        default=False,
+        help="Generate the system's RDL.",
+    )
+    parser.add_argument(
+        "--rdl-as-mem",
+        dest="rdl_as_mem",
+        action="store_true",
+        default=False,
+        help="Add memory blocks for address regions without 'rdl_name' declared.",
     )
     parser.add_argument(
         "--no-format",
