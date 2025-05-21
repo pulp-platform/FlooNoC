@@ -83,6 +83,13 @@ package floo_pkg;
     NumAxiChannels = 3'd5
   } axi_ch_e;
 
+  /// The types of collective communication
+  typedef enum logic [1:0] {
+    Unicast = 2'd0,
+    Multicast = 2'd1,
+    CollectB = 2'd2
+  } commtype_e;
+
   /// The types of AXI channels in narrow-wide AXI network interfaces
   typedef enum logic [3:0] {
     NarrowAw = 4'd0,

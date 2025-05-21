@@ -5,6 +5,7 @@
 // Michael Rogenmoser <michaero@iis.ee.ethz.ch>
 
 `include "common_cells/assertions.svh"
+`include "common_cells/registers.svh"
 
 /// A simple router with configurable number of ports, physical and virtual channels, and input/output buffers
 module floo_router
@@ -14,6 +15,9 @@ module floo_router
   parameter int unsigned NumVirtChannels  = 0,
   parameter int unsigned NumPhysChannels  = 1,
   parameter type         flit_t           = logic,
+  parameter type         payload_t        = logic,
+  parameter payload_t    NarrowRspMask    = '0,
+  parameter payload_t    WideRspMask      = '0,
   parameter int unsigned InFifoDepth      = 0,
   parameter int unsigned OutFifoDepth     = 0,
   parameter route_algo_e RouteAlgo        = IdTable,
@@ -27,7 +31,9 @@ module floo_router
   parameter int unsigned NumInput         = NumRoutes,
   parameter int unsigned NumOutput        = NumRoutes,
   parameter bit          XYRouteOpt       = 1'b1,
-  parameter bit          NoLoopback       = 1'b1
+  parameter bit          NoLoopback       = 1'b1,
+  parameter bit          ENABLE_MULTICAST = 1'b0,
+  parameter bit          ENABLE_REDUCTION = 1'b0
 ) (
   input  logic                                       clk_i,
   input  logic                                       rst_ni,
@@ -84,13 +90,14 @@ module floo_router
       );
 
       floo_route_select #(
-        .NumRoutes    ( NumOutput    ),
-        .flit_t       ( flit_t       ),
-        .RouteAlgo    ( RouteAlgo    ),
-        .IdWidth      ( IdWidth      ),
-        .id_t         ( id_t         ),
-        .NumAddrRules ( NumAddrRules ),
-        .addr_rule_t  ( addr_rule_t  )
+        .NumRoutes        ( NumOutput        ),
+        .flit_t           ( flit_t           ),
+        .RouteAlgo        ( RouteAlgo        ),
+        .IdWidth          ( IdWidth          ),
+        .id_t             ( id_t             ),
+        .NumAddrRules     ( NumAddrRules     ),
+        .addr_rule_t      ( addr_rule_t      ),
+        .ENABLE_MULTICAST ( ENABLE_MULTICAST )
       ) i_route_select (
         .clk_i,
         .rst_ni,
@@ -109,39 +116,63 @@ module floo_router
     end
   end
 
-  localparam int unsigned NumInputLimited = NoLoopback ? NumInput-1 : NumInput;
 
-  logic [NumOutput-1:0][NumVirtChannels-1:0][NumInputLimited-1:0] masked_valid, masked_ready;
+  logic [NumOutput-1:0][NumVirtChannels-1:0][NumInput-1:0] masked_valid, masked_ready;
   logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] masked_all_ready;
+  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] acc_masked_ready_q, acc_masked_ready_d;
+  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] current_accumulated;
 
-  flit_t [NumOutput-1:0][NumVirtChannels-1:0][NumInputLimited-1:0] masked_data;
+  flit_t [NumOutput-1:0][NumVirtChannels-1:0][NumInput-1:0] masked_data;
 
   // TODO MICHAERO: reduce connections if (RouteAlgo == XYRouting)
   for (genvar in_route = 0; in_route < NumInput; in_route++) begin : gen_hs_input
     for (genvar v_chan = 0; v_chan < NumVirtChannels; v_chan++) begin : gen_hs_virt
       for (genvar out_route = 0; out_route < NumOutput; out_route++) begin : gen_hs_output
-        localparam int unsigned ModInRoute =
-          in_route < out_route && NoLoopback ? in_route : in_route-1;
-        if (in_route == out_route && NoLoopback) begin : gen_inout_identical
-          assign masked_all_ready[in_route][v_chan][out_route] = '0;
-          // TODO MICHAERO: assert no loopback routing!!!
-        end else if ((RouteAlgo == XYRouting) && XYRouteOpt &&
-                    (in_route == South || in_route == North) &&
-                    (out_route == East || out_route == West)) begin : gen_xy_opt
-          assign masked_all_ready[in_route][v_chan][out_route] = '0;
-          assign masked_valid[out_route][v_chan][ModInRoute] = '0;
-          assign masked_data[out_route][v_chan][ModInRoute] = '0;
-        end else begin : gen_default
+        if(NoLoopback) begin : gen_no_loopback
+          if (in_route == out_route) begin : gen_inout_identical
+            assign masked_all_ready[in_route][v_chan][out_route] = '0;
+            assign masked_valid[out_route][v_chan][in_route] = '0;
+            assign masked_data[out_route][v_chan][in_route] = '0;
+            // TODO MICHAERO: assert no loopback routing!!!
+          end else if ((RouteAlgo == XYRouting) && XYRouteOpt &&
+                      (in_route == South || in_route == North) &&
+                      (out_route == East || out_route == West)) begin : gen_xy_opt
+            assign masked_all_ready[in_route][v_chan][out_route] = '0;
+            assign masked_valid[out_route][v_chan][in_route] = '0;
+            assign masked_data[out_route][v_chan][in_route] = '0;
+          end else begin : gen_default
+            assign masked_all_ready[in_route][v_chan][out_route] =
+              masked_ready[out_route][v_chan][in_route];
+            assign masked_valid[out_route][v_chan][in_route] =
+              in_valid[in_route][v_chan] & route_mask[in_route][v_chan][out_route]
+              & (ENABLE_MULTICAST? ~acc_masked_ready_q[in_route][v_chan][out_route] : 1'b1);
+            assign masked_data[out_route][v_chan][in_route] =
+              in_routed_data[in_route][v_chan];
+          end
+        end
+        else begin : gen_loopback
           assign masked_all_ready[in_route][v_chan][out_route] =
-            masked_ready[out_route][v_chan][ModInRoute];
-          assign masked_valid[out_route][v_chan][ModInRoute] =
-            in_valid[in_route][v_chan] & route_mask[in_route][v_chan][out_route];
-          assign masked_data[out_route][v_chan][ModInRoute] =
+              masked_ready[out_route][v_chan][in_route];
+          assign masked_valid[out_route][v_chan][in_route] =
+            in_valid[in_route][v_chan] & route_mask[in_route][v_chan][out_route]
+            & (ENABLE_MULTICAST? ~acc_masked_ready_q[in_route][v_chan][out_route] : 1'b1);
+          assign masked_data[out_route][v_chan][in_route] =
             in_routed_data[in_route][v_chan];
         end
       end
-      assign in_ready[in_route][v_chan] =
-        |(masked_all_ready[in_route][v_chan] & route_mask[in_route][v_chan]);
+      if (!ENABLE_MULTICAST) begin : gen_unicast
+        assign in_ready[in_route][v_chan] =
+          |(masked_all_ready[in_route][v_chan] & route_mask[in_route][v_chan]);
+      end else begin : gen_multicast
+        assign acc_masked_ready_d[in_route][v_chan] = (in_ready[in_route][v_chan]) ?
+            '0 : (acc_masked_ready_q[in_route][v_chan] | masked_all_ready[in_route][v_chan]);
+        `FF(acc_masked_ready_q[in_route][v_chan], acc_masked_ready_d[in_route][v_chan], '0)
+        assign current_accumulated[in_route][v_chan] =
+          acc_masked_ready_q[in_route][v_chan] | masked_all_ready[in_route][v_chan];
+        assign in_ready[in_route][v_chan] =
+          &(current_accumulated[in_route][v_chan] | ~(NoLoopback?
+            (route_mask[in_route][v_chan] & ~(1 << in_route)) : route_mask[in_route][v_chan]));
+      end
     end
   end
 
@@ -154,22 +185,44 @@ module floo_router
 
     // arbitrate input fifos per virtual channel
     for (genvar v_chan = 0; v_chan < NumVirtChannels; v_chan++) begin : gen_virt_output
+      if(!ENABLE_REDUCTION) begin : gen_no_reduction_output
+        floo_wormhole_arbiter #(
+          .NumRoutes  ( NumInput ),
+          .flit_t     ( flit_t   )
+        ) i_wormhole_arbiter (
+          .clk_i,
+          .rst_ni,
 
-      floo_wormhole_arbiter #(
-        .NumRoutes  ( NumInputLimited ),
-        .flit_t     ( flit_t          )
-      ) i_wormhole_arbiter (
-        .clk_i,
-        .rst_ni,
+          .valid_i ( masked_valid[out_route][v_chan] ),
+          .ready_o ( masked_ready[out_route][v_chan] ),
+          .data_i  ( masked_data [out_route][v_chan] ),
 
-        .valid_i ( masked_valid[out_route][v_chan] ),
-        .ready_o ( masked_ready[out_route][v_chan] ),
-        .data_i  ( masked_data [out_route][v_chan] ),
+          .valid_o ( out_valid[out_route][v_chan] ),
+          .ready_i ( out_ready[out_route][v_chan] ),
+          .data_o  ( out_data [out_route][v_chan] )
+        );
+      end else begin : gen_reduction_output
+        floo_output_arbiter #(
+          .NumRoutes     ( NumInput      ),
+          .flit_t        ( flit_t        ),
+          .payload_t     ( payload_t     ),
+          .NarrowRspMask ( NarrowRspMask ),
+          .WideRspMask   ( WideRspMask   ),
+          .id_t          ( id_t          )
+        ) i_output_arbiter (
+          .clk_i,
+          .rst_ni,
 
-        .valid_o ( out_valid[out_route][v_chan] ),
-        .ready_i ( out_ready[out_route][v_chan] ),
-        .data_o  ( out_data [out_route][v_chan] )
-      );
+          .valid_i  ( masked_valid[out_route][v_chan] ),
+          .ready_o  ( masked_ready[out_route][v_chan] ),
+          .data_i   ( masked_data [out_route][v_chan] ),
+          .node_id_i( xy_id_i                         ),
+
+          .valid_o ( out_valid[out_route][v_chan] ),
+          .ready_i ( out_ready[out_route][v_chan] ),
+          .data_o  ( out_data [out_route][v_chan] )
+        );
+      end
 
       if (OutFifoDepth > 0) begin : gen_out_fifo
         (* ungroup *)
@@ -180,8 +233,8 @@ module floo_router
           .clk_i      ( clk_i         ),
           .rst_ni     ( rst_ni        ),
           .testmode_i ( test_enable_i ),
-          .flush_i    ( 1'b0   ),
-          .usage_o    (  ),
+          .flush_i    ( 1'b0                                  ),
+          .usage_o    (                                       ),
           .data_i     ( out_data          [out_route][v_chan] ),
           .valid_i    ( out_valid         [out_route][v_chan] ),
           .ready_o    ( out_ready         [out_route][v_chan] ),
