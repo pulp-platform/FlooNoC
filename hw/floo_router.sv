@@ -299,7 +299,8 @@ module floo_router
   if (NoLoopback) begin: gen_no_loopback_assert
     for (genvar in = 0; in < NumInput; in++) begin : gen_input
       for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt
-        `ASSERT(NoLoopback, !(in_valid[in][v] && route_mask[in][v][in] && (in_data[in][v].hdr.commtype == Unicast)))
+        `ASSERT(NoLoopback, !(in_valid[in][v] && route_mask[in][v][in] &&
+                            (in_data[in][v].hdr.commtype == Unicast)))
       end
     end
   end

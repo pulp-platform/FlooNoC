@@ -522,7 +522,9 @@ class Routing(BaseModel):
 
         if self.num_vc_id_bits == 0:
             if self.en_multicast:
-                return f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t, id_t, collect_comm_e)"
+                return (
+                    f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t,"
+                    f"id_t, collect_comm_e)")
             return f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t)"
         return f"`FLOO_TYPEDEF_VC_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t, vc_id_t)"
 
