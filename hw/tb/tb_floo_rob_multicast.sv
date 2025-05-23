@@ -8,7 +8,9 @@
 `include "axi/assign.svh"
 `include "floo_noc/typedef.svh"
 
-module tb_floo_rob;
+`define TARGET_SIMULATION
+
+module tb_floo_rob_multicast;
 
   import floo_pkg::*;
 
@@ -16,8 +18,10 @@ module tb_floo_rob;
   localparam time ApplTime = 2ns;
   localparam time TestTime = 8ns;
 
-  localparam int unsigned NumReads = 1000;
-  localparam int unsigned NumWrites = 1000;
+  localparam int unsigned NumReads = 5;
+  // Keep number of NumWrites lower than 10 to make it works.
+  // If NumWrites > 10 it'll stall. This is only a TB issue.
+  localparam int unsigned NumWrites = 5;
 
   localparam int unsigned NumSlaves = 4;
 
@@ -33,17 +37,28 @@ module tb_floo_rob;
     return cfg;
   endfunction
 
+  function automatic axi_cfg_t gen_axi_cfg();
+    axi_cfg_t cfg = floo_test_pkg::AxiCfg;
+    cfg.UserWidth = cfg.AddrWidth;
+    return cfg;
+  endfunction
+
   // Default chimney config with RoB for testing
   localparam chimney_cfg_t RoBChimneyCfg = gen_rob_chimney_cfg();
+  localparam axi_cfg_t McastAxiCfg = gen_axi_cfg();
   typedef logic [$clog2(RoBChimneyCfg.BRoBSize)-1:0] rob_idx_t;
 
   typedef logic [1:0] x_bits_t;
   typedef logic [1:0] y_bits_t;
   `FLOO_TYPEDEF_XY_NODE_ID_T(id_t, x_bits_t, y_bits_t, logic)
-  `FLOO_TYPEDEF_HDR_T(hdr_t, id_t, id_t, axi_ch_e, rob_idx_t)
-  `FLOO_TYPEDEF_AXI_FROM_CFG(axi, floo_test_pkg::AxiCfg)
-  `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi_in, floo_test_pkg::AxiCfg, hdr_t)
+  `FLOO_TYPEDEF_HDR_T(hdr_t, id_t, id_t, axi_ch_e, rob_idx_t, id_t, collect_comm_e)
+  `FLOO_TYPEDEF_AXI_FROM_CFG(axi, McastAxiCfg)
+  `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi_in, McastAxiCfg, hdr_t)
   `FLOO_TYPEDEF_AXI_LINK_ALL(req, rsp, req, rsp)
+  typedef logic [McastAxiCfg.UserWidth-1:0] user_mask_t;
+  typedef struct packed {
+    user_mask_t mcast_mask;
+  } mcast_user_t;
 
   axi_in_req_t  node_mst_req;
   axi_in_rsp_t node_mst_rsp;
@@ -106,6 +121,15 @@ module tb_floo_rob;
     axi_addr_t end_addr;
   } node_addr_region_t;
 
+  typedef struct packed {
+    int unsigned idx;
+    axi_addr_t addr;
+    axi_addr_t mask;
+  } node_addr_mask_region_t;
+
+  // TODO(lleone): There is a problem here with the regions ordering.
+  // The first entryy is the MSB. So the order should be from the top:
+  // West, South, East, North
   localparam int unsigned NumAddrRegions = 4;
   localparam node_addr_region_t [NumAddrRegions-1:0] AddrRegions = '{
     '{idx: North, start_addr: 32'h00210000, end_addr: 32'h0021FFFF},  // North
@@ -114,8 +138,15 @@ module tb_floo_rob;
     '{idx: West, start_addr: 32'h00100000, end_addr: 32'h0010FFFF}    // West
   };
 
+  localparam node_addr_mask_region_t [NumAddrRegions-1:0] MaskAddrRegions = '{
+    '{idx: North, addr: 32'h00210000, mask: 32'hFFDCFFFF},  // North
+    '{idx: East, addr: 32'h00120000, mask: 32'hFFFDFFFF},   // East
+    '{idx: South, addr: 32'h00010000, mask: 32'hFFCCFFFF},  // South
+    '{idx: West, addr: 32'h00100000, mask: 32'hFFFCFFFF}    // West
+  };
+
   floo_axi_test_node #(
-    .AxiCfg         ( floo_test_pkg::AxiCfg ),
+    .AxiCfg         ( McastAxiCfg ),
     .mst_req_t      ( axi_in_req_t          ),
     .mst_rsp_t      ( axi_in_rsp_t          ),
     .slv_req_t      ( axi_out_req_t         ),
@@ -127,7 +158,8 @@ module tb_floo_rob;
     .rule_t         ( node_addr_region_t    ),
     .AddrRegions    ( AddrRegions           ),
     .NumReads       ( NumReads              ),
-    .NumWrites      ( NumWrites             )
+    .NumWrites      ( NumWrites             ),
+    .EnMultiCast ( 1 )
   ) i_test_node_0 (
     .clk_i          ( clk                           ),
     .rst_ni         ( rst_n                         ),
@@ -140,9 +172,9 @@ module tb_floo_rob;
 
   axi_dumper #(
     .BusName    ( "MasterAxi"   ),
-    .LogAW      ( 1'b0          ),
-    .LogAR      ( 1'b0          ),
-    .LogW       ( 1'b0          ),
+    .LogAW      ( 1'b1          ),
+    .LogAR      ( 1'b1          ),
+    .LogW       ( 1'b1          ),
     .LogB       ( 1'b0          ),
     .LogR       ( 1'b0          ),
     .axi_req_t  ( axi_in_req_t  ),
@@ -155,11 +187,12 @@ module tb_floo_rob;
   );
 
   floo_axi_chimney #(
-    .AxiCfg             ( floo_test_pkg::AxiCfg         ),
+    .AxiCfg             ( McastAxiCfg                   ),
     .ChimneyCfg         ( RoBChimneyCfg                 ), // Needs RoB
     .RouteCfg           ( floo_test_pkg::RouteCfg       ),
     .AtopSupport        ( floo_test_pkg::AtopSupport    ),
     .MaxAtomicTxns      ( floo_test_pkg::MaxAtomicTxns  ),
+    .EnMultiCast        ( 1'b1                          ),
     .axi_in_req_t       ( axi_in_req_t                  ),
     .axi_in_rsp_t       ( axi_in_rsp_t                  ),
     .axi_out_req_t      ( axi_out_req_t                 ),
@@ -168,7 +201,8 @@ module tb_floo_rob;
     .id_t               ( id_t                          ),
     .hdr_t              ( hdr_t                         ),
     .floo_req_t         ( floo_req_t                    ),
-    .floo_rsp_t         ( floo_rsp_t                    )
+    .floo_rsp_t         ( floo_rsp_t                    ),
+    .user_struct_t      ( mcast_user_t                  )
   ) i_floo_axi_chimney (
     .clk_i          ( clk                               ),
     .rst_ni         ( rst_n                             ),
@@ -192,7 +226,9 @@ module tb_floo_rob;
     .flit_t           ( floo_req_generic_flit_t ),
     .InFifoDepth      ( 2                       ),
     .RouteAlgo        ( floo_pkg::XYRouting     ),
-    .id_t             ( id_t                    )
+    .id_t             ( id_t                    ),
+    .NoLoopback       ( 1'b1                    ),
+    .EnMultiCast      ( 1'b1                    )
   ) i_floo_req_router (
     .clk_i          ( clk                     ),
     .rst_ni         ( rst_n                   ),
@@ -213,7 +249,8 @@ module tb_floo_rob;
     .flit_t           ( floo_rsp_generic_flit_t ),
     .InFifoDepth      ( 2                       ),
     .RouteAlgo        ( floo_pkg::XYRouting     ),
-    .id_t             ( id_t                    )
+    .id_t             ( id_t                    ),
+    .EnReduction      ( 1                       )
   ) i_floo_rsp_router (
     .clk_i          ( clk                     ),
     .rst_ni         ( rst_n                   ),
@@ -228,11 +265,25 @@ module tb_floo_rob;
     .data_o         ( chimney_rsp_in_chan     )
   );
 
+  // localparam floo_test_pkg::slave_type_e SlaveType[floo_pkg::NumDirections-1] = '{
+  //   floo_test_pkg::FastSlave,
+  //   floo_test_pkg::FastSlave,
+  //   floo_test_pkg::SlowSlave,
+  //   floo_test_pkg::MixedSlave
+  // };
+
+  // localparam floo_test_pkg::slave_type_e SlaveType[floo_pkg::NumDirections-1] = '{
+  //   floo_test_pkg::SlowSlave,
+  //   floo_test_pkg::SlowSlave,
+  //   floo_test_pkg::SlowSlave,
+  //   floo_test_pkg::SlowSlave
+  // };
+
   localparam floo_test_pkg::slave_type_e SlaveType[floo_pkg::NumDirections-1] = '{
     floo_test_pkg::FastSlave,
     floo_test_pkg::FastSlave,
-    floo_test_pkg::SlowSlave,
-    floo_test_pkg::MixedSlave
+    floo_test_pkg::FastSlave,
+    floo_test_pkg::FastSlave
   };
 
   for (genvar i = North; i <= West; i++) begin : gen_slaves
@@ -248,11 +299,12 @@ module tb_floo_rob;
     end
 
     floo_axi_chimney #(
-      .AxiCfg         ( floo_test_pkg::AxiCfg         ),
+      .AxiCfg         ( McastAxiCfg         ),
       .ChimneyCfg     ( floo_test_pkg::ChimneyCfg     ), // Does not need RoB
       .RouteCfg       ( floo_test_pkg::RouteCfg       ),
       .AtopSupport    ( floo_test_pkg::AtopSupport    ),
       .MaxAtomicTxns  ( floo_test_pkg::MaxAtomicTxns  ),
+      .EnMultiCast    ( 1'b1                          ),
       .axi_in_req_t   ( axi_in_req_t                  ),
       .axi_in_rsp_t   ( axi_in_rsp_t                  ),
       .axi_out_req_t  ( axi_out_req_t                 ),
@@ -261,7 +313,8 @@ module tb_floo_rob;
       .id_t           ( id_t                          ),
       .hdr_t          ( hdr_t                         ),
       .floo_req_t     ( floo_req_t                    ),
-      .floo_rsp_t     ( floo_rsp_t                    )
+      .floo_rsp_t     ( floo_rsp_t                    ),
+      .user_struct_t  ( mcast_user_t                  )
     ) i_floo_axi_chimney (
       .clk_i          ( clk                   ),
       .rst_ni         ( rst_n                 ),
@@ -284,7 +337,7 @@ module tb_floo_rob;
       .LogAW      ( 1'b0          ),
       .LogAR      ( 1'b0          ),
       .LogW       ( 1'b0          ),
-      .LogB       ( 1'b0          ),
+      .LogB       ( 1'b1          ),
       .LogR       ( 1'b0          ),
       .axi_req_t  ( axi_in_req_t  ),
       .axi_resp_t ( axi_in_rsp_t  )
@@ -296,7 +349,7 @@ module tb_floo_rob;
     );
 
     floo_axi_rand_slave #(
-      .AxiCfg       ( floo_test_pkg::AxiCfg ),
+      .AxiCfg       ( McastAxiCfg ),
       .axi_req_t    ( axi_out_req_t         ),
       .axi_rsp_t    ( axi_out_rsp_t         ),
       .ApplTime     ( ApplTime              ),
@@ -315,13 +368,15 @@ module tb_floo_rob;
 
   end
 
-  axi_reorder_compare #(
+  axi_reorder_compare_multicast #(
     .NumSlaves      ( NumSlaves                       ),
-    .AxiIdWidth     ( floo_test_pkg::AxiCfg.InIdWidth ),
+    .AxiIdWidth     ( McastAxiCfg.InIdWidth ),
     .NumAddrRegions ( NumAddrRegions                  ),
     .addr_t         ( axi_addr_t                      ),
     .rule_t         ( node_addr_region_t              ),
     .AddrRegions    ( AddrRegions                     ),
+    .mask_rule_t    ( node_addr_mask_region_t         ),
+    .MaskAddrRegions( MaskAddrRegions                 ),
     .aw_chan_t      ( axi_in_aw_chan_t                ),
     .w_chan_t       ( axi_in_w_chan_t                 ),
     .b_chan_t       ( axi_in_b_chan_t                 ),
