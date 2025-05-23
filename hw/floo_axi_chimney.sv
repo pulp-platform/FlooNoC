@@ -26,8 +26,6 @@ module floo_axi_chimney #(
   /// Every atomic transactions needs to have a unique ID
   /// and one ID is reserved for non-atomic transactions
   parameter int unsigned MaxAtomicTxns      = 1,
-  /// Enable multicast feature
-  parameter bit EnMultiCast                 = 1'b0,
   /// Node ID type for routing
   parameter type id_t                                   = logic,
   /// RoB index type for reordering.
@@ -199,7 +197,7 @@ module floo_axi_chimney #(
     `AXI_ASSIGN_RESP_STRUCT(axi_in_rsp_o, axi_rsp_out)
 
     // Extract the multicast mask bits from the AXI user bits
-    if (EnMultiCast) begin : gen_mask
+    if (RouteCfg.EnMultiCast) begin : gen_mask
       user_struct_t user;
       assign user = axi_in_req_i.aw.user;
       assign axi_req_in_mask = user.mcast_mask;
@@ -233,7 +231,7 @@ module floo_axi_chimney #(
         .valid_o    ( axi_ar_queue_valid_out  ),
         .ready_i    ( axi_ar_queue_ready_in   )
       );
-      if (EnMultiCast) begin : gen_mask_cuts
+      if (RouteCfg.EnMultiCast) begin : gen_mask_cuts
         spill_register #(
           .T (logic [AxiCfg.UserWidth-1:0])
         ) i_usermask_queue (
@@ -487,8 +485,7 @@ module floo_axi_chimney #(
         .id_t       (id_t),
         .addr_t     (axi_addr_t),
         .addr_rule_t(sam_rule_t),
-        .mask_sel_t (mask_sel_t),
-        .EnMultiCast(EnMultiCast)
+        .mask_sel_t (mask_sel_t)
       ) i_floo_id_translation (
         .clk_i,
         .rst_ni,
@@ -520,7 +517,7 @@ module floo_axi_chimney #(
   `FFL(axi_aw_id_q, dst_id[AxiAw], axi_aw_queue_valid_out &&
                                    axi_aw_queue_ready_in, '0)
 
-  if (EnMultiCast) begin : gen_mcast
+  if (RouteCfg.EnMultiCast) begin : gen_mcast
     localparam int unsigned AddrWidth = $bits(axi_addr_t);
     axi_addr_t [NumAxiChannels-1:0] x_addr_mask;
     axi_addr_t [NumAxiChannels-1:0] y_addr_mask;
@@ -779,7 +776,6 @@ module floo_axi_chimney #(
       .MaxUniqueIds   ( ChimneyCfg.MaxUniqueIds ),
       .AtopSupport    ( AtopSupport             ),
       .MaxAtomicTxns  ( MaxAtomicTxns           ),
-      .EnMultiCast    ( EnMultiCast             ),
       .Sam            ( Sam                     ),
       .buf_t          ( meta_buf_t              ),
       .axi_in_req_t   ( axi_req_t               ),

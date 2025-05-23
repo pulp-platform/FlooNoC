@@ -24,8 +24,6 @@ module floo_meta_buffer #(
   parameter bit AtopSupport   = 1'b1,
   /// Number of outstanding atomic requests
   parameter int MaxAtomicTxns = 32'd1,
-  /// Enable multicast support
-  parameter bit EnMultiCast   = 1'b0,
   /// AXI in request channel
   parameter type axi_in_req_t   = logic,
   /// AXI in response channel
@@ -218,7 +216,7 @@ module floo_meta_buffer #(
 
   // NoC addr/mask to AXI addr/mask conversion
   localparam int unsigned AddrWidth = $bits(addr_t);
-  if (EnMultiCast && RouteCfg.UseIdTable &&
+  if (RouteCfg.EnMultiCast && RouteCfg.UseIdTable &&
      (RouteCfg.RouteAlgo == floo_pkg::XYRouting))
   begin : gen_mcast_table_conversion
     id_t out, in_mask, in_id;
@@ -237,8 +235,7 @@ module floo_meta_buffer #(
         .id_t       (id_t),
         .addr_t     (addr_t),
         .addr_rule_t(sam_rule_t),
-        .mask_sel_t (mask_sel_t),
-        .EnMultiCast(EnMultiCast)
+        .mask_sel_t (mask_sel_t)
       ) i_floo_id_translation (
         .clk_i,
         .rst_ni,

@@ -155,6 +155,8 @@ package floo_pkg;
     /// The number of routes for every routing table,
     /// Only used if `RouteAlgo == SourceRouting`
     int unsigned NumRoutes;
+    /// Whether to enable the multicast feature in the NoC
+    bit EnMultiCast;
   } route_cfg_t;
 
   /// Configuration for the network interface (chimney)
@@ -217,7 +219,8 @@ package floo_pkg;
     XYAddrOffsetY: 0,
     IdAddrOffset: 0,
     NumSamRules: 0,
-    NumRoutes: 0
+    NumRoutes: 0,
+    EnMultiCast: 1'b0
   };
 
   /// The AXI channel to link mapping in a single-AXI network interface
