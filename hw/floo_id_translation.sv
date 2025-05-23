@@ -12,7 +12,7 @@
 /// or a simple offset based translation.
 module floo_id_translation #(
   /// The route config
-  parameter floo_pkg::route_cfg_t RouteCfg = '0,
+  parameter floo_pkg::route_cfg_t RouteCfg = floo_pkg::RouteDefaultCfg,
   /// The type of the ID
   parameter type id_t = logic,
   /// The type of the IDX field in the address rule
@@ -24,8 +24,7 @@ module floo_id_translation #(
   /// The System Address Map
   parameter addr_rule_t [RouteCfg.NumSamRules-1:0] Sam,
   /// The type of the offset + len to identify which bits in the address can be masked
-  parameter type mask_sel_t = logic,
-  parameter bit  EnMultiCast = 1'b0
+  parameter type mask_sel_t = logic
 ) (
   input  logic  clk_i,   // Only used for assertions
   input  logic  rst_ni,  // Only used for assertions
@@ -66,7 +65,7 @@ module floo_id_translation #(
 
     `ASSERT(DecodeError, !(dec_error && valid_i))
 
-    if (EnMultiCast) begin: gen_mcast_id_mask
+    if (RouteCfg.EnMultiCast) begin: gen_mcast_id_mask
       assign mask_addr_x_o = idx_out.mask_x;
       assign mask_addr_y_o = idx_out.mask_y;
       assign id_o = idx_out.id;

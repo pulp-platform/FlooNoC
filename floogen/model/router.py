@@ -46,6 +46,15 @@ class RouterDesc(BaseModel):
             return (v,)
         return v
 
+    @field_validator("xy_id_offset", mode="before")
+    @classmethod
+    def dict_to_coord_obj(cls, v):
+        """Convert dict to Coord object."""
+        match v:
+            case None:
+                return None
+            case {"x": x, "y": y}:
+                return Coord(x=x, y=y)
 
 class Router(BaseModel, ABC):
     """Abstract router class of an actual router"""
