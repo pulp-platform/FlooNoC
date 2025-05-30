@@ -858,8 +858,8 @@ module floo_nw_chimney #(
           assign mask_id[ch].y = (axi_req_user[ch] & y_addr_mask[ch]) >> y_mask_sel[ch].offset;
           assign mask_id[ch].port_id = '0;
         end else if (RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin: gen_mcast_noidtable
-          assign mask_id[ch].x = axi_req_user[ch][RouteCfg.XYAddrOffsetX +: $bits(id_out.x)];
-          assign mask_id[ch].y = axi_req_user[ch][RouteCfg.XYAddrOffsetY +: $bits(id_out.y)];
+          assign mask_id[ch].x = axi_req_user[ch][RouteCfg.XYAddrOffsetX +: $bits(id_out[ch].x)];
+          assign mask_id[ch].y = axi_req_user[ch][RouteCfg.XYAddrOffsetY +: $bits(id_out[ch].y)];
           assign mask_id[ch].port_id = '0;
         end else begin: gen_mcast_nosupported
           assign mask_id[ch] = '0; // We don't support multicast for other routing algorithms
