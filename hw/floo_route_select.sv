@@ -121,6 +121,85 @@ if (RouteAlgo == IdTable) begin : gen_id_table
 
     assign channel_o = channel_i;
 
+  end else if (RouteAlgo == YXRouting) begin : gen_yx_routing
+
+    id_t id_in;
+    assign id_in = id_t'(channel_i.hdr.dst_id);
+
+    always_comb begin : proc_route_sel
+      route_sel_id = East;
+      if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
+        route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
+      end else if (id_in.y == xy_id_i.y) begin
+        if (id_in.x < xy_id_i.x) begin
+          route_sel_id = West;
+        end else begin
+          route_sel_id = East;
+        end
+      end else begin
+        if (id_in.y < xy_id_i.y) begin
+          route_sel_id = South;
+        end else begin
+          route_sel_id = North;
+        end
+      end
+      route_sel = '0;
+      route_sel[route_sel_id] = 1'b1;
+    end
+
+    assign channel_o = channel_i;
+
+  end else if (RouteAlgo == OddEvenRouting) begin : gen_oddeven_routing
+    id_t id_src, id_dst;
+    assign id_src = id_t'(channel_i.hdr.src_id);
+    assign id_dst = id_t'(channel_i.hdr.dst_id);
+
+    always_comb begin : proc_route_sel
+      route_sel_id = East;
+      if (id_dst.x == xy_id_i.x && id_dst.y == xy_id_i.y) begin
+        route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
+      end else if (xy_id_i.x == id_dst.x) begin   //currently in the same column as destination
+        if (xy_id_i.y < id_dst.y) begin
+          route_sel_id = North;
+        end else begin
+          route_sel_id = South;
+        end
+      end else if (xy_id_i.x < id_dst.x) begin    //eastbound traffic
+        if (xy_id_i.y == id_dst.y) begin
+          route_sel_id = East;
+        end else if (((xy_id_i.x % 2) == 1) || (xy_id_i.x == id_src.x)) begin
+          if ((((id_dst.x) % 2 == 1) || ((id_dst.x - xy_id_i.x) != 1)) && (^channel_i)) begin
+            route_sel_id = East;
+          end else begin
+            if (xy_id_i.y < id_dst.y) begin
+              route_sel_id = North;
+            end else begin
+              route_sel_id = South;
+            end
+          end
+        end else begin
+          assert ((id_dst.x % 2 == 1) || (id_dst.x - xy_id_i.x != 1));
+          route_sel_id = East;
+        end
+      end else begin                             //westbound traffic
+        if (xy_id_i.y == id_dst.y) begin
+          route_sel_id = West;
+        end else if (((xy_id_i.x % 2) == 0) && (^channel_i)) begin
+          if (xy_id_i.y < id_dst.y) begin
+            route_sel_id = North;
+          end else begin
+            route_sel_id = South;
+          end
+        end else begin
+          route_sel_id = West;
+        end
+      end
+      route_sel = '0;
+      route_sel[route_sel_id] = 1'b1;
+    end
+
+    assign channel_o = channel_i;
+
   end else begin : gen_err
     // Unknown or unimplemented routing otherwise
     initial begin
