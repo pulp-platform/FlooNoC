@@ -44,7 +44,7 @@ module floo_id_translation #(
 
     // This is simply to pass the assertions in addr_decode
     // It is not used otherwise, since we specify `idx_t`
-    localparam int unsigned MaxPossibleId = '1;
+    localparam int unsigned MaxPossibleId = 1 << $bits(idx_out);
 
     addr_decode_dync #(
       .NoIndices  ( MaxPossibleId        ),
