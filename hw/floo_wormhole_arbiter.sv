@@ -5,6 +5,7 @@
 // Michael Rogenmoser <michaero@iis.ee.ethz.ch>
 
 `include "common_cells/registers.svh"
+`include "common_cells/assertions.svh"
 
 /// A wormhole arbiter
 module floo_wormhole_arbiter import floo_pkg::*;
@@ -59,7 +60,8 @@ module floo_wormhole_arbiter import floo_pkg::*;
   assign data_o  = data_i [valid_selected_idx];
   always_comb begin : proc_ready_o
     ready_o = '0;
-    ready_o[valid_selected_idx] = ready_i;
+    // when valid_i is invalid, there's no generated ready bit
+    ready_o[valid_selected_idx] = (|valid_i)? ready_i : '0;
   end
 
   assign last_out = data_o.hdr.last & valid_o;
@@ -73,5 +75,7 @@ module floo_wormhole_arbiter import floo_pkg::*;
 
   `FF(valid_q, valid_d, '0)
   `FF(last_q, last_out & ready_i, '0)
+
+  `ASSERT(InvalidCreation, valid_o |-> |valid_i)
 
 endmodule

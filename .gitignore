@@ -68,6 +68,7 @@ hw/test/jobs
 
 # QuestaSim
 work
+work_*
 work-vsim
 modelsim.ini
 transcript
