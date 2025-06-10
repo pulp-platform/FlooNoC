@@ -132,9 +132,10 @@ module floo_router
 
 
   logic [NumOutput-1:0][NumVirtChannels-1:0][NumInput-1:0] masked_valid, masked_ready;
-  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] masked_all_ready;
-  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] acc_masked_ready_q, acc_masked_ready_d;
-  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] current_accumulated;
+  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] masked_ready_transposed, masked_valid_transposed;
+  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] past_handshakes_q, past_handshakes_d;
+  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] current_handshakes, all_handshakes;
+  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] ignore_routes, expected_handshakes;
 
   flit_t [NumOutput-1:0][NumVirtChannels-1:0][NumInput-1:0] masked_data;
 
@@ -147,31 +148,45 @@ module floo_router
            ((RouteAlgo == XYRouting) && XYRouteOpt &&
             (in == South || in == North) && (out == East || out == West)))
         begin : gen_no_conn
-          assign masked_all_ready[in][v][out] = '0;
+          assign masked_ready_transposed[in][v][out] = '0;
           assign masked_valid[out][v][in]     = '0;
           assign masked_data[out][v][in]      = '0;
         end else begin : gen_conn
-          assign masked_all_ready[in][v][out] = masked_ready[out][v][in];
+          assign masked_ready_transposed[in][v][out] = masked_ready[out][v][in];
           assign masked_valid[out][v][in]     = in_valid[in][v] & route_mask[in][v][out] &
-                                                (!EnMultiCast || ~acc_masked_ready_q[in][v][out]);
+                                                (!EnMultiCast || ~past_handshakes_q[in][v][out]);
           assign masked_data[out][v][in]      = in_routed_data[in][v];
         end
+        assign masked_valid_transposed[in][v][out] = masked_valid[out][v][in];
       end
       if (!EnMultiCast) begin : gen_unicast
-        assign in_ready[in][v] = |(masked_all_ready[in][v] & route_mask[in][v]);
+        assign in_ready[in][v] = |(masked_ready_transposed[in][v] & route_mask[in][v]);
       end else begin : gen_multicast
-        // TODO(fischeti): Clarify with Chen
-        // Logic to fork the multicast packet into multiple ports
-        assign acc_masked_ready_d[in][v] = (in_ready[in][v]) ? '0 :
-                                            (acc_masked_ready_q[in][v] | masked_all_ready[in][v]);
-        assign current_accumulated[in][v] = acc_masked_ready_q[in][v] | masked_all_ready[in][v];
-        assign in_ready[in][v] = &(current_accumulated[in][v] |
-                               ~(NoLoopback? (route_mask[in][v] & ~(1 << in)) : route_mask[in][v]));
+        // In the case of multicast transactions, each destination can assert the ready signal
+        // independently and potentially at different clock cycles. This logic ensures that
+        // the upstream sender is only acknowledged when all selected downstream destinations
+        // have successfully completed their handshake (valid & ready).
+        //
+        // Handshake received in current cycle
+        assign current_handshakes[in][v] = masked_valid_transposed[in][v] &
+                                           masked_ready_transposed[in][v];
+        // Handhsake received in previous cycles
+        assign past_handshakes_d[in][v] = (in_ready[in][v] & in_valid[in][v]) ? '0 :
+                                            (past_handshakes_q[in][v] | current_handshakes[in][v]);
+        // History of handshake received (past + present)
+        assign all_handshakes[in][v] = past_handshakes_q[in][v] | current_handshakes[in][v];
+
+        // Handshake are excepeted on all selected routes except the loopback
+        assign ignore_routes[in][v] = NoLoopback ? (1 << in) : '0;
+        assign expected_handshakes[in][v] = route_mask[in][v] & ~ignore_routes[in][v];
+
+        // Send ready upstream only when all expected downstream handhsalkes have been received
+        assign in_ready[in][v] = &(all_handshakes[in][v] | ~expected_handshakes[in][v]);
       end
     end
   end
 
-  `FF(acc_masked_ready_q, acc_masked_ready_d, '0)
+  `FF(past_handshakes_q, past_handshakes_d, '0)
 
   flit_t [NumOutput-1:0][NumVirtChannels-1:0] out_data, out_buffered_data;
   logic  [NumOutput-1:0][NumVirtChannels-1:0] out_valid, out_ready;
