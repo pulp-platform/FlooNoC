@@ -176,6 +176,7 @@ class AddrRange(BaseModel):
     base: Optional[int] = None
     idx: Optional[int] = None
     desc: Optional[str] = None
+    rdl_name: Optional[str] = None
 
     def __str__(self):
         return f"[{self.start:X}:{self.end:X}]"
@@ -250,6 +251,19 @@ class RouteMapRule(BaseModel):
             f"start_addr: {self.addr_range.start}, "
             f"end_addr: {self.addr_range.end}}}"
         )
+
+    def get_rdl(self, instance_name, rdl_as_mem=False):
+        """Render the SystemRDL routing rule."""
+        if self.addr_range.rdl_name is not None:
+            return [{"start_addr": self.addr_range.start,
+                    "rdl_name": self.addr_range.rdl_name,
+                    "instance_name": instance_name}]
+        if rdl_as_mem:
+            return [{"start_addr": self.addr_range.start,
+                     "rdl_name": f"external mem {{ \
+mementries = 0x{(self.addr_range.end - self.addr_range.start):X}; memwidth = 8; }}",
+                     "instance_name": instance_name}]
+        return []
 
 
 class RouteRule(BaseModel):
@@ -423,6 +437,35 @@ class RouteMap(BaseModel):
             dtype=self.rule_type(),
             array_size=f"{snake_to_camel(self.name)}NumRules-1"
         )
+        return string
+
+    def render_rdl(self, rdl_as_mem=False):
+        """Render the SystemRDL addrmap internals."""
+        string = ""
+        rules = self.rules.copy()
+        rdl_setups = []
+        for i, rule in enumerate(rules):
+            block_name = f"{self.name}_{i}"
+            if rule.desc is not None:
+                block_name = rule.desc
+            rdl_setups.extend(rule.get_rdl(f"{block_name}", rdl_as_mem))
+        newlist = sorted(rdl_setups, key=lambda d: d['start_addr'])
+        for item in newlist:
+            string += f"  {item['rdl_name']} {item['instance_name']} @0x{item['start_addr']:X};\n"
+        return string
+
+    def render_rdl_inc(self):
+        """Render the SystemRDL include header."""
+        string = ""
+        rules = self.rules.copy()
+        rdl_names = []
+        for rule in rules:
+            if rule.addr_range.rdl_name is not None:
+                rdl_names.append(rule.addr_range.rdl_name.split()[0].split('#')[0])
+        # uniquify the names
+        rdl_names = sorted(list(set(rdl_names)))
+        for rule in rdl_names:
+            string += f"`include \"{rule}.rdl\"\n"
         return string
 
     def pprint(self):
