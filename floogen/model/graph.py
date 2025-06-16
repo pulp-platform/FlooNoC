@@ -249,7 +249,8 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
                 for i in range(n):
                     for j in range(m):
                         node = f"{name}_{i}_{j}"
-                        self.add_node(node, type=node_type, arr_idx=(i, j), arr_dim=array, obj=node_obj)
+                        self.add_node(node, type=node_type, arr_idx=(i, j),
+                                      arr_dim=array, obj=node_obj)
                         if i > 0 and connect:
                             self.add_edge(
                                 node,
