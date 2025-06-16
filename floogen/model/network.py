@@ -662,13 +662,10 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             dest = ni.id
             if self.routing.xy_id_offset is not None:
                 dest -= self.routing.xy_id_offset
-            for i, addr_range in enumerate(ni.addr_range):
-                rule_name = ni.render_enum_name()
+            for _, addr_range in enumerate(ni.addr_range):
+                rule_name = ni.endpoint.name
                 if addr_range.desc is not None:
                     rule_name += f"_{addr_range.desc}"
-                elif len(ni.addr_range) > 1:
-                    rule_name += f"_{i}"
-                rule_name += "_sam_idx"
                 addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, desc=rule_name)
                 addr_table.append(addr_rule)
         return RouteMap(name="sam", rules=addr_table)

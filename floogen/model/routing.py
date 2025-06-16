@@ -434,7 +434,10 @@ class RouteMap(BaseModel):
             rules_str += f"{rule.render(aw)}"
             rules_str += ',' if i != len(rules) - 1 else ' '
             if rule.desc is not None:
-                rules_str += f"// {rule.desc}\n"
+                rules_str += f"// {rule.desc}"
+                if rule.addr_range.arr_idx is not None:
+                    rules_str += f"_{rule.addr_range.arr_idx}"
+                rules_str += "\n"
         string += sv_param_decl(
             f"{snake_to_camel(self.name)}",
             value="'{\n" + rules_str + "\n}",
