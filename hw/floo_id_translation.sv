@@ -51,6 +51,7 @@ module floo_id_translation #(
       .NoRules    ( RouteCfg.NumSamRules ),
       .addr_t     ( addr_t               ),
       .rule_t     ( addr_rule_t          ),
+      .IdxWidth   ( $bits(idx_out)       ),
       .idx_t      ( sam_idx_t            )
     ) i_addr_dst_decode (
       .addr_i,
