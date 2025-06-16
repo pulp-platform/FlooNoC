@@ -259,12 +259,14 @@ class RouteMapRule(BaseModel):
         if self.addr_range.rdl_name is not None:
             return [{"start_addr": self.addr_range.start,
                     "rdl_name": self.addr_range.rdl_name,
-                    "instance_name": instance_name}]
+                    "instance_name": instance_name,
+                    "arr_dim": self.addr_range.arr_dim}]
         if rdl_as_mem:
             return [{"start_addr": self.addr_range.start,
                      "rdl_name": f"external mem {{ \
 mementries = 0x{(self.addr_range.end - self.addr_range.start):X}; memwidth = 8; }}",
-                     "instance_name": instance_name}]
+                     "instance_name": instance_name,
+                     "arr_dim": self.addr_range.arr_dim}]
         return []
 
 
@@ -447,13 +449,19 @@ class RouteMap(BaseModel):
         rules = self.rules.copy()
         rdl_setups = []
         for i, rule in enumerate(rules):
+            if rule.addr_range.arr_dim is not None:
+                if rule.addr_range.arr_idx != 0:
+                    continue
             block_name = f"{self.name}_{i}"
             if rule.desc is not None:
                 block_name = rule.desc
             rdl_setups.extend(rule.get_rdl(f"{block_name}", rdl_as_mem))
         newlist = sorted(rdl_setups, key=lambda d: d['start_addr'])
         for item in newlist:
-            string += f"  {item['rdl_name']} {item['instance_name']} @0x{item['start_addr']:X};\n"
+            string += f"  {item['rdl_name']} {item['instance_name']}"
+            if item['arr_dim'] is not None:
+                string += f"[{item['arr_dim']}]"
+            string += f" @0x{item['start_addr']:X};\n"
         return string
 
     def render_rdl_inc(self):
