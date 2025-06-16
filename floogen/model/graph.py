@@ -55,6 +55,10 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
         """Return the node array index."""
         return self.nodes[node]["arr_idx"]
 
+    def get_node_arr_dim(self, node):
+        """Return the node array dimension."""
+        return self.nodes[node]["arr_dim"]
+
     def get_node_lvl(self, node):
         """Return the node level."""
         return self.nodes[node]["lvl"]
@@ -237,7 +241,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
             case [n]:
                 for i in range(n):
                     node = f"{name}_{i}"
-                    self.add_node(node, type=node_type, arr_idx=(i,), obj=node_obj)
+                    self.add_node(node, type=node_type, arr_idx=(i,), arr_dim=array, obj=node_obj)
                     if i > 0 and connect:
                         self.add_edge(node, f"{name}_{i-1}", type=edge_type, obj=edge_obj)
                         self.add_edge(f"{name}_{i-1}", node, type=edge_type, obj=edge_obj)
@@ -245,7 +249,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
                 for i in range(n):
                     for j in range(m):
                         node = f"{name}_{i}_{j}"
-                        self.add_node(node, type=node_type, arr_idx=(i, j), obj=node_obj)
+                        self.add_node(node, type=node_type, arr_idx=(i, j), arr_dim=array, obj=node_obj)
                         if i > 0 and connect:
                             self.add_edge(
                                 node,

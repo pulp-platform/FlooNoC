@@ -458,7 +458,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     prot["source"] = ep_name
                     prot["dest"] = ep.get_ni_name(ep_name)
                     if ep.array is not None:
-                        prot["array"] = ep.array
+                        prot["arr_dim"] = ep.array
                         prot["arr_idx"] = self.graph.get_node_arr_idx(ep_name)
                     protocol = AXI4Bus(**prot, **protocol.__dict__)
                     mgr_ports.append(protocol)
@@ -475,7 +475,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     prot["source"] = ep.get_ni_name(ep_name)
                     prot["dest"] = ep_name
                     if ep.array is not None:
-                        prot["array"] = ep.array
+                        prot["arr_dim"] = ep.array
                         prot["arr_idx"] = self.graph.get_node_arr_idx(ep_name)
                     protocol = AXI4Bus(**prot, **protocol.__dict__)
                     sbr_ports.append(protocol)
@@ -506,22 +506,22 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     pass
 
                 # 1D array case
-                case (_,):
+                case (m,):
                     node_idx = self.graph.get_node_arr_idx(ni_name)[0]
                     ni_dict["arr_idx"] = SimpleId(id=node_idx)
                     if ep_desc.is_sbr():
                         ni_dict["addr_range"] = [
-                            rng.model_copy().set_idx(node_idx) for rng in ep_desc.addr_range
+                            rng.model_copy().set_arr(node_idx, m) for rng in ep_desc.addr_range
                         ]
 
                 # 2D array case
-                case (_, n):
+                case (m, n):
                     x, y = self.graph.get_node_arr_idx(ni_name)
                     idx = x * n + y
                     ni_dict["arr_idx"] = Coord(x=x, y=y)
                     if ep_desc.is_sbr():
                         ni_dict["addr_range"] = [
-                            rng.model_copy().set_idx(idx) for rng in ep_desc.addr_range
+                            rng.model_copy().set_arr(idx, m*n) for rng in ep_desc.addr_range
                         ]
                 # Invalid case
                 case _:

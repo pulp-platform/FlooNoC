@@ -174,7 +174,8 @@ class AddrRange(BaseModel):
     end: int = Field(ge=0)
     size: int
     base: Optional[int] = None
-    idx: Optional[int] = None
+    arr_idx: Optional[int] = None
+    arr_dim: Optional[int] = None
     desc: Optional[str] = None
     rdl_name: Optional[str] = None
 
@@ -188,8 +189,8 @@ class AddrRange(BaseModel):
             raise ValueError("Invalid address range specification")
         addr_dict = {k: v for k, v in self.items() if v is not None}
         match addr_dict:
-            case {"size": size, "base": base, "idx": idx}:
-                addr_dict["start"] = base + size * idx
+            case {"size": size, "base": base, "arr_idx": arr_idx}:
+                addr_dict["start"] = base + size * arr_idx
                 addr_dict["end"] = addr_dict["start"] + size
             case {"size": size, "base": base}:
                 addr_dict["start"] = base
@@ -212,11 +213,12 @@ class AddrRange(BaseModel):
             raise ValueError("Address range start must be less than end")
         return self
 
-    def set_idx(self, idx):
+    def set_arr(self, arr_idx, arr_dim):
         """Update the address range with the given index."""
-        self.idx = idx
+        self.arr_idx = arr_idx
+        self.arr_dim = arr_dim
         if self.base is not None:
-            self.start = self.base + self.size * idx
+            self.start = self.base + self.size * arr_idx
             self.end = self.start + self.size
         else:
             raise ValueError("Address range base not set")
