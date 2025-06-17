@@ -133,7 +133,8 @@ module floo_router
 
 
   logic [NumOutput-1:0][NumVirtChannels-1:0][NumInput-1:0] masked_valid, masked_ready;
-  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] masked_ready_transposed, masked_valid_transposed;
+  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] masked_valid_transposed;
+  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] masked_ready_transposed;
   logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] past_handshakes_q, past_handshakes_d;
   logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] current_handshakes, all_handshakes;
   logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] ignore_routes, expected_handshakes;
