@@ -258,11 +258,13 @@ class RouteMapRule(BaseModel):
         """Render the SystemRDL routing rule."""
         if self.addr_range.rdl_name is not None:
             return [{"start_addr": self.addr_range.start,
+                    "size": self.addr_range.size,
                     "rdl_name": self.addr_range.rdl_name,
                     "instance_name": instance_name,
                     "arr_dim": self.addr_range.arr_dim}]
         if rdl_as_mem:
             return [{"start_addr": self.addr_range.start,
+                    "size": self.addr_range.size,
                      "rdl_name": f"external mem {{ \
 mementries = 0x{(self.addr_range.end - self.addr_range.start):X}; memwidth = 8; }}",
                      "instance_name": instance_name,
@@ -464,7 +466,10 @@ class RouteMap(BaseModel):
             string += f"  {item['rdl_name']} {item['instance_name']}"
             if item['arr_dim'] is not None:
                 string += f"[{item['arr_dim']}]"
-            string += f" @0x{item['start_addr']:X};\n"
+            string += f" @0x{item['start_addr']:X}"
+            if item['arr_dim'] is not None:
+                string += f" += 0x{item['size']:X}"
+            string += ";\n"
         return string
 
     def render_rdl_inc(self):
