@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: SHL-0.51
 //
 // Michael Rogenmoser <michaero@iis.ee.ethz.ch>
+// Lorenzo Leone <lleone@iis.ee.ethz.ch>
 
 `include "common_cells/assertions.svh"
 `include "common_cells/registers.svh"

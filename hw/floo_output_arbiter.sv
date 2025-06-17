@@ -2,7 +2,7 @@
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
 //
-// Author: Chen Wu <chenwu@student.ethz.ch>
+// Chen Wu <chenwu@student.ethz.ch>
 
 `include "common_cells/assertions.svh"
 

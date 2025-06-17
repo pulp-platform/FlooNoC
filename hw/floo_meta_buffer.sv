@@ -2,7 +2,9 @@
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
 //
-// Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
+// Tim Fischer <fischeti@iis.ee.ethz.ch>
+// Lorenzo Leone <lleone@iis.ee.ethz.ch>
+// Chen Wu <chenwu@student.ethz.ch>
 
 `include "common_cells/registers.svh"
 `include "common_cells/assertions.svh"
