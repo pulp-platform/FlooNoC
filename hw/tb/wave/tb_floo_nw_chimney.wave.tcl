@@ -8,7 +8,7 @@ floo_wave_init
 
 for {set i 0} {$i < 2} {incr i} {
     set name [list "Chimney $i"]
-    floo_nw_chimney_wave tb_floo_narrow_wide_chimney/i_floo_narrow_wide_chimney_${i} $name
+    floo_nw_chimney_wave tb_floo_nw_chimney/i_floo_nw_chimney_${i} $name
 }
 
 floo_wave_style

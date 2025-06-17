@@ -143,6 +143,17 @@ class Coord(Id):
             return self.port_id < other.port_id
         return False
 
+    @staticmethod
+    def from_dict(coord_dict: dict):
+        """Create a Coord object from a dictionary."""
+        if isinstance(coord_dict, dict):
+            return Coord(
+                x=coord_dict.get("x", 0),
+                y=coord_dict.get("y", 0),
+                port_id=coord_dict.get("port_id", 0)
+            )
+        return None
+
     def render(self, as_index=False):
         """Render the SystemVerilog coordinate."""
         if not as_index:
@@ -494,6 +505,7 @@ class Routing(BaseModel):
     rob_idx_bits: int = 1
     port_id_bits: int = 1
     num_vc_id_bits: int = 0
+    en_multicast: bool = False
 
     @field_validator("route_algo", mode="before")
     @classmethod
@@ -563,6 +575,10 @@ class Routing(BaseModel):
         ch_type = "axi_ch_e" if network_type == "axi" else "nw_ch_e"
 
         if self.num_vc_id_bits == 0:
+            if self.en_multicast:
+                return (
+                    f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t,"
+                    f"id_t, collect_comm_e)")
             return f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t)"
         return f"`FLOO_TYPEDEF_VC_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t, vc_id_t)"
 
@@ -578,5 +594,6 @@ class Routing(BaseModel):
                                 self.route_algo == RouteAlgo.ID and not self.use_id_table else 0,
             "NumSamRules": len(self.sam),
             "NumRoutes": self.num_endpoints if self.route_algo == RouteAlgo.SRC else 0,
+            "EnMultiCast": bool_to_sv(self.en_multicast)
         }
         return sv_param_decl(name, sv_struct_render(fields), dtype="route_cfg_t")

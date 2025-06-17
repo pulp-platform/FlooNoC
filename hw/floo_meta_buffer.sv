@@ -2,7 +2,9 @@
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
 //
-// Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
+// Tim Fischer <fischeti@iis.ee.ethz.ch>
+// Lorenzo Leone <lleone@iis.ee.ethz.ch>
+// Chen Wu <chenwu@student.ethz.ch>
 
 `include "common_cells/registers.svh"
 `include "common_cells/assertions.svh"
@@ -33,11 +35,23 @@ module floo_meta_buffer #(
   /// AXI out response channel
   parameter type axi_out_rsp_t  = logic,
   /// Information to be buffered for responses
-  parameter type buf_t          = logic
+  parameter type buf_t          = logic,
+  // used for AXI mask <-> NoC mask conversion
+  parameter floo_pkg::route_cfg_t RouteCfg = '0,
+  parameter type addr_t = logic,
+  /// The type of the address rules
+  parameter type sam_rule_t = logic,
+  /// The System Address Map
+  parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam,
+  parameter type id_t   = logic,
+  /// SAM Index type to support multicast info
+  parameter type sam_idx_t   = id_t,
+  parameter type mask_sel_t  = logic
 ) (
   input  logic clk_i,
   input  logic rst_ni,
   input  logic test_enable_i,
+  input  id_t id_i,
   input  axi_in_req_t axi_req_i,
   output axi_in_rsp_t axi_rsp_o,
   output axi_out_req_t axi_req_o,
@@ -64,6 +78,8 @@ module floo_meta_buffer #(
   buf_t [MaxAtomicTxns-1:0] atop_r_buf, atop_b_buf;
 
   id_out_t no_atop_aw_req_id, no_atop_ar_req_id;
+
+  addr_t axi_addr;
 
   if (MaxUniqueIds == 1) begin : gen_no_atop_fifos
 
@@ -200,6 +216,49 @@ module floo_meta_buffer #(
   assign r_buf_o = (is_atop_r_rsp && AtopSupport)? atop_r_buf[axi_rsp_i.r.id] : no_atop_r_buf;
   assign b_buf_o = (is_atop_b_rsp && AtopSupport)? atop_b_buf[axi_rsp_i.b.id] : no_atop_b_buf;
 
+  // NoC addr/mask to AXI addr/mask conversion
+  localparam int unsigned AddrWidth = $bits(addr_t);
+  if (RouteCfg.EnMultiCast && RouteCfg.UseIdTable &&
+     (RouteCfg.RouteAlgo == floo_pkg::XYRouting))
+  begin : gen_mcast_table_conversion
+    id_t out, in_mask, in_id;
+    mask_sel_t x_mask_sel, y_mask_sel;
+    addr_t x_addr_mask, y_addr_mask;
+    addr_t in_addr;
+    id_t grp_base_id;
+
+    assign in_mask = aw_buf_i.hdr.mask;
+    assign in_id = aw_buf_i.hdr.dst_id;
+    assign grp_base_id = '{x: x_mask_sel.grp_base_id, y: y_mask_sel.grp_base_id, port_id: '0};
+    assign out = ((~in_mask & in_id) | (in_mask & id_i)) & ~grp_base_id;
+    assign in_addr = axi_req_i.aw.addr;
+    floo_id_translation #(
+        .RouteCfg   (RouteCfg),
+        .Sam        (Sam),
+        .sam_idx_t  (sam_idx_t),
+        .id_t       (id_t),
+        .addr_t     (addr_t),
+        .addr_rule_t(sam_rule_t),
+        .mask_sel_t (mask_sel_t)
+      ) i_floo_id_translation (
+        .clk_i,
+        .rst_ni,
+        .valid_i       (axi_req_i.aw_valid),
+        .addr_i        (in_addr),
+        .id_o          (),
+        .mask_addr_x_o (x_mask_sel),
+        .mask_addr_y_o (y_mask_sel)
+      );
+    always_comb begin
+      x_addr_mask = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel.len)) << x_mask_sel.offset);
+      y_addr_mask = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel.len)) << y_mask_sel.offset);
+    end
+    assign axi_addr = (in_addr & ~(x_addr_mask | y_addr_mask))
+                     | ((out.x << x_mask_sel.offset) | (out.y << y_mask_sel.offset));
+  end else begin : gen_no_mcast
+    assign axi_addr = axi_req_i.aw.addr;
+  end
+
   if (AtopSupport) begin : gen_atop_support
 
     logic [MaxAtomicTxns-1:0] ar_atop_reg_full, aw_atop_reg_full;
@@ -290,6 +349,7 @@ module floo_meta_buffer #(
                             !no_atop_id_available : !aw_no_atop_buf_full);
       axi_rsp_o.aw_ready = axi_rsp_i.aw_ready && ((is_atop_aw)?
                             !no_atop_id_available : !aw_no_atop_buf_full);
+      axi_req_o.aw.addr = axi_addr;
     end
   end else begin : gen_no_atop_support
 
@@ -309,6 +369,7 @@ module floo_meta_buffer #(
       axi_rsp_o.ar_ready = axi_rsp_i.ar_ready && !ar_no_atop_buf_full;
       axi_req_o.aw_valid = axi_req_i.aw_valid && !aw_no_atop_buf_full;
       axi_rsp_o.aw_ready = axi_rsp_i.aw_ready && !aw_no_atop_buf_full;
+      axi_req_o.aw.addr = axi_addr;
     end
   end
 
