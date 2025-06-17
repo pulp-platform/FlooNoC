@@ -254,21 +254,32 @@ class RouteMapRule(BaseModel):
             f"end_addr: {self.addr_range.end}}}"
         )
 
-    def get_rdl(self, instance_name, rdl_as_mem=False):
+    def get_rdl(self, instance_name, rdl_as_mem=False, rdl_memwidth=8):
         """Render the SystemRDL routing rule."""
         if self.addr_range.rdl_name is not None:
-            return [{"start_addr": self.addr_range.start,
+            return [
+                {
+                    "start_addr": self.addr_range.start,
                     "size": self.addr_range.size,
                     "rdl_name": self.addr_range.rdl_name,
                     "instance_name": instance_name,
-                    "arr_dim": self.addr_range.arr_dim}]
+                    "arr_dim": self.addr_range.arr_dim,
+                }
+            ]
         if rdl_as_mem:
-            return [{"start_addr": self.addr_range.start,
+            mementries = (self.addr_range.end - self.addr_range.start) // rdl_memwidth * 8
+            mem_string = (
+                f"external mem {{ mementries = 0x{mementries:X}; memwidth = {rdl_memwidth}; }}"
+            )
+            return [
+                {
+                    "start_addr": self.addr_range.start,
                     "size": self.addr_range.size,
-                     "rdl_name": f"external mem {{ \
-mementries = 0x{(self.addr_range.end - self.addr_range.start):X}; memwidth = 8; }}",
-                     "instance_name": instance_name,
-                     "arr_dim": self.addr_range.arr_dim}]
+                    "rdl_name": mem_string,
+                    "instance_name": instance_name,
+                    "arr_dim": self.addr_range.arr_dim,
+                }
+            ]
         return []
 
 
