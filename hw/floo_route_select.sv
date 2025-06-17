@@ -9,18 +9,25 @@
 module floo_route_select
   import floo_pkg::*;
 #(
-  parameter int unsigned NumRoutes     = 0,
-  parameter type         flit_t        = logic,
-  parameter route_algo_e RouteAlgo     = IdTable,
-  parameter bit          LockRouting   = 1'b1,
-  /// Used for ID-based and XY routing
-  parameter int unsigned IdWidth       = 0,
-  /// Used for ID-based routing
-  parameter int unsigned NumAddrRules  = 0,
-  parameter type         addr_rule_t   = logic,
-  parameter type         id_t          = logic[IdWidth-1:0],
-  /// Used for source-based routing
-  parameter int unsigned RouteSelWidth = $clog2(NumRoutes)
+  /// Number of output ports
+  parameter int unsigned NumRoutes        = 0,
+  /// Routing algorithm
+  parameter route_algo_e RouteAlgo        = IdTable,
+  /// Enable wormhole routing i.e. locking the direction
+  /// until the `last` flag is received
+  parameter bit          LockRouting      = 1'b1,
+  /// Id Width, only used for `XYRouting` and `IdTable`
+  parameter int unsigned IdWidth          = 0,
+  /// Number of address rules, only used for `IdTable`
+  parameter int unsigned NumAddrRules     = 0,
+  /// Width of port index, only used for `SrcRouting`
+  parameter int unsigned RouteSelWidth    = $clog2(NumRoutes),
+  /// Enable multicast routing, currently only supported for `XYRouting`
+  parameter bit          EnMultiCast      = 1'b0,
+  /// Various types used in the routing algorithm
+  parameter type         flit_t           = logic,
+  parameter type         addr_rule_t      = logic,
+  parameter type         id_t             = logic[IdWidth-1:0]
 ) (
   input  logic                          clk_i,
   input  logic                          rst_ni,
@@ -33,14 +40,14 @@ module floo_route_select
   input  logic                          valid_i,
   input  logic                          ready_i,
   output flit_t                         channel_o,
-  output logic [NumRoutes-1:0]          route_sel_o, // One-hot route
+  output logic [NumRoutes-1:0]          route_sel_o,
   output logic [RouteSelWidth-1:0]      route_sel_id_o
 );
 
   logic [NumRoutes-1:0] route_sel;
   logic [RouteSelWidth-1:0] route_sel_id;
 
-if (RouteAlgo == IdTable) begin : gen_id_table
+  if (RouteAlgo == IdTable) begin : gen_id_table
     // Routing based on an ID table passed into the router (TBD parameter or signal)
     // Assumes an ID field present in the flit_t
 
@@ -95,28 +102,41 @@ if (RouteAlgo == IdTable) begin : gen_id_table
 
     // One-hot encoding of the decoded route
 
-    id_t id_in;
-    assign id_in = id_t'(channel_i.hdr.dst_id);
-
-    always_comb begin : proc_route_sel
-      route_sel_id = East;
-      if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
-        route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
-      end else if (id_in.x == xy_id_i.x) begin
-        if (id_in.y < xy_id_i.y) begin
-          route_sel_id = South;
+    if (EnMultiCast) begin : gen_mcast_route_sel
+      floo_route_xymask #(
+        .NumRoutes     ( NumRoutes ),
+        .flit_t        ( flit_t    ),
+        .id_t          ( id_t      ),
+        .FwdMode       ( 1         )
+      ) i_route_xymask (
+        .channel_i   ( channel_i ),
+        .xy_id_i     ( xy_id_i   ),
+        .route_sel_o ( route_sel )
+      );
+      assign route_sel_id = '0; // Not defined in multicast
+    end else begin : gen_route_sel
+      id_t id_in;
+      assign id_in = id_t'(channel_i.hdr.dst_id);
+      always_comb begin
+        route_sel_id = East;
+        if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
+          route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
+        end else if (id_in.x == xy_id_i.x) begin
+          if (id_in.y < xy_id_i.y) begin
+            route_sel_id = South;
+          end else begin
+            route_sel_id = North;
+          end
         end else begin
-          route_sel_id = North;
+          if (id_in.x < xy_id_i.x) begin
+            route_sel_id = West;
+          end else begin
+            route_sel_id = East;
+          end
         end
-      end else begin
-        if (id_in.x < xy_id_i.x) begin
-          route_sel_id = West;
-        end else begin
-          route_sel_id = East;
-        end
+        route_sel = '0;
+        route_sel[route_sel_id] = 1'b1;
       end
-      route_sel = '0;
-      route_sel[route_sel_id] = 1'b1;
     end
 
     assign channel_o = channel_i;

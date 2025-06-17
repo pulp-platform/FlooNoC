@@ -39,11 +39,7 @@ class EndpointDesc(BaseModel):
     @classmethod
     def dict_to_coord_obj(cls, v):
         """Convert dict to Coord object."""
-        match v:
-            case None:
-                return None
-            case {"x": x, "y": y}:
-                return Coord(x=x, y=y)
+        return Coord.from_dict(v)
 
     @field_validator("addr_range", mode="before")
     @classmethod

@@ -5,7 +5,7 @@
 # Author: Michael Rogenmoser <michaero@iis.ee.ethz.ch>
 
 variables:
-  VSIM: questa-2023.4 vsim
+  VSIM: questa-2025.1 vsim
   BENDER: bender
   PYTHON: /usr/local/anaconda3/bin/python
 

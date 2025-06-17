@@ -83,6 +83,16 @@ package floo_pkg;
     NumAxiChannels = 3'd5
   } axi_ch_e;
 
+  /// The types of collective communication
+  typedef enum logic [1:0] {
+    /// Normal communication
+    Unicast = 2'd0,
+    /// Multicast communication
+    Multicast = 2'd1,
+    /// Reduction of AXI B-responses
+    CollectB = 2'd2
+  } collect_comm_e;
+
   /// The types of AXI channels in narrow-wide AXI network interfaces
   typedef enum logic [3:0] {
     NarrowAw = 4'd0,
@@ -145,6 +155,8 @@ package floo_pkg;
     /// The number of routes for every routing table,
     /// Only used if `RouteAlgo == SourceRouting`
     int unsigned NumRoutes;
+    /// Whether to enable the multicast feature in the NoC
+    bit EnMultiCast;
   } route_cfg_t;
 
   /// Configuration for the network interface (chimney)
@@ -207,7 +219,8 @@ package floo_pkg;
     XYAddrOffsetY: 0,
     IdAddrOffset: 0,
     NumSamRules: 0,
-    NumRoutes: 0
+    NumRoutes: 0,
+    EnMultiCast: 1'b0
   };
 
   /// The AXI channel to link mapping in a single-AXI network interface
