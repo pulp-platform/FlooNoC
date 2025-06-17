@@ -50,11 +50,7 @@ class RouterDesc(BaseModel):
     @classmethod
     def dict_to_coord_obj(cls, v):
         """Convert dict to Coord object."""
-        match v:
-            case None:
-                return None
-            case {"x": x, "y": y}:
-                return Coord(x=x, y=y)
+        return Coord.from_dict(v)
 
 class Router(BaseModel, ABC):
     """Abstract router class of an actual router"""

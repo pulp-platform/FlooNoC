@@ -143,6 +143,17 @@ class Coord(Id):
             return self.port_id < other.port_id
         return False
 
+    @staticmethod
+    def from_dict(coord_dict: dict):
+        """Create a Coord object from a dictionary."""
+        if isinstance(coord_dict, dict):
+            return Coord(
+                x=coord_dict.get("x", 0),
+                y=coord_dict.get("y", 0),
+                port_id=coord_dict.get("port_id", 0)
+            )
+        return None
+
     def render(self, as_index=False):
         """Render the SystemVerilog coordinate."""
         if not as_index:
