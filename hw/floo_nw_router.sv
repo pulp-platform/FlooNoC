@@ -155,7 +155,7 @@ module floo_nw_router #(
   // We construct the masks for the narrow and wide B responses here.
   // Every bit of the payload is set to 0, except for the bits that
   // correspond to the resp field.
-localparam axi_narrow_b_chan_t NarrowBMask = '{resp: 2'b11, default: '0};
+  localparam axi_narrow_b_chan_t NarrowBMask = '{resp: 2'b11, default: '0};
   localparam floo_axi_narrow_b_flit_t NarrowBFlitMask = '{
     payload: NarrowBMask,
     hdr: '0,
