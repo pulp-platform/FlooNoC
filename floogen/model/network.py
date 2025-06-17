@@ -458,7 +458,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     prot["source"] = ep_name
                     prot["dest"] = ep.get_ni_name(ep_name)
                     if ep.array is not None:
-                        prot["array"] = ep.array
+                        prot["arr_dim"] = ep.array
                         prot["arr_idx"] = self.graph.get_node_arr_idx(ep_name)
                     protocol = AXI4Bus(**prot, **protocol.__dict__)
                     mgr_ports.append(protocol)
@@ -475,7 +475,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     prot["source"] = ep.get_ni_name(ep_name)
                     prot["dest"] = ep_name
                     if ep.array is not None:
-                        prot["array"] = ep.array
+                        prot["arr_dim"] = ep.array
                         prot["arr_idx"] = self.graph.get_node_arr_idx(ep_name)
                     protocol = AXI4Bus(**prot, **protocol.__dict__)
                     sbr_ports.append(protocol)
@@ -506,22 +506,23 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     pass
 
                 # 1D array case
-                case (_,):
-                    node_idx = self.graph.get_node_arr_idx(ni_name)[0]
-                    ni_dict["arr_idx"] = SimpleId(id=node_idx)
+                case (m,):
+                    arr_idx = self.graph.get_node_arr_idx(ni_name)
+                    arr_dim = self.graph.get_node_arr_dim(ni_name)
+                    ni_dict["arr_idx"] = SimpleId(id=arr_idx[0])
                     if ep_desc.is_sbr():
                         ni_dict["addr_range"] = [
-                            rng.model_copy().set_idx(node_idx) for rng in ep_desc.addr_range
+                            rng.model_copy().set_arr(arr_idx, arr_dim) for rng in ep_desc.addr_range
                         ]
 
                 # 2D array case
-                case (_, n):
-                    x, y = self.graph.get_node_arr_idx(ni_name)
-                    idx = x * n + y
-                    ni_dict["arr_idx"] = Coord(x=x, y=y)
+                case (m, n):
+                    arr_idx = self.graph.get_node_arr_idx(ni_name)
+                    arr_dim = self.graph.get_node_arr_dim(ni_name)
+                    ni_dict["arr_idx"] = Coord(x=arr_idx[0], y=arr_idx[1])
                     if ep_desc.is_sbr():
                         ni_dict["addr_range"] = [
-                            rng.model_copy().set_idx(idx) for rng in ep_desc.addr_range
+                            rng.model_copy().set_arr(arr_idx, arr_dim) for rng in ep_desc.addr_range
                         ]
                 # Invalid case
                 case _:
@@ -662,13 +663,10 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             dest = ni.id
             if self.routing.xy_id_offset is not None:
                 dest -= self.routing.xy_id_offset
-            for i, addr_range in enumerate(ni.addr_range):
-                rule_name = ni.render_enum_name()
+            for _, addr_range in enumerate(ni.addr_range):
+                rule_name = ni.endpoint.name
                 if addr_range.desc is not None:
                     rule_name += f"_{addr_range.desc}"
-                elif len(ni.addr_range) > 1:
-                    rule_name += f"_{i}"
-                rule_name += "_sam_idx"
                 addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, desc=rule_name)
                 addr_table.append(addr_rule)
         return RouteMap(name="sam", rules=addr_table)
@@ -771,8 +769,9 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     def render_sam_idx_enum(self):
         """Render the system address map index enum in the generated code."""
         fields_dict = {}
-        for i, desc in enumerate(reversed(self.routing.sam.rules)):
-            fields_dict[desc.desc] = i
+        for i, rule in enumerate(reversed(self.routing.sam.rules)):
+            rule_desc = f"{rule.render_desc()}_sam_idx"
+            fields_dict[rule_desc] = i
         return sv_enum_typedef(name="sam_idx_e", fields_dict=fields_dict)
 
     def render_network(self):
@@ -783,9 +782,9 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         """Render the network package in the generated code."""
         return self.pkg_tpl.render(noc=self)
 
-    def render_rdl(self, rdl_as_mem=False):
+    def render_rdl(self, rdl_as_mem=False, rdl_memwidth=8):
         """Render the network RDL in the generated code."""
-        return self.rdl_tpl.render(noc=self, rdl_as_mem=rdl_as_mem)
+        return self.rdl_tpl.render(noc=self, rdl_as_mem=rdl_as_mem, rdl_memwidth=rdl_memwidth)
 
     def visualize(self, savefig=True, filename: pathlib.Path = "network.png"):
         """Visualize the network graph."""

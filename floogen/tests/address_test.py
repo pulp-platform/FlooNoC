@@ -16,7 +16,8 @@ def test_addr_range_creation1():
     assert addr_range.end == 50
     assert addr_range.size == 50
     assert addr_range.base is None
-    assert addr_range.idx is None
+    assert addr_range.arr_idx is None
+    assert addr_range.arr_dim is None
 
 
 def test_addr_range_creation2():
@@ -26,17 +27,18 @@ def test_addr_range_creation2():
     assert addr_range.end == 150
     assert addr_range.size == 100
     assert addr_range.base is None
-    assert addr_range.idx is None
+    assert addr_range.arr_idx is None
 
 
 def test_addr_range_creation3():
     """Test the creation of an AddrRange object."""
-    addr_range = AddrRange(base=50, size=100, idx=5)
+    addr_range = AddrRange(base=50, size=100, arr_idx=5)
     assert addr_range.start == 550
     assert addr_range.end == 650
     assert addr_range.size == 100
     assert addr_range.base == 50
-    assert addr_range.idx == 5
+    assert addr_range.arr_idx == 5
+    assert addr_range.arr_dim is None
 
 
 def test_addr_range_creation4():
@@ -46,18 +48,20 @@ def test_addr_range_creation4():
     assert addr_range.end == 150
     assert addr_range.size == 100
     assert addr_range.base == 50
-    assert addr_range.idx is None
+    assert addr_range.arr_idx is None
+    assert addr_range.arr_dim is None
 
 
-def test_addr_range_set_idx():
-    """Test the set_idx method of an AddrRange object."""
+def test_addr_range_arr_idx():
+    """Test the arr_idx method of an AddrRange object."""
     addr_range = AddrRange(base=50, size=100)
-    addr_range.set_idx(1)
+    addr_range.set_arr(1, 5)
     assert addr_range.start == 150
     assert addr_range.end == 250
     assert addr_range.size == 100
     assert addr_range.base == 50
-    assert addr_range.idx == 1
+    assert addr_range.arr_idx == 1
+    assert addr_range.arr_dim == 5
 
 
 def test_invalid_addr_range():
@@ -70,7 +74,7 @@ def test_invalid_addr_range():
 
     with pytest.raises(ValueError):
         addr_range = AddrRange(start=0, end=100, size=100)
-        addr_range.set_idx(2)
+        addr_range.set_arr(2, 5)
 
 def test_routing_table_len():
     """Test the length of a RoutingTable object."""
