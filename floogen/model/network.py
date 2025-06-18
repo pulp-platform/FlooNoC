@@ -507,21 +507,22 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
                 # 1D array case
                 case (m,):
-                    node_idx = self.graph.get_node_arr_idx(ni_name)[0]
-                    ni_dict["arr_idx"] = SimpleId(id=node_idx)
+                    arr_idx = self.graph.get_node_arr_idx(ni_name)
+                    arr_dim = self.graph.get_node_arr_dim(ni_name)
+                    ni_dict["arr_idx"] = SimpleId(id=arr_idx[0])
                     if ep_desc.is_sbr():
                         ni_dict["addr_range"] = [
-                            rng.model_copy().set_arr(node_idx, m) for rng in ep_desc.addr_range
+                            rng.model_copy().set_arr(arr_idx, arr_dim) for rng in ep_desc.addr_range
                         ]
 
                 # 2D array case
                 case (m, n):
-                    x, y = self.graph.get_node_arr_idx(ni_name)
-                    idx = x * n + y
-                    ni_dict["arr_idx"] = Coord(x=x, y=y)
+                    arr_idx = self.graph.get_node_arr_idx(ni_name)
+                    arr_dim = self.graph.get_node_arr_dim(ni_name)
+                    ni_dict["arr_idx"] = Coord(x=arr_idx[0], y=arr_idx[1])
                     if ep_desc.is_sbr():
                         ni_dict["addr_range"] = [
-                            rng.model_copy().set_arr(idx, m*n) for rng in ep_desc.addr_range
+                            rng.model_copy().set_arr(arr_idx, arr_dim) for rng in ep_desc.addr_range
                         ]
                 # Invalid case
                 case _:
@@ -768,8 +769,9 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     def render_sam_idx_enum(self):
         """Render the system address map index enum in the generated code."""
         fields_dict = {}
-        for i, desc in enumerate(reversed(self.routing.sam.rules)):
-            fields_dict[desc.desc] = i
+        for i, rule in enumerate(reversed(self.routing.sam.rules)):
+            rule_desc = f"{rule.render_desc()}_sam_idx"
+            fields_dict[rule_desc] = i
         return sv_enum_typedef(name="sam_idx_e", fields_dict=fields_dict)
 
     def render_network(self):

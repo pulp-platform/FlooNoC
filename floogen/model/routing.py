@@ -185,8 +185,8 @@ class AddrRange(BaseModel):
     end: int = Field(ge=0)
     size: int
     base: Optional[int] = None
-    arr_idx: Optional[int] = None
-    arr_dim: Optional[int] = None
+    arr_idx: Optional[Tuple[int]] = None
+    arr_dim: Optional[Tuple[int]] = None
     desc: Optional[str] = None
     rdl_name: Optional[str] = None
 
@@ -229,7 +229,11 @@ class AddrRange(BaseModel):
         self.arr_idx = arr_idx
         self.arr_dim = arr_dim
         if self.base is not None:
-            self.start = self.base + self.size * arr_idx
+            match arr_idx:
+                case (m,):
+                    self.start = self.base + self.size * m
+                case (m, n):
+                    self.start = self.base + self.size * (m * arr_dim[1] + n)
             self.end = self.start + self.size
         else:
             raise ValueError("Address range base not set")
@@ -264,6 +268,18 @@ class RouteMapRule(BaseModel):
             f"start_addr: {self.addr_range.start}, "
             f"end_addr: {self.addr_range.end}}}"
         )
+
+    def render_desc(self):
+        '''Render the description of the routing rule.'''
+        rule_desc = self.desc
+        match self.addr_range.arr_idx:
+            case (m,):
+                rule_desc += f"_{m}"
+            case (m, n):
+                rule_desc += f"_x{m}_y{n}"
+            case _:
+                pass
+        return rule_desc
 
     def get_rdl(self, instance_name, rdl_as_mem=False, rdl_memwidth=8):
         """Render the SystemRDL routing rule."""
@@ -458,10 +474,7 @@ class RouteMap(BaseModel):
             rules_str += f"{rule.render(aw)}"
             rules_str += ',' if i != len(rules) - 1 else ' '
             if rule.desc is not None:
-                rules_str += f"// {rule.desc}"
-                if rule.addr_range.arr_idx is not None:
-                    rules_str += f"_{rule.addr_range.arr_idx}"
-                rules_str += "\n"
+                rules_str += f"// {snake_to_camel(rule.render_desc())}\n"
         string += sv_param_decl(
             f"{snake_to_camel(self.name)}",
             value="'{\n" + rules_str + "\n}",
@@ -470,24 +483,33 @@ class RouteMap(BaseModel):
         )
         return string
 
-    def render_rdl(self, rdl_as_mem=False):
+    def render_rdl(self, rdl_as_mem=False, rdl_memwidth=8):
         """Render the SystemRDL addrmap internals."""
         string = ""
         rules = self.rules.copy()
         rdl_setups = []
         for i, rule in enumerate(rules):
-            if rule.addr_range.arr_dim is not None:
-                if rule.addr_range.arr_idx != 0:
+            match rule.addr_range.arr_idx:
+                case None:
+                    pass
+                case (m,) if m != 0:
+                    continue
+                case (m, n) if m != 0 or n != 0:
                     continue
             block_name = f"{self.name}_{i}"
             if rule.desc is not None:
                 block_name = rule.desc
-            rdl_setups.extend(rule.get_rdl(f"{block_name}", rdl_as_mem))
+            rdl_setups.extend(rule.get_rdl(f"{block_name}", rdl_as_mem, rdl_memwidth))
         newlist = sorted(rdl_setups, key=lambda d: d['start_addr'])
         for item in newlist:
             string += f"  {item['rdl_name']} {item['instance_name']}"
-            if item['arr_dim'] is not None:
-                string += f"[{item['arr_dim']}]"
+            match item['arr_dim']:
+                case (m,):
+                    string += f"[{m}]"
+                case (m, n):
+                    string += f"[{m*n}]"
+                case _:
+                    pass
             string += f" @0x{item['start_addr']:X}"
             if item['arr_dim'] is not None:
                 string += f" += 0x{item['size']:X}"
