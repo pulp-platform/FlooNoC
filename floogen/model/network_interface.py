@@ -94,3 +94,4 @@ class NarrowWideAxiNI(NetworkInterface):
     def render(self, **kwargs) -> str:
         """Render the network interface."""
         return self.tpl.render(ni=self, **kwargs)
+    

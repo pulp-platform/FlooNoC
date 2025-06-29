@@ -801,3 +801,4 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             plt.savefig(filename)
         else:
             plt.show()
+            
