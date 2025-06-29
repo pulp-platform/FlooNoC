@@ -20,14 +20,16 @@ module floo_route_comp
   /// The type of the address rules
   parameter type addr_rule_t = logic
 ) (
-  input  logic  clk_i,
-  input  logic  rst_ni,
-  input  id_t   id_i,
-  input  addr_t addr_i,
+  input  logic                                  clk_i,
+  input  logic                                  rst_ni,
+  input  id_t                                   id_i,
+  input  addr_t                                 addr_i,
   input  addr_rule_t [RouteCfg.NumSamRules-1:0] addr_map_i,
-  input  route_t [RouteCfg.NumRoutes-1:0] route_table_i,
-  output route_t route_o,
-  output id_t id_o
+  input  route_t     [RouteCfg.NumRoutes-1:0]   route_table_i,
+  input  logic                                  en_default_idx_i,
+  input  id_t                                   default_idx_i,
+  output route_t                                route_o,
+  output id_t                                   id_o
 );
 
   // Use an address decoder to map the address to a destination ID.
@@ -54,13 +56,13 @@ module floo_route_comp
       .rule_t     ( addr_rule_t          ),
       .idx_t      ( id_t                 )
     ) i_addr_dst_decode (
-      .addr_i           ( addr_i      ),
-      .addr_map_i       ( addr_map_i  ),
-      .idx_o            ( id_o        ),
-      .dec_valid_o      (             ),
-      .dec_error_o      ( dec_error   ),
-      .en_default_idx_i ( 1'b0        ),
-      .default_idx_i    ( '0          )
+      .addr_i           ( addr_i           ),
+      .addr_map_i       ( addr_map_i       ),
+      .idx_o            ( id_o             ),
+      .dec_valid_o      (                  ),
+      .dec_error_o      ( dec_error        ),
+      .en_default_idx_i ( en_default_idx_i ),
+      .default_idx_i    ( default_idx_i    )
     );
 
     `ASSERT(DecodeError, !dec_error)
