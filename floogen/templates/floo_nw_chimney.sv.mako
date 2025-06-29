@@ -25,7 +25,6 @@ floo_nw_chimney  #(
 % endif
   .hdr_t  (hdr_t),
   .sam_rule_t(sam_rule_t),
-  .Sam(Sam),
   .axi_narrow_in_req_t(${narrow_in_prot.type_name()}_req_t),
   .axi_narrow_in_rsp_t(${narrow_in_prot.type_name()}_rsp_t),
   .axi_narrow_out_req_t(${narrow_out_prot.type_name()}_req_t),
@@ -76,6 +75,9 @@ floo_nw_chimney  #(
 % else:
   .route_table_i    ( '0                          ),
 % endif
+  .en_default_idx_i ( en_default_idx_i            ),
+  .default_idx_i    ( default_idx_i               ),
+  .Sam_i            ( Sam_i                       ),
   .floo_req_o       ( ${ni.mgr_link.req_name()}   ),
   .floo_rsp_i       ( ${ni.mgr_link.rsp_name()}   ),
   .floo_wide_o      ( ${ni.mgr_link.wide_name()}  ),

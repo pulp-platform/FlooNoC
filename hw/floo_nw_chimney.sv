@@ -49,7 +49,7 @@ module floo_nw_chimney #(
   parameter type sam_rule_t                             = logic,
   /// The System Address Map (SAM) rules
   /// (only used if `RouteCfg.UseIdTable == 1'b1`)
-  parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam   = '0,
+  // parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam   = '0,
   /// Narrow AXI manager request channel type
   parameter type axi_narrow_in_req_t                    = logic,
   /// Narrow AXI manager response channel type
@@ -95,6 +95,11 @@ module floo_nw_chimney #(
   input  id_t id_i,
   /// Routing table for the current tile
   input  route_t [RouteCfg.NumRoutes-1:0] route_table_i,
+  /// Default ID
+  input  logic        en_default_idx_i,
+  input  id_t         default_idx_i,
+  /// SAM as input
+  input  sam_rule_t   [RouteCfg.NumSamRules-1:0] Sam_i,
   /// Output links to NoC
   output floo_req_t   floo_req_o,
   output floo_rsp_t   floo_rsp_o,
@@ -718,11 +723,13 @@ module floo_nw_chimney #(
         .clk_i,
         .rst_ni,
         .route_table_i,
-        .addr_map_i ( Sam               ),
-        .id_i       ( id_t'('0)         ),
-        .addr_i     ( axi_req_addr[ch]  ),
-        .route_o    ( route_out[ch]     ),
-        .id_o       ( id_out[ch]        )
+        .addr_map_i       ( Sam_i             ),
+        .id_i             ( id_t'('0)         ),
+        .addr_i           ( axi_req_addr[ch]  ),
+        .en_default_idx_i ( en_default_idx_i  ),
+        .default_idx_i    ( default_idx_i     ),
+        .route_o          ( route_out[ch]     ),
+        .id_o             ( id_out[ch]        )
       );
     end else if (RouteCfg.RouteAlgo == floo_pkg::SourceRouting &&
                  (Ch == NarrowB || Ch == NarrowR ||
@@ -741,11 +748,13 @@ module floo_nw_chimney #(
         .clk_i,
         .rst_ni,
         .route_table_i,
-        .addr_i     ( '0                  ),
-        .addr_map_i ( '0                  ),
-        .id_i       ( axi_rsp_src_id[ch]  ),
-        .route_o    ( route_out[ch]       ),
-        .id_o       ( id_out[ch]          )
+        .addr_i           ( '0                  ),
+        .addr_map_i       ( '0                  ),
+        .id_i             ( axi_rsp_src_id[ch]  ),
+        .en_default_idx_i ( en_default_idx_i    ),
+        .default_idx_i    ( default_idx_i       ),
+        .route_o          ( route_out[ch]       ),
+        .id_o             ( id_out[ch]          )
       );
     end
   end

@@ -30,6 +30,8 @@ class NetworkInterface(BaseModel):
     uid: Optional[SimpleId] = None
     arr_idx: Optional[Id] = None
     addr_range: Optional[List[AddrRange]] = None
+    en_default_idx: Optional[bool] = False
+    default_idx: Optional[Id] = Coord(x=0, y=0)
 
     def is_sbr(self) -> bool:
         """Return true if the network interface is a subordinate."""
