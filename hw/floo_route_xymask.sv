@@ -36,8 +36,9 @@ module floo_route_xymask
   // `dst_id` in from the forward path.
   assign dst_id = (FwdMode)? channel_i.hdr.dst_id : channel_i.hdr.src_id;
   assign src_id = (FwdMode)? channel_i.hdr.src_id : channel_i.hdr.dst_id;
-  // TODO(fischeti): Clarify with Chen why `CollectB` are excluded
-  assign mask_in = (FwdMode && channel_i.hdr.commtype==CollectB)? '0 : channel_i.hdr.mask;
+  // TODO(fischeti): Clarify with Chen why `ParallelReduction` are excluded
+  assign mask_in = (FwdMode && channel_i.hdr.commtype==ParallelReduction)?
+                    '0 : channel_i.hdr.mask;
 
   // We compute minimum and maximum destination IDs, to decide whether
   // we need to send left and/or right resp. up and/or down.
