@@ -33,7 +33,10 @@ package floo_test_pkg;
     IdAddrOffset: 0,
     NumSamRules: 1,
     NumRoutes: 1,
-    EnMultiCast: 1'b0
+    EnMultiCast: 1'b0,
+    EnParallelReduction: 1'b0,
+    EnNarrowOffloadReduction: 1'b0,
+    EnWideOffloadReduction: 1'b0
   };
 
   // Common chimney parameters

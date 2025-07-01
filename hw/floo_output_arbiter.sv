@@ -39,7 +39,7 @@ module floo_output_arbiter import floo_pkg::*;
 
   // Determine which input ports are to be reduced
   for (genvar i = 0; i < NumRoutes; i++) begin : gen_reduce_mask
-    assign reduce_mask[i] = (data_i[i].hdr.commtype == CollectB);
+    assign reduce_mask[i] = (data_i[i].hdr.commtype == ParallelReduction);
   end
 
   // Arbitrate unicasts
