@@ -199,11 +199,6 @@ class AddrRange(BaseModel):
         if not isinstance(self, dict):
             raise ValueError("Invalid address range specification")
         addr_dict = {k: v for k, v in self.items() if v is not None}
-        # Convert single values to tuples for consistency
-        if isinstance(arr_idx, int):
-            addr_dict["arr_idx"] = (arr_idx,)
-        if isinstance(arr_dim, int):
-            addr_dict["arr_dim"] = (arr_dim,)
         match addr_dict:
             case {"size": size, "base": base, "arr_idx": arr_idx}:
                 match arr_idx:
