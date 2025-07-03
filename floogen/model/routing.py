@@ -199,10 +199,24 @@ class AddrRange(BaseModel):
         if not isinstance(self, dict):
             raise ValueError("Invalid address range specification")
         addr_dict = {k: v for k, v in self.items() if v is not None}
+        # Convert single values to tuples for consistency
+        if isinstance(arr_idx, int):
+            addr_dict["arr_idx"] = (arr_idx,)
+        if isinstance(arr_dim, int):
+            addr_dict["arr_dim"] = (arr_dim,)
         match addr_dict:
             case {"size": size, "base": base, "arr_idx": arr_idx}:
-                addr_dict["start"] = base + size * arr_idx
-                addr_dict["end"] = addr_dict["start"] + size
+                match arr_idx:
+                    case (m,):
+                        addr_dict["start"] = base + size * m
+                        addr_dict["end"] = addr_dict["start"] + size
+                    case (m, n):
+                        if arr_dim is None:
+                            raise ValueError("Array dimension must be specified for 2D arrays")
+                        addr_dict["start"] = base + size * (m * arr_dim[1] + n)
+                        addr_dict["end"] = addr_dict["start"] + size
+                    case _:
+                        raise ValueError("Invalid array index specification")
             case {"size": size, "base": base}:
                 addr_dict["start"] = base
                 addr_dict["end"] = base + size
