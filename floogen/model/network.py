@@ -506,7 +506,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     pass
 
                 # 1D array case
-                case (m,):
+                case (_,):
                     arr_idx = self.graph.get_node_arr_idx(ni_name)
                     arr_dim = self.graph.get_node_arr_dim(ni_name)
                     ni_dict["arr_idx"] = SimpleId(id=arr_idx[0])
@@ -516,7 +516,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                         ]
 
                 # 2D array case
-                case (m, n):
+                case (_, _):
                     arr_idx = self.graph.get_node_arr_idx(ni_name)
                     arr_dim = self.graph.get_node_arr_dim(ni_name)
                     ni_dict["arr_idx"] = Coord(x=arr_idx[0], y=arr_idx[1])
