@@ -201,8 +201,17 @@ class AddrRange(BaseModel):
         addr_dict = {k: v for k, v in self.items() if v is not None}
         match addr_dict:
             case {"size": size, "base": base, "arr_idx": arr_idx}:
-                addr_dict["start"] = base + size * arr_idx
-                addr_dict["end"] = addr_dict["start"] + size
+                match arr_idx:
+                    case (m,):
+                        addr_dict["start"] = base + size * m
+                        addr_dict["end"] = addr_dict["start"] + size
+                    case (m, n):
+                        if self.arr_dim is None:
+                            raise ValueError("Array dimension must be specified for 2D arrays")
+                        addr_dict["start"] = base + size * (m * self.arr_dim[1] + n)
+                        addr_dict["end"] = addr_dict["start"] + size
+                    case _:
+                        raise ValueError("Invalid array index specification")
             case {"size": size, "base": base}:
                 addr_dict["start"] = base
                 addr_dict["end"] = base + size
