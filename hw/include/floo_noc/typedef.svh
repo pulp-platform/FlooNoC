@@ -47,7 +47,7 @@
 //
 // For `SourceRouting`:
 // `FLOO_TYPEDEF_HDR_T(hdr_t, route_t, id_t, floo_pkg::axi_ch_e, logic)
-`define FLOO_TYPEDEF_HDR_T(hdr_t, dst_t, src_t, ch_t, rob_idx_t, mask_t = logic, collect_comm_t = logic)  \
+`define FLOO_TYPEDEF_HDR_T(hdr_t, dst_t, src_t, ch_t, rob_idx_t, mask_t = logic, collect_comm_t = logic, reduction_t = logic)  \
   typedef struct packed {                                         \
     logic rob_req;                                                \
     rob_idx_t rob_idx;                                            \
@@ -58,6 +58,7 @@
     logic atop;                                                   \
     ch_t axi_ch;                                                  \
     collect_comm_t commtype;                                      \
+    reduction_t reduction_op;                                     \
   } hdr_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

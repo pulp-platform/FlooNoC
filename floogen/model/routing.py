@@ -566,6 +566,9 @@ class Routing(BaseModel):
     port_id_bits: int = 1
     num_vc_id_bits: int = 0
     en_multicast: bool = False
+    en_parallel_reduction: bool = False
+    en_narrow_offload_reduction: bool = False
+    en_wide_offload_reduction: bool = False
 
     @field_validator("route_algo", mode="before")
     @classmethod
@@ -575,6 +578,28 @@ class Routing(BaseModel):
             v = RouteAlgo[v]
         return v
 
+    @model_validator(mode="after")
+    def validate_collective(self):
+        """Reduction can be supported with multicast only."""
+        if not self.en_multicast and (
+            self.en_parallel_reduction or
+            self.en_narrow_offload_reduction or
+            self.en_wide_offload_reduction
+        ):
+            raise ValueError(
+                "Multicast must be enabled to use any reduction feature "
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_multicast_route_algo(self):
+        """Multicast is supported with XY routing only"""
+        if self.en_multicast and self.route_algo != RouteAlgo.XY:
+            raise ValueError(
+                "Multicast is only supported with XY routing algorithm, "
+                f"but got {self.route_algo}"
+            )
+        return self
     def render_param_decl(self) -> str:
         """Render the SystemVerilog parameter declaration."""
         string = ""
@@ -636,6 +661,14 @@ class Routing(BaseModel):
 
         if self.num_vc_id_bits == 0:
             if self.en_multicast:
+                if ( self.en_parallel_reduction
+                    or self.en_narrow_offload_reduction
+                    or self.en_wide_offload_reduction
+                ):
+                    return (
+                        f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t,"
+                        f"id_t, collect_comm_e, reduction_op_t)")
+
                 return (
                     f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t,"
                     f"id_t, collect_comm_e)")
@@ -654,6 +687,9 @@ class Routing(BaseModel):
                                 self.route_algo == RouteAlgo.ID and not self.use_id_table else 0,
             "NumSamRules": len(self.sam),
             "NumRoutes": self.num_endpoints if self.route_algo == RouteAlgo.SRC else 0,
-            "EnMultiCast": bool_to_sv(self.en_multicast)
+            "EnMultiCast": bool_to_sv(self.en_multicast),
+            "EnParallelReduction": bool_to_sv(self.en_parallel_reduction),
+            "EnNarrowOffloadReduction": bool_to_sv(self.en_narrow_offload_reduction),
+            "EnWideOffloadReduction": bool_to_sv(self.en_wide_offload_reduction)
         }
         return sv_param_decl(name, sv_struct_render(fields), dtype="route_cfg_t")
