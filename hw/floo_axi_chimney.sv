@@ -613,7 +613,8 @@ module floo_axi_chimney #(
     floo_axi_b.hdr.atop     = aw_out_hdr_out.hdr.atop;
     floo_axi_b.payload      = meta_buf_rsp_out.b;
     floo_axi_b.payload.id   = aw_out_hdr_out.id;
-    floo_axi_b.hdr.commtype = (aw_out_hdr_out.hdr.commtype == Multicast)? CollectB : Unicast;
+    floo_axi_b.hdr.commtype = (aw_out_hdr_out.hdr.commtype == Multicast)?
+                              ParallelReduction : Unicast;
   end
 
   always_comb begin
