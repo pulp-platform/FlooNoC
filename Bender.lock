@@ -10,7 +10,7 @@ packages:
     revision: f07498d53ecd5518b277c7d213ec3b71ca4df93c
     version: 0.39.7
     source:
-      Git: https://github.com/pulp-platform/axi.git
+      Git: https://github.com/Lura518/axi.git
     dependencies:
     - common_cells
     - common_verification
@@ -45,6 +45,21 @@ packages:
     source:
       Git: https://github.com/pulp-platform/common_verification.git
     dependencies: []
+  fpnew:
+    revision: a8e0cba6dd50f357ece73c2c955d96efc3c6c315
+    version: null
+    source:
+      Git: https://github.com/pulp-platform/cvfpu.git
+    dependencies:
+    - common_cells
+    - fpu_div_sqrt_mvp
+  fpu_div_sqrt_mvp:
+    revision: 86e1f558b3c95e91577c41b2fc452c86b04e85ac
+    version: 1.0.4
+    source:
+      Git: https://github.com/pulp-platform/fpu_div_sqrt_mvp.git
+    dependencies:
+    - common_cells
   idma:
     revision: ff5d56fffb3767814db88d6bf8f381974ea33aa5
     version: 0.6.4
