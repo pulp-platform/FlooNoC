@@ -3,11 +3,14 @@
 // SPDX-License-Identifier: SHL-0.51
 //
 // Author: Chen Wu <chenwu@student.ethz.ch>
+//         Raphael Roth <raroth@student.ethz.ch>
 
 module floo_reduction_sync import floo_pkg::*;
 #(
   /// Number of input ports
   parameter int unsigned NumRoutes  = 1,
+  /// Do we support local loopback e.g. should the logic expect the local flit or not
+  parameter bit          RdSupportLoopback    = 1'b0,
   /// Type definitions
   parameter type         arb_idx_t  = logic,
   parameter type         flit_t     = logic,
@@ -43,10 +46,14 @@ module floo_reduction_sync import floo_pkg::*;
                                (data_i[in].hdr.dst_id == data_i[sel_i].hdr.dst_id));
 
     // Determine if this input should be considered valid for the reduction:
-    // If we are at the dst node and the port is the local one, we don’t wait for a
-    // response/reduction since it will stay locally [NoLoopBack].
-    assign same_and_valid[in] = (data_i[sel_i].hdr.dst_id == xy_id_i && in == Eject) ||
-                                (compare_same[in] & valid_i[in]);
+    // when no LoopBack support is provided, the local port has to be considered
+    // valid if it is the destination of the collective opearation.
+    if (!RdSupportLoopback) begin
+      assign same_and_valid[in] = (data_i[sel_i].hdr.dst_id == xy_id_i && in == Eject) ||
+                                  (compare_same[in] & valid_i[in]);
+    end else begin
+          assign same_and_valid[in] = (compare_same[in] & valid_i[in]);
+    end
   end
 
   // Reduction is valid only if all expected inputs [in_route_mask_o] are valid.

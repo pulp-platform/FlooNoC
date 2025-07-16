@@ -234,6 +234,51 @@ package floo_pkg;
     bit CutRsp;
   } chimney_cfg_t;
 
+  /// Controller configuration
+  typedef enum logic [1:0] {
+    /// Simple configuration
+    ControllerSimple = 2'd0,
+    /// Stalling configuration
+    ControllerStalling = 2'd1,
+    /// Generic configuration
+    ControllerGeneric = 2'd2
+  } floo_red_controller_e;
+
+  /// Configuration for the offload reduction logic
+  typedef struct packed {
+    /// configuration for the controller
+    floo_red_controller_e RdControllConf;
+    /// input fifo configuration
+    bit RdFifoFallThrough;
+    int unsigned RdFifoDepth;
+    /// pipeline depth of the offload unit
+    int unsigned RdPipelineDepth;
+    /// partial buffer size
+    int unsigned RdPartialBufferSize;
+    /// required tag bit if generic controller is used
+    int unsigned RdTagBits;
+    /// is the underlying protocl AXI
+    bit RdSupportAxi;
+    /// enable the bypass (required for AXI-AW)
+    bit RdEnableBypass;
+    /// support loopback for the local link - collective will
+    /// be forwarded to the local port too.
+    bit RdSupportLoopback;
+  } reduction_cfg_t;
+
+  /// The default configuration for the reduction
+  localparam reduction_cfg_t ReductionDefaultCfg = '{
+    RdControllConf: ControllerGeneric,
+    RdFifoFallThrough: 1'b1,
+    RdFifoDepth: 2,
+    RdPipelineDepth: 5,
+    RdPartialBufferSize: 3,
+    RdTagBits: 5,
+    RdSupportAxi: 1'b1,
+    RdEnableBypass: 1'b1,
+    RdSupportLoopback: 1'b1
+  };
+
   /// The default configuration for the network interface
   localparam chimney_cfg_t ChimneyDefaultCfg = '{
     EnSbrPort: 1'b1,
