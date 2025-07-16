@@ -2,63 +2,133 @@
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
 //
-// Author: Chen Wu <chenwu@student.ethz.ch>
+// Author:
+// - Chen Wu <chenwu@student.ethz.ch>
+// - Raphael Roth <raroth@student.ethz.ch>
 
-module floo_route_xymask
-  import floo_pkg::*;
-#(
-  /// Number of output ports
-  parameter int unsigned NumRoutes     = 0,
+// This module is the heartpiece for collective operation in the FlooNoC. When running a
+// multicast / reduction it either determines the output direction of the filt
+// (e.g. in which direction a copy of the filt has to be sent) or the expected
+// input direction (e.g. which input provides a flit).
+
+// Limitations:
+// - It only supports xy routing
+// - It only supports 5 in/out routes
+
+`include "common_cells/assertions.svh"
+
+module floo_route_xymask import floo_pkg::*; #(
+  /// Number of collective routes, either output or input
+  parameter int unsigned    NumRoutes   = 0,
   /// The type of mask to be computed
   /// 1: Determine output directions of the forward path in Multicast
   /// 0: Determine input directions of the backward path in Multicast i.e the reduction
-  parameter bit       FwdMode          = 1'b1,
-  /// Various types
-  parameter type         flit_t        = logic,
-  parameter type         id_t          = logic
+  parameter bit             FwdMode     = 1'b1,
+  /// type for data flit
+  parameter type            flit_t      = logic,
+  /// type for local id (router id)
+  parameter type            id_t        = logic
 ) (
   // The input flit (only the header is used)
   input  flit_t                         channel_i,
   // The current XY-coordinate of the router
   input  id_t                           xy_id_i,
-  // The calculated mask for the multicast/reduction
+  // The calculated onehot maks for the multicast/reduction
   output logic [NumRoutes-1:0]          route_sel_o
 );
 
-  logic [NumRoutes-1:0] route_sel;
+  // General Concept: In XY-Routing all flits travel first in X - direction until they arrive at the columne of the destination
+  //                  and then travel in Y direction until they reach the destination. In the Multicast case we have to forward
+  //                  them until the "most far away" x/y position (dst_id_max) determint by the mask!
 
-  id_t dst_id, mask_in, src_id;
+  // We need to handle 4 different cases in this module:
+  // ---------------------------------------------------
+  // @ Multicast
+  //
+  // Request              - src (Single)
+  //                      - dst (Multiple)
+  //                      --> generate destination mask
+  //
+  // Collect B            - src (Multiple)
+  //                      - dst (Single)
+  //                      --> generate expected input mask
+  // ---------------------------------------------------
+  // @ Reduction
+  //
+  // Reduction            - src (Multiple)
+  //                      - dst (Single)
+  //                      --> generate expected input mask
+  //
+  // distribute B resp    - src (Single)
+  //                      - dst (Multiple)
+  //                      --> generate destination mask
+  // ---------------------------------------------------
+
+  // Two cases overlap themself e.g. when we want to have an expected input mask
+  // we go from multiple sources to one destination (reduction). With the output mask it is
+  // the opposite with single source to multiple destinations (multicast).
+
+  // To improve readability of the code we generate both mask in parallel and only
+  // mux them at the output.
+
+/* Variable declaration */
+  // generated routes
+  logic [NumRoutes-1:0] route_output;
+  logic [NumRoutes-1:0] route_expected_input;
+
+  // Var for easier signal assignments
+  id_t dst_id;
+  id_t src_id;
+  id_t mask;
+
+  // Var to hold the maxium distribution distance for both source and destination
   id_t dst_id_max, dst_id_min;
-  logic x_matched, y_matched;
+  id_t src_id_max, src_id_min;
 
-  // In the forward path, we use the normal `dst_id` to compute the mask.
-  // In the backward path, we use the `src_id` which was the original
-  // `dst_id` in from the forward path.
-  assign dst_id = (FwdMode)? channel_i.hdr.dst_id : channel_i.hdr.src_id;
-  assign src_id = (FwdMode)? channel_i.hdr.src_id : channel_i.hdr.dst_id;
-  // TODO(fischeti): Clarify with Chen why `ParallelReduction` are excluded
-  assign mask_in = (FwdMode && channel_i.hdr.commtype==ParallelReduction)?
-                    '0 : channel_i.hdr.mask;
+  // Var indicates if the current router lies in the same x/y axis as the source / destination
+  logic x_matched_output;
+  logic y_matched_output;
+  logic x_matched_expected_input;
+  logic y_matched_expected_input;
+
+  // Signal assigments
+  assign dst_id = channel_i.hdr.dst_id;
+  assign src_id = channel_i.hdr.src_id;
+  assign mask = channel_i.hdr.collective_mask;
 
   // We compute minimum and maximum destination IDs, to decide whether
   // we need to send left and/or right resp. up and/or down.
-  assign dst_id_max.x = dst_id.x | mask_in.x;
-  assign dst_id_max.y = dst_id.y | mask_in.y;
-  assign dst_id_min.x = dst_id.x & (~mask_in.x);
-  assign dst_id_min.y = dst_id.y & (~mask_in.y);
+  assign dst_id_max.x = dst_id.x | mask.x;
+  assign dst_id_max.y = dst_id.y | mask.y;
+  assign dst_id_min.x = dst_id.x & (~mask.x);
+  assign dst_id_min.y = dst_id.y & (~mask.y);
 
-  // `x/y_matched` means whether the current coordinate is a
-  // receiver of the the multicast.
-  assign x_matched = &(mask_in.x | ~(xy_id_i.x ^ dst_id.x));
-  assign y_matched = &(mask_in.y | ~(xy_id_i.y ^ dst_id.y));
+  // We compute minimum and maximum source IDs, to decide whether
+  // we need to send left and/or right resp. up and/or down.
+  assign src_id_max.x = src_id.x | mask.x;
+  assign src_id_max.y = src_id.y | mask.y;
+  assign src_id_min.x = src_id.x & (~mask.x);
+  assign src_id_min.y = src_id.y & (~mask.y);
 
-  always_comb begin
-    route_sel = '0;
-    if (FwdMode) begin : gen_out_mask
-      // If both x and y are matched, we eject the flit
-      if (x_matched && y_matched) begin
-        route_sel[Eject] = 1;
+  // `x/y_matched_output` means whether the current coordinate is a receiver of the the multicast.
+  assign x_matched_output = &(mask.x | ~(xy_id_i.x ^ dst_id.x));
+  assign y_matched_output = &(mask.y | ~(xy_id_i.y ^ dst_id.y));
+
+  // `x/y_matched_expected_input` means the current coordinate provides one element to the reduction.
+  assign x_matched_expected_input = &(mask.x | ~(xy_id_i.x ^ src_id.x));
+  assign y_matched_expected_input = &(mask.y | ~(xy_id_i.y ^ src_id.y));
+
+
+  // Generate the output mask
+  if(FwdMode) begin : gen_output_mask
+    always_comb begin
+      route_output = '0;
+
+      // If both direction match then the local port is member of the distribution
+      if(x_matched_output && y_matched_output) begin
+        route_output[Eject] = 1'b1;
       end
+
       // If the multicast was issued from an endpoint in the same row
       // i.e. the same Y-coordinate, we forward it to `East` if:
       // 1. The request is incoming from `West` or `Eject` and
@@ -66,53 +136,82 @@ module floo_route_xymask
       // The same applies to the `West` direction.
       if (xy_id_i.y == src_id.y) begin
         if (xy_id_i.x >= src_id.x && xy_id_i.x < dst_id_max.x) begin
-          route_sel[East] = 1;
+          route_output[East] = 1;
         end
         if (xy_id_i.x <= src_id.x && xy_id_i.x > dst_id_min.x) begin
-          route_sel[West] = 1;
+          route_output[West] = 1;
         end
       end
+
       // If there are multicast destinations in the current column,
       // We inject it to `North` if:
       // 1. The request is incoming from `South` or `Eject` and
       // 2. There are more multicast destinations in the `North` direction
       // The same applies to the `South` direction.
-      if (x_matched) begin
+      if (x_matched_output) begin
         if (xy_id_i.y >= src_id.y && xy_id_i.y < dst_id_max.y) begin
-          route_sel[North] = 1;
+          route_output[North] = 1;
         end
         if (xy_id_i.y <= src_id.y && xy_id_i.y > dst_id_min.y) begin
-          route_sel[South] = 1;
-        end
-      end
-    end
-
-    // TODO(fischeti): Clarify with Chen why `YXRouting` is used
-    // for the backward path
-    else begin : gen_in_mask
-      // If we previously ejected the flit, we expect one again
-      if (x_matched && y_matched) begin
-        route_sel[Eject] = 1;
-      end
-      // This is the same as the forward path, but we use the
-      // `YXRouting` algorithm to compute the mask.
-      if (xy_id_i.x == src_id.x) begin
-        if (xy_id_i.y >= src_id.y && xy_id_i.y < dst_id_max.y) begin
-          route_sel[North] = 1;
-        end
-        if (xy_id_i.y <= src_id.y && xy_id_i.y > dst_id_min.y) begin
-          route_sel[South] = 1;
-        end
-      end
-      if (y_matched) begin
-        if (xy_id_i.x >= src_id.x && xy_id_i.x < dst_id_max.x) begin
-          route_sel[East] = 1;
-        end
-        if (xy_id_i.x <= src_id.x && xy_id_i.x > dst_id_min.x) begin
-          route_sel[West] = 1;
+          route_output[South] = 1;
         end
       end
     end
   end
-  assign route_sel_o = route_sel;
+
+  // Generate the expected input mask
+  if(!FwdMode) begin : gen_expected_input_mask
+    always_comb begin
+      route_expected_input = '0;
+
+      // If both direction match then the local port is a member of the distribution
+      if(x_matched_expected_input && y_matched_expected_input) begin
+        route_expected_input[Eject] = 1'b1;
+      end
+
+      // In the case of an reduction we want to collect the source responses first in the x direction.
+      // e.g. the North / South can only be selected if we are in the correct dst columne.
+      // We expect a packet from the north if the current y id is higher/equal as the destination but still
+      // inside the expected maximum range of the source reduction. Same for the South!
+      if(xy_id_i.x == dst_id.x) begin
+        if((xy_id_i.y >= dst_id.y) && (xy_id_i.y < src_id_max.y)) begin
+          route_expected_input[North] = 1'b1;
+        end
+        if((xy_id_i.y <= dst_id.y) && (xy_id_i.y > src_id_min.y)) begin
+          route_expected_input[South] = 1'b1;
+        end
+      end
+
+      // If we have multiple sources in the same row we first have to collect them in x direction
+      // therefor expecting inputs from either the east or west direction.
+      // For all members of a rows involved in the reduction the flag y_matched_expected_input is set!
+      // We expect a packet from the east if the current x id is higher/equal as the destination but still
+      // inside the expected maximum range of the source reduction. Same for the West!
+      if(y_matched_expected_input) begin
+        if((xy_id_i.x >= dst_id.x) && (xy_id_i.x < src_id_max.x)) begin
+          route_expected_input[East] = 1'b1;
+        end
+        if((xy_id_i.x <= dst_id.x) && (xy_id_i.x > src_id_min.x)) begin
+          route_expected_input[West] = 1'b1;
+        end
+      end
+    end
+  end
+
+  // Eiter assign the expected input or the output depending on the Mode
+  assign route_sel_o = (FwdMode) ? route_output : route_expected_input;
+
+  // We only support five input/output routes
+  `ASSERT_INIT(NoMultiCastSupport, NumRoutes == 5)
+
+  // TODO(colluca): fix code and uncomment
+  // always_comb begin
+  //   // Check that module does nothing when unsupported
+  //   `ASSERT_I(
+  //     NoReductionInForward,
+  //     (FwdMode ? is_multicast_op(channel_i.hdr.collective_op) || (route_sel_o == '0) :
+  //     !is_multicast_op(channel_i.hdr.collective_op) || (route_sel_o == '0)),
+  //     "Mask should be 0 on unsupported operation.")
+  // end
+
 endmodule

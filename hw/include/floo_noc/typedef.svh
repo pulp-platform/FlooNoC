@@ -47,18 +47,17 @@
 //
 // For `SourceRouting`:
 // `FLOO_TYPEDEF_HDR_T(hdr_t, route_t, id_t, floo_pkg::axi_ch_e, logic)
-`define FLOO_TYPEDEF_HDR_T(hdr_t, dst_t, src_t, ch_t, rob_idx_t, mask_t = logic, collect_comm_t = logic, reduction_t = logic)  \
+`define FLOO_TYPEDEF_HDR_T(hdr_t, dst_t, src_t, ch_t, rob_idx_t, mask_t = logic, collect_op_t = logic)  \
   typedef struct packed {                                         \
     logic rob_req;                                                \
     rob_idx_t rob_idx;                                            \
     dst_t dst_id;                                                 \
-    mask_t mask;                                                  \
+    mask_t collective_mask;                                       \
     src_t src_id;                                                 \
     logic last;                                                   \
     logic atop;                                                   \
     ch_t axi_ch;                                                  \
-    collect_comm_t commtype;                                      \
-    reduction_t reduction_op;                                     \
+    collect_op_t collective_op;                                   \
   } hdr_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -288,7 +287,7 @@
     floo_``chan_name``_chan_t ``chan_name``;  \
   } floo_``name``_t;
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Defines the all the link types with a ready-valid handshaking interface
 // It support virtual channeling by extending the handshakes
 //
@@ -360,7 +359,7 @@
   `FLOO_TYPEDEF_LINK_T(rsp, rsp_chan)                                           \
   `FLOO_TYPEDEF_LINK_T(wide, wide_chan)
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Defines the all the link types with ready-valid handshaking interface
 // for a narrow-wide AXI interface configuration which implements a simple
 // virtual channeling.
