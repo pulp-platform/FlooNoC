@@ -84,6 +84,7 @@ module floo_nw_chimney #(
   parameter type floo_rsp_t                             = logic,
   /// Floo `wide` link type
   parameter type floo_wide_t                            = logic,
+  parameter type floo_wide_in_t                         = logic,
   /// SRAM configuration type `tc_sram_impl` in RoB
   /// Only used if technology-dependent SRAM is used
   parameter type sram_cfg_t                             = logic,
@@ -118,7 +119,7 @@ module floo_nw_chimney #(
   /// Input links from NoC
   input  floo_req_t   floo_req_i,
   input  floo_rsp_t   floo_rsp_i,
-  input  floo_wide_t  floo_wide_i
+  input  floo_wide_in_t  floo_wide_i
 );
 
   import floo_pkg::*;
@@ -154,6 +155,8 @@ module floo_nw_chimney #(
   localparam bit EnDecoupledRW = (WideRwDecouple != floo_pkg::None);
   localparam int unsigned NumVirtualChannels = (WideRwDecouple == floo_pkg::None) ? 1 : 2;
   localparam int unsigned NumWidePhysChannels = (WideRwDecouple == floo_pkg::Phys) ? 2 : 1;
+  // Collective communication configuration
+  localparam floo_pkg::collect_op_fe_cfg_t CollectOpCfg = RouteCfg.CollectiveCfg.OpCfg;
 
   // Duplicate AXI port signals to degenerate ports
   // in case they are not used
@@ -1432,7 +1435,6 @@ module floo_nw_chimney #(
   end else begin: gen_illegal_cfg
     $fatal(1, "NW CHIMNEY: Unsupported number of wide physical channels");
   end
-
 
   ////////////////////
   // FLIT UNPACKER  //
