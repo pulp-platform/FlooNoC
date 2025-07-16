@@ -4,6 +4,7 @@
 //
 // Michael Rogenmoser <michaero@iis.ee.ethz.ch>
 // Lorenzo Leone <lleone@iis.ee.ethz.ch>
+// Raphael Roth <raroth@student.ethz.ch>
 
 `include "common_cells/assertions.svh"
 `include "common_cells/registers.svh"
@@ -13,41 +14,54 @@ module floo_router
   import floo_pkg::*;
 #(
   /// Number of ports
-  parameter int unsigned NumRoutes        = 0,
+  parameter int unsigned NumRoutes            = 0,
   /// More fine-grained control over number of input ports
-  parameter int unsigned NumInput         = NumRoutes,
+  parameter int unsigned NumInput             = NumRoutes,
   /// More fine-grained control over number of output ports
-  parameter int unsigned NumOutput        = NumRoutes,
+  parameter int unsigned NumOutput            = NumRoutes,
   /// Number of virtual channels
-  parameter int unsigned NumVirtChannels  = 0,
+  parameter int unsigned NumVirtChannels      = 0,
   /// Number of physical channels
-  parameter int unsigned NumPhysChannels  = 1,
+  parameter int unsigned NumPhysChannels      = 1,
   /// Depth of input FIFOs
-  parameter int unsigned InFifoDepth      = 0,
+  parameter int unsigned InFifoDepth          = 0,
   /// Depth of output FIFOs
-  parameter int unsigned OutFifoDepth     = 0,
+  parameter int unsigned OutFifoDepth         = 0,
   /// Routing algorithm
-  parameter route_algo_e RouteAlgo        = IdTable,
+  parameter route_algo_e RouteAlgo            = IdTable,
   /// Parameters, only used for ID-based and XY routing
-  parameter int unsigned IdWidth          = 0,
-  parameter type         id_t             = logic[IdWidth-1:0],
+  parameter int unsigned IdWidth              = 0,
+  parameter type         id_t                 = logic[IdWidth-1:0],
   /// Used for ID-based routing
-  parameter int unsigned NumAddrRules     = 1,
+  parameter int unsigned NumAddrRules         = 1,
   /// Configuration parameters for special network topologies
   /// Disables Y->X connections in XYRouting
-  parameter bit          XYRouteOpt       = 1'b1,
+  parameter bit          XYRouteOpt           = 1'b1,
   /// Disables loopback connections
-  parameter bit          NoLoopback       = 1'b1,
+  parameter bit          NoLoopback           = 1'b1,
   /// Enable Multicast feature
-  parameter bit          EnMultiCast      = 1'b0,
-  /// Enable reduction feature
-  parameter bit          EnReduction      = 1'b0,
+  parameter bit          EnMultiCast          = 1'b0,
+  /// Enable offload reduction feature
+  parameter bit          EnOffloadReduction   = 1'b0,
+  /// Enable parallel reduction feature
+  parameter bit          EnParallelReduction  = 1'b0,
   /// Various types
-  parameter type         addr_rule_t      = logic,
-  parameter type         flit_t           = logic,
-  parameter type         payload_t        = logic,
-  parameter payload_t    NarrowRspMask    = '0,
-  parameter payload_t    WideRspMask      = '0
+  parameter type         addr_rule_t          = logic,
+  parameter type         flit_t               = logic,
+  parameter type         hdr_t                = logic,
+  parameter type         payload_t            = logic,
+  parameter payload_t    NarrowRspMask        = '0,
+  parameter payload_t    WideRspMask          = '0,
+  /// Offload reduction parameter
+  /// Possible operation for offloading (must match type in header)
+  parameter type         RdOperation_t        = logic,
+  /// Data type of the offload reduction
+  parameter type         RdData_t             = logic,
+  /// Parameter for the reduction configuration
+  parameter reduction_cfg_t RdCfg             = '0,
+  /// AXI configurations
+  parameter axi_cfg_t    AxiCfgOffload        = '0,
+  parameter axi_cfg_t    AxiCfgParallel       = '0
 ) (
   input  logic                                       clk_i,
   input  logic                                       rst_ni,
@@ -198,7 +212,7 @@ module floo_router
 
     // arbitrate input fifos per virtual channel
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_output
-      if(!EnReduction) begin : gen_wh_arb
+      if(!EnParallelReduction) begin : gen_wh_arb
         floo_wormhole_arbiter #(
           .NumRoutes  ( NumInput ),
           .flit_t     ( flit_t   )
@@ -217,13 +231,22 @@ module floo_router
       end else begin : gen_red_arb
         // Arbiter to be instantiated for reduction operations.
         // Repsonses from a multicast request are also treated as reductions.
+        // TODO: fix these flags here - RdCfg... is used (mostly) in the offload
+        //       reduction rather the parallel reduction - maybe we could make
+        //       another configuration?
         floo_output_arbiter #(
-          .NumRoutes     ( NumInput      ),
-          .flit_t        ( flit_t        ),
-          .payload_t     ( payload_t     ),
-          .NarrowRspMask ( NarrowRspMask ),
-          .WideRspMask   ( WideRspMask   ),
-          .id_t          ( id_t          )
+          .NumRoutes            ( NumInput                    ),
+          .NumSlaveRoutes       ( 0                           ),
+          .EnParallelReduction  ( EnParallelReduction         ),
+          .flit_t               ( flit_t                      ),
+          .hdr_t                ( hdr_t                       ),
+          .payload_t            ( payload_t                   ),
+          .NarrowRspMask        ( NarrowRspMask               ),
+          .WideRspMask          ( WideRspMask                 ),
+          .id_t                 ( id_t                        ),
+          .RdSupportLoopback    ( RdCfg.RdSupportLoopback     ),
+          .RdSupportAxi         ( RdCfg.RdSupportAxi          ),
+          .AxiCfg               ( AxiCfgParallel              )
         ) i_output_arbiter (
           .clk_i,
           .rst_ni,
