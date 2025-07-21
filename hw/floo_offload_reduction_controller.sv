@@ -17,7 +17,8 @@
 //              buffer size should be as deep as the FPU pipeline.
 //
 // Stalling:    Good balance between area overhead & performence
-//              Allows only one ongoing reduction. It stalls all incoming element until the one
+//              Allows one ongoing reduction if more than two flits are involved. 
+//              It stalls all incoming element until the one
 //              it is currently working on is finished therefor no tag requirements. 
 //              Can not achieve a 100% FPU utilization if more than two inputs are involved in 
 //              the reduction. The partial buffer can be reduced to its minimum size of 2.
@@ -104,6 +105,7 @@ module floo_offload_reduction_controller #(
     input   logic [1:0]                             operand_ready_i,
     /// Metadata reduction req 
     output  RdOperation_t                           reduction_req_operation_o,
+    input   mask_t                                  reduction_req_mask_i,
     input   logic                                   reduction_req_valid_i,
     input   logic                                   reduction_req_ready_i,
     /// Final Input from the reduction offload (fully reduced)
@@ -225,6 +227,9 @@ flit_t req_header;
 mask_t req_output_mask;
 logic simple_reduction_ongoing_n;
 
+// Signal to retire the elements from the buffer
+logic retire_element;
+
 /* Module Declaration */
 
 // If the stalling mode is enabled then we have to stall the inputs 
@@ -238,7 +243,7 @@ if(STALLING) begin : gen_stalling
             .flush_i        (flush_i),
             .src_valid_i    (head_fifo_valid_i[i]),
             .src_ready_o    (head_fifo_ready_o[i]),
-            .stalling_i     (final_valid_o & final_ready_i),
+            .stalling_i     (retire_element | (bypass_valid & bypass_ready)),
             .dst_valid_o    (stalling_valid[i]),
             .dst_ready_i    (stalling_ready[i])
         );
@@ -497,11 +502,12 @@ if(GENERIC || STALLING) begin : gen_controller_stalling_generic
             // to retire from any position. TODO: Solve by introducing assertion
             if( (buffer_d[i].f_valid == 1'b1) &&
                 (buffer_d[i].tag == final_flit_o.tag) &&
-                (final_valid_o == 1'b1) &&
-                (final_ready_i == 1'b1)) begin
+                ((retire_element == 1'b1) || ((bypass_valid == 1'b1) && (bypass_ready == 1'b1) && STALLING))) begin
 
                 // Reset the valid flag of the buffer
                 buffer_d[i].f_valid = 1'b0;
+                // ATTENTION! DO NOT OVERWRITE THE buffer_d[i].mask & .header fields!
+                // Otherwise the stalling implementation won't work
                 if(i > 0) begin
                     $error($time, "We retired an element other from buffer entry 0. This should not happen. Why?");
                 end
@@ -562,6 +568,16 @@ end else begin
     assign selected_partial_result_mux_d = '0;
     assign selected_tag_d = '0;
     assign selected_op_d = '0;
+end
+
+// Determint when a element from the buffer should be retired. In the stalling case we track
+// if the element is to be forwarded to the output after this iteration.
+if(GENERIC) begin : gen_generic_retirement
+    assign retire_element = final_valid_o & final_ready_i;
+end else if(STALLING) begin : gen_stalling_retirement
+    assign retire_element = ((buffer_d[0].final_mask == reduction_req_mask_i) && (reduction_req_valid_i == 1'b1) && (reduction_req_ready_i == 1'b1)) ? 1'b1 : 1'b0;
+end else begin
+    assign retire_element = 1'b0;
 end
 
 // Simple controller which is only able to combine two flits
@@ -703,11 +719,14 @@ end else begin
 end
 
 // Generate the header and the output mask for the fully reduced data
-// @ Stalling / Generic: Iterate through the buffer and try to find a matching tag
+// @ Generic:            Iterate through the buffer and try to find a matching tag
 //                       then extract the header and the output mask
+// @ Stalling:           When we know that the element leave the reduction logic after the next
+//                       reduction then we fetch the header / output mask and store them inside
+//                       a designated fifo.
 // @ Simple:             Store the header / output dir directly inside a fifo when
 //                       the request is placed!
-if(GENERIC || STALLING) begin
+if(GENERIC) begin
     always_comb begin
         metadata_out_flit = '0;
         metadata_out_mask = '0;
@@ -719,6 +738,52 @@ if(GENERIC || STALLING) begin
             end
         end
     end
+end else if(STALLING) begin
+    // Fifo to store the header of the element during the FPU reduction
+    fifo_v3 #(
+        .FALL_THROUGH     (1'b0),
+        .dtype            (flit_t),
+        .DEPTH            (RdPipelineDepth+2)
+    ) i_fifo_header (
+        .clk_i            (clk_i),
+        .rst_ni           (rst_ni),
+        .flush_i          (flush_i),
+        .testmode_i       (1'b0),
+        .full_o           (),
+        .empty_o          (),
+        .usage_o          (),
+        .data_i           (buffer_d[0].header),
+        // push header only if we know that this is the last iteration of the flit e.g. it
+        // leaves the reduction logic afterwards
+        .push_i           (retire_element),
+        .data_o           (metadata_out_flit),
+        // pop header on active fpu resp hs and active output hs
+        // We need to include the resp hs as otherwise a bypass flit could remove an element
+        .pop_i            (final_valid_o & final_ready_i & reduction_resp_valid_i & reduction_resp_ready_i)
+    );
+
+    // Fifo to store the output direction of the element during the FPU reduction
+    fifo_v3 #(
+        .FALL_THROUGH     (1'b0),
+        .DATA_WIDTH       (NumRoutes),
+        .DEPTH            (RdPipelineDepth+2)
+    ) i_fifo_outdir (
+        .clk_i            (clk_i),
+        .rst_ni           (rst_ni),
+        .flush_i          (flush_i),
+        .testmode_i       (1'b0),
+        .full_o           (),
+        .empty_o          (),
+        .usage_o          (),
+        .data_i           (buffer_d[0].output_dir),
+        // push header only if we know that this is the last iteration of the flit e.g. it
+        // leaves the reduction logic afterwards
+        .push_i           (retire_element),
+        .data_o           (metadata_out_mask),
+        // pop mask on active fpu resp hs and active output hs
+        // We need to include the resp hs as otherwise a bypass flit could remove an element
+        .pop_i            (final_valid_o & final_ready_i & reduction_resp_valid_i & reduction_resp_ready_i)
+    );
 end else begin
     // Fifo to store the header of the element during the FPU reduction
     fifo_v3 #(
@@ -771,13 +836,32 @@ end
 
 // Generate the signal for the demux which either forwards the reduction response
 // to the partial buffer or towards the output (if fully reduced)
-if(GENERIC || STALLING) begin : gen_response_demux
+if(GENERIC) begin : gen_response_demux_generic
     logic [RdBufferSize-1:0] temp_match;
     for(genvar i = 0; i < RdBufferSize; i++) begin
         // Only allow if we found a matching final mask and tag with a valid entry
         assign temp_match[i] = (buffer_q[i].f_valid && (buffer_q[i].final_mask == reduction_resp_mask_i) && (buffer_q[i].tag == reduction_resp_tag_i)) ? 1'b1 : 1'b0; 
     end
     assign ctrl_output_demux_o = (|temp_match) & reduction_resp_valid_i;
+end else if(STALLING) begin : gen_response_demux_stalling
+    // Fifo to store if the element should be forwarded to the output
+    fifo_v3 #(
+        .FALL_THROUGH     (1'b0),
+        .DATA_WIDTH       (1),
+        .DEPTH            (RdPipelineDepth+2)
+    ) i_fifo_outdir (
+        .clk_i            (clk_i),
+        .rst_ni           (rst_ni),
+        .flush_i          (flush_i),
+        .testmode_i       (1'b0),
+        .full_o           (),
+        .empty_o          (),
+        .usage_o          (),
+        .data_i           (retire_element),
+        .push_i           (reduction_req_valid_i & reduction_req_ready_i),  // push mask on active fpu req hs
+        .data_o           (ctrl_output_demux_o),
+        .pop_i            (reduction_resp_valid_i & reduction_resp_ready_i) // pop mask on active fpu resp hs
+    );
 end else begin
     // No buffering - always forward it
     assign ctrl_output_demux_o = 1'b1;
