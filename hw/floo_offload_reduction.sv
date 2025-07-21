@@ -277,6 +277,7 @@ floo_offload_reduction_controller #(
   .operand_valid_o              (input_mapped_operands_valid),
   .operand_ready_i              (input_mapped_operands_ready),
   .reduction_req_operation_o    (reduction_scheduled_operation),
+  .reduction_req_mask_i         (merged_data[0].mask | merged_data[1].mask),
   .reduction_req_valid_i        (reduction_req_valid_o),
   .reduction_req_ready_i        (reduction_req_ready_i),
   .fully_red_data_i             (fully_reduced_data),
