@@ -131,10 +131,10 @@ module floo_offload_reduction_controller #(
 
 /* All local parameter */
 // Buffer Size to control all ongoing reduction
-// @ GENERIC: Use conservativ approach with (RdPipelineDepth+RdPartialBufferSize) // TODO: optimize size!
+// @ GENERIC: Needs to be at least to be RdPartialBufferSize which is RdPipelineDepth+1
 // @ STALLING: We only have one reduction ongoing so 1 is enough
 // @ SIMPLE: We do not need any buffer so 1 to avoid questa panic (will be optimized away as never used)
-localparam int unsigned RdBufferSize = (GENERIC) ? (RdPipelineDepth+RdPartialBufferSize) : 1;
+localparam int unsigned RdBufferSize = (GENERIC) ? (RdPartialBufferSize) : 1;
 
 localparam bit [NumRoutes-1:0] ONES = 1;
 
