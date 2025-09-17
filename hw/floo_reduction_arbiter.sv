@@ -66,6 +66,7 @@ module floo_reduction_arbiter import floo_pkg::*;
   // Reduction operation
   always_comb begin : gen_reduced_B
     data_o = data_i[input_sel];
+    resp = '0;
     // We check every input port from which we expect a response
     for (int i = 0; i < NumRoutes; i++) begin
       if(in_route_mask[i]) begin
