@@ -23,12 +23,15 @@ run-sim-batch: run-vsim-batch
 # Programs #
 ############
 
+QUESTA_SEPP ?=
+VCS_SEPP    ?=
+
 BENDER     	?= bender
-VSIM       	?= questa-2023.4 vsim
+VSIM       	?= $(QUESTA_SEPP) vsim
 SPYGLASS   	?= sg_shell
 VERIBLE_FMT	?= verible-verilog-format
-VCS		      ?= vcs-2022.06 vcs
-VLOGAN  	  ?= vcs-2022.06 vlogan
+VCS		      ?= $(VCS_SEPP) vcs
+VLOGAN  	  ?= $(VCS_SEPP) vlogan
 
 #####################
 # Compilation Flags #

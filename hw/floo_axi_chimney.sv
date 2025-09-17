@@ -514,7 +514,7 @@ module floo_axi_chimney #(
     end
   end
 
-  `FFL(axi_aw_id_q, dst_id[AxiAw], axi_aw_queue_valid_out &&
+  `FFL(axi_aw_id_q, id_out[AxiAw], axi_aw_queue_valid_out &&
                                    axi_aw_queue_ready_in, '0)
 
   if (RouteCfg.EnMultiCast) begin : gen_mcast
