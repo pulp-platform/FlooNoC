@@ -836,9 +836,9 @@ module floo_nw_chimney #(
     end
   end
 
-  `FFL(narrow_aw_id_q, dst_id[NarrowAw], axi_narrow_aw_queue_valid_out &&
+  `FFL(narrow_aw_id_q, id_out[NarrowAw], axi_narrow_aw_queue_valid_out &&
                                          axi_narrow_aw_queue_ready_in, '0)
-  `FFL(wide_aw_id_q, dst_id[WideAw], axi_wide_aw_queue_valid_out &&
+  `FFL(wide_aw_id_q, id_out[WideAw], axi_wide_aw_queue_valid_out &&
                                      axi_wide_aw_queue_ready_in, '0)
 
   if (RouteCfg.EnMultiCast) begin : gen_mcast
