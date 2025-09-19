@@ -26,6 +26,9 @@ package floo_${noc.name}_noc_pkg;
 
 % if noc.routing.use_id_table:
   ${noc.routing.sam.render(aw=noc.routing.addr_width)}
+  % if noc.routing.en_multicast:
+    ${noc.routing.multicast_sam.render(aw=noc.routing.addr_width)}
+  %endif
 % else:
   localparam int unsigned NumSamRules = 1;
   typedef logic sam_rule_t;

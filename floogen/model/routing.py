@@ -17,7 +17,8 @@ from floogen.utils import (
     sv_struct_typedef,
     bool_to_sv,
     snake_to_camel,
-    sv_struct_render
+    sv_struct_render,
+    clog2
 )
 
 
@@ -160,16 +161,17 @@ class Coord(BaseModel):
 class AddrRange(BaseModel):
     """Address range class."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_assignement=True)
 
     start: int = Field(ge=0)
     end: int = Field(ge=0)
     size: int
     base: Optional[int] = None
-    arr_idx: Optional[Tuple[int]] = None
-    arr_dim: Optional[Tuple[int]] = None
-    desc: Optional[str] = None
+    arr_idx: Optional[Tuple[int, ...]] = None
+    arr_dim: Optional[Tuple[int, ...]] = None
     rdl_name: Optional[str] = None
+    en_multicast: bool = False
+    desc: Optional[str] = None
 
     def __str__(self):
         return f"[{self.start:X}:{self.end:X}]"
@@ -187,9 +189,9 @@ class AddrRange(BaseModel):
                         addr_dict["start"] = base + size * m
                         addr_dict["end"] = addr_dict["start"] + size
                     case (m, n):
-                        if self.arr_dim is None:
+                        if addr_dict["arr_dim"] is None:
                             raise ValueError("Array dimension must be specified for 2D arrays")
-                        addr_dict["start"] = base + size * (m * self.arr_dim[1] + n)
+                        addr_dict["start"] = base + size * (m * addr_dict["arr_dim"][1] + n)
                         addr_dict["end"] = addr_dict["start"] + size
                     case _:
                         raise ValueError("Invalid array index specification")
@@ -247,17 +249,17 @@ class RouteMapRule(BaseModel):
 
     def render(self, aw=None):
         """Render the SystemVerilog routing rule."""
+        struct_fields = {
+            "idx": self.dest.render(),
+            "start_addr": self.addr_range.start,
+            "end_addr": self.addr_range.end
+        }
         if aw is not None:
-            return (
-                f"'{{idx: {self.dest.render()}, "
-                f"start_addr: {aw}'h{self.addr_range.start:0{cdiv(aw,4)}x}, "
-                f"end_addr: {aw}'h{self.addr_range.end:0{cdiv(aw,4)}x}}}"
-            )
-        return (
-            f"'{{idx: {self.dest.render()}, "
-            f"start_addr: {self.addr_range.start}, "
-            f"end_addr: {self.addr_range.end}}}"
-        )
+            # Routing table use simple integers, and don't have any address width
+            struct_fields["start_addr"] = f"{aw}'h{self.addr_range.start:0{cdiv(aw,4)}x}"
+            struct_fields["end_addr"] = f"{aw}'h{self.addr_range.end:0{cdiv(aw,4)}x}"
+
+        return sv_struct_render(struct_fields)
 
     def render_desc(self):
         '''Render the description of the routing rule.'''
@@ -298,6 +300,36 @@ class RouteMapRule(BaseModel):
                 }
             ]
         return []
+
+class RouteMapRuleMcast(RouteMapRule):
+    """Routing rule class for multicast information."""
+
+    mask_offset: Optional[Tuple[int, int]] = None
+    mask_len: Optional[Tuple[int, int]] = None
+    base_id: Optional[Tuple[int, int]] = None
+
+    def render(self, aw=None):
+        """Render the SystemVerilog routing rule."""
+        if aw is None:
+            raise ValueError("Address width must be specified for multicast routing")
+
+        # In multicast, the `idx` field becomes a nested structure
+        # where the `id` is the original `idx`
+        struct_fields = {
+            "idx": {"id": self.dest.render()},
+            "start_addr": f"{aw}'h{self.addr_range.start:0{cdiv(aw,4)}x}",
+            "end_addr": f"{aw}'h{self.addr_range.end:0{cdiv(aw,4)}x}",
+        }
+
+        # Non-multicast nodes, don't need any mask information
+        if self.mask_offset is None:
+            struct_fields["idx"]["mask_x"] = {"default": "'0"}
+            struct_fields["idx"]["mask_y"] = {"default": "'0"}
+        else:
+            struct_fields["idx"]["mask_x"] = {"offset": self.mask_offset[0], "len": self.mask_len[0], "base_id": self.base_id[0]}
+            struct_fields["idx"]["mask_y"] = {"offset": self.mask_offset[1], "len": self.mask_len[1], "base_id": self.base_id[1]}
+
+        return sv_struct_render(struct_fields)
 
 
 class RouteRule(BaseModel):
@@ -450,8 +482,17 @@ class RouteMap(BaseModel):
         string += sv_param_decl(f"{snake_to_camel(self.name)}NumRules", len(rules)) + "\n"
         addr_type = f"logic [{aw-1}:0]" if aw is not None else "id_t"
         rule_type_dict = {}
-        rule_type_dict = {"idx": "id_t", "start_addr": addr_type, "end_addr": addr_type}
-        string += sv_struct_typedef(self.rule_type(), rule_type_dict)
+        if not isinstance(rules[0], RouteMapRuleMcast):
+            rule_type_dict = {"idx": "id_t", "start_addr": addr_type, "end_addr": addr_type}
+            string += sv_struct_typedef(self.rule_type(), rule_type_dict)
+        else:
+            rule_type_dict = {"offset": "int unsigned", "len": "int unsigned", "base_id": "int unsigned"}
+            string += sv_struct_typedef("mask_sel_t", rule_type_dict)
+            rule_type_dict = {"id": "id_t", "mask_x": "mask_sel_t", "mask_y": "mask_sel_t"}
+            string += sv_struct_typedef("mcast_idx_t", rule_type_dict)
+            rule_type_dict = {"idx": "mcast_idx_t", "start_addr": addr_type, "end_addr": addr_type}
+            string += sv_struct_typedef(self.rule_type(), rule_type_dict)
+
         rules_str = ""
         if not rules:
             string += sv_param_decl(
@@ -547,6 +588,7 @@ class Routing(BaseModel):
     port_id_bits: int = 1
     num_vc_id_bits: int = 0
     en_multicast: bool = False
+    multicast_sam: Optional[RouteMap] = None
     en_parallel_reduction: bool = False
     en_narrow_offload_reduction: bool = False
     en_wide_offload_reduction: bool = False
