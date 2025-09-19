@@ -17,8 +17,7 @@ from floogen.utils import (
     sv_struct_typedef,
     bool_to_sv,
     snake_to_camel,
-    sv_struct_render,
-    clog2
+    sv_struct_render
 )
 
 
