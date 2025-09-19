@@ -7,7 +7,7 @@
 from typing import Optional, List, Union, Tuple
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
-from floogen.model.routing import AddrRange, Id, Coord
+from floogen.model.routing import AddrRange, SimpleId, Coord
 from floogen.model.protocol import Protocols
 
 
@@ -23,7 +23,7 @@ class EndpointDesc(BaseModel):
     array: Optional[Union[Tuple[int], Tuple[int, int]]] = None
     num: Optional[int] = None
     addr_range: List[AddrRange] = []
-    xy_id_offset: Optional[Id] = None
+    xy_id_offset: Optional[Union[SimpleId, Coord]] = None
     mgr_port_protocol: Optional[List[str]] = None
     sbr_port_protocol: Optional[List[str]] = None
 

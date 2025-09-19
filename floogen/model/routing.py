@@ -6,8 +6,7 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 from enum import Enum
-from typing import Optional, List, Tuple
-from abc import ABC, abstractmethod
+from typing import Optional, List, Tuple, Union
 
 from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator
 
@@ -65,25 +64,7 @@ class XYDirections(Enum):
     def __int__(self):
         return self.value
 
-class Id(BaseModel, ABC):
-    """ID class."""
-
-    @abstractmethod
-    def render(self):
-        """Declare the Id generated code."""
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, value):
-        if not issubclass(value, Id):
-            raise ValueError("Invalid Object")
-        return value
-
-
-class SimpleId(Id):
+class SimpleId(BaseModel):
     """ID class."""
 
     id: int
@@ -118,7 +99,7 @@ class SimpleId(Id):
         return f"[{self.id}]"
 
 
-class Coord(Id):
+class Coord(BaseModel):
     """2D coordinate class."""
 
     x: int
@@ -254,7 +235,7 @@ class RouteMapRule(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    dest: Id
+    dest: Union[SimpleId, Coord]
     addr_range: AddrRange
     desc: Optional[str] = None
 
@@ -323,7 +304,7 @@ class RouteRule(BaseModel):
     """Routing rule class."""
 
     route: Optional[List[Tuple[int, int]]]
-    id: Id
+    id: Union[SimpleId, Coord]
     desc: Optional[str] = None
 
     def render(self, num_route_bits):
@@ -555,7 +536,7 @@ class Routing(BaseModel):
     sam: Optional[RouteMap] = None
     table: Optional[RouteMap] = None
     addr_offset_bits: Optional[int] = None
-    xy_id_offset: Optional[Id] = None
+    xy_id_offset: Optional[Union[SimpleId, Coord]] = None
     num_endpoints: Optional[int] = None
     num_id_bits: Optional[int] = None
     num_x_bits: Optional[int] = None
