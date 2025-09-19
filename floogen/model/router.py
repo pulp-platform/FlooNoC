@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from mako.lookup import Template
 
-from floogen.model.routing import RouteMap, Id, Coord, RouteAlgo
+from floogen.model.routing import RouteMap, SimpleId, Coord, RouteAlgo
 from floogen.model.link import Link
 import floogen.templates
 
@@ -26,7 +26,7 @@ class RouterDesc(BaseModel):
     name: str
     array: Optional[Union[Tuple[int], Tuple[int, int]]] = None
     tree: Optional[List[int]] = None
-    xy_id_offset: Optional[Id] = None
+    xy_id_offset: Optional[Union[SimpleId, Coord]] = None
     auto_connect: Optional[bool] = True
     degree: Optional[int] = None
 
