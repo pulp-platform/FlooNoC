@@ -225,12 +225,12 @@ module floo_meta_buffer #(
     mask_sel_t x_mask_sel, y_mask_sel;
     addr_t x_addr_mask, y_addr_mask;
     addr_t in_addr;
-    id_t grp_base_id;
+    id_t base_id;
 
     assign in_mask = aw_buf_i.hdr.mask;
     assign in_id = aw_buf_i.hdr.dst_id;
-    assign grp_base_id = '{x: x_mask_sel.grp_base_id, y: y_mask_sel.grp_base_id, port_id: '0};
-    assign out = ((~in_mask & in_id) | (in_mask & id_i)) & ~grp_base_id;
+    assign base_id = '{x: x_mask_sel.base_id, y: y_mask_sel.base_id, port_id: '0};
+    assign out = ((~in_mask & in_id) | (in_mask & id_i)) & ~base_id;
     assign in_addr = axi_req_i.aw.addr;
     floo_id_translation #(
         .RouteCfg   (RouteCfg),
