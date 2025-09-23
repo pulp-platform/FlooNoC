@@ -33,7 +33,7 @@ module floo_route_xymask import floo_pkg::*; #(
   input  flit_t                         channel_i,
   // The current XY-coordinate of the router
   input  id_t                           xy_id_i,
-  // The calculated mask for the multicast/reduction
+  // The calculated onehot maks for the multicast/reduction
   output logic [NumRoutes-1:0]          route_sel_o
 );
 

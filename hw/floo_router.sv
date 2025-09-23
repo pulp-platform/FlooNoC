@@ -92,7 +92,7 @@ module floo_router
 
   // TODO MICHAERO: assert NumPhysChannels <= NumVirtChannels
 
-  // When a offloadable reduction is dedected then the data will be brunched off infront 
+  // When a offloadable reduction is dedected then the data will be brunched off infront
   // of the router crossbar. The reduction logic will reduce the incoming flits and deliver
   // a single flit instead. When finished the result will be merged as an extra port into
   // the output arbiter.
@@ -176,9 +176,9 @@ module floo_router
 
   // Vars to separate reductions with only one member
   logic [NumInput-1:0][NumVirtChannels-1:0][NumInput-1:0] red_expected_in_route, red_expected_in_route_loopback;
-  logic [NumInput-1:0][NumVirtChannels-1:0] red_onehot_expected_in;
-  logic [NumInput-1:0][NumVirtChannels-1:0] red_single_member;
-  logic [NumInput-1:0][NumVirtChannels-1:0] red_mask_loopback_port;
+  logic [NumInput-1:0][NumVirtChannels-1:0][$clog2(NumInput):0] red_how_many_participants;
+  logic [NumInput-1:0][NumVirtChannels-1:0] red_single_member, offload_reduction;
+  logic [NumInput-1:0][NumVirtChannels-1:0] red_ignore_loopback_port;
 
   // If we support offload reduction and a reduction is dedected then we split the signal and forward it to the reduction
   if(EnOffloadReduction == 1'b1) begin : gen_offload_reduction_demux
@@ -197,27 +197,36 @@ module floo_router
           .route_sel_o  (red_expected_in_route[in][v])
         );
 
-        // If the option RdSupportLoopback is not set then the logic doesn't expect a flit from the Eject port!
-        assign red_mask_loopback_port[in][v] = ((route_mask[in][v][Eject] == 1'b1) && (red_expected_in_route[in][v][Eject] == 1'b1) && (!RdCfg.RdSupportLoopback));
-        assign red_expected_in_route_loopback[in][v] = (red_mask_loopback_port[in][v]) ? (red_expected_in_route[in][v] & (~(1 << Eject))) : red_expected_in_route[in][v];
+        // If the option RdSupportLoopback is disabled, then the local port
+        // must be ignored and removed from the list of participants because the last step of
+        // the reduction will be handled downsteram.
+        always_comb begin: gen_ignore_loopback
+          red_ignore_loopback_port[in][v] = ((route_mask[in][v][Eject] == 1'b1) && (!RdCfg.RdSupportLoopback));
+          red_expected_in_route_loopback[in][v] = red_expected_in_route[in][v];
+          red_expected_in_route_loopback[in][v][Eject] = red_expected_in_route[in][v][Eject] & (~red_ignore_loopback_port[in][v]);
+        end
 
         // onehot decoding of the input direction
-        // bypass the reduction if only one input member is selected (if none is selected then bypass too [should never occure but to avoid deadlocks])
-        cc_onehot #(
-          .Width        (NumInput)
-        ) i_onehot_decoder (
-          .d_i          (red_expected_in_route_loopback[in][v]),
-          .is_onehot_o  (red_onehot_expected_in[in][v])
+        // bypass the reduction if only on  e input member is selected (if none is selected then bypass too [should never occure but to avoid deadlocks])
+        popcount #(
+          .INPUT_WIDTH (NumInput)
+        ) i_red_list_counter (
+          .data_i       (red_expected_in_route_loopback[in][v]),
+          .popcount_o   (red_how_many_participants[in][v])
         );
-        assign red_single_member[in][v] = red_onehot_expected_in[in][v] | (&(~red_expected_in_route_loopback[in][v]));
+        assign red_single_member[in][v] = (red_how_many_participants[in][v] <= 1);
 
         // Generate the handshaking
+        // Outoput 0: unicast
+        // Output 1: reduction
+        assign offload_reduction[in][v] = (~red_single_member[in][v]) &
+                                          (in_routed_data[in][v].hdr.commtype == OffloadReduction);
         stream_demux #(
           .N_OUP              (2)
         ) i_stream_demux (
           .inp_valid_i        (in_valid[in][v]),
           .inp_ready_o        (in_ready[in][v]),
-          .oup_sel_i          ((in_routed_data[in][v].hdr.commtype == OffloadReduction) & (~red_single_member[in][v])),
+          .oup_sel_i          (offload_reduction[in][v]),
           .oup_valid_o        ({red_valid_in[in][v], cross_valid[in][v]}),
           .oup_ready_i        ({red_ready_in[in][v], cross_ready[in][v]})
         );
@@ -266,7 +275,7 @@ module floo_router
       .reduction_req_ready_i      (offload_req_ready_i),
       .reduction_resp_data_i      (offload_resp_result_i),
       .reduction_resp_valid_i     (offload_resp_valid_i),
-      .reduction_resp_ready_o     (offload_resp_ready_o)      
+      .reduction_resp_ready_o     (offload_resp_ready_o)
     );
   end else begin
     assign red_data_out = '0;
@@ -337,7 +346,7 @@ module floo_router
 
   `FF(past_handshakes_q, past_handshakes_d, '0)
 
-  // We merge the data from the reduction as an additional input of our output arbiter.
+  // We merge the data from the reduction module as an additional input of our output arbiter.
   logic [NumOutput-1:0][NumVirtChannels-1:0][localNumInputs-1:0] merged_valid, merged_ready;
   flit_t [NumOutput-1:0][NumVirtChannels-1:0][localNumInputs-1:0] merged_data;
 
@@ -365,55 +374,33 @@ module floo_router
 
     // arbitrate input fifos per virtual channel
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_output
-      if(!EnParallelReduction) begin : gen_wh_arb
-        floo_wormhole_arbiter #(
-          .NumRoutes  ( localNumInputs ),
-          .flit_t     ( flit_t   )
-        ) i_wormhole_arbiter (
-          .clk_i,
-          .rst_ni,
+      // Output arbiter
+      floo_output_arbiter #(
+        .NumRoutes            ( NumInput                    ),
+        .NumSlaveRoutes       ( localNumInputs - NumInput   ),
+        .EnParallelReduction  ( EnParallelReduction         ),
+        .flit_t               ( flit_t                      ),
+        .hdr_t                ( hdr_t                       ),
+        .payload_t            ( payload_t                   ),
+        .NarrowRspMask        ( NarrowRspMask               ),
+        .WideRspMask          ( WideRspMask                 ),
+        .id_t                 ( id_t                        ),
+        .RdSupportLoopback    ( RdCfg.RdSupportLoopback     ),
+        .RdSupportAxi         ( RdCfg.RdSupportAxi          ),
+        .AxiCfg               ( AxiCfgParallel              )
+      ) i_output_arbiter (
+        .clk_i,
+        .rst_ni,
 
-          .valid_i ( merged_valid[out][v] ),
-          .ready_o ( merged_ready[out][v] ),
-          .data_i  ( merged_data [out][v] ),
+        .valid_i  ( merged_valid[out][v] ),
+        .ready_o  ( merged_ready[out][v] ),
+        .data_i   ( merged_data [out][v] ),
+        .xy_id_i  ( xy_id_i              ),
 
-          .valid_o ( out_valid[out][v] ),
-          .ready_i ( out_ready[out][v] ),
-          .data_o  ( out_data [out][v] )
-        );
-      end else begin : gen_red_arb
-        // Arbiter to be instantiated for reduction operations.
-        // Repsonses from a multicast request are also treated as reductions.
-        // TODO: fix these flags here - RdCfg... is used (mostly) in the offload
-        //       reduction rather the parallel reduction - maybe we could make
-        //       another configuration?
-        floo_output_arbiter #(
-          .NumRoutes            ( NumInput                    ),
-          .NumSlaveRoutes       ( localNumInputs-NumInput     ),
-          .EnParallelReduction  ( EnParallelReduction         ),
-          .flit_t               ( flit_t                      ),
-          .hdr_t                ( hdr_t                       ),
-          .payload_t            ( payload_t                   ),
-          .NarrowRspMask        ( NarrowRspMask               ),
-          .WideRspMask          ( WideRspMask                 ),
-          .id_t                 ( id_t                        ),
-          .RdSupportLoopback    ( RdCfg.RdSupportLoopback     ),
-          .RdSupportAxi         ( RdCfg.RdSupportAxi          ),
-          .AxiCfg               ( AxiCfgParallel              )
-        ) i_output_arbiter (
-          .clk_i,
-          .rst_ni,
-
-          .valid_i  ( merged_valid[out][v] ),
-          .ready_o  ( merged_ready[out][v] ),
-          .data_i   ( merged_data [out][v] ),
-          .xy_id_i  ( xy_id_i              ),
-
-          .valid_o ( out_valid[out][v] ),
-          .ready_i ( out_ready[out][v] ),
-          .data_o  ( out_data [out][v] )
-        );
-      end
+        .valid_o ( out_valid[out][v] ),
+        .ready_i ( out_ready[out][v] ),
+        .data_o  ( out_data [out][v] )
+      );
 
       if (OutFifoDepth > 0) begin : gen_out_fifo
         (* ungroup *)
@@ -500,7 +487,7 @@ module floo_router
 
   // Multicast is currently only supported for `XYRouting`
   `ASSERT_INIT(NoMultiCastSupport, !(EnMultiCast && RouteAlgo != XYRouting))
-  // Assertian check that when we use the FP reduction no virtual channel are init
+  // Assertion check that when we use the FP reduction no virtual channel are init
   `ASSERT_INIT(NoVirtChanSupport, !(EnOffloadReduction && (NumVirtChannels != 1)))
   // We only support symmetrical configuration for the FP reduction
   `ASSERT_INIT(NoSymConfig, !(EnOffloadReduction && (NumInput != NumOutput)))

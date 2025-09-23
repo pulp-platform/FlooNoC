@@ -57,16 +57,22 @@ module floo_output_arbiter import floo_pkg::*;
   logic [localRoutes-1:0]   reduce_mask;
 
   // Var to sparate Non-Slave ports if they have to go to the reduction arbiter!
-  flit_t [NumRoutes-1:0]    full_port_data;
-  logic [NumRoutes-1:0]     full_port_valid;
-  logic [NumRoutes-1:0]     full_port_ready;
+  flit_t [NumRoutes-1:0]    parallel_red_data;
+  logic [NumRoutes-1:0]     parallel_red_valid;
+  logic [NumRoutes-1:0]     parallel_red_ready;
 
-  // Determine which input ports are to be reduced
-  for (genvar i = 0; i < localRoutes; i++) begin : gen_reduce_mask
-    assign reduce_mask[i] = (i < NumRoutes) ? (data_i[i].hdr.commtype == ParallelReduction) : 1'b0;
+  // Determine which input ports are to be reduced in parallel
+  // ignore the local ports
+  always_comb begin: gen_reduce_mask
+    reduce_mask = '0;
+    if (EnParallelReduction) begin
+      for (int i = 0; i < NumRoutes; i++) begin
+        reduce_mask[i] = (data_i[i].hdr.commtype == ParallelReduction);
+      end
+    end
   end
 
-  // Arbitrate unicasts
+  // Arbitrate unicasts and sequential reductions already computed by the offload unit
   assign unicast_valid_in = valid_i & ~reduce_mask;
 
   floo_wormhole_arbiter #(
@@ -84,57 +90,70 @@ module floo_output_arbiter import floo_pkg::*;
   );
 
   // Arbitrate reductions
-  assign reduce_valid_in = valid_i & reduce_mask;
+  if (EnParallelReduction) begin: gen_parallel_reduction
+    // Arbiter to be instantiated for reduction operations.
+    // Responses from a multicast request are also treated as reductions.
+    // TODO: fix these flags here - RdCfg... is used (mostly) in the offload
+    //       reduction rather the parallel reduction - maybe we could make
+    //       another configuration?
+    assign reduce_valid_in = valid_i & reduce_mask;
 
-  // The reduction support only the "original" configuration of NumRoutes!
-  // Therefore we have to mask all slave ports here!
-  assign full_port_data = data_i[NumRoutes-1:0];
-  assign full_port_valid = reduce_valid_in[NumRoutes-1:0];
-  assign reduce_ready_out[NumRoutes-1:0] = full_port_ready;
-  if(NumSlaveRoutes > 0) begin
-    assign reduce_ready_out[NumSlaveRoutes+NumRoutes-1:NumRoutes] = '0;
+    // The reduction support only the "original" configuration of NumRoutes!
+    // Therefore NumRoutes port are connected into the reduction arbiter
+    assign parallel_red_data = data_i[NumRoutes-1:0];
+    assign parallel_red_valid = reduce_valid_in[NumRoutes-1:0];
+    assign reduce_ready_out[NumRoutes-1:0] = parallel_red_ready;
+    if(NumSlaveRoutes > 0) begin
+      assign reduce_ready_out[NumSlaveRoutes+NumRoutes-1:NumRoutes] = '0;
+    end
+
+    floo_reduction_arbiter #(
+      .NumRoutes            ( NumRoutes           ),
+      .EnParallelReduction  ( EnParallelReduction ),
+      .flit_t               ( flit_t              ),
+      .hdr_t                ( hdr_t               ),
+      .payload_t            ( payload_t           ),
+      .id_t                 ( id_t                ),
+      .NarrowRspMask        ( NarrowRspMask       ),
+      .WideRspMask          ( WideRspMask         ),
+      .RdSupportLoopback    ( RdSupportLoopback   ),
+      .RdSupportAxi         ( RdSupportAxi        ),
+      .AxiCfg               ( AxiCfg              )
+    ) i_reduction_arbiter (
+      .xy_id_i,
+      .data_i    ( parallel_red_data   ),
+      .valid_i   ( parallel_red_valid  ),
+      .ready_o   ( parallel_red_ready  ),
+      .valid_o   ( reduce_valid_out ),
+      .ready_i   ( reduce_ready_in  ),
+      .data_o    ( reduce_data_out  )
+    );
+
+    // Arbitrate between wormhole and reduction arbiter
+    // Reductions have higher priority than unicasts (index 0)
+    stream_arbiter #(
+      .N_INP  (2),
+      .ARBITER("prio"),
+      .DATA_T (flit_t)
+    ) i_stream_arbiter (
+      .clk_i,
+      .rst_ni,
+      .inp_data_i ({unicast_data_out, reduce_data_out}),
+      .inp_valid_i({unicast_valid_out, reduce_valid_out}),
+      .inp_ready_o({unicast_ready_in, reduce_ready_in}),
+      .oup_data_o (data_o),
+      .oup_valid_o(valid_o),
+      .oup_ready_i(ready_i)
+    );
+
+    assign ready_o = (reduce_valid_out)? reduce_ready_out : unicast_ready_out;
+
+  end else begin : gen_no_parallel_reduction
+    assign data_o  = unicast_data_out;
+    assign valid_o = unicast_valid_out;
+    assign unicast_ready_in = ready_i;
+    assign ready_o = unicast_ready_out;
   end
-
-  floo_reduction_arbiter #(
-    .NumRoutes            ( NumRoutes           ),
-    .EnParallelReduction  ( EnParallelReduction ),
-    .flit_t               ( flit_t              ),
-    .hdr_t                ( hdr_t               ),
-    .payload_t            ( payload_t           ),
-    .id_t                 ( id_t                ),
-    .NarrowRspMask        ( NarrowRspMask       ),
-    .WideRspMask          ( WideRspMask         ),
-    .RdSupportLoopback    ( RdSupportLoopback   ),
-    .RdSupportAxi         ( RdSupportAxi        ),
-    .AxiCfg               ( AxiCfg              )
-  ) i_reduction_arbiter (
-    .xy_id_i,
-    .data_i    ( full_port_data   ),
-    .valid_i   ( full_port_valid  ),
-    .ready_o   ( full_port_ready  ),
-    .valid_o   ( reduce_valid_out ),
-    .ready_i   ( reduce_ready_in  ),
-    .data_o    ( reduce_data_out  )
-  );
-
-  // Arbitrate between wormhole and reduction arbiter
-  // Reductions have higher priority than unicasts (index 0)
-  stream_arbiter #(
-    .N_INP  (2),
-    .ARBITER("prio"),
-    .DATA_T (flit_t)
-  ) i_stream_arbiter (
-    .clk_i,
-    .rst_ni,
-    .inp_data_i ({unicast_data_out, reduce_data_out}),
-    .inp_valid_i({unicast_valid_out, reduce_valid_out}),
-    .inp_ready_o({unicast_ready_in, reduce_ready_in}),
-    .oup_data_o (data_o),
-    .oup_valid_o(valid_o),
-    .oup_ready_i(ready_i)
-  );
-
-  assign ready_o = (reduce_valid_out)? reduce_ready_out : unicast_ready_out;
 
   // Cannot have an output valid without at least one input valid
   `ASSERT(ValidOutInvalidIn, valid_o |-> |valid_i)

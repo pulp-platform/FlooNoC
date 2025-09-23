@@ -408,7 +408,7 @@ module floo_nw_chimney #(
     assign axi_narrow_aw_queue_valid_out = 1'b0;
     assign axi_narrow_ar_queue_valid_out = 1'b0;
     assign axi_narrow_mask_queue = '0;
-    assign axi_narrow_red_comm_type_queue = '0;
+    assign axi_narrow_red_comm_type_queue = floo_pkg::collect_comm_e'('0);
     assign axi_narrow_red_op_queue = '0;
   end
 
@@ -418,9 +418,9 @@ module floo_nw_chimney #(
     `AXI_ASSIGN_REQ_STRUCT(axi_wide_req_in, axi_wide_in_req_i)
     `AXI_ASSIGN_RESP_STRUCT(axi_wide_in_rsp_o, axi_wide_rsp_out)
 
+    user_wide_struct_t user;
+    assign user = axi_wide_in_req_i.aw.user;
     if (RouteCfg.EnMultiCast) begin : gen_mask
-      user_wide_struct_t user;
-      assign user = axi_wide_in_req_i.aw.user;
       assign axi_wide_req_in_mask = user.mcast_mask;
     end else begin : gen_no_mask
       assign axi_wide_req_in_mask = '0;
@@ -428,12 +428,10 @@ module floo_nw_chimney #(
 
     // Extract the reduction information if from the narrow AXI user bits
     if(EnWideCollectiveOperation) begin : gen_narrow_collective_operation
-      user_wide_struct_t user;
-      assign user = axi_wide_in_req_i.aw.user;
       assign axi_wide_req_in_red_comm_type = user.coll_type;
       assign axi_wide_req_in_red_op = user.coll_op;
     end else begin : gen_no_collective_operation
-      assign axi_wide_req_in_red_comm_type = '0;
+      assign axi_wide_req_in_red_comm_type = floo_pkg::collect_comm_e'('0);
       assign axi_wide_req_in_red_op = '0;
     end
 
@@ -508,7 +506,7 @@ module floo_nw_chimney #(
           .ready_i  ( axi_wide_aw_queue_ready_in )
         );
       end else begin : gen_no_collective_operation_cuts
-        assign axi_wide_red_comm_type_queue = '0;
+        assign axi_wide_red_comm_type_queue = floo_pkg::collect_comm_e'('0) ;
         assign axi_wide_red_op_queue = '0;
       end
 
@@ -543,7 +541,7 @@ module floo_nw_chimney #(
     assign axi_wide_aw_queue_valid_out = 1'b0;
     assign axi_wide_ar_queue_valid_out = 1'b0;
     assign axi_wide_mask_queue = '0;
-    assign axi_wide_red_comm_type_queue = '0;
+    assign axi_wide_red_comm_type_queue = floo_pkg::collect_comm_e'(0);
     assign axi_wide_red_op_queue = '0;
   end
 
@@ -1054,36 +1052,40 @@ module floo_nw_chimney #(
   // operation we want to apply to the data!
 
   // Currently any reduction have to either be on the AW/W channel
-  // If the chimney receives a Multicast / Reduction it will automatically update the response
-  // to the appropriate type (Multicast => Paralle Reduction with CollectB / Reduction => Multicast B Response)
+  // If the chimney receives a Multicast / Reduction it will automatically update the resonse
+  // to the appropriate type:
+  //  - Multicast => Paralle Reduction with CollectB
+  //  - Reduction => Multicast B Response
   if(EnNarrowCollectiveOperation) begin : gen_cache_collective_operation_data
     // Assign all collective type
     assign red_coll_type[NarrowAw] = axi_narrow_red_comm_type_queue;
-    assign red_coll_type[NarrowAr] = '0;
+    assign red_coll_type[NarrowAr] = floo_pkg::collect_comm_e'('0);
     assign red_coll_type[WideAw]   = axi_wide_red_comm_type_queue;
-    assign red_coll_type[WideAr]   = '0;
+    assign red_coll_type[WideAr]   = floo_pkg::collect_comm_e'('0);
     assign red_coll_type[NarrowW]  = red_narrow_coll_type_q;
     assign red_coll_type[WideW]    = red_wide_coll_type_q;
-    assign red_coll_type[NarrowR]  = '0;
-    assign red_coll_type[NarrowB]  = '0;
-    assign red_coll_type[WideR]    = '0;
-    assign red_coll_type[WideB]    = '0;
+    assign red_coll_type[NarrowR]  = floo_pkg::collect_comm_e'('0);
+    assign red_coll_type[NarrowB]  = floo_pkg::collect_comm_e'('0);
+    assign red_coll_type[WideR]    = floo_pkg::collect_comm_e'('0);
+    assign red_coll_type[WideB]    = floo_pkg::collect_comm_e'('0);
 
     // Store the coll type!
-    `FFL(red_narrow_coll_type_q, axi_narrow_red_comm_type_queue, axi_narrow_aw_queue_valid_out && axi_narrow_aw_queue_ready_in, '0)
-    `FFL(red_wide_coll_type_q, axi_wide_red_comm_type_queue, axi_wide_aw_queue_valid_out && axi_wide_aw_queue_ready_in, '0)
+    `FFL(red_narrow_coll_type_q, axi_narrow_red_comm_type_queue,
+        axi_narrow_aw_queue_valid_out && axi_narrow_aw_queue_ready_in, floo_pkg::collect_comm_e'('0))
+    `FFL(red_wide_coll_type_q, axi_wide_red_comm_type_queue,
+        axi_wide_aw_queue_valid_out && axi_wide_aw_queue_ready_in, floo_pkg::collect_comm_e'('0))
 
     // Assign all collective operation
     assign red_coll_operation[NarrowAw] = axi_narrow_red_op_queue;
-    assign red_coll_operation[NarrowAr] = '0;
+    assign red_coll_operation[NarrowAr] = floo_pkg::reduction_op_t'('0);
     assign red_coll_operation[WideAw]   = axi_wide_red_op_queue;
-    assign red_coll_operation[WideAr]   = '0;
+    assign red_coll_operation[WideAr]   = floo_pkg::reduction_op_t'('0);
     assign red_coll_operation[NarrowW]  = red_narrow_coll_operation_q;
     assign red_coll_operation[WideW]    = red_wide_coll_operation_q;
-    assign red_coll_operation[NarrowR]  = '0;
-    assign red_coll_operation[NarrowB]  = '0;
-    assign red_coll_operation[WideR]    = '0;
-    assign red_coll_operation[WideB]    = '0;
+    assign red_coll_operation[NarrowR]  = floo_pkg::reduction_op_t'('0);
+    assign red_coll_operation[NarrowB]  = floo_pkg::reduction_op_t'('0);
+    assign red_coll_operation[WideR]    = floo_pkg::reduction_op_t'('0);
+    assign red_coll_operation[WideB]    = floo_pkg::reduction_op_t'('0);
 
     // Store the coll operation!
     `FFL(red_narrow_coll_operation_q, axi_narrow_red_op_queue, axi_narrow_aw_queue_valid_out && axi_narrow_aw_queue_ready_in, '0)
