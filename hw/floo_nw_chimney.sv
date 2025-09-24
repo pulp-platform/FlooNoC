@@ -500,7 +500,7 @@ module floo_nw_chimney #(
     .rst_ni   ( rst_ni                                ),
     .valid_i  ( axi_narrow_meta_buf_req_out.aw_valid  ),
     .ready_o  ( narrow_aw_out_queue_ready             ),
-    .data_i   ( axi_narrow_aw_queue_in        ),
+    .data_i   ( axi_narrow_aw_queue_in                ),
     .valid_o  ( narrow_aw_out_queue_valid             ),
     .ready_i  ( axi_narrow_out_rsp_i.aw_ready         ),
     .data_o   ( axi_narrow_aw_queue_out               )
@@ -513,7 +513,7 @@ module floo_nw_chimney #(
     .rst_ni   ( rst_ni                              ),
     .valid_i  ( axi_wide_meta_buf_req_out.aw_valid  ),
     .ready_o  ( wide_aw_out_queue_ready             ),
-    .data_i   ( axi_wide_aw_queue_in        ),
+    .data_i   ( axi_wide_aw_queue_in                ),
     .valid_o  ( wide_aw_out_queue_valid             ),
     .ready_i  ( axi_wide_out_rsp_i.aw_ready         ),
     .data_o   ( axi_wide_aw_queue_out               )
@@ -603,7 +603,7 @@ module floo_nw_chimney #(
     .sram_cfg_i,
     .ax_valid_i     ( narrow_aw_rob_valid_in  ),
     .ax_ready_o     ( narrow_aw_rob_ready_out ),
-    .ax_len_i       ( axi_narrow_aw_queue.len ),
+    .ax_len_i       ( '0                      ), // B responses are single-beat
     .ax_id_i        ( axi_narrow_aw_queue.id  ),
     .ax_dest_i      ( id_out[NarrowAw]        ),
     .ax_valid_o     ( narrow_aw_rob_valid_out ),
@@ -646,7 +646,7 @@ module floo_nw_chimney #(
     .sram_cfg_i,
     .ax_valid_i     ( axi_wide_aw_queue_valid_out ),
     .ax_ready_o     ( axi_wide_aw_queue_ready_in  ),
-    .ax_len_i       ( axi_wide_aw_queue.len       ),
+    .ax_len_i       ( '0                          ), // B responses are single-beat
     .ax_id_i        ( axi_wide_aw_queue.id        ),
     .ax_dest_i      ( id_out[WideAw]              ),
     .ax_valid_o     ( wide_aw_rob_valid_out       ),
