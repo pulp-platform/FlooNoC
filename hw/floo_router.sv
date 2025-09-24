@@ -49,9 +49,6 @@ module floo_router
   parameter type         addr_rule_t          = logic,
   parameter type         flit_t               = logic,
   parameter type         hdr_t                = logic,
-  parameter type         payload_t            = logic,
-  parameter payload_t    NarrowRspMask        = '0,
-  parameter payload_t    WideRspMask          = '0,
   /// Offload reduction parameter
   /// Possible operation for offloading (must match type in header)
   parameter type         RdOperation_t        = logic,
@@ -376,18 +373,14 @@ module floo_router
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_output
       // Output arbiter
       floo_output_arbiter #(
-        .NumRoutes            ( NumInput                    ),
-        .NumSlaveRoutes       ( localNumInputs - NumInput   ),
-        .EnParallelReduction  ( EnParallelReduction         ),
-        .flit_t               ( flit_t                      ),
-        .hdr_t                ( hdr_t                       ),
-        .payload_t            ( payload_t                   ),
-        .NarrowRspMask        ( NarrowRspMask               ),
-        .WideRspMask          ( WideRspMask                 ),
-        .id_t                 ( id_t                        ),
-        .RdSupportLoopback    ( RdCfg.RdSupportLoopback     ),
-        .RdSupportAxi         ( RdCfg.RdSupportAxi          ),
-        .AxiCfg               ( AxiCfgParallel              )
+        .NumRoutes            ( localNumInputs                    ),
+        .NumParallelRedRoutes ( EnParallelReduction ? NumInput : 0),
+        .flit_t               ( flit_t                            ),
+        .hdr_t                ( hdr_t                             ),
+        .id_t                 ( id_t                              ),
+        .RdSupportLoopback    ( RdCfg.RdSupportLoopback           ),
+        .RdSupportAxi         ( RdCfg.RdSupportAxi                ),
+        .AxiCfg               ( AxiCfgParallel                    )
       ) i_output_arbiter (
         .clk_i,
         .rst_ni,

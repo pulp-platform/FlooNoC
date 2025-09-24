@@ -52,7 +52,8 @@ module floo_reduction_sync import floo_pkg::*;
       assign same_and_valid[in] = (data_i[sel_i].hdr.dst_id == xy_id_i && in == Eject) ||
                                   (compare_same[in] & valid_i[in]);
     end else begin
-          assign same_and_valid[in] = (compare_same[in] & valid_i[in]);
+      // When LoopBack support is provided, the local port must always be considered
+      assign same_and_valid[in] = (compare_same[in] & valid_i[in]);
     end
   end
 

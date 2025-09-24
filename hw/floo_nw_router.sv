@@ -180,9 +180,6 @@ module floo_nw_router #(
     .addr_rule_t          ( addr_rule_t               ),
     .flit_t               ( floo_req_generic_flit_t   ),
     .hdr_t                ( hdr_t                     ),
-    .payload_t            ( floo_req_payload_t        ),
-    .NarrowRspMask        ( NarrowBFlitMask.payload   ),
-    .WideRspMask          ( WideBFlitMask.payload     ),
     .RdOperation_t        ( RdNarrowOperation_t       ),
     .RdData_t             ( RdNarrowData_t            ),
     .RdCfg                ( RdNarrowCfg               ),
@@ -210,22 +207,6 @@ module floo_nw_router #(
     .offload_resp_ready_o     ( offload_narrow_resp_ready_o     )
   );
 
-  // We construct the masks for the narrow and wide B responses here.
-  // Every bit of the payload is set to 0, except for the bits that
-  // correspond to the resp field.
-  localparam axi_narrow_b_chan_t NarrowBMask = '{resp: 2'b11, default: '0};
-  localparam floo_axi_narrow_b_flit_t NarrowBFlitMask = '{
-    payload: NarrowBMask,
-    hdr: '0,
-    rsvd: '0
-  };
-  localparam axi_narrow_b_chan_t WideBMask = '{resp: 2'b11, default: '0};
-  localparam floo_axi_wide_b_flit_t WideBFlitMask = '{
-    payload: WideBMask,
-    hdr: '0,
-    rsvd: '0
-  };
-
   floo_router #(
     .NumInput             ( NumInputs               ),
     .NumOutput            ( NumOutputs              ),
@@ -244,9 +225,6 @@ module floo_nw_router #(
     .addr_rule_t          ( addr_rule_t             ),
     .flit_t               ( floo_rsp_generic_flit_t ),
     .hdr_t                ( hdr_t                   ),
-    .payload_t            ( floo_rsp_payload_t      ),
-    .NarrowRspMask        ( floo_rsp_generic_flit_t'(NarrowBFlitMask.payload) ),
-    .WideRspMask          ( floo_rsp_generic_flit_t'(WideBFlitMask.payload)   ),
     .RdCfg                ( RdRespCfg               ),
     .AxiCfgOffload        ( '0                      ),
     .AxiCfgParallel       ( AxiCfgN                 )

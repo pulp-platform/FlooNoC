@@ -17,15 +17,11 @@ module floo_reduction_arbiter import floo_pkg::*;
   /// Type definitions
   parameter type         flit_t               = logic,
   parameter type         hdr_t                = logic,
-  parameter type         payload_t            = logic,
-  // Masks used to select which bits of the payload are part of the response,
-  // allowing extraction of relevant bits and detection of any participant errors.
-  parameter payload_t    NarrowRspMask        = '0,
-  parameter payload_t    WideRspMask          = '0,
   parameter type         id_t                 = logic,
   /// Do we support local loopback e.g. should the logic expect the local flit or not
   parameter bit          RdSupportLoopback    = 1'b0,
-  /// AXI dependent parameter
+  /// AXI dependent parameter for collective support
+  /// When performing collective, data bits need to be extracted from the payoload
   parameter bit          RdSupportAxi         = 1'b1,
   parameter axi_cfg_t    AxiCfg               = '0
 ) (
@@ -58,12 +54,11 @@ module floo_reduction_arbiter import floo_pkg::*;
   flit_t data_collectB;
   flit_t data_LSBAnd;
 
+  reduction_op_t incoming_red_op;
+
   // Logic bit to connect all LSB together
   logic lsb;
   logic [1:0] resp;
-
-  // Reduction mask for either the narrow or wide link
-  payload_t ReduceMask;
 
   // calculated expected input source lists for each input flit
   logic [NumRoutes-1:0]  in_route_mask;
@@ -95,13 +90,14 @@ module floo_reduction_arbiter import floo_pkg::*;
     .in_route_mask_o  ( in_route_mask )
   );
 
-  // Set the reduction mask for either the narrow or the wide link
-  assign ReduceMask = data_i[input_sel].hdr.axi_ch==NarrowB? NarrowRspMask : WideRspMask;
+  // Select the incoming reduction operation
+  assign incoming_red_op = data_i[input_sel].hdr.reduction_op;
 
   // ----------------------------
   // Reduction op implementations
   // ----------------------------
 
+  // TODO(lleone): Guard with a Cfg parameter that tells you which are the supported operations
   // Collect B response operation
   always_comb begin : gen_reduced_B
     data_collectB = data_i[input_sel];
@@ -111,15 +107,7 @@ module floo_reduction_arbiter import floo_pkg::*;
       if(in_route_mask[i]) begin
         // Select only the bits of the payload that are part of the response
         // and check if at least one of the participants sent an error.
-        automatic int j = 0;
-        for (int k = 0; k < $bits(ReduceMask); k++) begin
-          if (ReduceMask[k]) begin
-            resp[j] = data_i[i].payload[k];
-            j++;
-          end
-        end
-        // If one of the responses is an error, we return an error
-        // otherwise we return the first response
+        resp = extractAxiBResp(data_i[i]);
         if(resp == axi_pkg::RESP_SLVERR) begin
           data_collectB = data_i[i];
           break;
@@ -130,56 +118,55 @@ module floo_reduction_arbiter import floo_pkg::*;
 
   // Forward flits directly - Just choose to forward the selected one
   always_comb begin : gen_forward
-    data_forward_flit = data_i[input_sel];
+    data_forward_flit = '0;
+    if (EnParallelReduction) data_forward_flit = data_i[input_sel];
   end
 
   // And all the LSB
   always_comb begin : gen_and_lsb
-    data_LSBAnd = data_i[input_sel];
-    lsb = 1'b1;
+    data_LSBAnd = '0;
+    if (EnParallelReduction) begin
+      data_LSBAnd = data_i[input_sel];
+      lsb = 1'b1;
 
-    // We check every input port from which we expect a response
-    for (int i = 0; i < NumRoutes; i++) begin
-      if(in_route_mask[i]) begin
-        // Extract the last bit from the data
-        if(RdSupportAxi) begin
-          lsb = lsb & extractAXIWlsb(data_i[i]);
+      // We check every input port from which we expect a response
+      for (int i = 0; i < NumRoutes; i++) begin
+        if(in_route_mask[i]) begin
+          // Extract the last bit from the data
+          if(RdSupportAxi) begin
+            lsb &= extractAxiWData(data_i[i])[0];
+          end
         end
       end
-    end
 
-    // Assign the bit again
-    if(RdSupportAxi) begin
-      data_LSBAnd = insertAXIWlsb(data_LSBAnd, lsb);
+      // Assign the bit again
+      if(RdSupportAxi) begin
+        data_LSBAnd = insertAxiWlsb(data_LSBAnd, lsb);
+      end
     end
   end
 
-  // If we support more than the inital parallel reduction
-  if(EnParallelReduction) begin
-    always_comb begin
-      // Assign inital value
-      data_o = '0;
-      if(data_i[input_sel].hdr.reduction_op == SelectAW) begin
-        // AW flit dedected
-        data_o = data_forward_flit;
-      end else if(data_i[input_sel].hdr.reduction_op == CollectB) begin
-        // Collect B flit dedected
-        data_o = data_collectB;
-      end else if(data_i[input_sel].hdr.reduction_op == LSBAnd) begin
-        // LSB And flit dedected
-        data_o = data_LSBAnd;
-      end
-    end
-  end else begin
-    assign data_o = data_collectB;
+  // Select which parallel operation to output
+  always_comb begin
+    // Assign inital value
+    data_o = '0;
+    case ({incoming_red_op, 1'b1})
+      {SelectAW, EnParallelReduction}:  data_o = data_forward_flit;
+      {LSBAnd, EnParallelReduction}:    data_o = data_LSBAnd;
+      {CollectB, 1'b1}:                 data_o = data_collectB;
+      default:;
+    endcase
   end
 
   // Connect the ready signal
   assign ready_o = (ready_i & valid_o)? valid_i & in_route_mask : '0;
 
-  // AXI Specific function!
+  // -----------------------------
+  // AXI Specific Helper functions
+  // -----------------------------
+
   // Insert data into AXI specific W frame!
-  function automatic flit_t insertAXIWlsb(flit_t metadata, logic data);
+  function automatic flit_t insertAxiWlsb(flit_t metadata, logic data);
       floo_axi_w_flit_t w_flit;
       // Parse the entire flit
       w_flit = floo_axi_w_flit_t'(metadata);
@@ -189,12 +176,21 @@ module floo_reduction_arbiter import floo_pkg::*;
   endfunction
 
   // Extract data from AXI specific W frame!
-  function automatic logic extractAXIWlsb(flit_t metadata);
+  function automatic floo_axi_w_flit_t extractAxiWData(flit_t metadata);
       floo_axi_w_flit_t w_flit;
       // Parse the entire flit
       w_flit = floo_axi_w_flit_t'(metadata);
       // Return the W data
-      return w_flit.payload.data[0];
+      return w_flit.payload.data;
+  endfunction
+
+  // Extract B response from AXI specific B frame!
+  function automatic axi_pkg::resp_t extractAxiBResp(flit_t metadata);
+      floo_axi_b_flit_t b_flit;
+      // Parse the entire flit
+      b_flit = floo_axi_b_flit_t'(metadata);
+      // Return the B response
+      return b_flit.payload.resp;
   endfunction
 
 endmodule
