@@ -97,4 +97,5 @@ nav:
   - Connections: floogen/connections.md
   - CLI: floogen/cli.md
   - Known Issues: floogen/known_issues.md
+  - Utils: floogen/utils.md
 - Changelog: changelog.md
