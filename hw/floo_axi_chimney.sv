@@ -393,7 +393,7 @@ module floo_axi_chimney #(
     .sram_cfg_i,
     .ax_valid_i     ( aw_rob_valid_in               ),
     .ax_ready_o     ( aw_rob_ready_out              ),
-    .ax_len_i       ( axi_aw_queue.len              ),
+    .ax_len_i       ( '0                            ), // B responses are single-beat
     .ax_id_i        ( axi_aw_queue.id               ),
     .ax_dest_i      ( id_out[AxiAw]                 ),
     .ax_valid_o     ( aw_rob_valid_out              ),
