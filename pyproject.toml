@@ -27,6 +27,7 @@ dependencies = [
   "jsonref",
   "click",
   "pylint",
+  "ruff",
   "pytest",
   "pygame"
 ]
@@ -60,10 +61,5 @@ max-line-length = 100
 jobs = 4
 suggestion-mode = 'yes'
 
-[tool.pylint.disable]
-disable = [
-    "C0114",  # Missing module docstring
-]
-
-[tool.black]
+[tool.ruff]
 line-length = 100
