@@ -32,8 +32,8 @@ packages:
     dependencies:
     - common_cells
   common_cells:
-    revision: 9afda9abb565971649c2aa0985639c096f351171
-    version: 1.38.0
+    revision: 1d5c6fc3da60f0a920a5113b143624770bc1a279
+    version: null
     source:
       Git: https://github.com/pulp-platform/common_cells.git
     dependencies:
