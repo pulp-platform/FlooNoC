@@ -42,10 +42,6 @@ module floo_nw_chimney #(
   parameter bit EnBRespWideCollectiveOperation          = EnWideCollectiveOperation,
   /// Enable the b-response for narrow collectiv operation
   parameter bit EnBRespNarrowCollectiveOperation        = EnNarrowCollectiveOperation,
-  /// Mask incoming wide collectiv operation when sending the user field to the axi port!
-  parameter bit EnMaskingWideCollectivOperation         = 1'b0,
-  /// Mask incoming narrow collectiv operation when sending the user field to the axi port!
-  parameter bit EnMaskingNarrowCollectivOperation       = 1'b0,
   /// Node ID type for routing
   parameter type id_t                                   = logic,
   /// RoB index type for reordering.
@@ -634,22 +630,53 @@ module floo_nw_chimney #(
     .data_o   ( axi_wide_aw_queue_out               )
   );
 
-  always_comb begin
-    axi_narrow_out_req_o = axi_narrow_meta_buf_req_out;
-    axi_narrow_out_req_o.aw_valid = narrow_aw_out_queue_valid;
-    `AXI_SET_AW_STRUCT(axi_narrow_out_req_o.aw, axi_narrow_aw_queue_out);
-    axi_narrow_meta_buf_rsp_in = axi_narrow_out_rsp_i;
-    axi_narrow_meta_buf_rsp_in.aw_ready = narrow_aw_out_queue_ready;
-    axi_wide_out_req_o = axi_wide_meta_buf_req_out;
-    axi_wide_out_req_o.aw_valid = wide_aw_out_queue_valid;
-    `AXI_SET_AW_STRUCT(axi_wide_out_req_o.aw, axi_wide_aw_queue_out);
-    axi_wide_meta_buf_rsp_in = axi_wide_out_rsp_i;
-    axi_wide_meta_buf_rsp_in.aw_ready = wide_aw_out_queue_ready;
-    // If the option is enabled: mask the collective operation bits here
-    // Do it in this way so potential future fields are passed without any problems
-    if(EnMaskingWideCollectivOperation) begin
-      user_wide_struct_t user_aw;
-      user_wide_struct_t user_w;
+
+  if (EnNarrowCollectiveOperation) begin
+    user_narrow_struct_t user_aw;
+    user_narrow_struct_t user_w;
+
+    always_comb begin
+      axi_narrow_out_req_o = axi_narrow_meta_buf_req_out;
+      axi_narrow_out_req_o.aw_valid = narrow_aw_out_queue_valid;
+      `AXI_SET_AW_STRUCT(axi_narrow_out_req_o.aw, axi_narrow_aw_queue_out);
+      axi_narrow_meta_buf_rsp_in = axi_narrow_out_rsp_i;
+      axi_narrow_meta_buf_rsp_in.aw_ready = narrow_aw_out_queue_ready;
+      // If the option is enabled: mask the collective operation bits here
+      // Do it in this way so potential future fields are passed without any problems
+
+      // Mask the AW Channel
+      user_aw = axi_narrow_out_req_o.aw.user;
+      user_aw.mcast_mask = '0;
+      user_aw.coll_type = Unicast;
+      user_aw.coll_op = '0;
+      axi_narrow_out_req_o.aw.user = user_aw;
+      // Mask the W Channel
+      user_w = axi_narrow_out_req_o.w.user;
+      user_w.mcast_mask = '0;
+      user_w.coll_type = Unicast;
+      user_w.coll_op = '0;
+      axi_narrow_out_req_o.w.user = user_w;
+    end
+
+  end else begin
+    always_comb begin
+      axi_narrow_out_req_o = axi_narrow_meta_buf_req_out;
+      axi_narrow_out_req_o.aw_valid = narrow_aw_out_queue_valid;
+      `AXI_SET_AW_STRUCT(axi_narrow_out_req_o.aw, axi_narrow_aw_queue_out);
+      axi_narrow_meta_buf_rsp_in = axi_narrow_out_rsp_i;
+      axi_narrow_meta_buf_rsp_in.aw_ready = narrow_aw_out_queue_ready;
+    end
+  end
+
+  if (EnWideCollectiveOperation) begin
+    user_wide_struct_t user_aw;
+    user_wide_struct_t user_w;
+    always_comb begin
+      axi_wide_out_req_o = axi_wide_meta_buf_req_out;
+      axi_wide_out_req_o.aw_valid = wide_aw_out_queue_valid;
+      `AXI_SET_AW_STRUCT(axi_wide_out_req_o.aw, axi_wide_aw_queue_out);
+      axi_wide_meta_buf_rsp_in = axi_wide_out_rsp_i;
+      axi_wide_meta_buf_rsp_in.aw_ready = wide_aw_out_queue_ready;
       // Mask the AW Channel
       user_aw = axi_wide_out_req_o.aw.user;
       user_aw.mcast_mask = '0;
@@ -663,22 +690,13 @@ module floo_nw_chimney #(
       user_w.coll_op = '0;
       axi_wide_out_req_o.w.user = user_w;
     end
-
-    if(EnMaskingNarrowCollectivOperation) begin
-      user_narrow_struct_t user_aw;
-      user_narrow_struct_t user_w;
-      // Mask the AW Channel
-      user_aw = axi_narrow_out_req_o.aw.user;
-      user_aw.mcast_mask = '0;
-      user_aw.coll_type = Unicast;
-      user_aw.coll_op = '0;
-      axi_narrow_out_req_o.aw.user = user_aw;
-      // Mask the W Channel
-      user_w = axi_narrow_out_req_o.w.user;
-      user_w.mcast_mask = '0;
-      user_w.coll_type = Unicast;
-      user_w.coll_op = '0;
-      axi_narrow_out_req_o.w.user = user_w;
+  end else begin
+    always_comb begin
+      axi_wide_out_req_o = axi_wide_meta_buf_req_out;
+      axi_wide_out_req_o.aw_valid = wide_aw_out_queue_valid;
+      `AXI_SET_AW_STRUCT(axi_wide_out_req_o.aw, axi_wide_aw_queue_out);
+      axi_wide_meta_buf_rsp_in = axi_wide_out_rsp_i;
+      axi_wide_meta_buf_rsp_in.aw_ready = wide_aw_out_queue_ready;
     end
   end
 
