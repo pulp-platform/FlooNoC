@@ -24,12 +24,12 @@ def get_error_context(config_file: Path, line, column, context_before=4, context
     """Retrieves the context surrounding an error in a configuration file."""
     lines_to_return = []
     with config_file.open() as file:
-        for line_idx, l in enumerate(file.readlines()):
+        for line_idx, line in enumerate(file.readlines()):
             if line_idx + 1 == line:
-                lines_to_return.append(l)
+                lines_to_return.append(line)
                 lines_to_return.append(click.style(column * " " + "^\n", blink=True, fg="yellow"))
             elif line_idx + 1 >= line - context_before and line_idx + 1 <= line + context_after:
-                lines_to_return.append(l)
+                lines_to_return.append(line)
     return "".join(lines_to_return)
 
 
