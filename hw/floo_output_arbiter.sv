@@ -50,7 +50,6 @@ module floo_output_arbiter import floo_pkg::*;
 
   logic [NumRoutes-1:0]   reduce_mask;
 
-
   localparam bit EnParallelReduction = (NumParallelRedRoutes > 1) ? 1'b1 : 1'b0;
 
   // Determine which input ports are to be reduced in parallel
@@ -83,7 +82,7 @@ module floo_output_arbiter import floo_pkg::*;
 
   // Arbitrate reductions
   if (EnParallelReduction) begin: gen_parallel_reduction
-
+    // Var to sparate Non-Slave ports if they have to go to the reduction arbiter!
     flit_t [NumParallelRedRoutes-1:0]    parallel_red_data;
     logic [NumParallelRedRoutes-1:0]     parallel_red_valid;
     logic [NumParallelRedRoutes-1:0]     parallel_red_ready;

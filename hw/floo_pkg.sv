@@ -83,47 +83,73 @@ package floo_pkg;
     NumAxiChannels = 3'd5
   } axi_ch_e;
 
-  /// The types of collective communication
-  typedef enum logic [1:0] {
-    /// Normal communication
-    Unicast = 2'd0,
-    /// Multicast communication
-    Multicast = 2'd1,
-    /// Parallel reduction operations
-    ParallelReduction = 2'd2,
-    /// Offload Reduction
-    OffloadReduction = 2'd3
-  } collect_comm_e;
+  // /// The types of collective communication
+  // typedef enum logic [1:0] {
+  //   /// Normal communication
+  //   Unicast = 2'd0,
+  //   /// Multicast communication
+  //   Multicast = 2'd1,
+  //   /// Parallel reduction operations
+  //   ParallelReduction = 2'd2,
+  //   /// Offload Reduction
+  //   OffloadReduction = 2'd3
+  // } collect_comm_e;
 
-  /// Different offloadable reduction
-  typedef enum logic [3:0] {
-    R_Select  = 4'b0000, // Select the first incoming flit
-    F_Add     = 4'b0100, // FP Addition
-    F_Mul     = 4'b0101, // FP Multiplication
-    F_Min     = 4'b0110, // FP Min
-    F_Max     = 4'b0111, // FP Max
-    A_Add     = 4'b1000, // Atomic Add (signed)
-    A_Mul     = 4'b1001, // (Non-) Atomic (signed)
-    A_Min_S   = 4'b1010, // Atomic Min (signed)
-    A_Min_U   = 4'b1110, // Atomic Min (unsigned)
-    A_Max_S   = 4'b1011, // Atomic Max (signed)
-    A_Max_U   = 4'b1111  // Atomic Max (unsigned)
-  } reduction_offload_op_e;
+  // /// Different offloadable reduction
+  // typedef enum logic [3:0] {
+  //   R_Select  = 4'b0000, // Select the first incoming flit
+  //   F_Add     = 4'b0100, // FP Addition
+  //   F_Mul     = 4'b0101, // FP Multiplication
+  //   F_Min     = 4'b0110, // FP Min
+  //   F_Max     = 4'b0111, // FP Max
+  //   A_Add     = 4'b1000, // Atomic Add (signed)
+  //   A_Mul     = 4'b1001, // (Non-) Atomic (signed)
+  //   A_Min_S   = 4'b1010, // Atomic Min (signed)
+  //   A_Min_U   = 4'b1110, // Atomic Min (unsigned)
+  //   A_Max_S   = 4'b1011, // Atomic Max (signed)
+  //   A_Max_U   = 4'b1111  // Atomic Max (unsigned)
+  // } reduction_offload_op_e;
 
-  /// Different instantanous reduction
-  typedef enum logic [3:0] {
-    SelectAW  = 4'b0000,  // Select the first incoming flit
-    CollectB  = 4'b0001,  // Collect the B responses from an AXI transmission
-    LSBAnd    = 4'b0010   // AND Connect the LSB of the payload (useful for barrier ops)
-  } reduction_parallel_op_e;
+  // /// Different instantanous reduction
+  // typedef enum logic [3:0] {
+  //   SelectAW  = 4'b0000,  // Select the first incoming flit
+  //   CollectB  = 4'b0001,  // Collect the B responses from an AXI transmission
+  //   LSBAnd    = 4'b0010   // AND Connect the LSB of the payload (useful for barrier ops)
+  // } reduction_parallel_op_e;
+
 
   /// Union for both Datatype(s) - because they need to have the same size for the chimney
   /// The chimney needs this information as it does not know if we support an offload reduction
   /// or an parallel reduction.
-  typedef union packed {
-    reduction_offload_op_e op_offload;
-    reduction_parallel_op_e op_parallel;
-  } reduction_op_t;
+  // typedef union packed {
+  //   reduction_offload_op_e op_offload;
+  //   reduction_parallel_op_e op_parallel;
+  // } reduction_op_t;
+
+  /// List of supported collective operations in the NoC
+  /// These are "micro" collective operations. For example an AXI
+  /// multicast is split into a generic multicast + reduction
+  /// of teh B responses (CollectB).
+  /// The internal micro operations must be in teh MSB to make sure
+  /// the user will never issue those
+  typedef enum logic [3:0] {
+    Unicast   = 4'b0000,  // Unicast operation
+    Multicast = 4'b0001,  // Multicast communication
+    LSBAnd    = 4'b0010,  // AND Connect the LSB of the payload
+    F_Add     = 4'b0011,  // FP Addition
+    F_Mul     = 4'b0100,  // FP Multiplication
+    F_Min     = 4'b0101,  // FP Min
+    F_Max     = 4'b0110,  // FP Max
+    A_Add     = 4'b0111,  // Atomic Add (signed)
+    A_Mul     = 4'b1000,  // (Non-) Atomic (signed)
+    A_Min_S   = 4'b1001,  // Atomic Min (signed)
+    A_Min_U   = 4'b1010,  // Atomic Min (unsigned)
+    A_Max_S   = 4'b1011,  // Atomic Max (signed)
+    A_Max_U   = 4'b1100,  // Atomic Max (unsigned)
+    SelectAW  = 4'b1101,  // Select first incoming AW flit TODO (lleone): Remove R-select
+    CollectB  = 4'b1110,  // Collect B responses for AXI transmisison
+    R_Select  = 4'b1111   // Select the first incoming flit
+  } collect_op_e;
 
   /// The types of AXI channels in narrow-wide AXI network interfaces
   typedef enum logic [3:0] {
@@ -164,6 +190,80 @@ package floo_pkg;
     int unsigned OutIdWidth;
   } axi_cfg_t;
 
+  /// Collective operations to support in teh NoC
+  /// In this context collective operations are macro
+  /// operations, i.e. multicast, reduction etc...
+  /// The user does not have to care about the hidden
+  /// transfers required to implement these macro colelctive.
+  typedef struct packed {
+    /// Enable multicast transcation support on the narrow router
+    bit EnNarrowMulticast = 0;
+    /// Enable multicast transcation support on the wide router
+    bit EnWideMulticast = 0;
+    /// Enable LSB and operation support
+    bit EnLSBAnd    = 0;
+    /// Enable FP addition support
+    bit EnF_Add     = 0;
+    /// Enable FP multiplier support
+    bit EnF_Mul     = 0;
+    /// Enable FP minimum calculation support
+    bit EnF_Min     = 0;
+    /// Enable FP maximum calculationn support
+    bit EnF_Max     = 0;
+    /// Enable INT addition support
+    bit EnA_Add     = 0;
+    /// Enable INT multiplier support
+    bit EnA_Mul     = 0;
+    /// Enable INT signed minimum calculation support
+    bit EnA_Min_S   = 0;
+    /// Enable INT unsigned minimum calculation support
+    bit EnA_Min_U   = 0;
+    /// Enable INT signed maximum calculation support
+    bit EnA_Max_S   = 0;
+    /// Enable INT unsigned maximum calculation support
+    bit EnA_Max_U   = 0;
+  } collect_op_cfg_t;
+
+  typedef logic [3:0] collect_op_t;
+
+  /// Controller configuration
+  typedef enum logic [1:0] {
+    /// Simple configuration
+    ControllerSimple = 2'd0,
+    /// Stalling configuration
+    ControllerStalling = 2'd1,
+    /// Generic configuration
+    ControllerGeneric = 2'd2
+  } floo_red_controller_e;
+
+  /// Configuration for the offload reduction logic
+  typedef struct packed {
+    /// configuration for the controller
+    floo_red_controller_e RdControllConf;
+    /// input fifo configuration
+    bit RdFifoFallThrough;
+    int unsigned RdFifoDepth;
+    /// pipeline depth of the offload unit
+    int unsigned RdPipelineDepth;
+    /// partial buffer size
+    int unsigned RdPartialBufferSize;
+    /// required tag bit if generic controller is used
+    int unsigned RdTagBits;
+    /// is the underlying protocl AXI
+    bit RdSupportAxi;
+    /// enable the bypass (required for AXI-AW)
+    bit RdEnableBypass;
+    /// support loopback for the local link - collective will
+    /// be forwarded to the local port too.
+    bit RdSupportLoopback;
+  } reduction_cfg_t;
+
+  /// Configuration to specify how extensive collective support is enabled
+  typedef struct packed {
+    collect_op_cfg_t OpCfg;
+    reduction_cfg_t  SequentialRedCfg;
+  } collective_cfg_t;
+
   /// Configuration to pass routing information to the routers
   /// as well as network interfaces
   typedef struct packed {
@@ -187,14 +287,16 @@ package floo_pkg;
     /// The number of routes for every routing table,
     /// Only used if `RouteAlgo == SourceRouting`
     int unsigned NumRoutes;
-    /// Whether to enable the multicast feature in the NoC
+    /// Whether to enable the multicast feature in the NoC TODO (lleone): Remove
     bit EnMultiCast;
-    /// Whether to use the parallel reduction on the narrow req link
+    /// Whether to use the parallel reduction on the narrow req link TODO (lleone): Remove
     bit EnParallelReduction;
-    /// Whether to use the offload reduction on the narrow req link
+    /// Whether to use the offload reduction on the narrow req link TODO (lleone): Remove
     bit EnNarrowOffloadReduction;
-    /// Whether to use the offload reduction on the wide link
+    /// Whether to use the offload reduction on the wide link TODO (lleone): Remove
     bit EnWideOffloadReduction;
+    /// Configuration to support collective operations
+    collective_cfg_t CollectiveCfg;
   } route_cfg_t;
 
   /// Configuration for the network interface (chimney)
@@ -234,39 +336,24 @@ package floo_pkg;
     bit CutRsp;
   } chimney_cfg_t;
 
-  /// Controller configuration
-  typedef enum logic [1:0] {
-    /// Simple configuration
-    ControllerSimple = 2'd0,
-    /// Stalling configuration
-    ControllerStalling = 2'd1,
-    /// Generic configuration
-    ControllerGeneric = 2'd2
-  } floo_red_controller_e;
+  /// Default collective operations supported in the NoC - all disabled
+  localparam collect_op_cfg_t CollectiveOpDefaultCfg = '{
+    EnNarrowMulticast : 1'b0,
+    EnWideMulticast   : 1'b0,
+    EnLSBAnd          : 1'b0,
+    EnF_Add           : 1'b0,
+    EnF_Mul           : 1'b0,
+    EnF_Min           : 1'b0,
+    EnF_Max           : 1'b0,
+    EnA_Add           : 1'b0,
+    EnA_Mul           : 1'b0,
+    EnA_Min_S         : 1'b0,
+    EnA_Min_U         : 1'b0,
+    EnA_Max_S         : 1'b0,
+    EnA_Max_U         : 1'b0
+  };
 
-  /// Configuration for the offload reduction logic
-  typedef struct packed {
-    /// configuration for the controller
-    floo_red_controller_e RdControllConf;
-    /// input fifo configuration
-    bit RdFifoFallThrough;
-    int unsigned RdFifoDepth;
-    /// pipeline depth of the offload unit
-    int unsigned RdPipelineDepth;
-    /// partial buffer size
-    int unsigned RdPartialBufferSize;
-    /// required tag bit if generic controller is used
-    int unsigned RdTagBits;
-    /// is the underlying protocl AXI
-    bit RdSupportAxi;
-    /// enable the bypass (required for AXI-AW)
-    bit RdEnableBypass;
-    /// support loopback for the local link - collective will
-    /// be forwarded to the local port too.
-    bit RdSupportLoopback;
-  } reduction_cfg_t;
-
-  /// The default configuration for the reduction
+  /// The default configuration for the offload reduction unit
   localparam reduction_cfg_t ReductionDefaultCfg = '{
     RdControllConf: ControllerGeneric,
     RdFifoFallThrough: 1'b1,
@@ -277,6 +364,12 @@ package floo_pkg;
     RdSupportAxi: 1'b1,
     RdEnableBypass: 1'b1,
     RdSupportLoopback: 1'b1
+  };
+
+  /// The default configuration for collective operations
+  localparam collective_cfg_t CollectiveDefaultCfg = '{
+    OpCfg: CollectiveOpDefaultCfg,
+    SequentialRedCfg: ReductionDefaultCfg
   };
 
   /// The default configuration for the network interface
@@ -306,7 +399,8 @@ package floo_pkg;
     EnMultiCast: 1'b0,
     EnParallelReduction: 1'b0,
     EnNarrowOffloadReduction: 1'b0,
-    EnWideOffloadReduction: 1'b0
+    EnWideOffloadReduction: 1'b0,
+    CollectiveCfg: CollectiveDefaultCfg
   };
 
   /// The AXI channel to link mapping in a single-AXI network interface
@@ -440,6 +534,84 @@ package floo_pkg;
   function automatic int unsigned get_nw_rsvd_bits(axi_cfg_t cfg_n, axi_cfg_t cfg_w, nw_ch_e ch);
     return get_max_nw_payload_bits(cfg_n, cfg_w, nw_chan_mapping(ch)) -
                                    get_nw_chan_width(cfg_n, cfg_w, ch);
+  endfunction
+
+
+  /**********************************************************
+   *         Collective Communication Support               *
+   **********************************************************/
+  /* These functions help to abstract the complexity of the NoC and the
+  /  implementation schemes for collective communication.
+  /  The user is responsible to declare only which macro level collective
+  /  operations are supported in the NoC (collect_op_cfg_t).
+  /  The NoC implementation will then derive which type of hardware support
+  /  is required (e.g. multicast, collectB, selectAW, etc...). This info
+  /  is implementation specific and must be transparent to the user.
+  */
+  ///---------------------------------------------------------
+  /// Helper functions to calculate which macro transaction are supported
+
+  /// Calculates if the NoC needs support for Narrow Sequential reduction
+  function automatic bit is_en_narrow_reduction(collective_cfg_t cfg);
+    return (cfg.OpCfg.EnA_Add | cfg.OpCfg.EnA_Mul | cfg.OpCfg.EnA_Min_S |
+            cfg.OpCfg.EnA_Min_U | cfg.OpCfg.EnA_Max_S | cfg.OpCfg.EnA_Max_U |
+            cfg.OpCfg.EnLSBAnd
+            );
+  endfunction
+
+  /// Calculates if the NoC needs support for Wide Sequential reduction
+  function automatic bit is_en_wide_reduction(collective_cfg_t cfg);
+    return (cfg.OpCfg.EnF_Add | cfg.OpCfg.EnF_Mul |
+            cfg.OpCfg.EnF_Min | cfg.OpCfg.EnF_Max
+            );
+  endfunction
+
+  /// Calculate if narrow collective support is enabled
+  function automatic bit is_en_narrow_collective(collective_cfg_t cfg);
+    return (cfg.OpCfg.EnNarrowMulticast | is_en_narrow_reduction(cfg));
+  endfunction
+
+  /// Calculate if wide collective support is enabled
+  function automatic bit is_en_wide_collective(collective_cfg_t cfg);
+    return (cfg.OpCfg.EnWideMulticast | is_en_wide_reduction(cfg));
+  endfunction
+
+  /// Calculate if there is need for collective support
+  function automatic bit is_en_collective(collective_cfg_t cfg);
+    return (is_en_wide_collective(cfg) | is_en_narrow_collective(cfg));
+  endfunction
+
+  ///---------------------------------------------------------
+  /// Helper functions to calculate which macro operations are supported
+  /// Evaluate if the NoC needs support for narrow multicast operations
+  function automatic bit is_en_narrow_multicast_op(collective_cfg_t cfg);
+    return (cfg.OpCfg.EnNarrowMulticast | is_en_narrow_reduction(cfg));
+  endfunction
+
+  /// Evaluate if the NoC needs support for wide multicast operations
+  function automatic bit is_en_wide_multicast_op(collective_cfg_t cfg);
+    return (cfg.OpCfg.EnWideMulticast | is_en_wide_reduction(cfg));
+  endfunction
+
+  function automatic bit is_en_multicast_op(collective_cfg_t cfg);
+    return (is_en_narrow_multicast_op(cfg) | is_en_wide_multicast_op(cfg));
+  endfunction
+
+  ///---------------------------------------------------------
+  /// Helper functions to translate internal opcodes in macro transactions
+  /// Evaluate if the incoming operation is a multicast operation
+  function automatic bit is_multicast_op(collect_op_e op);
+    return (op == Multicast);
+  endfunction
+
+  /// Evaluate if the incoming operation is a reduction operation
+  function automatic bit is_reduction_op(collect_op_e op);
+    case (op)
+      F_Add, F_Mul, F_Min, F_Max, LSBAnd,
+      A_Add, A_Mul, A_Min_S, A_Min_U, A_Max_S,
+      A_Max_U: return 1'b1;
+      default: return 1'b0;
+    endcase
   endfunction
 
 endpackage
