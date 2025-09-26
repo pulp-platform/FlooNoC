@@ -30,6 +30,7 @@ dependencies = [
 docs = [
   "mkdocs",
   "mkdocs-material",
+  "mkdocstrings[python]",
   "pillow",
   "cairosvg",
   "mkdocs-git-revision-date-localized-plugin",
