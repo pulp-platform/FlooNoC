@@ -71,7 +71,7 @@ package alu_pkg;
   localparam int unsigned INT_OPERATION_BITS = $clog2(NUM_INT_OPERATION);
 
   // Int Operation
-  typedef enum logic [INT_OPERATION_BITS-1:0] { 
+  typedef enum logic [INT_OPERATION_BITS-1:0] {
     ADD,
     MUL,
     MIN,
@@ -95,7 +95,7 @@ module floo_reduction_alu import floo_pkg::*; #() (
   /// IF towards external FPU
   input  logic[63:0]        alu_req_op1_i,
   input  logic[63:0]        alu_req_op2_i,
-  input  reduction_op_t     alu_req_type_i,
+  input  collect_op_e       alu_req_type_i,
   input  logic              alu_req_valid_i,
   output logic              alu_req_ready_o,
   /// IF from external ALU
@@ -146,7 +146,7 @@ module floo_reduction_alu import floo_pkg::*; #() (
       (floo_pkg::A_Mul) : begin
         alu_in.op = alu_pkg::MUL;
         alu_in.fmt = alu_pkg::INT32;
-      end                
+      end
       (floo_pkg::A_Min_S) : begin
         alu_in.op = alu_pkg::MIN;
         alu_in.fmt = alu_pkg::INT32;

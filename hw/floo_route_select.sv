@@ -53,7 +53,7 @@ module floo_route_select
 
   // We need to calc the multicast and the unicast route in parallel
   // and mux them depending on the flit header!
-  logic [NumRoutes-1:0] route_sel_multicast; 
+  logic [NumRoutes-1:0] route_sel_multicast;
   logic [NumRoutes-1:0] route_sel_unicast;
 
   if (RouteAlgo == IdTable) begin : gen_id_table
@@ -126,7 +126,7 @@ module floo_route_select
     end else begin : gen_no_mcast
       assign route_sel_multicast = '0;  // No MCast supported
     end
-    
+
     // Calculate here the unicast output mask
     id_t id_in;
     assign id_in = id_t'(channel_i.hdr.dst_id);
@@ -153,7 +153,7 @@ module floo_route_select
 
     // Depending on the flit header choose the correct route
     if(EnMultiCast) begin
-      assign route_sel = (channel_i.hdr.commtype == Multicast) ? route_sel_multicast : route_sel_unicast;
+      assign route_sel = (channel_i.hdr.collective_op == Multicast) ? route_sel_multicast : route_sel_unicast;
     end else begin
       assign route_sel = route_sel_unicast;
     end

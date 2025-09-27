@@ -25,7 +25,7 @@ module floo_reduction_wrapper import floo_pkg::*; #(
   /// IF towards external FPU
   input  RdData_t                       reduction_req_op1_i,
   input  RdData_t                       reduction_req_op2_i,
-  input  reduction_op_t                 reduction_req_type_i,
+  input  collect_op_t                   reduction_req_type_i,
   input  logic                          reduction_req_valid_i,
   output logic                          reduction_req_ready_o,
   /// IF from external FPU
@@ -127,7 +127,7 @@ module floo_reduction_fpu import floo_pkg::*; #(
   /// IF towards external FPU
   input  logic[63:0]        fpu_req_op1_i,
   input  logic[63:0]        fpu_req_op2_i,
-  input  reduction_op_t     fpu_req_type_i,
+  input  collect_op_t       fpu_req_type_i,
   input  logic              fpu_req_valid_i,
   output logic              fpu_req_ready_o,
   /// IF from external FPU
@@ -150,7 +150,7 @@ module floo_reduction_fpu import floo_pkg::*; #(
   // FPU Implementation copied from the generated code (messy as fuck)
   localparam fpnew_pkg::fpu_implementation_t FPUImplementation [1] = '{
       '{
-          PipeRegs: 
+          PipeRegs:
                     '{'{2, 3, 1, 1, 1, 1},   // FMA Block
                       '{1, 1, 1, 1, 1, 1},   // DIVSQRT
                       '{1, 1, 1, 1, 1, 1},   // NONCOMP
@@ -216,7 +216,7 @@ module floo_reduction_fpu import floo_pkg::*; #(
         fpu_in.operands[0] = fpu_req_op1_i;
         fpu_in.operands[1] = fpu_req_op2_i;
         fpu_in.operands[2] = '0;
-      end                
+      end
       (floo_pkg::F_Max) : begin
         fpu_in.op = fpnew_pkg::MINMAX;
         fpu_in.rnd_mode = fpnew_pkg::RNE;
@@ -322,7 +322,7 @@ module floo_reduction_fpu import floo_pkg::*; #(
         end
         (floo_pkg::F_Mul) : begin
           retVal = "FMul";
-        end                
+        end
         (floo_pkg::F_Max) : begin
           retVal = "FMax";
         end

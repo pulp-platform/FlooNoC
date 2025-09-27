@@ -94,7 +94,7 @@ module floo_route_xymask import floo_pkg::*; #(
   // Signal assigments
   assign dst_id = channel_i.hdr.dst_id;
   assign src_id = channel_i.hdr.src_id;
-  assign mask = channel_i.hdr.mask;
+  assign mask = channel_i.hdr.collective_mask;
 
   // We compute minimum and maximum destination IDs, to decide whether
   // we need to send left and/or right resp. up and/or down.

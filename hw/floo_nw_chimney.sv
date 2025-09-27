@@ -147,7 +147,7 @@ module floo_nw_chimney #(
   typedef axi_addr_t user_mask_t ;
 
   // Collective communication configuration
-  localparam collective_cfg_t CollectCfg = RouteCfg.CollectiveCfg;
+  localparam floo_pkg::collective_cfg_t CollectCfg = RouteCfg.CollectiveCfg;
 
   // Duplicate AXI port signals to degenerate ports
   // in case they are not used
@@ -273,7 +273,7 @@ module floo_nw_chimney #(
       assign axi_narrow_req_in_red_op = user.collective_op;
     end else begin : gen_no_narrow_collective_info
       assign axi_narrow_req_in_mask = '0;
-      assign axi_narrow_req_in_red_op = '0;
+      assign axi_narrow_req_in_red_op = floo_pkg::collect_op_e'('0);
     end
 
 
@@ -331,7 +331,7 @@ module floo_nw_chimney #(
         );
       end else begin : gen_no_collective_cuts
         assign axi_narrow_mask_queue = '0;
-        assign axi_narrow_red_op_queue = '0;
+        assign axi_narrow_red_op_queue = floo_pkg::collect_op_e'('0);
       end
     end else begin : gen_ax_no_cuts
       assign axi_narrow_aw_queue = axi_narrow_req_in.aw;
@@ -363,7 +363,7 @@ module floo_nw_chimney #(
     assign axi_narrow_aw_queue_valid_out = 1'b0;
     assign axi_narrow_ar_queue_valid_out = 1'b0;
     assign axi_narrow_mask_queue = '0;
-    assign axi_narrow_red_op_queue = '0;
+    assign axi_narrow_red_op_queue = floo_pkg::collect_op_e'('0);
   end
 
   if (ChimneyCfgW.EnMgrPort) begin : gen_wide_sbr_port
@@ -380,7 +380,7 @@ module floo_nw_chimney #(
       assign axi_wide_req_in_red_op = user.collective_op;
     end else begin : gen_no_wide_collective_info
       assign axi_wide_req_in_mask = '0;
-      assign axi_wide_req_in_red_op = '0;
+      assign axi_wide_req_in_red_op = floo_pkg::collect_op_e'('0);
     end
 
     if (ChimneyCfgW.CutAx) begin : gen_ax_cuts
@@ -437,7 +437,7 @@ module floo_nw_chimney #(
         );
       end else begin : gen_no_collective_cuts
         assign axi_wide_mask_queue = '0;
-        assign axi_wide_red_op_queue = '0;
+        assign axi_wide_red_op_queue = floo_pkg::collect_op_e'('0);
       end
 
     end else begin : gen_ax_no_cuts
@@ -470,7 +470,7 @@ module floo_nw_chimney #(
     assign axi_wide_aw_queue_valid_out = 1'b0;
     assign axi_wide_ar_queue_valid_out = 1'b0;
     assign axi_wide_mask_queue = '0;
-    assign axi_wide_red_op_queue = '0;
+    assign axi_wide_red_op_queue = floo_pkg::collect_op_e'('0);
   end
 
   if (ChimneyCfgN.CutRsp && ChimneyCfgW.CutRsp) begin : gen_rsp_cuts
@@ -1005,21 +1005,21 @@ module floo_nw_chimney #(
 
   // Assign all collective operation (if not supported, tehy are already tied to zero)
   assign red_coll_operation[NarrowAw] = axi_narrow_red_op_queue;
-  assign red_coll_operation[NarrowAr] = '0;
+  assign red_coll_operation[NarrowAr] = floo_pkg::collect_op_e'('0);
   assign red_coll_operation[WideAw]   = axi_wide_red_op_queue;
-  assign red_coll_operation[WideAr]   = '0;
+  assign red_coll_operation[WideAr]   = floo_pkg::collect_op_e'('0);
   assign red_coll_operation[NarrowW]  = red_narrow_coll_operation_q;
   assign red_coll_operation[WideW]    = red_wide_coll_operation_q;
-  assign red_coll_operation[NarrowR]  = '0;
-  assign red_coll_operation[NarrowB]  = '0;
-  assign red_coll_operation[WideR]    = '0;
-  assign red_coll_operation[WideB]    = '0;
+  assign red_coll_operation[NarrowR]  = floo_pkg::collect_op_e'('0);
+  assign red_coll_operation[NarrowB]  = floo_pkg::collect_op_e'('0);
+  assign red_coll_operation[WideR]    = floo_pkg::collect_op_e'('0);
+  assign red_coll_operation[WideB]    = floo_pkg::collect_op_e'('0);
 
   // Store the coll operation!
   `FFL(red_narrow_coll_operation_q, axi_narrow_red_op_queue,
-      axi_narrow_aw_queue_valid_out && axi_narrow_aw_queue_ready_in, '0)
+      axi_narrow_aw_queue_valid_out && axi_narrow_aw_queue_ready_in, floo_pkg::collect_op_e'('0))
   `FFL(red_wide_coll_operation_q, axi_wide_red_op_queue,
-      axi_wide_aw_queue_valid_out && axi_wide_aw_queue_ready_in, '0)
+      axi_wide_aw_queue_valid_out && axi_wide_aw_queue_ready_in, floo_pkg::collect_op_e'('0))
 
   ///////////////////
   // FLIT PACKING  //

@@ -54,7 +54,7 @@ module floo_reduction_arbiter import floo_pkg::*;
   flit_t data_collectB;
   flit_t data_LSBAnd;
 
-  reduction_op_t incoming_red_op;
+  collect_op_e incoming_red_op;
 
   // Logic bit to connect all LSB together
   logic lsb;

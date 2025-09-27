@@ -58,7 +58,7 @@ module floo_output_arbiter import floo_pkg::*;
     reduce_mask = '0;
     if (EnParallelReduction) begin
       for (int i = 0; i < NumParallelRedRoutes; i++) begin
-        reduce_mask[i] = (data_i[i].hdr.commtype == ParallelReduction);
+        reduce_mask[i] = (is_parallel_reduction_op(data_i[i].hdr.collective_op));
       end
     end
   end

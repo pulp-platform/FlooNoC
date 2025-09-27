@@ -197,31 +197,31 @@ package floo_pkg;
   /// transfers required to implement these macro colelctive.
   typedef struct packed {
     /// Enable multicast transcation support on the narrow router
-    bit EnNarrowMulticast = 0;
+    bit EnNarrowMulticast;
     /// Enable multicast transcation support on the wide router
-    bit EnWideMulticast = 0;
+    bit EnWideMulticast;
     /// Enable LSB and operation support
-    bit EnLSBAnd    = 0;
+    bit EnLSBAnd;
     /// Enable FP addition support
-    bit EnF_Add     = 0;
+    bit EnF_Add;
     /// Enable FP multiplier support
-    bit EnF_Mul     = 0;
+    bit EnF_Mul;
     /// Enable FP minimum calculation support
-    bit EnF_Min     = 0;
+    bit EnF_Min;
     /// Enable FP maximum calculationn support
-    bit EnF_Max     = 0;
+    bit EnF_Max;
     /// Enable INT addition support
-    bit EnA_Add     = 0;
+    bit EnA_Add;
     /// Enable INT multiplier support
-    bit EnA_Mul     = 0;
+    bit EnA_Mul;
     /// Enable INT signed minimum calculation support
-    bit EnA_Min_S   = 0;
+    bit EnA_Min_S;
     /// Enable INT unsigned minimum calculation support
-    bit EnA_Min_U   = 0;
+    bit EnA_Min_U;
     /// Enable INT signed maximum calculation support
-    bit EnA_Max_S   = 0;
+    bit EnA_Max_S;
     /// Enable INT unsigned maximum calculation support
-    bit EnA_Max_U   = 0;
+    bit EnA_Max_U;
   } collect_op_cfg_t;
 
   typedef logic [3:0] collect_op_t;
@@ -584,18 +584,18 @@ package floo_pkg;
   ///---------------------------------------------------------
   /// Helper functions to calculate which macro operations are supported
   /// Evaluate if the NoC needs support for narrow multicast operations
-  function automatic bit is_en_narrow_multicast_op(collective_cfg_t cfg);
+  function automatic bit is_en_narrow_multicast_ops(collective_cfg_t cfg);
     return (cfg.OpCfg.EnNarrowMulticast | is_en_narrow_reduction(cfg));
   endfunction
 
-  /// Evaluate if the NoC needs support for wide multicast operations
-  function automatic bit is_en_wide_multicast_op(collective_cfg_t cfg);
-    return (cfg.OpCfg.EnWideMulticast | is_en_wide_reduction(cfg));
+  function automatic bit is_en_narrow_parallel_reduction_ops(collective_cfg_t cfg);
+    return (cfg.OpCfg.EnLSBAnd);
   endfunction
+  // /// Evaluate if the NoC needs support for wide multicast operations
+  // function automatic bit is_en_wide_multicast_op(collective_cfg_t cfg);
+  //   return (cfg.OpCfg.EnWideMulticast | is_en_wide_reduction(cfg));
+  // endfunction
 
-  function automatic bit is_en_multicast_op(collective_cfg_t cfg);
-    return (is_en_narrow_multicast_op(cfg) | is_en_wide_multicast_op(cfg));
-  endfunction
 
   ///---------------------------------------------------------
   /// Helper functions to translate internal opcodes in macro transactions
@@ -608,6 +608,21 @@ package floo_pkg;
   function automatic bit is_reduction_op(collect_op_e op);
     case (op)
       F_Add, F_Mul, F_Min, F_Max, LSBAnd,
+      A_Add, A_Mul, A_Min_S, A_Min_U, A_Max_S,
+      A_Max_U: return 1'b1;
+      default: return 1'b0;
+    endcase
+  endfunction
+
+  /// Evaluate if the incoming operation is a parallel reduction
+  function automatic bit is_parallel_reduction_op(collect_op_e op);
+    return (op == LSBAnd | op == CollectB | op == SelectAW);
+  endfunction
+
+  /// Evaluate if the incoming operation is a sequential reduction
+  function automatic bit is_sequential_reduction_op(collect_op_e op);
+    case (op)
+      F_Add, F_Mul, F_Min, F_Max,
       A_Add, A_Mul, A_Min_S, A_Min_U, A_Max_S,
       A_Max_U: return 1'b1;
       default: return 1'b0;

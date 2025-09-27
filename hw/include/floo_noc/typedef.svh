@@ -52,12 +52,12 @@
     logic rob_req;                                                \
     rob_idx_t rob_idx;                                            \
     dst_t dst_id;                                                 \
-    mask_t collective_mask                                        \
+    mask_t collective_mask;                                       \
     src_t src_id;                                                 \
     logic last;                                                   \
     logic atop;                                                   \
     ch_t axi_ch;                                                  \
-    collect_op_t collect_op                                       \
+    collect_op_t collective_op;                                   \
   } hdr_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

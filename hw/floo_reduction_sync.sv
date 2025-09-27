@@ -42,7 +42,7 @@ module floo_reduction_sync import floo_pkg::*;
 
   for (genvar in = 0; in < NumRoutes; in++) begin : gen_routes
     // Compare whether the `mask` and `dst_id` are equal to the selected input port
-    assign compare_same[in] = ((data_i[in].hdr.mask == data_i[sel_i].hdr.mask) &&
+    assign compare_same[in] = ((data_i[in].hdr.collective_mask == data_i[sel_i].hdr.collective_mask) &&
                                (data_i[in].hdr.dst_id == data_i[sel_i].hdr.dst_id));
 
     // Determine if this input should be considered valid for the reduction:

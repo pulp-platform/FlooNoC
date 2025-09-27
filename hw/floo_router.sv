@@ -217,7 +217,7 @@ module floo_router
         // Outoput 0: unicast
         // Output 1: reduction
         assign offload_reduction[in][v] = (~red_single_member[in][v]) &
-                                          (in_routed_data[in][v].hdr.commtype == OffloadReduction);
+                                          (is_sequential_reduction_op(in_routed_data[in][v].hdr.collective_op));
         stream_demux #(
           .N_OUP              (2)
         ) i_stream_demux (
@@ -473,7 +473,7 @@ module floo_router
     for (genvar in = 0; in < NumInput; in++) begin : gen_input
       for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt
         `ASSERT(NoLoopback, !(in_valid[in][v] && route_mask[in][v][in] &&
-                            (in_data[in][v].hdr.commtype == Unicast)))
+                            (in_data[in][v].hdr.collective_op == Unicast)))
       end
     end
   end

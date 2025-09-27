@@ -227,7 +227,7 @@ module floo_meta_buffer #(
     addr_t in_addr;
     id_t grp_base_id;
 
-    assign in_mask = aw_buf_i.hdr.mask;
+    assign in_mask = aw_buf_i.hdr.collective_mask;
     assign in_id = aw_buf_i.hdr.dst_id;
     assign grp_base_id = '{x: x_mask_sel.grp_base_id, y: y_mask_sel.grp_base_id, port_id: '0};
     assign out = ((~in_mask & in_id) | (in_mask & id_i)) & ~grp_base_id;
