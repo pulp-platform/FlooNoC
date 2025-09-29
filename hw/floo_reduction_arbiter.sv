@@ -91,7 +91,7 @@ module floo_reduction_arbiter import floo_pkg::*;
   );
 
   // Select the incoming reduction operation
-  assign incoming_red_op = data_i[input_sel].hdr.reduction_op;
+  assign incoming_red_op = data_i[input_sel].hdr.collective_op;
 
   // ----------------------------
   // Reduction op implementations

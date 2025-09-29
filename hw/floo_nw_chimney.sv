@@ -1150,7 +1150,7 @@ module floo_nw_chimney #(
     floo_wide_w.hdr.axi_ch          = WideW;
     floo_wide_w.payload             = axi_wide_req_in.w;
     // Assign the collective_op and operation to the wide W flit
-    floo_wide_w.hdr.collective_op   = red_coll_operation[NarrowW];
+    floo_wide_w.hdr.collective_op   = red_coll_operation[WideW];
   end
 
   always_comb begin

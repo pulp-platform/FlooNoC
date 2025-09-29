@@ -17,10 +17,10 @@
 //              buffer size should be as deep as the FPU pipeline.
 //
 // Stalling:    Good balance between area overhead & performence
-//              Allows one ongoing reduction if more than two flits are involved. 
+//              Allows one ongoing reduction if more than two flits are involved.
 //              It stalls all incoming element until the one
-//              it is currently working on is finished therefor no tag requirements. 
-//              Can not achieve a 100% FPU utilization if more than two inputs are involved in 
+//              it is currently working on is finished therefor no tag requirements.
+//              Can not achieve a 100% FPU utilization if more than two inputs are involved in
 //              the reduction. The partial buffer can be reduced to its minimum size of 2.
 //
 // Simple:      least hw overhead
@@ -30,7 +30,7 @@
 //              the physical implementation of the NoC. No tag or mask is required as we can start
 //              the reduction as soon as we have two elements on the input.
 //
-// To garantee the ordering in the generic implementation this modul implements priority scheme 
+// To garantee the ordering in the generic implementation this modul implements priority scheme
 // e.g. the first buffer entry has the most priority, then the second, then the third etc.
 // It works only on elements from lower priority if the higher ones can not schedule
 // any operation.
@@ -103,7 +103,7 @@ module floo_offload_reduction_controller #(
     output  data_mask_tag_t [1:0]                   operand_data_o,
     output  logic [1:0]                             operand_valid_o,
     input   logic [1:0]                             operand_ready_i,
-    /// Metadata reduction req 
+    /// Metadata reduction req
     output  RdOperation_t                           reduction_req_operation_o,
     input   mask_t                                  reduction_req_mask_i,
     input   logic                                   reduction_req_valid_i,
@@ -232,7 +232,7 @@ logic retire_element;
 
 /* Module Declaration */
 
-// If the stalling mode is enabled then we have to stall the inputs 
+// If the stalling mode is enabled then we have to stall the inputs
 // e.g. we deassert the valid without ackknowledge to the outside world
 // and only resets of the final flit leaves the reduction logic
 if(STALLING) begin : gen_stalling
@@ -288,7 +288,7 @@ end else begin
 end
 
 // Select one of the unkown flits to be inserted in the buffer next. (Prio. lower indexes)
-// Both loop's could be combined but maybe there could be a better way to find the lsb 
+// Both loop's could be combined but maybe there could be a better way to find the lsb
 // indexes here
 if(GENERIC || STALLING) begin : gen_incoming_data
     // Search if any element on the input can be inserted into the buffer
@@ -389,19 +389,19 @@ if(GENERIC || STALLING) begin : gen_controller_stalling_generic
                     buffer_d[i].tag = new_incoming_flit.tag;
                     buffer_d[i].f_valid = 1'b1;
                     // Check if we have to directly forward the flit
-                    buffer_d[i].f_forwarding = (new_incoming_flit.flit.hdr.reduction_op == floo_pkg::R_Select) ? 1'b1 : 1'b0;
+                    buffer_d[i].f_forwarding = (new_incoming_flit.flit.hdr.collective_op == floo_pkg::R_Select) ? 1'b1 : 1'b0;
                     if((buffer_d[i].f_forwarding == 1'b1) && (RdEnableBypass == 1'b0)) begin
                         $error($time, "Somehow an AW flit got to an reduction which does not support bypass - Why?");
                     end
                 end
             end
-            
+
             // 2.1 Stage: Try to schedula an operation from the partial result buffer when:
             //      - Entry in Buffer is valid
             //      - No higher prioritized buffer already has scheduled an operation
             //      - The reduction is not an AW transaction
-            if( (buffer_d[i].f_valid == 1'b1) && 
-                (locked_d == 1'b0) && 
+            if( (buffer_d[i].f_valid == 1'b1) &&
+                (locked_d == 1'b0) &&
                 (buffer_d[i].f_forwarding == 0)) begin
 
                 // First iterate over the partial result buffer
@@ -432,11 +432,11 @@ if(GENERIC || STALLING) begin : gen_controller_stalling_generic
             //      - The reduction is not an AW transaction
             //      - No backpressure is applied to the FPU response or f_op1_found is 1
             //        and f_op2_found is 0 (otherwise deadlock potential!)
-            if( (buffer_d[i].f_valid == 1'b1) && 
-                (locked_d == 1'b0) && 
-                (buffer_d[i].f_forwarding == 0) && 
+            if( (buffer_d[i].f_valid == 1'b1) &&
+                (locked_d == 1'b0) &&
+                (buffer_d[i].f_forwarding == 0) &&
                 ((backpressure_fpu_resp == 1'b0) || ((f_op1_found == 1'b1) && (f_op2_found == 1'b0)))) begin
-                    
+
                 // Iterate over all inputs
                 for(int j = 0; j < NumRoutes;j++) begin
                     if((stalling_flit[j].tag == buffer_d[i].tag) && (stalling_valid[j] == 1'b1)) begin
@@ -458,7 +458,7 @@ if(GENERIC || STALLING) begin : gen_controller_stalling_generic
             // 2.3 Stage: Schedule an operation if:
             //  - Both operands are found
             //  - No locked in operation
-            if( (f_op1_found == 1'b1) && 
+            if( (f_op1_found == 1'b1) &&
                 (f_op2_found == 1'b1) &&
                 (locked_d == 1'b0)) begin
 
@@ -468,7 +468,7 @@ if(GENERIC || STALLING) begin : gen_controller_stalling_generic
                 selected_input_d = tmp_sel_input;
                 selected_partial_result_buffer_d = tmp_sel_part_res_buf;
                 selected_partial_result_mux_d = tmp_part_res_mux;
-                selected_op_d = buffer_d[i].header.hdr.reduction_op;
+                selected_op_d = buffer_d[i].header.hdr.collective_op;
                 selected_tag_d = buffer_d[i].tag;
             end
 
@@ -487,7 +487,7 @@ if(GENERIC || STALLING) begin : gen_controller_stalling_generic
                 bypass_flit.flit = buffer_d[i].header;
                 bypass_flit.mask = buffer_d[i].output_dir;
                 bypass_flit.tag = buffer_d[i].tag;
-                // Forward the bypass ready signal to the input's which requires the signal 
+                // Forward the bypass ready signal to the input's which requires the signal
                 stalling_ready = (buffer_d[i].final_mask & {(NumRoutes){bypass_ready}});
             end
 
@@ -497,8 +497,8 @@ if(GENERIC || STALLING) begin : gen_controller_stalling_generic
             // - Handshake on the output
             //
             // Note:
-            // To garantee ordering we only should retire from the 0'th entry! 
-            // However to avoid deadlocks with not retired instruction I allow 
+            // To garantee ordering we only should retire from the 0'th entry!
+            // However to avoid deadlocks with not retired instruction I allow
             // to retire from any position. TODO: Solve by introducing assertion
             if( (buffer_d[i].f_valid == 1'b1) &&
                 (buffer_d[i].tag == final_flit_o.tag) &&
@@ -542,7 +542,7 @@ if(GENERIC || STALLING) begin : gen_controller_stalling_generic
                     end
                     // Set the valid bit
                     operand_valid_o[i] = 1'b1;
-                    // Forward the ready bit without influencing already existing ready bits 
+                    // Forward the ready bit without influencing already existing ready bits
                     // on other inputs. We can schedule an bypass and a operation in the same
                     // cycle.
                     // We either shift 00001 or 00000 to the left according to the selected input
@@ -635,7 +635,7 @@ if(SIMPLE) begin : gen_simple_controller
         // 1.2 Stage: Schedule an operation if:
         //  - Both operands are found
         //  - No locked in operation
-        if( (f_op1_found == 1'b1) && 
+        if( (f_op1_found == 1'b1) &&
             (f_op2_found == 1'b1) &&
             (locked_d == 1'b0)) begin
 
@@ -648,7 +648,7 @@ if(SIMPLE) begin : gen_simple_controller
         // 1.3 Stage: Forward the data to the FPU or the bypass
         if(locked_d == 1'b1) begin
             // Handle the case for a bypassable flit
-            if(stalling_flit[selected_input_d[0]].flit.hdr.reduction_op == floo_pkg::R_Select) begin
+            if(stalling_flit[selected_input_d[0]].flit.hdr.collective_op == floo_pkg::R_Select) begin
                 // Stall sending the bypass until the pipeline is empty to avoid reordering
                 if(simple_reduction_ongoing_n) begin
                     // AW flit found - direct forward to the output
@@ -673,7 +673,7 @@ if(SIMPLE) begin : gen_simple_controller
                     operand_valid_o[i] = 1'b1;
                 end
                 // Select the ongoing operand
-                reduction_req_operation_o = stalling_flit[selected_input_d[0]].flit.hdr.reduction_op;
+                reduction_req_operation_o = stalling_flit[selected_input_d[0]].flit.hdr.collective_op;
                 // Forward the header of the flit
                 req_header = stalling_flit[selected_input_d[0]].flit;
                 // Forward the output selection mask
@@ -840,7 +840,7 @@ if(GENERIC) begin : gen_response_demux_generic
     logic [RdBufferSize-1:0] temp_match;
     for(genvar i = 0; i < RdBufferSize; i++) begin
         // Only allow if we found a matching final mask and tag with a valid entry
-        assign temp_match[i] = (buffer_q[i].f_valid && (buffer_q[i].final_mask == reduction_resp_mask_i) && (buffer_q[i].tag == reduction_resp_tag_i)) ? 1'b1 : 1'b0; 
+        assign temp_match[i] = (buffer_q[i].f_valid && (buffer_q[i].final_mask == reduction_resp_mask_i) && (buffer_q[i].tag == reduction_resp_tag_i)) ? 1'b1 : 1'b0;
     end
     assign ctrl_output_demux_o = (|temp_match) & reduction_resp_valid_i;
 end else if(STALLING) begin : gen_response_demux_stalling
@@ -868,7 +868,7 @@ end else begin
 end
 
 // AXI Specific function!
-// Insert data into AXI specific W frame! 
+// Insert data into AXI specific W frame!
 function automatic flit_t insertAXIWdata(flit_t metadata, RdData_t data);
     floo_axi_w_flit_t w_flit;
     // Parse the entire flit
@@ -878,7 +878,7 @@ function automatic flit_t insertAXIWdata(flit_t metadata, RdData_t data);
     return flit_t'(w_flit);
 endfunction
 
-// Extract data from AXI specific W frame! 
+// Extract data from AXI specific W frame!
 function automatic RdData_t extractAXIWdata(flit_t metadata);
     floo_axi_w_flit_t w_flit;
     // Parse the entire flit
