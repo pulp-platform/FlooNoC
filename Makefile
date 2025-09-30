@@ -9,8 +9,7 @@
 # Common #
 ##########
 
-MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
-MKFILE_DIR  := $(dir $(MKFILE_PATH))
+FLOO_ROOT ?= $(shell pwd)
 
 .PHONY: all clean compile-sim run-sim run-sim-batch
 all: compile-sim
@@ -94,10 +93,10 @@ endif
 ###########
 
 FLOOGEN ?= floogen
-FLOO_CFG_DIR ?= $(MKFILE_DIR)floogen/examples
+FLOO_CFG_DIR ?= $(FLOO_ROOT)floogen/examples
 FLOOGEN_CFG ?= $(FLOO_CFG_DIR)/axi_mesh_xy.yml
 
-FLOOGEN_OUT_DIR ?= $(MKFILE_DIR)generated
+FLOOGEN_OUT_DIR ?= $(FLOO_ROOT)generated
 
 .PHONY: install-floogen pkg-sources sources clean-sources
 
@@ -219,8 +218,8 @@ clean-spyglass:
 ###################
 
 PD_REMOTE ?= git@iis-git.ee.ethz.ch:axi-noc/floo_noc_pd.git
-PD_COMMIT ?= master # TODO(fischeti): pin to a specific commit
-PD_DIR = $(MKFILE_DIR)/pd
+PD_COMMIT ?= include-pd # TODO(fischeti): pin to a specific commit
+PD_DIR = $(FLOO_ROOT)/pd
 
 .PHONY: init-pd clean-pd
 
