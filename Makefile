@@ -213,3 +213,23 @@ clean-spyglass:
 	rm -rf spyglass/floo_noc*
 	rm -f spyglass/sg_shell_command.log
 	rm -f spyglass/set_top.tcl
+
+###################
+# Physical Design #
+###################
+
+PD_REMOTE ?= git@iis-git.ee.ethz.ch:axi-noc/floo_noc_pd.git
+PD_COMMIT ?= master # TODO(fischeti): pin to a specific commit
+PD_DIR = $(MKFILE_DIR)/pd
+
+.PHONY: init-pd clean-pd
+
+init-pd: $(PD_DIR)
+$(PD_DIR):
+	git clone $(PD_REMOTE) $(PD_DIR)
+	cd $(PD_DIR) && git checkout $(PD_COMMIT)
+
+clean-pd:
+	rm -rf $(PD_DIR)
+
+-include $(PD_DIR)/pd.mk

@@ -96,3 +96,6 @@ measurements
 *.csv
 **/*.log
 reviewdog
+
+# Physical design repository
+pd
