@@ -1073,7 +1073,7 @@ module floo_nw_chimney #(
     floo_narrow_ar.hdr.last            = 1'b1;
     floo_narrow_ar.hdr.axi_ch          = NarrowAr;
     floo_narrow_ar.payload             = axi_narrow_ar_queue;
-    floo_narrow_ar.hdr.collective_op   = '0;
+    floo_narrow_ar.hdr.collective_op   = floo_pkg::collect_op_e'('0);
   end
 
   always_comb begin
@@ -1092,7 +1092,7 @@ module floo_nw_chimney #(
     // The AXI slave on the chimney should not be aware of a reduction / multicast!
     // Multicast --> Collect the B responses in a parallel reduction
     // Reduction --> Multicast the B response to all members
-    floo_narrow_b.hdr.collective_op  = '0;
+    floo_narrow_b.hdr.collective_op  = floo_pkg::collect_op_e'('0);
     if(is_en_narrow_collective(CollectCfg)) begin
       if(is_multicast_op(narrow_aw_buf_hdr_out.hdr.collective_op)) begin
         floo_narrow_b.hdr.collective_op = CollectB;
@@ -1114,7 +1114,7 @@ module floo_nw_chimney #(
     floo_narrow_r.hdr.atop            = narrow_ar_buf_hdr_out.hdr.atop;
     floo_narrow_r.payload             = axi_narrow_meta_buf_rsp_out.r;
     floo_narrow_r.payload.id          = narrow_ar_buf_hdr_out.id;
-    floo_narrow_r.hdr.collective_op   = '0;
+    floo_narrow_r.hdr.collective_op   = floo_pkg::collect_op_e'('0);
   end
 
   always_comb begin
@@ -1163,7 +1163,7 @@ module floo_nw_chimney #(
     floo_wide_ar.hdr.last            = 1'b1;
     floo_wide_ar.hdr.axi_ch          = WideAr;
     floo_wide_ar.payload             = axi_wide_ar_queue;
-    floo_wide_ar.hdr.collective_op   = '0;
+    floo_wide_ar.hdr.collective_op   = floo_pkg::collect_op_e'('0);
   end
 
   always_comb begin
@@ -1203,7 +1203,7 @@ module floo_nw_chimney #(
     floo_wide_r.hdr.last             = 1'b1; // There is no reason to do wormhole routing for R bursts
     floo_wide_r.payload              = axi_wide_meta_buf_rsp_out.r;
     floo_wide_r.payload.id           = wide_ar_buf_hdr_out.id;
-    floo_wide_r.hdr.collective_op    = '0;
+    floo_wide_r.hdr.collective_op    = floo_pkg::collect_op_e'('0);
   end
 
   always_comb begin

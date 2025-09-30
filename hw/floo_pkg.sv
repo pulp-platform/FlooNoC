@@ -607,7 +607,7 @@ package floo_pkg;
   /// Evaluate if the incoming operation is a reduction operation
   function automatic bit is_reduction_op(collect_op_e op);
     case (op)
-      F_Add, F_Mul, F_Min, F_Max, LSBAnd,
+      F_Add, F_Mul, F_Min, F_Max, LSBAnd, SelectAW,
       A_Add, A_Mul, A_Min_S, A_Min_U, A_Max_S,
       A_Max_U: return 1'b1;
       default: return 1'b0;
