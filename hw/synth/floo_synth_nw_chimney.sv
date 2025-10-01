@@ -30,17 +30,6 @@ module floo_synth_nw_chimney
   input  floo_wide_t floo_wide_i
 );
 
-`ifdef TARGET_GF12
-  typedef struct packed {
-    logic [2:0] ema;
-    logic [1:0] emaw;
-    logic [0:0] emas;
-  } sram_cfg_t;
-`else
-  typedef logic sram_cfg_t;
-`endif
-
-
   floo_nw_chimney #(
     .AxiCfgN              ( AxiCfgN               ),
     .AxiCfgW              ( AxiCfgW               ),
@@ -49,13 +38,10 @@ module floo_synth_nw_chimney
     .RouteCfg             ( RouteCfg              ),
     .AtopSupport          ( AtopSupport           ),
     .MaxAtomicTxns        ( MaxAtomicTxns         ),
-    .Sam                  ( Sam                   ),
     .id_t                 ( id_t                  ),
-    .rob_idx_t            ( rob_idx_t             ),
     .route_t              ( route_t               ),
     .dst_t                ( route_t               ),
     .hdr_t                ( hdr_t                 ),
-    .sam_rule_t           ( sam_rule_t            ),
     .axi_narrow_in_req_t  ( axi_narrow_in_req_t   ),
     .axi_narrow_in_rsp_t  ( axi_narrow_in_rsp_t   ),
     .axi_narrow_out_req_t ( axi_narrow_out_req_t  ),
@@ -66,8 +52,7 @@ module floo_synth_nw_chimney
     .axi_wide_out_rsp_t   ( axi_wide_out_rsp_t    ),
     .floo_req_t           ( floo_req_t            ),
     .floo_rsp_t           ( floo_rsp_t            ),
-    .floo_wide_t          ( floo_wide_t           ),
-    .sram_cfg_t           ( sram_cfg_t            )
+    .floo_wide_t          ( floo_wide_t           )
   ) i_floo_nw_chimney (
     .clk_i                ( clk_i                 ),
     .rst_ni               ( rst_ni                ),
