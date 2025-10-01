@@ -94,19 +94,25 @@ sources:
       - hw/tb/tb_floo_rob_multicast.sv
 
   - target: all(any(floo_test, floo_synth), axi_mesh)
-    include_dirs:
-      - hw/test/include
     files:
       - generated/floo_axi_mesh_noc_pkg.sv
       - generated/floo_axi_mesh_noc.sv
-      - hw/tb/tb_floo_axi_mesh.sv
 
-  - target: all(any(floo_test, floo_synth), nw_mesh)
+  - target: all(floo_test, axi_mesh)
     include_dirs:
       - hw/test/include
     files:
+      - hw/tb/tb_floo_axi_mesh.sv
+
+  - target: all(any(floo_test, floo_synth), nw_mesh)
+    files:
       - generated/floo_nw_mesh_noc_pkg.sv
       - generated/floo_nw_mesh_noc.sv
+
+  - target: all(floo_test, nw_mesh)
+    include_dirs:
+      - hw/test/include
+    files:
       - hw/tb/tb_floo_nw_mesh.sv
 
   - target: all(floo_synth, synthesis)
