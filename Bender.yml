@@ -93,7 +93,7 @@ sources:
       - hw/tb/tb_floo_vc_router.sv
       - hw/tb/tb_floo_rob_multicast.sv
 
-  - target: all(floo_test, axi_mesh)
+  - target: all(any(floo_test, floo_synth), axi_mesh)
     include_dirs:
       - hw/test/include
     files:
@@ -101,7 +101,7 @@ sources:
       - generated/floo_axi_mesh_noc.sv
       - hw/tb/tb_floo_axi_mesh.sv
 
-  - target: all(floo_test, nw_mesh)
+  - target: all(any(floo_test, floo_synth), nw_mesh)
     include_dirs:
       - hw/test/include
     files:
