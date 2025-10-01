@@ -126,3 +126,25 @@ morty:
   script:
     - $BENDER sources -f > source_list.txt
     - morty -f source_list.txt
+
+###################
+# Physical Design #
+###################
+
+init-pd:
+  stage: init
+  script:
+    - make init-pd
+  artifacts:
+    paths:
+      - pd/ci.yml
+
+subpipe:
+  stage: build
+  needs:
+    - init-pd
+  trigger:
+    include:
+      - artifact: pd/ci.yml
+        job: init-pd
+    strategy: depend
