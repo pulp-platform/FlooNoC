@@ -83,6 +83,7 @@ package floo_pkg;
     NumAxiChannels = 3'd5
   } axi_ch_e;
 
+  /// TODO(lleone): delet this portion of code
   // /// The types of collective communication
   // typedef enum logic [1:0] {
   //   /// Normal communication

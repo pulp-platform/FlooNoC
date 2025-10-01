@@ -45,6 +45,9 @@ module floo_router
   parameter bit          EnOffloadReduction   = 1'b0,
   /// Enable parallel reduction feature
   parameter bit          EnParallelReduction  = 1'b0,
+  /// Enable support for virtual channel in seuqentila reduction
+  /// This is mandatory if support on the wide channel is needed
+  parameter bit          EnCollVirtChannel    = 1'b0,
   /// Various types
   parameter type         addr_rule_t          = logic,
   parameter type         flit_t               = logic,
@@ -101,6 +104,16 @@ module floo_router
   flit_t [NumInput-1:0][NumVirtChannels-1:0] in_data, in_routed_data;
   logic  [NumInput-1:0][NumVirtChannels-1:0] in_valid, in_ready;
   logic  [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] route_mask;
+
+  // Signals to connect input only virtual channel 0 to offload reduction logic
+  logic  [NumInput-1:0] red_offload_valid_in, red_offload_ready_in;
+  flit_t [NumInput-1:0] red_offload_data_in;
+  logic  [NumInput-1:0][NumOutput-1:0] red_offload_route_selected;
+  logic  [NumInput-1:0][NumOutput-1:0] red_offload_expected_in_route_loopback;
+
+  // SIgnals top connect offload reduction logic to output virtual channel 0
+  logic  [NumOutput-1:0] red_offload_valid_out, red_offload_ready_out;
+  flit_t [NumOutput-1:0] red_offload_data_out;
 
   // Router input part
   for (genvar in = 0; in < NumInput; in++) begin : gen_input
@@ -164,12 +177,12 @@ module floo_router
 
   // Vars to branch the reduction off the main path (No virtual channel support for reduction)
   logic  [NumInput-1:0][NumVirtChannels-1:0] red_valid_in, red_ready_in;
-  logic  [NumInput-1:0][NumOutput-1:0] red_route_selected;
-  flit_t [NumInput-1:0] red_data_in;
+  logic  [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] red_route_selected;
+  flit_t [NumInput-1:0][NumVirtChannels-1:0] red_data_in;
 
   // Vars for the data comming from the reduction
-  logic  [NumOutput-1:0] red_valid_out, red_ready_out;
-  flit_t [NumOutput-1:0] red_data_out;
+  logic  [NumOutput-1:0][NumVirtChannels-1:0] red_valid_out, red_ready_out;
+  flit_t [NumOutput-1:0][NumVirtChannels-1:0] red_data_out;
 
   // Vars to separate reductions with only one member
   logic [NumInput-1:0][NumVirtChannels-1:0][NumInput-1:0] red_expected_in_route, red_expected_in_route_loopback;
@@ -228,8 +241,8 @@ module floo_router
           .oup_ready_i        ({red_ready_in[in][v], cross_ready[in][v]})
         );
         // Assign the data
-        assign red_data_in[in] = in_routed_data[in][v];
-        assign red_route_selected[in] = route_mask[in][v];
+        assign red_data_in[in][v] = in_routed_data[in][v];
+        assign red_route_selected[in][v] = route_mask[in][v];
       end
     end
   end else begin
@@ -241,8 +254,26 @@ module floo_router
     assign red_expected_in_route_loopback = '0;
   end
 
+  // TODO(lleone): For the moment we don't support reduction with only one virtual channel.
+  // This requirement could be relaxed in the fouture if the wide req router is split between
+  // AR/W and R channels.
+  // To have reduction support, VC0 must be used for the reduction traffic
+
   // Reduction logic
   if(EnOffloadReduction == 1'b1) begin : gen_reduction_logic
+    for (genvar in = 0; in < NumInput; in++) begin: gen_vc_reduction
+        assign red_offload_valid_in[in] = red_valid_in[in][0];
+        assign red_ready_in[in][0]      = red_offload_ready_in[in];
+        assign red_offload_data_in[in]  = red_data_in[in][0];
+        assign red_offload_route_selected[in]   = red_route_selected[in][0];
+        assign red_offload_expected_in_route_loopback[in] = red_expected_in_route_loopback[in][0];
+    end
+    if (EnCollVirtChannel) begin
+      for (genvar in = 0; in < NumInput; in++) begin: gen_vc1_tied
+        assign red_ready_in[in][1]  = '0; // Tied to zero the ready from offload unit to VC1
+      end
+    end
+
     floo_offload_reduction #(
       .NumRoutes                  (NumInput),
       .flit_t                     (flit_t),
@@ -257,14 +288,14 @@ module floo_router
       .rst_ni                     (rst_ni),
       .flush_i                    (1'b0),
       .node_id_i                  (xy_id_i),
-      .valid_i                    (red_valid_in),
-      .ready_o                    (red_ready_in),
-      .data_i                     (red_data_in),
-      .output_route_i             (red_route_selected),
-      .expected_input_i           (red_expected_in_route_loopback),
-      .valid_o                    (red_valid_out),
-      .ready_i                    (red_ready_out),
-      .data_o                     (red_data_out),
+      .valid_i                    (red_offload_valid_in),
+      .ready_o                    (red_offload_ready_in),
+      .data_i                     (red_offload_data_in),
+      .output_route_i             (red_offload_route_selected),
+      .expected_input_i           (red_offload_expected_in_route_loopback),
+      .valid_o                    (red_offload_valid_out),
+      .ready_i                    (red_offload_ready_out),
+      .data_o                     (red_offload_data_out),
       .reduction_req_type_o       (offload_req_op_o),
       .reduction_req_op1_o        (offload_req_operand1_o),
       .reduction_req_op2_o        (offload_req_operand2_o),
@@ -274,7 +305,30 @@ module floo_router
       .reduction_resp_valid_i     (offload_resp_valid_i),
       .reduction_resp_ready_o     (offload_resp_ready_o)
     );
+
+    for (genvar out = 0; out < NumOutput; out++) begin : gen_output_virt_sel
+      // Data path
+      assign red_data_out[out][0] = red_offload_data_out[out];
+      assign red_valid_out[out][0] = red_offload_valid_out[out];
+      assign red_offload_ready_out[out] = red_ready_out[out][0];
+    end
+
+    // Tie down all unused signals
+    if(EnCollVirtChannel) begin
+      for (genvar out = 0; out < NumOutput; out++) begin
+        assign red_data_out[out][1] = '0;
+        assign red_valid_out[out][1] = '0;
+      end
+    end
   end else begin
+    assign red_offload_valid_in = '0;
+    assign red_offload_ready_in = '0;
+    assign red_offload_data_in = '0;
+    assign red_offload_route_selected = '0;
+    assign red_offload_expected_in_route_loopback = '0;
+    assign red_offload_valid_out = '0;
+    assign red_offload_ready_out = '0;
+    assign red_offload_data_out = '0;
     assign red_data_out = '0;
     assign red_valid_out = '0;
     assign offload_req_op_o = '0;
@@ -350,10 +404,10 @@ module floo_router
   if(EnOffloadReduction == 1'b1) begin : gen_assign_data_output
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_con_virt
       for (genvar out = 0; out < NumOutput; out++) begin : gen_con_output
-        assign merged_data[out][v] = {red_data_out[out], masked_data[out][v]};
-        assign merged_valid[out][v] = {red_valid_out[out], masked_valid[out][v]};
+        assign merged_data[out][v] = {red_data_out[out][v], masked_data[out][v]};
+        assign merged_valid[out][v] = {red_valid_out[out][v], masked_valid[out][v]};
         assign masked_ready[out][v] = merged_ready[out][v][localNumInputs-2:0];
-        assign red_ready_out[out] = merged_ready[out][v][localNumInputs-1];
+        assign red_ready_out[out][v] = merged_ready[out][v][localNumInputs-1];
       end
     end
   end else begin
@@ -366,6 +420,9 @@ module floo_router
   flit_t [NumOutput-1:0][NumVirtChannels-1:0] out_data, out_buffered_data;
   logic  [NumOutput-1:0][NumVirtChannels-1:0] out_valid, out_ready;
   logic  [NumOutput-1:0][NumVirtChannels-1:0] out_buffered_valid, out_buffered_ready;
+
+  logic  out_valid_merged;
+  logic  out_ready_merged;
 
   for (genvar out = 0; out < NumOutput; out++) begin : gen_output
 
@@ -420,23 +477,66 @@ module floo_router
       end
     end
 
-    // Arbitrate virtual channels onto the physical channel
-    floo_vc_arbiter #(
-      .NumVirtChannels ( NumVirtChannels ),
-      .flit_t          ( flit_t          ),
-      .NumPhysChannels ( NumPhysChannels )
-    ) i_vc_arbiter (
-      .clk_i,
-      .rst_ni,
+    // Arbitrate virtual channels onto the physical channel:
 
-      .valid_i ( out_buffered_valid[out] ),
-      .ready_o ( out_buffered_ready[out] ),
-      .data_i  ( out_buffered_data [out] ),
+    // When we use virtual channel to decouple write and read channel of the AXI interface
+    // we cannot make the valid dependent from the ready.
+    // However, in the `floo_vc_arbiter`this is the case.
+    // For this reason, in case of virual channel support we avoid the use of vc arbiters
+    // at the end point.
+    // Instead, a wormhole arbiter can be used, which does not have this valid <-> ready
+    // dependency.
+    //
+    // The choice of which virtual channel is used depends on the AXI channel.
 
-      .ready_i ( ready_i  [out] ),
-      .valid_o ( valid_o  [out] ),
-      .data_o  ( data_o   [out] )
-    );
+    if((!EnCollVirtChannel) || (out != Eject)) begin
+      floo_vc_arbiter #(
+        .NumVirtChannels ( NumVirtChannels ),
+        .flit_t          ( flit_t          ),
+        .NumPhysChannels ( NumPhysChannels )
+      ) i_vc_arbiter (
+        .clk_i,
+        .rst_ni,
+
+        .valid_i ( out_buffered_valid[out] ),
+        .ready_o ( out_buffered_ready[out] ),
+        .data_i  ( out_buffered_data [out] ),
+
+        .ready_i ( ready_i  [out] ),
+        .valid_o ( valid_o  [out] ),
+        .data_o  ( data_o   [out] )
+      );
+    end else begin
+      floo_wormhole_arbiter #(
+        .NumRoutes  ( NumVirtChannels ),
+        .flit_t     ( flit_t   )
+      ) i_wormhole_arbiter (
+        .clk_i,
+        .rst_ni,
+
+        .valid_i ( out_buffered_valid[out] ),
+        .ready_o ( out_buffered_ready[out] ),
+        .data_i  ( out_buffered_data [out] ),
+
+        .valid_o ( out_valid_merged ),
+        .ready_i ( out_ready_merged ),
+        .data_o  ( data_o[out] )
+      );
+
+      always_comb begin : gen_eject_vc_sel
+        valid_o[out] = '0;
+        out_ready_merged = '0;
+
+        // forward the handshake on either the channel for reads or writes
+        if(data_o[out][0].hdr.axi_ch != WideR) begin
+          valid_o[out][0] = out_valid_merged;
+          out_ready_merged = ready_i[out][0];
+        end else begin
+          valid_o[out][1] = out_valid_merged;
+          out_ready_merged = ready_i[out][1];
+        end
+      end
+    end
   end
 
   for (genvar i = 0; i < NumInput; i++) begin : gen_input_assert
@@ -478,6 +578,14 @@ module floo_router
     end
   end
 
+  // If you have offload reduction and more than one virtual channel,
+  // the reduction traffic must arrive from Virtual Channel 0
+  if (EnOffloadReduction && (NumVirtChannels > 1) && EnCollVirtChannel) begin: gen_vc_red
+    for (genvar in = 0; in < NumInput; in++) begin
+        `ASSERT(CollOpReceivedOnWrongVirtChannel, !red_valid_in[in][1])
+    end
+  end
+
   // Multicast is currently only supported for `XYRouting`
   `ASSERT_INIT(NoMultiCastSupport, !(EnMultiCast && RouteAlgo != XYRouting))
   // Assertion check that when we use the FP reduction no virtual channel are init
@@ -488,5 +596,8 @@ module floo_router
   `ASSERT_INIT(SupportAXI, !EnOffloadReduction || RdCfg.RdSupportAxi)
   // We can not support Loopback when the option is not enabled
   `ASSERT_INIT(SupportLoopback, !(RdCfg.RdSupportLoopback && NoLoopback))
+  // We cannot support sequential reduction with multiple VC if EnCollVirtChannel is not set
+  `ASSERT_INIT(NoRedVcSupport, !(EnOffloadReduction && (NumVirtChannels > 1) && !EnCollVirtChannel),
+              "No Sequential Reduction support with multiple virtual channels and EnCollVirtChannel unset")
 
 endmodule

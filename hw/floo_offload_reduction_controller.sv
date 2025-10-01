@@ -156,6 +156,10 @@ typedef logic [AxiCfg.DataWidth/8-1:0] axi_strb_t;
 `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi, AxiCfg, hdr_t)
 
 // Typedef to encompass an ongoing reduction in the buffer
+// TODO(raroth):    Try to store only the header inside the buffer_t and not the hole flit!
+//          It looks like the Synth can not optimize away the unused FlipFlop.
+//          I assumed this but I think it won't do it.
+//          It will get an uglier code but It can save some Area!
 typedef struct packed {
     // Copy (one) flit for all metadata in the package
     flit_t                      header;
@@ -229,6 +233,8 @@ logic simple_reduction_ongoing_n;
 
 // Signal to retire the elements from the buffer
 logic retire_element;
+logic stalling_reduction_ongoing_n;
+logic backpressure_fpu_resp;
 
 /* Module Declaration */
 
@@ -329,6 +335,10 @@ assign backpressure_fpu_resp = reduction_resp_valid_i & (~reduction_resp_ready_i
 // are priorited over the ones from the second, then from the third etc.
 // This only happens if we use the generic configuration as the stalling one has only
 // a single buffer entry (b.c. it works only on one reduction at the time).
+
+// TODO(raroth): optimize the timing for the generic controller here. The "locked_d" variable serializes
+//       the evaluation of the meta data buffer. If we remove this and introduce an priority
+//       arbiter at the output to select the most "pressing" reduction we could restore the timing
 if(GENERIC || STALLING) begin : gen_controller_stalling_generic
     always_comb begin
         // Init all Vars
@@ -476,9 +486,11 @@ if(GENERIC || STALLING) begin : gen_controller_stalling_generic
             // - buffer entry 0 to ensure ordering
             // - The reduction is an AW transaction
             // - All required AW flits are aligned at the input
+            // - If stalling: Only when the fpu hasn't a element in, otherwise reordering will occure!
             if( (buffer_d[i].f_valid == 1'b1) &&
                 (buffer_d[i].f_forwarding == 1) &&
                 ((stalling_valid & buffer_d[i].final_mask) == buffer_d[i].final_mask) &&
+                ((stalling_reduction_ongoing_n == 1'b1) || (!STALLING)) &&
                 (i == 0) &&
                 (RdEnableBypass == 1'b1)) begin
 
@@ -727,6 +739,7 @@ end
 // @ Simple:             Store the header / output dir directly inside a fifo when
 //                       the request is placed!
 if(GENERIC) begin
+    assign stalling_reduction_ongoing_n = 1'b0; //Sig. not used in stalling case
     always_comb begin
         metadata_out_flit = '0;
         metadata_out_mask = '0;
@@ -750,7 +763,7 @@ end else if(STALLING) begin
         .flush_i          (flush_i),
         .testmode_i       (1'b0),
         .full_o           (),
-        .empty_o          (),
+        .empty_o          (stalling_reduction_ongoing_n),
         .usage_o          (),
         .data_i           (buffer_d[0].header),
         // push header only if we know that this is the last iteration of the flit e.g. it

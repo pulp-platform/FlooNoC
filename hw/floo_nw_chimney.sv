@@ -32,6 +32,8 @@ module floo_nw_chimney #(
   /// Every atomic transactions needs to have a unique ID
   /// and one ID is reserved for non-atomic transactions
   parameter int unsigned MaxAtomicTxns           = 1,
+  /// Enable support for decoupling read and write channels
+  parameter bit EnDecoupledRW                      = 1'b0,
   /// Node ID type for routing
   parameter type id_t                                   = logic,
   /// RoB index type for reordering.
@@ -148,6 +150,7 @@ module floo_nw_chimney #(
 
   // Collective communication configuration
   localparam floo_pkg::collective_cfg_t CollectCfg = RouteCfg.CollectiveCfg;
+  localparam int unsigned NumVirtualChannels = $bits(floo_wide_o.ready);
 
   // Duplicate AXI port signals to degenerate ports
   // in case they are not used
@@ -255,6 +258,10 @@ module floo_nw_chimney #(
   wide_meta_buf_t wide_aw_buf_hdr_in, wide_aw_buf_hdr_out;
   wide_meta_buf_t wide_ar_buf_hdr_in, wide_ar_buf_hdr_out;
 
+  // Virtual channel signals to decouple wide AW from wide AR
+  logic floo_wide_req_arb_gnt_in, floo_wide_req_arb_valid_out;
+  logic floo_wide_req_arb_gnt_out, floo_wide_req_arb_valid_in;
+
   ///////////////////////
   //  Spill registers  //
   ///////////////////////
@@ -275,7 +282,6 @@ module floo_nw_chimney #(
       assign axi_narrow_req_in_mask = '0;
       assign axi_narrow_req_in_red_op = floo_pkg::collect_op_e'('0);
     end
-
 
     if (ChimneyCfgN.CutAx) begin : gen_ax_cuts
       spill_register #(
@@ -473,6 +479,16 @@ module floo_nw_chimney #(
     assign axi_wide_red_op_queue = floo_pkg::collect_op_e'('0);
   end
 
+  // Mux the valid of the read and write channels to the ACK/NACK protocol
+  // of the virtual channel for decoupled read and write channels.
+  if (EnDecoupledRW) begin: gen_in_vc_rw
+    assign floo_wide_req_arb_valid_in = | floo_wide_i.valid;
+    assign floo_wide_o.ready = {NumVirtualChannels{floo_wide_req_arb_gnt_out}};
+  end else begin: gen_no_in_vc_rw
+    assign floo_wide_req_arb_valid_in = floo_wide_i.valid;
+    assign floo_wide_o.ready = floo_wide_req_arb_gnt_out;
+  end
+
   if (ChimneyCfgN.CutRsp && ChimneyCfgW.CutRsp) begin : gen_rsp_cuts
     spill_register #(
       .T ( floo_req_chan_t )
@@ -505,12 +521,12 @@ module floo_nw_chimney #(
     ) i_wide_data_req_arb (
       .clk_i,
       .rst_ni,
-      .data_i     ( floo_wide_i.wide    ),
-      .valid_i    ( floo_wide_i.valid   ),
-      .ready_o    ( floo_wide_o.ready   ),
-      .data_o     ( floo_wide_in        ),
-      .valid_o    ( floo_wide_in_valid  ),
-      .ready_i    ( floo_wide_out_ready )
+      .data_i     ( floo_wide_i.wide           ),
+      .valid_i    ( floo_wide_req_arb_valid_in ),
+      .ready_o    ( floo_wide_req_arb_gnt_out  ),
+      .data_o     ( floo_wide_in               ),
+      .valid_o    ( floo_wide_in_valid         ),
+      .ready_i    ( floo_wide_out_ready        )
     );
 
   end else begin : gen_no_rsp_cuts
@@ -1015,7 +1031,7 @@ module floo_nw_chimney #(
   assign red_coll_operation[WideR]    = floo_pkg::collect_op_e'('0);
   assign red_coll_operation[WideB]    = floo_pkg::collect_op_e'('0);
 
-  // Store the coll operation!
+  // Store the collective operation to be used for the incoming W beat!
   `FFL(red_narrow_coll_operation_q, axi_narrow_red_op_queue,
       axi_narrow_aw_queue_valid_out && axi_narrow_aw_queue_ready_in, floo_pkg::collect_op_e'('0))
   `FFL(red_wide_coll_operation_q, axi_wide_red_op_queue,
@@ -1280,12 +1296,12 @@ module floo_nw_chimney #(
   ) i_req_wormhole_arbiter (
     .clk_i,
     .rst_ni,
-    .valid_i  ( floo_req_arb_req_in   ),
-    .data_i   ( floo_req_arb_in       ),
-    .ready_o  ( floo_req_arb_gnt_out  ),
-    .data_o   ( floo_req_o.req        ),
-    .ready_i  ( floo_req_i.ready      ),
-    .valid_o  ( floo_req_o.valid      )
+    .valid_i  ( floo_req_arb_req_in  ),
+    .data_i   ( floo_req_arb_in      ),
+    .ready_o  ( floo_req_arb_gnt_out ),
+    .data_o   ( floo_req_o.req       ),
+    .ready_i  ( floo_req_o.ready     ),
+    .valid_o  ( floo_req_o.valid     )
   );
 
   floo_wormhole_arbiter #(
@@ -1308,13 +1324,29 @@ module floo_nw_chimney #(
   ) i_wide_wormhole_arbiter (
     .clk_i,
     .rst_ni,
-    .valid_i  ( floo_wide_arb_req_in  ),
-    .data_i   ( floo_wide_arb_in      ),
-    .ready_o  ( floo_wide_arb_gnt_out ),
-    .data_o   ( floo_wide_o.wide      ),
-    .ready_i  ( floo_wide_i.ready     ),
-    .valid_o  ( floo_wide_o.valid     )
+    .valid_i  ( floo_wide_arb_req_in         ),
+    .data_i   ( floo_wide_arb_in             ),
+    .ready_o  ( floo_wide_arb_gnt_out        ),
+    .data_o   ( floo_wide_o.wide             ),
+    .ready_i  ( floo_wide_req_arb_gnt_in     ),
+    .valid_o  ( floo_wide_req_arb_valid_out  )
   );
+
+  // Mux the valid of the read and write channels to the ACK/NACK protocol
+  // of the virtual channel for decoupled read and write output requests.
+  // AW/W -> Virtual Channel 0
+  // R -> Virtual Channel 1
+  // TODO(lleone): check if this really solve DEADLOCK!!!!
+  if (EnDecoupledRW) begin: gen_vc_rw_ack
+    assign floo_wide_o.valid[0] = (floo_wide_o.req.generic.hdr.axi_ch != WideR) ? floo_wide_req_arb_valid_out : 1'b0;
+    assign floo_wide_o.valid[1] = (floo_wide_o.req.generic.hdr.axi_ch == WideR) ? floo_wide_req_arb_valid_out : 1'b0;
+    assign floo_wide_req_arb_gnt_in = (floo_wide_o.req.generic.hdr.axi_ch != WideR) ?
+                                       floo_wide_i.ready[0] : floo_wide_i.ready[1];
+  end else begin: gen_no_vc_rw_ack
+    assign floo_wide_o.valid = floo_wide_req_arb_valid_out;
+    assign floo_wide_req_arb_gnt_in = floo_wide_i.ready;
+  end
+
 
   ////////////////////
   // FLIT UNPACKER  //
@@ -1631,5 +1663,10 @@ module floo_nw_chimney #(
               (ChimneyCfgN.BRoBType == NoRoB && ChimneyCfgN.RRoBType == NoRoB &&
                ChimneyCfgW.BRoBType == NoRoB && ChimneyCfgW.RRoBType == NoRoB),
                "Invalid Chimney Cfg with reduction support")
+
+  // When virtual channels for decoupled read and write is enabled,
+  // req_i and req_o must have same amount of VCs
+  `ASSERT_INIT(VCMismatch, EnDecoupledRW && ($bits(floo_wide_o.ready) == $bits(floo_wide_i.ready)),
+               " Input and output request ports must have the same number of virtual channels");
 
 endmodule

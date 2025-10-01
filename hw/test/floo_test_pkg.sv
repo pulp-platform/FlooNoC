@@ -36,7 +36,8 @@ package floo_test_pkg;
     EnMultiCast: 1'b0,
     EnParallelReduction: 1'b0,
     EnNarrowOffloadReduction: 1'b0,
-    EnWideOffloadReduction: 1'b0
+    EnWideOffloadReduction: 1'b0,
+    CollectiveCfg: floo_pkg::CollectiveDefaultCfg
   };
 
   // Common chimney parameters

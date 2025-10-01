@@ -31,6 +31,8 @@ module floo_nw_router #(
   parameter bit          XYRouteOpt                 = 1'b1,
   /// Disables loopback connections
   parameter bit          NoLoopback                 = 1'b1,
+  /// Enable decoupling between Read and Write wide channels using virtual channels
+  parameter bit          EnDecoupledRW              = 1'b0,
   /// Enable multicast feature
   parameter bit          EnMultiCast                = 1'b0,
   /// Enable parallel reduction feature
@@ -254,7 +256,7 @@ module floo_nw_router #(
   floo_router #(
     .NumRoutes            ( NumRoutes                 ),
     .NumPhysChannels      ( 1                         ),
-    .NumVirtChannels      ( 1                         ),
+    .NumVirtChannels      ( 1 + EnDecoupledRW         ),
     .InFifoDepth          ( InFifoDepth               ),
     .OutFifoDepth         ( OutFifoDepth              ),
     .RouteAlgo            ( RouteAlgo                 ),

@@ -9,7 +9,7 @@
 // The selected operation we want to support for now are defined under floo_pkg::reduction_op_t!
 //
 // The main design goal was to allow a fully pipelined operation e.g. if out inputs provide each
-// cycle a new elements to reduce then the underlying reduction utilization should be 100% during 
+// cycle a new elements to reduce then the underlying reduction utilization should be 100% during
 // the reduction. However as this required more tracking effort we support other modes too.
 // When we reduce elements from at tleast three different inputs we are required to have a
 // partial result buffer for intermidiate results.
@@ -21,9 +21,9 @@
 // elementsfrom different reduction iteration in-fligth. All elements which hold the same tag
 // need to be reduced together. This allows to separate the tag generation and the reduction logic.
 //
-// Additionally ever element gets an mask which indicates which elements are already reduced in 
+// Additionally ever element gets an mask which indicates which elements are already reduced in
 // the reduction_data as reduction with more than two inputs require two (or more) iterations.
-// The mask allows for an easy comparison for the final result e.g. if it is equal to the input 
+// The mask allows for an easy comparison for the final result e.g. if it is equal to the input
 // mask then all required inputs are reduced together.
 //
 // For the full documentation see the Masterthesis of Raphael Roth
@@ -32,7 +32,7 @@
 // - Currently we only support reduction of elements belonging to the same reduction stream.
 //   In AXI term: different beats beloning to the same burst are okay but not two different
 //   burts.
-// - The max number of input is currently fixed to 6. This can be extended but th size of 
+// - The max number of input is currently fixed to 6. This can be extended but th size of
 //   the tag_t depends on it.
 // - We only support symmetric configurations e.g. NumInput and NumOutput needs to be equal
 
@@ -335,6 +335,9 @@ assign reduction_req_valid_o = join_operands_valid;
 assign join_operands_ready = reduction_req_ready_i;
 
 // Output the operands here
+// TODO(raroth): Introduce Cut here to allow cutting the Offload unit.
+//       Extend the Configuration to allow fo this cut!
+//       Cut the response from the offload unit too!
 assign reduction_req_op1_o = merged_data[0].data;
 assign reduction_req_op2_o = merged_data[1].data;
 assign reduction_req_type_o = reduction_scheduled_operation;
@@ -358,7 +361,7 @@ if(GENERIC == 1'b1) begin : gen_fifo_for_tag
       .full_o           (),
       .empty_o          (),
       .usage_o          (),
-      .data_i           (merged_data[0].tag), 
+      .data_i           (merged_data[0].tag),
       .push_i           (reduction_req_ready_i & reduction_req_valid_o),  // active fpu req hs
       .data_o           (reduction_resp_data.tag),
       .pop_i            (reduction_resp_valid_i & reduction_resp_ready_o) // active fpu resp hs
@@ -423,9 +426,13 @@ assign fully_reduced_data.data = reduction_resp_data.data;
 assign fully_reduced_data.tag = reduction_resp_data.tag;
 
 // Dynammically fork the data into the correct output direction
-// (Currently only 1 output direction is set by the dyn fork. 
+// (Currently only 1 output direction is set by the dyn fork.
 // Potentially we could support here a reduce and multicast operation
 // if more than one output is set.
+
+// TODO: By introducing a cut on these signal used by the multiplexer we could separate
+//       the reduction logic from the rest of the router (timing wise at least).
+//       Additionally the input fifo's would need to be configured as not fall through!
 stream_fork_dynamic #(
   .N_OUP          (NumRoutes)
 ) i_dynamic_fork (
@@ -467,7 +474,7 @@ if((GENERIC == 1'b1) || (STALLING == 1'b1)) begin : gen_partial_result_buffer
       .oup_ready_i        (partial_result_buffer_ready),
       .inp_sel_valid_i    (ctrl_sel_part_res),
       .inp_sel_i          (ctrl_sel_buffer_idx),
-      .spyglass_valid_o   (spyglass_valid), 
+      .spyglass_valid_o   (spyglass_valid),
       .spyglass_tag_o     (spyglass_tag)
   );
 end else begin

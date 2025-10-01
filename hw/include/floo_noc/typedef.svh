@@ -287,6 +287,28 @@
     floo_``chan_name``_chan_t ``chan_name``;  \
   } floo_``name``_t;
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Defines the all the link types with a ready-valid handshaking interface
+// It support virtual channeling by extending the handshakes
+//
+// Arguments:
+// - name: Name of the link type
+// - chan_name: Name of the channel type to transport
+// - num: Number of virtual channels
+//
+// Usage Example:
+// localparam floo_pkg::axi_cfg_t AxiCfg = '{...};
+// `FLOO_TYPEDEF_HDR_T(hdr_t, ...)
+// `FLOO_TYPEDEF_AXI_FROM_CFG(my_axi, AxiCfg)
+// `FLOO_TYPEDEF_AXI_CHAN_ALL(my_axi, req, rsp, my_axi_in, AxiCfg, hdr_t)
+// FLOO_TYPEDEF_VIRT_CHAN_LINK_T(req, my_axi, 1)
+`define FLOO_TYPEDEF_VIRT_CHAN_LINK_T(name, chan_name, num)   \
+  typedef struct packed {                                     \
+    logic [num-1:0] valid;                                    \
+    logic [num-1:0] ready;                                    \
+    floo_``chan_name``_chan_t ``chan_name``;                  \
+  } floo_``name``_t;
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Defines the all the link types with credit-based flow control interface
@@ -355,6 +377,34 @@
   `FLOO_TYPEDEF_LINK_T(req, req_chan)                                           \
   `FLOO_TYPEDEF_LINK_T(rsp, rsp_chan)                                           \
   `FLOO_TYPEDEF_LINK_T(wide, wide_chan)
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+// Defines the all the link types with ready-valid handshaking interface
+// for a narrow-wide AXI interface configuration which implements a simple
+// virtual channeling.
+//
+// Arguments:
+// - req: Name of the `req` link type
+// - rsp: Name of the `rsp` link type
+// - wide: Name of the `wide` link type
+// - req_chan: Name of the `req` channel type to transport
+// - rsp_chan: Name of the `rsp` channel type to transport
+// - wide_chan: Name of the `wide` channel type to transport
+// - req_virt_chan: Number of virtual channel for the narrow link
+// - wide_virt_chan: Number of virtual channel for the wide link
+//
+// Usage Example:
+// localparam floo_pkg::axi_cfg_t AxiCfgN = '{...};
+// localparam floo_pkg::axi_cfg_t AxiCfgW = '{...};
+// `FLOO_TYPEDEF_HDR_T(hdr_t, ...)
+// `FLOO_TYPEDEF_AXI_FROM_CFG(my_narrow_axi, AxiCfgN)
+// `FLOO_TYPEDEF_AXI_FROM_CFG(my_wide_axi, AxiCfgW)
+// `FLOO_TYPEDEF_NW_CHAN_ALL(axi, my_req, my_rsp, my_wide, my_axi_narrow_in, my_axi_wide_in, AxiCfgN, AxiCfgW, hdr_t)
+// `FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, my_req, my_rsp, my_wide, 1, 2)
+`define FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req_chan, rsp_chan, wide_chan, req_virt_chan, wide_virt_chan)  \
+  `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(req, req_chan, req_virt_chan)                                                            \
+  `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(rsp, rsp_chan, 1)                                                                        \
+  `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(wide, wide_chan, wide_virt_chan)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Defines the all the link types with credit-based flow control interface
