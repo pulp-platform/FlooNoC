@@ -218,17 +218,14 @@ clean-spyglass:
 ###################
 
 PD_REMOTE ?= git@iis-git.ee.ethz.ch:axi-noc/floo_noc_pd.git
-PD_COMMIT ?= 6855f72499ec06706d91de73986b32feeb37b81c # master branch
+PD_BRANCH ?= master
 PD_DIR = $(FLOO_ROOT)/pd
 
-.PHONY: init-pd clean-pd
+.PHONY: init-pd
 
-init-pd: $(PD_DIR)
-$(PD_DIR):
-	git clone $(PD_REMOTE) $(PD_DIR)
-	cd $(PD_DIR) && git checkout $(PD_COMMIT)
-
-clean-pd:
+init-pd: $(PD_DIR)/.git
+$(PD_DIR)/.git:
 	rm -rf $(PD_DIR)
+	git clone $(PD_REMOTE) $(PD_DIR) -b $(PD_BRANCH)
 
 -include $(PD_DIR)/pd.mk
