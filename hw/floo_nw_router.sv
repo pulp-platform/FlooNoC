@@ -125,6 +125,8 @@ module floo_nw_router #(
       axi_wide_in_id_t, axi_wide_data_t, axi_wide_strb_t, axi_wide_user_t)
   `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow, axi_wide, AxiCfgN, AxiCfgW, hdr_t)
 
+  localparam int unsigned WideVirtChannel = (EnDecoupledRW) ? 2 : 1;
+
   floo_req_chan_t [NumInputs-1:0] req_in;
   floo_rsp_chan_t [NumInputs-1:0] rsp_out;
   floo_req_chan_t [NumOutputs-1:0] req_out;
@@ -134,8 +136,8 @@ module floo_nw_router #(
   logic [NumInputs-1:0] rsp_valid_out, rsp_ready_in;
   logic [NumOutputs-1:0] req_valid_out, req_ready_in;
   logic [NumOutputs-1:0] rsp_valid_in, rsp_ready_out;
-  logic [NumRoutes-1:0] wide_valid_in, wide_valid_out;
-  logic [NumRoutes-1:0] wide_ready_in, wide_ready_out;
+  logic [NumRoutes-1:0][WideVirtChannel-1:0] wide_valid_in, wide_valid_out;
+  logic [NumRoutes-1:0][WideVirtChannel-1:0] wide_ready_in, wide_ready_out;
 
   for (genvar i = 0; i < NumInputs; i++) begin : gen_chimney_req
     assign req_valid_in[i] = floo_req_i[i].valid;
@@ -256,7 +258,7 @@ module floo_nw_router #(
   floo_router #(
     .NumRoutes            ( NumRoutes                 ),
     .NumPhysChannels      ( 1                         ),
-    .NumVirtChannels      ( 1 + EnDecoupledRW         ),
+    .NumVirtChannels      ( WideVirtChannel           ),
     .InFifoDepth          ( InFifoDepth               ),
     .OutFifoDepth         ( OutFifoDepth              ),
     .RouteAlgo            ( RouteAlgo                 ),
@@ -266,6 +268,7 @@ module floo_nw_router #(
     .EnMultiCast          ( EnMultiCast               ),
     .EnOffloadReduction   ( EnOffloadWideReduction    ),
     .EnParallelReduction  ( 1'b0                      ),
+    .EnCollVirtChannel    ( EnDecoupledRW             ),
     .id_t                 ( id_t                      ),
     .addr_rule_t          ( addr_rule_t               ),
     .flit_t               ( floo_wide_generic_flit_t  ),

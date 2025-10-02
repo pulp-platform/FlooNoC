@@ -65,7 +65,7 @@ module floo_id_translation #(
     );
 
     `ASSERT(DecodeError, !(dec_error && valid_i), clk_i, !rst_ni,
-        $sformatf("Error decoding address 0x%0x.", addr_i));
+        $sformatf("Error decoding address 0x%0x.", $sampled(addr_i)));
 
     if (RouteCfg.EnMultiCast) begin: gen_mcast_id_mask
       assign mask_addr_x_o = idx_out.mask_x;

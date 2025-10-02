@@ -535,10 +535,10 @@ module floo_nw_chimney #(
     assign floo_wide_in = floo_wide_i.wide;
     assign floo_req_in_valid = floo_req_i.valid;
     assign floo_rsp_in_valid = floo_rsp_i.valid;
-    assign floo_wide_in_valid = floo_wide_i.valid;
+    assign floo_wide_in_valid = floo_wide_req_arb_valid_in;
+    assign floo_wide_req_arb_gnt_out = floo_wide_out_ready;
     assign floo_req_o.ready = floo_req_out_ready;
     assign floo_rsp_o.ready = floo_rsp_out_ready;
-    assign floo_wide_o.ready = floo_wide_out_ready;
   end
 
   logic narrow_aw_out_queue_valid, narrow_aw_out_queue_ready;
@@ -1300,7 +1300,7 @@ module floo_nw_chimney #(
     .data_i   ( floo_req_arb_in      ),
     .ready_o  ( floo_req_arb_gnt_out ),
     .data_o   ( floo_req_o.req       ),
-    .ready_i  ( floo_req_o.ready     ),
+    .ready_i  ( floo_req_i.ready     ),
     .valid_o  ( floo_req_o.valid     )
   );
 
@@ -1338,9 +1338,9 @@ module floo_nw_chimney #(
   // R -> Virtual Channel 1
   // TODO(lleone): check if this really solve DEADLOCK!!!!
   if (EnDecoupledRW) begin: gen_vc_rw_ack
-    assign floo_wide_o.valid[0] = (floo_wide_o.req.generic.hdr.axi_ch != WideR) ? floo_wide_req_arb_valid_out : 1'b0;
-    assign floo_wide_o.valid[1] = (floo_wide_o.req.generic.hdr.axi_ch == WideR) ? floo_wide_req_arb_valid_out : 1'b0;
-    assign floo_wide_req_arb_gnt_in = (floo_wide_o.req.generic.hdr.axi_ch != WideR) ?
+    assign floo_wide_o.valid[0] = (floo_wide_o.wide.generic.hdr.axi_ch != WideR) ? floo_wide_req_arb_valid_out : 1'b0;
+    assign floo_wide_o.valid[1] = (floo_wide_o.wide.generic.hdr.axi_ch == WideR) ? floo_wide_req_arb_valid_out : 1'b0;
+    assign floo_wide_req_arb_gnt_in = (floo_wide_o.wide.generic.hdr.axi_ch != WideR) ?
                                        floo_wide_i.ready[0] : floo_wide_i.ready[1];
   end else begin: gen_no_vc_rw_ack
     assign floo_wide_o.valid = floo_wide_req_arb_valid_out;
@@ -1666,7 +1666,7 @@ module floo_nw_chimney #(
 
   // When virtual channels for decoupled read and write is enabled,
   // req_i and req_o must have same amount of VCs
-  `ASSERT_INIT(VCMismatch, EnDecoupledRW && ($bits(floo_wide_o.ready) == $bits(floo_wide_i.ready)),
+  `ASSERT_INIT(VCMismatch, !EnDecoupledRW | ($bits(floo_wide_o.ready) == $bits(floo_wide_i.ready)),
                " Input and output request ports must have the same number of virtual channels");
 
 endmodule

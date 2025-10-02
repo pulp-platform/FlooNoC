@@ -588,8 +588,6 @@ module floo_router
 
   // Multicast is currently only supported for `XYRouting`
   `ASSERT_INIT(NoMultiCastSupport, !(EnMultiCast && RouteAlgo != XYRouting))
-  // Assertion check that when we use the FP reduction no virtual channel are init
-  `ASSERT_INIT(NoVirtChanSupport, !(EnOffloadReduction && (NumVirtChannels != 1)))
   // We only support symmetrical configuration for the FP reduction
   `ASSERT_INIT(NoSymConfig, !(EnOffloadReduction && (NumInput != NumOutput)))
   // Currently the AXI support must be enabled
@@ -597,7 +595,6 @@ module floo_router
   // We can not support Loopback when the option is not enabled
   `ASSERT_INIT(SupportLoopback, !(RdCfg.RdSupportLoopback && NoLoopback))
   // We cannot support sequential reduction with multiple VC if EnCollVirtChannel is not set
-  `ASSERT_INIT(NoRedVcSupport, !(EnOffloadReduction && (NumVirtChannels > 1) && !EnCollVirtChannel),
-              "No Sequential Reduction support with multiple virtual channels and EnCollVirtChannel unset")
+  `ASSERT_INIT(NoRedVcSupport, !(EnOffloadReduction && (NumVirtChannels > 1) && !EnCollVirtChannel))
 
 endmodule
