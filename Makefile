@@ -223,8 +223,7 @@ PD_DIR = $(FLOO_ROOT)/pd
 
 .PHONY: init-pd
 
-init-pd: $(PD_DIR)/.git
-$(PD_DIR)/.git:
+init-pd:
 	rm -rf $(PD_DIR)
 	git clone $(PD_REMOTE) $(PD_DIR) -b $(PD_BRANCH)
 
