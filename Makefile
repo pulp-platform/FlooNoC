@@ -218,7 +218,7 @@ clean-spyglass:
 ###################
 
 PD_REMOTE ?= git@iis-git.ee.ethz.ch:axi-noc/floo_noc_pd.git
-PD_COMMIT ?= include-pd # TODO(fischeti): pin to a specific commit
+PD_COMMIT ?= 6855f72499ec06706d91de73986b32feeb37b81c # master branch
 PD_DIR = $(FLOO_ROOT)/pd
 
 .PHONY: init-pd clean-pd
