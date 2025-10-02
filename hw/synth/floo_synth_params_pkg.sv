@@ -94,7 +94,8 @@ package floo_synth_nw_pkg;
   `FLOO_TYPEDEF_HDR_T(hdr_t, id_t, id_t, floo_pkg::nw_ch_e, logic)
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi_narrow, AxiCfgN)
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi_wide, AxiCfgW)
-  `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow_in, axi_wide_in, AxiCfgN, AxiCfgW, hdr_t)
+  `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow_in, axi_wide_in,
+      AxiCfgN, AxiCfgW, hdr_t)
   `FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, req, rsp, wide)
 
 endpackage
@@ -127,7 +128,8 @@ package floo_synth_nw_vc_pkg;
   `FLOO_TYPEDEF_VC_HDR_T(vc_hdr_t, id_t, id_t, floo_pkg::nw_ch_e, logic, vc_id_t)
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi_narrow, AxiCfgN)
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi_wide, AxiCfgW)
-  `FLOO_TYPEDEF_NW_CHAN_ALL(vc_axi, vc_req, vc_rsp, vc_wide, axi_narrow_in, axi_wide_in, AxiCfgN, AxiCfgW, vc_hdr_t)
+  `FLOO_TYPEDEF_NW_CHAN_ALL(vc_axi, vc_req, vc_rsp, vc_wide, axi_narrow_in, axi_wide_in,
+      AxiCfgN, AxiCfgW, vc_hdr_t)
   `FLOO_TYPEDEF_NW_LINK_ALL(vc_req, vc_rsp, vc_wide, vc_req, vc_rsp, vc_wide)
 
 endpackage
