@@ -477,66 +477,28 @@ module floo_router
       end
     end
 
-    // Arbitrate virtual channels onto the physical channel:
+    // Arbitrate virtual channels onto the physical channel.
 
-    // When we use virtual channel to decouple write and read channel of the AXI interface
-    // we cannot make the valid dependent from the ready.
-    // However, in the `floo_vc_arbiter`this is the case.
-    // For this reason, in case of virual channel support we avoid the use of vc arbiters
-    // at the end point.
-    // Instead, a wormhole arbiter can be used, which does not have this valid <-> ready
-    // dependency.
-    //
-    // The choice of which virtual channel is used depends on the AXI channel.
+    // At the end point, we cannot make valid dependent on ready.
+    // However, this is the case in the `floo_vc_arbiter`.
+    // For this reason, there must be cuts at the input of the endpoint.
 
-    if((!EnCollVirtChannel) || (out != Eject)) begin
-      floo_vc_arbiter #(
-        .NumVirtChannels ( NumVirtChannels ),
-        .flit_t          ( flit_t          ),
-        .NumPhysChannels ( NumPhysChannels )
-      ) i_vc_arbiter (
-        .clk_i,
-        .rst_ni,
+    floo_vc_arbiter #(
+      .NumVirtChannels ( NumVirtChannels ),
+      .flit_t          ( flit_t          ),
+      .NumPhysChannels ( NumPhysChannels )
+    ) i_vc_arbiter (
+      .clk_i,
+      .rst_ni,
 
-        .valid_i ( out_buffered_valid[out] ),
-        .ready_o ( out_buffered_ready[out] ),
-        .data_i  ( out_buffered_data [out] ),
+      .valid_i ( out_buffered_valid[out] ),
+      .ready_o ( out_buffered_ready[out] ),
+      .data_i  ( out_buffered_data [out] ),
 
-        .ready_i ( ready_i  [out] ),
-        .valid_o ( valid_o  [out] ),
-        .data_o  ( data_o   [out] )
-      );
-    end else begin
-      floo_wormhole_arbiter #(
-        .NumRoutes  ( NumVirtChannels ),
-        .flit_t     ( flit_t   )
-      ) i_wormhole_arbiter (
-        .clk_i,
-        .rst_ni,
-
-        .valid_i ( out_buffered_valid[out] ),
-        .ready_o ( out_buffered_ready[out] ),
-        .data_i  ( out_buffered_data [out] ),
-
-        .valid_o ( out_valid_merged ),
-        .ready_i ( out_ready_merged ),
-        .data_o  ( data_o[out] )
-      );
-
-      always_comb begin : gen_eject_vc_sel
-        valid_o[out] = '0;
-        out_ready_merged = '0;
-
-        // forward the handshake on either the channel for reads or writes
-        if(data_o[out][0].hdr.axi_ch != WideR) begin
-          valid_o[out][0] = out_valid_merged;
-          out_ready_merged = ready_i[out][0];
-        end else begin
-          valid_o[out][1] = out_valid_merged;
-          out_ready_merged = ready_i[out][1];
-        end
-      end
-    end
+      .ready_i ( ready_i  [out] ),
+      .valid_o ( valid_o  [out] ),
+      .data_o  ( data_o   [out] )
+    );
   end
 
   for (genvar i = 0; i < NumInput; i++) begin : gen_input_assert
