@@ -148,9 +148,15 @@ module floo_nw_chimney #(
   // For future extension, add an extra opcode in the user_narrow_struct_t
   typedef axi_addr_t user_mask_t ;
 
+  // Virtual channel enumeration
+  typedef enum logic {
+    VC_RD = 1'b1,
+    VC_WR = 1'b0
+  } vc_e;
+
   // Collective communication configuration
   localparam floo_pkg::collective_cfg_t CollectCfg = RouteCfg.CollectiveCfg;
-  localparam int unsigned NumVirtualChannels = $bits(floo_wide_o.ready);
+  localparam int unsigned NumVirtualChannels = EnDecoupledRW ? 2 : 1;
 
   // Duplicate AXI port signals to degenerate ports
   // in case they are not used
@@ -186,9 +192,9 @@ module floo_nw_chimney #(
   // flit queue
   floo_req_chan_t floo_req_in;
   floo_rsp_chan_t floo_rsp_in;
-  floo_wide_chan_t floo_wide_in;
-  logic floo_req_in_valid, floo_rsp_in_valid, floo_wide_in_valid;
-  logic floo_req_out_ready, floo_rsp_out_ready, floo_wide_out_ready;
+  floo_wide_chan_t floo_wide_in_q;
+  logic floo_req_in_valid, floo_rsp_in_valid, floo_wide_in_valid_q;
+  logic floo_req_out_ready, floo_rsp_out_ready, floo_wide_out_ready_q;
   logic [NumNWAxiChannels-1:0] axi_valid_in, axi_ready_out;
 
   // Flit packing
@@ -221,7 +227,8 @@ module floo_nw_chimney #(
   axi_wide_r_chan_t    axi_wide_unpack_r;
   floo_req_generic_flit_t   floo_req_unpack_generic;
   floo_rsp_generic_flit_t   floo_rsp_unpack_generic;
-  floo_wide_generic_flit_t  floo_wide_unpack_generic;
+  floo_wide_generic_flit_t  floo_wide_unpack_generic_rd;
+  floo_wide_generic_flit_t  floo_wide_unpack_generic_wr;
 
   // Meta Buffers
   axi_narrow_req_t axi_narrow_meta_buf_req_in;
@@ -260,7 +267,34 @@ module floo_nw_chimney #(
 
   // Virtual channel signals to decouple wide AW from wide AR
   logic floo_wide_req_arb_gnt_in, floo_wide_req_arb_valid_out;
-  logic floo_wide_req_arb_gnt_out, floo_wide_req_arb_valid_in;
+
+  /////////////////////////////
+  //  Virtual channel demux  //
+  /////////////////////////////
+
+  // VCs must be demuxed *before* the spill registers to avoid
+  // head-of-line blocking between read and write channels.
+
+  floo_wide_chan_t floo_wide_in_wr, floo_wide_in_rd;
+  logic floo_wide_in_wr_valid, floo_wide_in_rd_valid;
+  logic floo_wide_out_wr_ready, floo_wide_out_rd_ready;
+
+  floo_wide_chan_t floo_wide_in;
+  logic floo_wide_in_valid;
+  logic floo_wide_out_ready;
+
+  if (EnDecoupledRW) begin : gen_vc_demux
+    assign floo_wide_in_wr_valid = floo_wide_i.valid[VC_WR] && (floo_wide_i.wide.generic.hdr.axi_ch != WideR);
+    assign floo_wide_in_rd_valid = floo_wide_i.valid[VC_RD] && (floo_wide_i.wide.generic.hdr.axi_ch == WideR);
+    assign floo_wide_o.ready[VC_WR] = floo_wide_out_wr_ready;
+    assign floo_wide_o.ready[VC_RD] = floo_wide_out_rd_ready;
+    assign floo_wide_in_wr = floo_wide_i.wide;
+    assign floo_wide_in_rd = floo_wide_i.wide;
+  end else begin : gen_no_vc_demux
+    assign floo_wide_in = floo_wide_i.wide;
+    assign floo_wide_in_valid = floo_wide_i.valid;
+    assign floo_wide_o.ready = floo_wide_out_ready;
+  end
 
   ///////////////////////
   //  Spill registers  //
@@ -479,66 +513,77 @@ module floo_nw_chimney #(
     assign axi_wide_red_op_queue = floo_pkg::collect_op_e'('0);
   end
 
-  // Mux the valid of the read and write channels to the ACK/NACK protocol
-  // of the virtual channel for decoupled read and write channels.
-  if (EnDecoupledRW) begin: gen_in_vc_rw
-    assign floo_wide_req_arb_valid_in = | floo_wide_i.valid;
-    assign floo_wide_o.ready = {NumVirtualChannels{floo_wide_req_arb_gnt_out}};
-  end else begin: gen_no_in_vc_rw
-    assign floo_wide_req_arb_valid_in = floo_wide_i.valid;
-    assign floo_wide_o.ready = floo_wide_req_arb_gnt_out;
-  end
+  spill_register #(
+    .T      ( floo_req_chan_t ),
+    .Bypass ( !(ChimneyCfgN.CutRsp && ChimneyCfgW.CutRsp) )
+  ) i_narrow_data_req_arb (
+    .clk_i,
+    .rst_ni,
+    .data_i     ( floo_req_i.req      ),
+    .valid_i    ( floo_req_i.valid    ),
+    .ready_o    ( floo_req_o.ready    ),
+    .data_o     ( floo_req_in         ),
+    .valid_o    ( floo_req_in_valid   ),
+    .ready_i    ( floo_req_out_ready  )
+  );
 
-  if (ChimneyCfgN.CutRsp && ChimneyCfgW.CutRsp) begin : gen_rsp_cuts
-    spill_register #(
-      .T ( floo_req_chan_t )
-    ) i_narrow_data_req_arb (
-      .clk_i,
-      .rst_ni,
-      .data_i     ( floo_req_i.req      ),
-      .valid_i    ( floo_req_i.valid    ),
-      .ready_o    ( floo_req_o.ready    ),
-      .data_o     ( floo_req_in         ),
-      .valid_o    ( floo_req_in_valid   ),
-      .ready_i    ( floo_req_out_ready  )
-    );
-
-    spill_register #(
-      .T ( floo_rsp_chan_t )
+  spill_register #(
+    .T      ( floo_rsp_chan_t ),
+    .Bypass ( !(ChimneyCfgN.CutRsp && ChimneyCfgW.CutRsp) )
     ) i_narrow_data_rsp_arb (
-      .clk_i,
-      .rst_ni,
-      .data_i     ( floo_rsp_i.rsp      ),
-      .valid_i    ( floo_rsp_i.valid    ),
-      .ready_o    ( floo_rsp_o.ready    ),
-      .data_o     ( floo_rsp_in         ),
-      .valid_o    ( floo_rsp_in_valid   ),
-      .ready_i    ( floo_rsp_out_ready  )
-    );
+    .clk_i,
+    .rst_ni,
+    .data_i     ( floo_rsp_i.rsp      ),
+    .valid_i    ( floo_rsp_i.valid    ),
+    .ready_o    ( floo_rsp_o.ready    ),
+    .data_o     ( floo_rsp_in         ),
+    .valid_o    ( floo_rsp_in_valid   ),
+    .ready_i    ( floo_rsp_out_ready  )
+  );
 
+  floo_wide_chan_t floo_wide_in_wr_q, floo_wide_in_rd_q;
+  logic floo_wide_in_wr_valid_q, floo_wide_in_rd_valid_q;
+  logic floo_wide_out_wr_ready_q, floo_wide_out_rd_ready_q;
+
+  if (EnDecoupledRW) begin : gen_spill_vc
     spill_register #(
       .T ( floo_wide_chan_t )
+    ) i_wide_wr_req_arb (
+      .clk_i,
+      .rst_ni,
+      .data_i     ( floo_wide_in_wr          ),
+      .valid_i    ( floo_wide_in_wr_valid    ),
+      .ready_o    ( floo_wide_out_wr_ready   ),
+      .data_o     ( floo_wide_in_wr_q        ),
+      .valid_o    ( floo_wide_in_wr_valid_q  ),
+      .ready_i    ( floo_wide_out_wr_ready_q )
+    );
+    spill_register #(
+      .T ( floo_wide_chan_t )
+    ) i_wide_rd_req_arb (
+      .clk_i,
+      .rst_ni,
+      .data_i     ( floo_wide_in_rd          ),
+      .valid_i    ( floo_wide_in_rd_valid    ),
+      .ready_o    ( floo_wide_out_rd_ready   ),
+      .data_o     ( floo_wide_in_rd_q        ),
+      .valid_o    ( floo_wide_in_rd_valid_q  ),
+      .ready_i    ( floo_wide_out_rd_ready_q )
+    );
+  end else begin : gen_spill_wide
+    spill_register #(
+      .T      ( floo_wide_chan_t ),
+      .Bypass ( !(ChimneyCfgN.CutRsp && ChimneyCfgW.CutRsp) )
     ) i_wide_data_req_arb (
       .clk_i,
       .rst_ni,
-      .data_i     ( floo_wide_i.wide           ),
-      .valid_i    ( floo_wide_req_arb_valid_in ),
-      .ready_o    ( floo_wide_req_arb_gnt_out  ),
-      .data_o     ( floo_wide_in               ),
-      .valid_o    ( floo_wide_in_valid         ),
-      .ready_i    ( floo_wide_out_ready        )
+      .data_i     ( floo_wide_in          ),
+      .valid_i    ( floo_wide_in_valid    ),
+      .ready_o    ( floo_wide_out_ready   ),
+      .data_o     ( floo_wide_in_q        ),
+      .valid_o    ( floo_wide_in_valid_q  ),
+      .ready_i    ( floo_wide_out_ready_q )
     );
-
-  end else begin : gen_no_rsp_cuts
-    assign floo_req_in = floo_req_i.req;
-    assign floo_rsp_in = floo_rsp_i.rsp;
-    assign floo_wide_in = floo_wide_i.wide;
-    assign floo_req_in_valid = floo_req_i.valid;
-    assign floo_rsp_in_valid = floo_rsp_i.valid;
-    assign floo_wide_in_valid = floo_wide_req_arb_valid_in;
-    assign floo_wide_req_arb_gnt_out = floo_wide_out_ready;
-    assign floo_req_o.ready = floo_req_out_ready;
-    assign floo_rsp_o.ready = floo_rsp_out_ready;
   end
 
   logic narrow_aw_out_queue_valid, narrow_aw_out_queue_ready;
@@ -837,9 +882,9 @@ module floo_nw_chimney #(
   logic wide_r_rob_rob_req;
   logic wide_r_rob_last;
   rob_idx_t wide_r_rob_rob_idx;
-  assign wide_r_rob_rob_req = floo_wide_in.wide_r.hdr.rob_req;
-  assign wide_r_rob_rob_idx = floo_wide_in.wide_r.hdr.rob_idx;
-  assign wide_r_rob_last = floo_wide_in.wide_r.payload.last;
+  assign wide_r_rob_rob_req = floo_wide_in_rd_q.wide_r.hdr.rob_req;
+  assign wide_r_rob_rob_idx = floo_wide_in_rd_q.wide_r.hdr.rob_idx;
+  assign wide_r_rob_last = floo_wide_in_rd_q.wide_r.payload.last;
 
   floo_rob_wrapper #(
     .RoBType        ( ChimneyCfgW.RRoBType      ),
@@ -1368,15 +1413,13 @@ module floo_nw_chimney #(
   assign axi_narrow_unpack_ar = floo_req_in.narrow_ar.payload;
   assign axi_narrow_unpack_r  = floo_rsp_in.narrow_r.payload;
   assign axi_narrow_unpack_b  = floo_rsp_in.narrow_b.payload;
-  assign axi_wide_unpack_aw   = floo_wide_in.wide_aw.payload;
-  assign axi_wide_unpack_w    = floo_wide_in.wide_w.payload;
+  assign axi_wide_unpack_aw   = floo_wide_in_wr_q.wide_aw.payload;
+  assign axi_wide_unpack_w    = floo_wide_in_wr_q.wide_w.payload;
   assign axi_wide_unpack_ar   = floo_req_in.wide_ar.payload;
-  assign axi_wide_unpack_r    = floo_wide_in.wide_r.payload;
+  assign axi_wide_unpack_r    = floo_wide_in_rd_q.wide_r.payload;
   assign axi_wide_unpack_b    = floo_rsp_in.wide_b.payload;
-  assign floo_req_unpack_generic  = floo_req_in.generic;
-  assign floo_rsp_unpack_generic  = floo_rsp_in.generic;
-  assign floo_wide_unpack_generic = floo_wide_in.generic;
-
+  assign floo_req_unpack_generic = floo_req_in.generic;
+  assign floo_rsp_unpack_generic = floo_rsp_in.generic;
 
   assign axi_valid_in[NarrowAw] = floo_req_in_valid &&
                                   (floo_req_unpack_generic.hdr.axi_ch == NarrowAw);
@@ -1392,12 +1435,6 @@ module floo_nw_chimney #(
                                   (floo_rsp_unpack_generic.hdr.axi_ch  == NarrowR);
   assign axi_valid_in[WideB]    = ChimneyCfgW.EnMgrPort && floo_rsp_in_valid &&
                                   (floo_rsp_unpack_generic.hdr.axi_ch  == WideB);
-  assign axi_valid_in[WideAw]   = floo_wide_in_valid &&
-                                  (floo_wide_unpack_generic.hdr.axi_ch == WideAw);
-  assign axi_valid_in[WideW]    = floo_wide_in_valid &&
-                                  (floo_wide_unpack_generic.hdr.axi_ch  == WideW);
-  assign axi_valid_in[WideR]    = ChimneyCfgW.EnMgrPort && floo_wide_in_valid &&
-                                  (floo_wide_unpack_generic.hdr.axi_ch  == WideR);
 
   assign axi_ready_out[NarrowAw]  = axi_narrow_meta_buf_rsp_out.aw_ready;
   assign axi_ready_out[NarrowW]   = axi_narrow_meta_buf_rsp_out.w_ready;
@@ -1414,7 +1451,45 @@ module floo_nw_chimney #(
 
   assign floo_req_out_ready  = axi_ready_out[floo_req_unpack_generic.hdr.axi_ch];
   assign floo_rsp_out_ready  = axi_ready_out[floo_rsp_unpack_generic.hdr.axi_ch];
-  assign floo_wide_out_ready = axi_ready_out[floo_wide_unpack_generic.hdr.axi_ch];
+
+  // Flit unpacking on the wide interface
+  if (EnDecoupledRW) begin
+
+    assign floo_wide_unpack_generic_wr = floo_wide_in_wr_q.generic;
+    assign floo_wide_unpack_generic_rd = floo_wide_in_rd_q.generic;
+
+    // Directly connect read VC to AXI R channel
+    assign axi_valid_in[WideR] = ChimneyCfgW.EnMgrPort && floo_wide_in_rd_valid_q;
+    assign floo_wide_out_rd_ready_q = axi_ready_out[WideR];
+
+    // Demux write VC to AXI AW and W channels
+    stream_demux #(
+      .N_OUP(NumVirtualChannels)
+    ) i_wide_wr_flit_demux (
+      .inp_valid_i(floo_wide_in_wr_valid_q),
+      .inp_ready_o(floo_wide_out_wr_ready_q),
+      .oup_sel_i  (floo_wide_unpack_generic_wr.hdr.axi_ch == WideAw ? 1'b1 : 1'b0),
+      .oup_valid_o({axi_valid_in[WideAw], axi_valid_in[WideW]}),
+      .oup_ready_i({axi_ready_out[WideAw], axi_ready_out[WideW]})
+    );
+
+  end else begin
+
+    // Demux single physical channel to AXI AW, W and R channels
+    assign floo_wide_out_ready_q = axi_ready_out[floo_wide_in_q.generic.hdr.axi_ch];
+    assign axi_valid_in[WideR] = ChimneyCfgW.EnMgrPort && floo_wide_in_valid_q &&
+                                 (floo_wide_in_q.generic.hdr.axi_ch == WideR);
+    assign axi_valid_in[WideAw] = floo_wide_in_valid_q &&
+                                  (floo_wide_in_q.generic.hdr.axi_ch == WideAw);
+    assign axi_valid_in[WideW] = floo_wide_in_valid_q &&
+                                 (floo_wide_in_q.generic.hdr.axi_ch == WideW);
+
+    // Aliases to uniformly write downstream logic handling both cases, with and without VCs
+    assign floo_wide_unpack_generic_wr = floo_wide_in_q.generic;
+    assign floo_wide_unpack_generic_rd = floo_wide_in_q.generic;
+    assign floo_wide_in_rd_valid_q = floo_wide_in_valid_q;
+    assign floo_wide_in_wr_valid_q = floo_wide_in_valid_q;
+  end
 
   /////////////////////////////
   // AXI req/rsp generation  //
@@ -1482,7 +1557,7 @@ module floo_nw_chimney #(
   };
   assign wide_aw_buf_hdr_in = '{
     id: axi_wide_unpack_aw.id,
-    hdr: floo_wide_unpack_generic.hdr
+    hdr: floo_wide_unpack_generic_wr.hdr
   };
   assign wide_ar_buf_hdr_in = '{
     id: axi_wide_unpack_ar.id,
@@ -1641,8 +1716,8 @@ module floo_nw_chimney #(
                            (floo_rsp_unpack_generic.hdr.axi_ch == NarrowR)))
   `ASSERT(NoWideMgrPortBResponse, ChimneyCfgW.EnMgrPort || !(floo_rsp_in_valid &&
                            (floo_rsp_unpack_generic.hdr.axi_ch == WideB)))
-  `ASSERT(NoWideMgrPortRResponse, ChimneyCfgW.EnMgrPort || !(floo_wide_in_valid &&
-                           (floo_wide_unpack_generic.hdr.axi_ch == WideR)))
+  `ASSERT(NoWideMgrPortRResponse, ChimneyCfgW.EnMgrPort || !(floo_wide_in_rd_valid_q &&
+                           (floo_wide_unpack_generic_rd.hdr.axi_ch == WideR)))
   // Network Interface cannot accept any AW, AR and W requests if `En*SbrPort` is not set
   `ASSERT(NoNarrowSbrPortAwRequest, ChimneyCfgN.EnSbrPort || !(floo_req_in_valid &&
                            (floo_req_unpack_generic.hdr.axi_ch == NarrowAw)))
@@ -1654,8 +1729,8 @@ module floo_nw_chimney #(
                            (floo_req_unpack_generic.hdr.axi_ch == WideAw)))
   `ASSERT(NoWideSbrPortArRequest, ChimneyCfgW.EnSbrPort || !(floo_req_in_valid &&
                            (floo_req_unpack_generic.hdr.axi_ch == WideAr)))
-  `ASSERT(NoWideSbrPortWRequest,  ChimneyCfgW.EnSbrPort || !(floo_wide_in_valid &&
-                           (floo_wide_unpack_generic.hdr.axi_ch == WideW)))
+  `ASSERT(NoWideSbrPortWRequest,  ChimneyCfgW.EnSbrPort || !(floo_wide_in_wr_valid_q &&
+                           (floo_wide_unpack_generic_wr.hdr.axi_ch == WideW)))
 
   // We do not support reduction with ROB Buffer
   `ASSERT_INIT(NoRobReduction,
@@ -1665,8 +1740,14 @@ module floo_nw_chimney #(
                "Invalid Chimney Cfg with reduction support")
 
   // When virtual channels for decoupled read and write is enabled,
-  // req_i and req_o must have same amount of VCs
-  `ASSERT_INIT(VCMismatch, !EnDecoupledRW | ($bits(floo_wide_o.ready) == $bits(floo_wide_i.ready)),
-               " Input and output request ports must have the same number of virtual channels");
+  // req_i and req_o must have same amount of VCs, equal to NumVirtualChannels
+  `ASSERT_INIT(VCMismatchInputReady, !EnDecoupledRW | ($bits(floo_wide_i.ready) == NumVirtualChannels),
+    $sformatf("Input request must have %0d VCs when EnDecoupledRW==1", NumVirtualChannels));
+  `ASSERT_INIT(VCMismatchOutputReady, !EnDecoupledRW | ($bits(floo_wide_o.ready) == NumVirtualChannels),
+    $sformatf("Output request must have %0d VCs when EnDecoupledRW==1", NumVirtualChannels));
+  `ASSERT_INIT(VCMismatchInputValid, !EnDecoupledRW | ($bits(floo_wide_i.valid) == NumVirtualChannels),
+    $sformatf("Input request must have %0d VCs when EnDecoupledRW==1", NumVirtualChannels));
+  `ASSERT_INIT(VCMismatchOutputValid, !EnDecoupledRW | ($bits(floo_wide_o.valid) == NumVirtualChannels),
+    $sformatf("Output request must have %0d VCs when EnDecoupledRW==1", NumVirtualChannels));
 
 endmodule
