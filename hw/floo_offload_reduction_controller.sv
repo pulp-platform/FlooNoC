@@ -399,7 +399,7 @@ if(GENERIC || STALLING) begin : gen_controller_stalling_generic
                     buffer_d[i].tag = new_incoming_flit.tag;
                     buffer_d[i].f_valid = 1'b1;
                     // Check if we have to directly forward the flit
-                    buffer_d[i].f_forwarding = (new_incoming_flit.flit.hdr.collective_op == floo_pkg::R_Select) ? 1'b1 : 1'b0;
+                    buffer_d[i].f_forwarding = (new_incoming_flit.flit.hdr.collective_op == floo_pkg::SeqAW) ? 1'b1 : 1'b0;
                     if((buffer_d[i].f_forwarding == 1'b1) && (RdEnableBypass == 1'b0)) begin
                         $error($time, "Somehow an AW flit got to an reduction which does not support bypass - Why?");
                     end
@@ -660,7 +660,7 @@ if(SIMPLE) begin : gen_simple_controller
         // 1.3 Stage: Forward the data to the FPU or the bypass
         if(locked_d == 1'b1) begin
             // Handle the case for a bypassable flit
-            if(stalling_flit[selected_input_d[0]].flit.hdr.collective_op == floo_pkg::R_Select) begin
+            if(stalling_flit[selected_input_d[0]].flit.hdr.collective_op == floo_pkg::SeqAW) begin
                 // Stall sending the bypass until the pipeline is empty to avoid reordering
                 if(simple_reduction_ongoing_n) begin
                     // AW flit found - direct forward to the output

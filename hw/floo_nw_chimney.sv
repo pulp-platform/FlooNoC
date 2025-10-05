@@ -1104,7 +1104,8 @@ module floo_nw_chimney #(
 
     if (is_en_narrow_reduction(CollectCfg)) begin
       if (is_reduction_op(red_coll_operation[NarrowAw])) begin
-        floo_narrow_aw.hdr.collective_op = SelectAW;
+        floo_narrow_aw.hdr.collective_op = is_sequential_reduction_op(red_coll_operation[NarrowAw]) ?
+                                           SeqAW : SelectAW;
       end
     end
   end
@@ -1194,7 +1195,8 @@ module floo_nw_chimney #(
 
     if (is_en_wide_reduction(CollectCfg)) begin
       if (is_reduction_op(red_coll_operation[WideAw])) begin
-        floo_wide_aw.hdr.collective_op = SelectAW;
+        floo_wide_aw.hdr.collective_op = is_sequential_reduction_op(red_coll_operation[WideAw]) ?
+                                          SeqAW : SelectAW;
       end
     end
   end

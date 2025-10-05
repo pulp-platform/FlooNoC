@@ -147,9 +147,11 @@ package floo_pkg;
     A_Min_U   = 4'b1010,  // Atomic Min (unsigned)
     A_Max_S   = 4'b1011,  // Atomic Max (signed)
     A_Max_U   = 4'b1100,  // Atomic Max (unsigned)
-    SelectAW  = 4'b1101,  // Select first incoming AW flit TODO (lleone): Remove R-select
+    SelectAW  = 4'b1101,  // Select first incoming AW flit
     CollectB  = 4'b1110,  // Collect B responses for AXI transmisison
-    R_Select  = 4'b1111   // Select the first incoming flit
+    //  TODO(lleone): Remove this operation and chenag the offload logic to make
+    // handle the selectAW from the parallel reduction harware
+    SeqAW     = 4'b1111   // Select the first incoming flit from a sequential reduction
   } collect_op_e;
 
   /// The types of AXI channels in narrow-wide AXI network interfaces
@@ -608,7 +610,7 @@ package floo_pkg;
   /// Evaluate if the incoming operation is a reduction operation
   function automatic bit is_reduction_op(collect_op_e op);
     case (op)
-      F_Add, F_Mul, F_Min, F_Max, LSBAnd, SelectAW,
+      F_Add, F_Mul, F_Min, F_Max, LSBAnd, SelectAW,SeqAW,
       A_Add, A_Mul, A_Min_S, A_Min_U, A_Max_S,
       A_Max_U: return 1'b1;
       default: return 1'b0;
@@ -623,7 +625,7 @@ package floo_pkg;
   /// Evaluate if the incoming operation is a sequential reduction
   function automatic bit is_sequential_reduction_op(collect_op_e op);
     case (op)
-      F_Add, F_Mul, F_Min, F_Max,
+      F_Add, F_Mul, F_Min, F_Max, SeqAW,
       A_Add, A_Mul, A_Min_S, A_Min_U, A_Max_S,
       A_Max_U: return 1'b1;
       default: return 1'b0;

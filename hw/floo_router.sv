@@ -229,6 +229,8 @@ module floo_router
         // Generate the handshaking
         // Outoput 0: unicast
         // Output 1: reduction
+        //TODO(lleone): Now in the sequential reduction list tehre is also SeqAW because in case of offload,
+        // the selectAW operation is anyway handled by the offload unit regardless it's not really an offload reduction.
         assign offload_reduction[in][v] = (~red_single_member[in][v]) &
                                           (is_sequential_reduction_op(in_routed_data[in][v].hdr.collective_op));
         stream_demux #(
