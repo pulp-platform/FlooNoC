@@ -72,7 +72,8 @@ module floo_router
   /// Output channels
   output logic  [NumOutput-1:0][NumVirtChannels-1:0] valid_o,
   input  logic  [NumOutput-1:0][NumVirtChannels-1:0] ready_i,
-  output flit_t [NumOutput-1:0][NumPhysChannels-1:0] data_o,
+  // TODO: These are physical channels not virtual
+  output flit_t [NumOutput-1:0][NumVirtChannels-1:0] data_o,
   /// IF towards the offload logic
   output RdOperation_t                               offload_req_op_o,
   output RdData_t                                    offload_req_operand1_o,
@@ -485,22 +486,33 @@ module floo_router
     // However, this is the case in the `floo_vc_arbiter`.
     // For this reason, there must be cuts at the input of the endpoint.
 
-    floo_vc_arbiter #(
-      .NumVirtChannels ( NumVirtChannels ),
-      .flit_t          ( flit_t          ),
-      .NumPhysChannels ( NumPhysChannels )
-    ) i_vc_arbiter (
-      .clk_i,
-      .rst_ni,
+    // The local port has two physical channels, so no arbitration is required
+    if (out == Eject) begin : gen_no_vc_arbiter
+      assign out_buffered_ready[out] = ready_i[out];
+      assign valid_o[out] = out_buffered_valid[out];
+      assign data_o[out] = out_buffered_data[out];
+    end else begin : gen_vc_arbiter
+      floo_vc_arbiter #(
+        .NumVirtChannels ( NumVirtChannels ),
+        .flit_t          ( flit_t          ),
+        .NumPhysChannels ( NumPhysChannels )
+      ) i_vc_arbiter (
+        .clk_i,
+        .rst_ni,
 
-      .valid_i ( out_buffered_valid[out] ),
-      .ready_o ( out_buffered_ready[out] ),
-      .data_i  ( out_buffered_data [out] ),
+        .valid_i ( out_buffered_valid[out] ),
+        .ready_o ( out_buffered_ready[out] ),
+        .data_i  ( out_buffered_data [out] ),
 
-      .ready_i ( ready_i  [out] ),
-      .valid_o ( valid_o  [out] ),
-      .data_o  ( data_o   [out] )
-    );
+        .ready_i ( ready_i  [out] ),
+        .valid_o ( valid_o  [out] ),
+          .data_o  ( data_o   [out][0] )
+      );
+      if (NumVirtChannels > 1) begin : gen_tie_second_pc
+        assign data_o[out][1] = '0; // Tie the second physical channel to zero
+      end
+    end
+
   end
 
   for (genvar i = 0; i < NumInput; i++) begin : gen_input_assert

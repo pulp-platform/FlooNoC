@@ -82,6 +82,7 @@ module floo_nw_chimney #(
   parameter type floo_rsp_t                             = logic,
   /// Floo `wide` link type
   parameter type floo_wide_t                            = logic,
+  parameter type floo_wide_in_t                         = logic,
   /// SRAM configuration type `tc_sram_impl` in RoB
   /// Only used if technology-dependent SRAM is used
   parameter type sram_cfg_t                             = logic,
@@ -116,7 +117,7 @@ module floo_nw_chimney #(
   /// Input links from NoC
   input  floo_req_t   floo_req_i,
   input  floo_rsp_t   floo_rsp_i,
-  input  floo_wide_t  floo_wide_i
+  input  floo_wide_in_t  floo_wide_i
 );
 
   import floo_pkg::*;
@@ -284,12 +285,12 @@ module floo_nw_chimney #(
   logic floo_wide_out_ready;
 
   if (EnDecoupledRW) begin : gen_vc_demux
-    assign floo_wide_in_wr_valid = floo_wide_i.valid[VC_WR] && (floo_wide_i.wide.generic.hdr.axi_ch != WideR);
-    assign floo_wide_in_rd_valid = floo_wide_i.valid[VC_RD] && (floo_wide_i.wide.generic.hdr.axi_ch == WideR);
+    assign floo_wide_in_wr_valid = floo_wide_i.valid[VC_WR];
+    assign floo_wide_in_rd_valid = floo_wide_i.valid[VC_RD];
     assign floo_wide_o.ready[VC_WR] = floo_wide_out_wr_ready;
     assign floo_wide_o.ready[VC_RD] = floo_wide_out_rd_ready;
-    assign floo_wide_in_wr = floo_wide_i.wide;
-    assign floo_wide_in_rd = floo_wide_i.wide;
+    assign floo_wide_in_wr = floo_wide_i.wide[VC_WR];
+    assign floo_wide_in_rd = floo_wide_i.wide[VC_RD];
   end else begin : gen_no_vc_demux
     assign floo_wide_in = floo_wide_i.wide;
     assign floo_wide_in_valid = floo_wide_i.valid;

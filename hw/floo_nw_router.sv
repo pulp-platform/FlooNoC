@@ -49,6 +49,7 @@ module floo_nw_router #(
   parameter type floo_rsp_t                         = logic,
   /// Floo `wide` link type
   parameter type floo_wide_t                        = logic,
+  parameter type floo_wide_out_t                    = logic,
   /// Possible operation for offloading (must match type in header)
   parameter type RdWideOperation_t                  = logic,
   parameter type RdNarrowOperation_t                = logic,
@@ -79,7 +80,7 @@ module floo_nw_router #(
   output  floo_req_t [NumOutputs-1:0]   floo_req_o,
   output  floo_rsp_t [NumInputs-1:0]    floo_rsp_o,
   input   floo_wide_t [NumRoutes-1:0]   floo_wide_i,
-  output  floo_wide_t [NumRoutes-1:0]   floo_wide_o,
+  output  floo_wide_out_t [NumRoutes-1:0]   floo_wide_o,
   /// Wide IF towards the offload logic
   output RdWideOperation_t              offload_wide_req_op_o,
   output RdWideData_t                   offload_wide_req_operand1_o,
@@ -180,7 +181,8 @@ module floo_nw_router #(
   floo_rsp_chan_t [NumInputs-1:0] rsp_out;
   floo_req_chan_t [NumOutputs-1:0] req_out;
   floo_rsp_chan_t [NumOutputs-1:0] rsp_in;
-  floo_wide_chan_t [NumRoutes-1:0] wide_in, wide_out;
+  floo_wide_chan_t [NumRoutes-1:0] wide_in;
+  floo_wide_chan_t [NumRoutes-1:0][WideVirtChannel-1:0] wide_out;
   logic [NumInputs-1:0] req_valid_in, req_ready_out;
   logic [NumInputs-1:0] rsp_valid_out, rsp_ready_in;
   logic [NumOutputs-1:0] req_valid_out, req_ready_in;
