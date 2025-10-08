@@ -39,12 +39,6 @@ module floo_router
   parameter bit          XYRouteOpt           = 1'b1,
   /// Disables loopback connections
   parameter bit          NoLoopback           = 1'b1,
-  /// Enable Multicast feature
-  parameter bit          EnMultiCast          = 1'b0,
-  /// Enable offload reduction feature
-  parameter bit          EnOffloadReduction   = 1'b0,
-  /// Enable parallel reduction feature
-  parameter bit          EnParallelReduction  = 1'b0,
   /// Enable support for virtual channel in seuqentila reduction
   /// This is mandatory if support on the wide channel is needed
   parameter bit          EnCollVirtChannel    = 1'b0,
@@ -58,7 +52,7 @@ module floo_router
   /// Data type of the offload reduction
   parameter type         RdData_t             = logic,
   /// Parameter for the reduction configuration
-  parameter reduction_cfg_t RdCfg             = '0,
+  parameter collective_cfg_t CollectiveCfg    = '0,
   /// AXI configurations
   parameter axi_cfg_t    AxiCfgOffload        = '0,
   parameter axi_cfg_t    AxiCfgParallel       = '0
@@ -92,13 +86,24 @@ module floo_router
 
   // TODO MICHAERO: assert NumPhysChannels <= NumVirtChannels
 
+
+  // Generate some local parameters to understand which type of collective support
+  // is required in the specific router instance
+  localparam reduction_cfg_t RedCfg  = CollectiveCfg.RedCfg;
+  localparam bit EnSequentialReduction = is_en_wide_reduction(CollectiveCfg.OpCfg) |
+                                      is_en_narrow_seq_reduction(CollectiveCfg.OpCfg);
+
+  localparam bit EnParallelReduction = is_en_parallel_reduction(CollectiveCfg.OpCfg);
+
+  localparam bit EnMultiCast = CollectiveCfg.OpCfg.EnWideMulticast |
+                               CollectiveCfg.OpCfg.EnNarrowMulticast;
+
   // When a offloadable reduction is dedected then the data will be brunched off infront
   // of the router crossbar. The reduction logic will reduce the incoming flits and deliver
   // a single flit instead. When finished the result will be merged as an extra port into
   // the output arbiter.
-
   // Generate local Number of routes
-  localparam int unsigned localNumInputs = (EnOffloadReduction == 1'b1) ? (NumInput + 1) : (NumInput);
+  localparam int unsigned localNumInputs = (EnSequentialReduction == 1'b1) ? (NumInput + 1) : (NumInput);
 
   // Generate the vars to handle the input of the router
   flit_t [NumInput-1:0][NumVirtChannels-1:0] in_data, in_routed_data;
@@ -191,7 +196,7 @@ module floo_router
   logic [NumInput-1:0][NumVirtChannels-1:0] red_ignore_loopback_port;
 
   // If we support offload reduction and a reduction is dedected then we split the signal and forward it to the reduction
-  if(EnOffloadReduction == 1'b1) begin : gen_offload_reduction_demux
+  if(EnSequentialReduction == 1'b1) begin : gen_offload_reduction_demux
     for (genvar in = 0; in < NumInput; in++) begin : gen_input
       for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_input
         // Generate the mask for all inputs to determint if we have a reduction with only one member.
@@ -211,7 +216,7 @@ module floo_router
         // must be ignored and removed from the list of participants because the last step of
         // the reduction will be handled downsteram.
         always_comb begin: gen_ignore_loopback
-          red_ignore_loopback_port[in][v] = ((route_mask[in][v][Eject] == 1'b1) && (!RdCfg.RdSupportLoopback));
+          red_ignore_loopback_port[in][v] = ((route_mask[in][v][Eject] == 1'b1) && (!RedCfg.RdSupportLoopback));
           red_expected_in_route_loopback[in][v] = red_expected_in_route[in][v];
           red_expected_in_route_loopback[in][v][Eject] = red_expected_in_route[in][v][Eject] & (~red_ignore_loopback_port[in][v]);
         end
@@ -262,7 +267,7 @@ module floo_router
   // To have reduction support, VC0 must be used for the reduction traffic
 
   // Reduction logic
-  if(EnOffloadReduction == 1'b1) begin : gen_reduction_logic
+  if(EnSequentialReduction == 1'b1) begin : gen_reduction_logic
     for (genvar in = 0; in < NumInput; in++) begin: gen_vc_reduction
         assign red_offload_valid_in[in] = red_valid_in[in][0];
         assign red_ready_in[in][0]      = red_offload_ready_in[in];
@@ -283,7 +288,7 @@ module floo_router
       .id_t                       (id_t),
       .RdData_t                   (RdData_t),
       .RdOperation_t              (RdOperation_t),
-      .RdCfg                      (RdCfg),
+      .RdCfg                      (RedCfg),
       .AxiCfg                     (AxiCfgOffload)
     ) i_offload_reduction_logic (
       .clk_i                      (clk_i),
@@ -403,7 +408,7 @@ module floo_router
   logic [NumOutput-1:0][NumVirtChannels-1:0][localNumInputs-1:0] merged_valid, merged_ready;
   flit_t [NumOutput-1:0][NumVirtChannels-1:0][localNumInputs-1:0] merged_data;
 
-  if(EnOffloadReduction == 1'b1) begin : gen_assign_data_output
+  if(EnSequentialReduction == 1'b1) begin : gen_assign_data_output
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_con_virt
       for (genvar out = 0; out < NumOutput; out++) begin : gen_con_output
         assign merged_data[out][v] = {red_data_out[out][v], masked_data[out][v]};
@@ -423,9 +428,6 @@ module floo_router
   logic  [NumOutput-1:0][NumVirtChannels-1:0] out_valid, out_ready;
   logic  [NumOutput-1:0][NumVirtChannels-1:0] out_buffered_valid, out_buffered_ready;
 
-  logic  out_valid_merged;
-  logic  out_ready_merged;
-
   for (genvar out = 0; out < NumOutput; out++) begin : gen_output
 
     // arbitrate input fifos per virtual channel
@@ -437,8 +439,8 @@ module floo_router
         .flit_t               ( flit_t                            ),
         .hdr_t                ( hdr_t                             ),
         .id_t                 ( id_t                              ),
-        .RdSupportLoopback    ( RdCfg.RdSupportLoopback           ),
-        .RdSupportAxi         ( RdCfg.RdSupportAxi                ),
+        .RdSupportLoopback    ( RedCfg.RdSupportLoopback           ),
+        .RdSupportAxi         ( RedCfg.RdSupportAxi                ),
         .AxiCfg               ( AxiCfgParallel                    )
       ) i_output_arbiter (
         .clk_i,
@@ -544,7 +546,7 @@ module floo_router
 
   // If you have offload reduction and more than one virtual channel,
   // the reduction traffic must arrive from Virtual Channel 0
-  if (EnOffloadReduction && (NumVirtChannels > 1) && EnCollVirtChannel) begin: gen_vc_red
+  if (EnSequentialReduction && (NumVirtChannels > 1) && EnCollVirtChannel) begin: gen_vc_red
     for (genvar in = 0; in < NumInput; in++) begin
         `ASSERT(CollOpReceivedOnWrongVirtChannel, !red_valid_in[in][1])
     end
@@ -553,12 +555,12 @@ module floo_router
   // Multicast is currently only supported for `XYRouting`
   `ASSERT_INIT(NoMultiCastSupport, !(EnMultiCast && RouteAlgo != XYRouting))
   // We only support symmetrical configuration for the FP reduction
-  `ASSERT_INIT(NoSymConfig, !(EnOffloadReduction && (NumInput != NumOutput)))
+  `ASSERT_INIT(NoSymConfig, !(EnSequentialReduction && (NumInput != NumOutput)))
   // Currently the AXI support must be enabled
-  `ASSERT_INIT(SupportAXI, !EnOffloadReduction || RdCfg.RdSupportAxi)
-  // We can not support Loopback when the option is not enabled
-  `ASSERT_INIT(SupportLoopback, !(RdCfg.RdSupportLoopback && NoLoopback))
+  `ASSERT_INIT(SupportAXI, !EnSequentialReduction || RedCfg.RdSupportAxi)
+  // We can not support Loopback when you have reduction and the NoLoopback option is disabled
+  `ASSERT_INIT(SupportLoopback, !(EnSequentialReduction && RedCfg.RdSupportLoopback && NoLoopback))
   // We cannot support sequential reduction with multiple VC if EnCollVirtChannel is not set
-  `ASSERT_INIT(NoRedVcSupport, !(EnOffloadReduction && (NumVirtChannels > 1) && !EnCollVirtChannel))
+  `ASSERT_INIT(NoRedVcSupport, !(EnSequentialReduction && (NumVirtChannels > 1) && !EnCollVirtChannel))
 
 endmodule

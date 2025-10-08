@@ -264,7 +264,7 @@ package floo_pkg;
   /// Configuration to specify how extensive collective support is enabled
   typedef struct packed {
     collect_op_cfg_t OpCfg;
-    reduction_cfg_t  SequentialRedCfg;
+    reduction_cfg_t  RedCfg;
   } collective_cfg_t;
 
   /// Configuration to pass routing information to the routers
@@ -290,14 +290,6 @@ package floo_pkg;
     /// The number of routes for every routing table,
     /// Only used if `RouteAlgo == SourceRouting`
     int unsigned NumRoutes;
-    /// Whether to enable the multicast feature in the NoC TODO (lleone): Remove
-    bit EnMultiCast;
-    /// Whether to use the parallel reduction on the narrow req link TODO (lleone): Remove
-    bit EnParallelReduction;
-    /// Whether to use the offload reduction on the narrow req link TODO (lleone): Remove
-    bit EnNarrowOffloadReduction;
-    /// Whether to use the offload reduction on the wide link TODO (lleone): Remove
-    bit EnWideOffloadReduction;
     /// Configuration to support collective operations
     collective_cfg_t CollectiveCfg;
   } route_cfg_t;
@@ -372,7 +364,7 @@ package floo_pkg;
   /// The default configuration for collective operations
   localparam collective_cfg_t CollectiveDefaultCfg = '{
     OpCfg: CollectiveOpDefaultCfg,
-    SequentialRedCfg: ReductionDefaultCfg
+    RedCfg: ReductionDefaultCfg
   };
 
   /// The default configuration for the network interface
@@ -399,10 +391,6 @@ package floo_pkg;
     IdAddrOffset: 0,
     NumSamRules: 0,
     NumRoutes: 0,
-    EnMultiCast: 1'b0,
-    EnParallelReduction: 1'b0,
-    EnNarrowOffloadReduction: 1'b0,
-    EnWideOffloadReduction: 1'b0,
     CollectiveCfg: CollectiveDefaultCfg
   };
 
@@ -553,52 +541,49 @@ package floo_pkg;
   */
   ///---------------------------------------------------------
   /// Helper functions to calculate which macro transaction are supported
+  /// and which type of hardware support is required
+
+  /// Calculates if the NoC needs support for Narrow parallel reduction
+  function automatic bit is_en_parallel_reduction(collect_op_cfg_t cfg);
+    return (cfg.EnLSBAnd);
+  endfunction
+
+  /// Calculates if the NoC needs support for Narrow sequential reduction
+  function automatic bit is_en_narrow_seq_reduction(collect_op_cfg_t cfg);
+    return (cfg.EnA_Add | cfg.EnA_Mul | cfg.EnA_Min_S |
+            cfg.EnA_Min_U | cfg.EnA_Max_S | cfg.EnA_Max_U
+            );
+  endfunction
 
   /// Calculates if the NoC needs support for Narrow Sequential reduction
-  function automatic bit is_en_narrow_reduction(collective_cfg_t cfg);
-    return (cfg.OpCfg.EnA_Add | cfg.OpCfg.EnA_Mul | cfg.OpCfg.EnA_Min_S |
-            cfg.OpCfg.EnA_Min_U | cfg.OpCfg.EnA_Max_S | cfg.OpCfg.EnA_Max_U |
-            cfg.OpCfg.EnLSBAnd
+  function automatic bit is_en_narrow_reduction(collect_op_cfg_t cfg);
+    return (is_en_narrow_seq_reduction(cfg) | is_en_parallel_reduction(cfg)
             );
   endfunction
 
   /// Calculates if the NoC needs support for Wide Sequential reduction
-  function automatic bit is_en_wide_reduction(collective_cfg_t cfg);
-    return (cfg.OpCfg.EnF_Add | cfg.OpCfg.EnF_Mul |
-            cfg.OpCfg.EnF_Min | cfg.OpCfg.EnF_Max
+  /// there is no need to separate between parallel and sequential for the
+  /// wide because only wide sequential is supported
+  function automatic bit is_en_wide_reduction(collect_op_cfg_t cfg);
+    return (cfg.EnF_Add | cfg.EnF_Mul |
+            cfg.EnF_Min | cfg.EnF_Max
             );
   endfunction
 
   /// Calculate if narrow collective support is enabled
-  function automatic bit is_en_narrow_collective(collective_cfg_t cfg);
-    return (cfg.OpCfg.EnNarrowMulticast | is_en_narrow_reduction(cfg));
+  function automatic bit is_en_narrow_collective(collect_op_cfg_t cfg);
+    return (cfg.EnNarrowMulticast | is_en_narrow_reduction(cfg));
   endfunction
 
   /// Calculate if wide collective support is enabled
-  function automatic bit is_en_wide_collective(collective_cfg_t cfg);
-    return (cfg.OpCfg.EnWideMulticast | is_en_wide_reduction(cfg));
+  function automatic bit is_en_wide_collective(collect_op_cfg_t cfg);
+    return (cfg.EnWideMulticast | is_en_wide_reduction(cfg));
   endfunction
 
   /// Calculate if there is need for collective support
-  function automatic bit is_en_collective(collective_cfg_t cfg);
+  function automatic bit is_en_collective(collect_op_cfg_t cfg);
     return (is_en_wide_collective(cfg) | is_en_narrow_collective(cfg));
   endfunction
-
-  ///---------------------------------------------------------
-  /// Helper functions to calculate which macro operations are supported
-  /// Evaluate if the NoC needs support for narrow multicast operations
-  function automatic bit is_en_narrow_multicast_ops(collective_cfg_t cfg);
-    return (cfg.OpCfg.EnNarrowMulticast | is_en_narrow_reduction(cfg));
-  endfunction
-
-  function automatic bit is_en_narrow_parallel_reduction_ops(collective_cfg_t cfg);
-    return (cfg.OpCfg.EnLSBAnd);
-  endfunction
-  // /// Evaluate if the NoC needs support for wide multicast operations
-  // function automatic bit is_en_wide_multicast_op(collective_cfg_t cfg);
-  //   return (cfg.OpCfg.EnWideMulticast | is_en_wide_reduction(cfg));
-  // endfunction
-
 
   ///---------------------------------------------------------
   /// Helper functions to translate internal opcodes in macro transactions
@@ -610,7 +595,7 @@ package floo_pkg;
   /// Evaluate if the incoming operation is a reduction operation
   function automatic bit is_reduction_op(collect_op_e op);
     case (op)
-      F_Add, F_Mul, F_Min, F_Max, LSBAnd, SelectAW,SeqAW,
+      F_Add, F_Mul, F_Min, F_Max, LSBAnd, SelectAW, SeqAW,
       A_Add, A_Mul, A_Min_S, A_Min_U, A_Max_S,
       A_Max_U: return 1'b1;
       default: return 1'b0;

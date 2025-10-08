@@ -68,6 +68,9 @@ module floo_meta_buffer #(
   typedef logic [OutIdWidth-1:0] id_out_t;
   typedef logic [IdMinWidth-1:0] id_min_t;
 
+  // Collective operations parameters
+  localparam bit EnCollective = floo_pkg::is_en_collective(RouteCfg.CollectiveCfg.OpCfg);
+
   logic ar_no_atop_buf_full, aw_no_atop_buf_full;
   logic ar_no_atop_push, aw_no_atop_push;
   logic ar_no_atop_pop, aw_no_atop_pop;
@@ -218,7 +221,7 @@ module floo_meta_buffer #(
 
   // NoC addr/mask to AXI addr/mask conversion
   localparam int unsigned AddrWidth = $bits(addr_t);
-  if (RouteCfg.EnMultiCast && RouteCfg.UseIdTable &&
+  if (EnCollective && RouteCfg.UseIdTable &&
      (RouteCfg.RouteAlgo == floo_pkg::XYRouting))
   begin : gen_mcast_table_conversion
     id_t out, in_mask, in_id;

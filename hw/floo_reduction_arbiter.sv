@@ -134,7 +134,9 @@ module floo_reduction_arbiter import floo_pkg::*;
         if(in_route_mask[i]) begin
           // Extract the last bit from the data
           if(RdSupportAxi) begin
-            lsb &= extractAxiWData(data_i[i])[0];
+            floo_axi_w_flit_t axi_w_data;
+            axi_w_data = extractAxiWData(data_i[i]);
+            lsb &= axi_w_data[0];
           end
         end
       end

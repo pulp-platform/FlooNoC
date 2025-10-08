@@ -33,14 +33,6 @@ module floo_nw_router #(
   parameter bit          NoLoopback                 = 1'b1,
   /// Enable decoupling between Read and Write wide channels using virtual channels
   parameter bit          EnDecoupledRW              = 1'b0,
-  /// Enable multicast feature
-  parameter bit          EnMultiCast                = 1'b0,
-  /// Enable parallel reduction feature
-  parameter bit          EnParallelReduction        = 1'b0,
-  /// Enable offload reduction feature
-  parameter bit          EnOffloadWideReduction     = 1'b0,
-  /// Enable offload reduction on the narrow port
-  parameter bit          EnOffloadNarrowReduction   = 1'b0,
   /// Node ID type
   parameter type id_t                               = logic,
   /// Header type
@@ -63,12 +55,14 @@ module floo_nw_router #(
   /// Data type of the offload reduction
   parameter type RdWideData_t                       = logic,
   parameter type RdNarrowData_t                     = logic,
+  /// Parameter to define which type of collective operation support
+  parameter floo_pkg::collect_op_cfg_t CollectiveOpCfg = floo_pkg::CollectiveOpDefaultCfg,
   /// Parameter for the wide reduction configuration
-  parameter floo_pkg::reduction_cfg_t RdWideCfg     = '0,
+  parameter floo_pkg::reduction_cfg_t RdWideCfg     = floo_pkg::ReductionDefaultCfg,
   /// Parameter for the narrow reduction configuration
-  parameter floo_pkg::reduction_cfg_t RdNarrowCfg   = '0,
+  parameter floo_pkg::reduction_cfg_t RdNarrowCfg   = floo_pkg::ReductionDefaultCfg,
   /// Paramter for the response router
-  parameter floo_pkg::reduction_cfg_t RdRespCfg     = '0
+  parameter floo_pkg::reduction_cfg_t RdRespCfg     = floo_pkg::ReductionDefaultCfg
 ) (
   input  logic   clk_i,
   input  logic   rst_ni,
@@ -125,7 +119,68 @@ module floo_nw_router #(
       axi_wide_in_id_t, axi_wide_data_t, axi_wide_strb_t, axi_wide_user_t)
   `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow, axi_wide, AxiCfgN, AxiCfgW, hdr_t)
 
+  // Local parameters to properly configure collective operation support
+  // hiding the complexity to the user
   localparam int unsigned WideVirtChannel = (EnDecoupledRW) ? 2 : 1;
+
+  localparam floo_pkg::collective_cfg_t CollectiveReqCfg = '{
+    OpCfg: '{
+      EnNarrowMulticast : floo_pkg::is_en_collective(CollectiveOpCfg),
+      EnWideMulticast   : 1'b0,
+      EnLSBAnd          : CollectiveOpCfg.EnLSBAnd,
+      EnF_Add           : 1'b0,
+      EnF_Mul           : 1'b0,
+      EnF_Min           : 1'b0,
+      EnF_Max           : 1'b0,
+      EnA_Add           : CollectiveOpCfg.EnA_Add,
+      EnA_Mul           : CollectiveOpCfg.EnA_Mul,
+      EnA_Min_S         : CollectiveOpCfg.EnA_Min_S,
+      EnA_Min_U         : CollectiveOpCfg.EnA_Min_U,
+      EnA_Max_S         : CollectiveOpCfg.EnA_Max_S,
+      EnA_Max_U         : CollectiveOpCfg.EnA_Max_U
+    },
+    RedCfg: RdNarrowCfg
+  };
+
+  localparam floo_pkg::collective_cfg_t CollectiveRspCfg = '{
+    OpCfg: '{
+      EnNarrowMulticast : floo_pkg::is_en_narrow_reduction(CollectiveOpCfg) |
+                          floo_pkg::is_en_wide_reduction(CollectiveOpCfg),
+      EnWideMulticast   : 1'b0,
+      EnLSBAnd          : CollectiveOpCfg.EnNarrowMulticast |
+                          CollectiveOpCfg.EnWideMulticast,
+      EnF_Add           : 1'b0,
+      EnF_Mul           : 1'b0,
+      EnF_Min           : 1'b0,
+      EnF_Max           : 1'b0,
+      EnA_Add           : 1'b0,
+      EnA_Mul           : 1'b0,
+      EnA_Min_S         : 1'b0,
+      EnA_Min_U         : 1'b0,
+      EnA_Max_S         : 1'b0,
+      EnA_Max_U         : 1'b0
+    },
+    RedCfg: RdRespCfg
+  };
+
+  localparam floo_pkg::collective_cfg_t CollectiveWideCfg = '{
+    OpCfg: '{
+      EnNarrowMulticast : 1'b0,
+      EnWideMulticast   : CollectiveOpCfg.EnWideMulticast,
+      EnLSBAnd          : 1'b0,
+      EnF_Add           : CollectiveOpCfg.EnF_Add,
+      EnF_Mul           : CollectiveOpCfg.EnF_Mul,
+      EnF_Min           : CollectiveOpCfg.EnF_Min,
+      EnF_Max           : CollectiveOpCfg.EnF_Max,
+      EnA_Add           : 1'b0,
+      EnA_Mul           : 1'b0,
+      EnA_Min_S         : 1'b0,
+      EnA_Min_U         : 1'b0,
+      EnA_Max_S         : 1'b0,
+      EnA_Max_U         : 1'b0
+    },
+    RedCfg: RdWideCfg
+  };
 
   floo_req_chan_t [NumInputs-1:0] req_in;
   floo_rsp_chan_t [NumInputs-1:0] rsp_out;
@@ -177,16 +232,13 @@ module floo_nw_router #(
     .XYRouteOpt           ( XYRouteOpt                ),
     .NumAddrRules         ( NumAddrRules              ),
     .NoLoopback           ( NoLoopback                ),
-    .EnMultiCast          ( EnMultiCast               ),
-    .EnOffloadReduction   ( EnOffloadNarrowReduction | EnOffloadWideReduction ),
-    .EnParallelReduction  ( EnParallelReduction       ),
     .id_t                 ( id_t                      ),
     .addr_rule_t          ( addr_rule_t               ),
     .flit_t               ( floo_req_generic_flit_t   ),
     .hdr_t                ( hdr_t                     ),
     .RdOperation_t        ( RdNarrowOperation_t       ),
     .RdData_t             ( RdNarrowData_t            ),
-    .RdCfg                ( RdNarrowCfg               ),
+    .CollectiveCfg        ( CollectiveReqCfg          ),
     .AxiCfgOffload        ( AxiCfgN                   ),
     .AxiCfgParallel       ( AxiCfgN                   )
   ) i_req_floo_router (
@@ -222,14 +274,11 @@ module floo_nw_router #(
     .XYRouteOpt           ( XYRouteOpt              ),
     .NumAddrRules         ( NumAddrRules            ),
     .NoLoopback           ( NoLoopback              ),
-    .EnMultiCast          ( EnOffloadNarrowReduction | EnOffloadWideReduction | EnParallelReduction ),
-    .EnOffloadReduction   ( 1'b0                    ),
-    .EnParallelReduction  ( EnMultiCast             ),
     .id_t                 ( id_t                    ),
     .addr_rule_t          ( addr_rule_t             ),
     .flit_t               ( floo_rsp_generic_flit_t ),
     .hdr_t                ( hdr_t                   ),
-    .RdCfg                ( RdRespCfg               ),
+    .CollectiveCfg        ( CollectiveRspCfg        ),
     .AxiCfgOffload        ( '0                      ),
     .AxiCfgParallel       ( AxiCfgN                 )
   ) i_rsp_floo_router (
@@ -265,9 +314,6 @@ module floo_nw_router #(
     .XYRouteOpt           ( XYRouteOpt                ),
     .NumAddrRules         ( NumAddrRules              ),
     .NoLoopback           ( NoLoopback                ),
-    .EnMultiCast          ( EnMultiCast               ),
-    .EnOffloadReduction   ( EnOffloadWideReduction    ),
-    .EnParallelReduction  ( 1'b0                      ),
     .EnCollVirtChannel    ( EnDecoupledRW             ),
     .id_t                 ( id_t                      ),
     .addr_rule_t          ( addr_rule_t               ),
@@ -275,7 +321,7 @@ module floo_nw_router #(
     .hdr_t                ( hdr_t                     ),
     .RdOperation_t        ( RdWideOperation_t         ),
     .RdData_t             ( RdWideData_t              ),
-    .RdCfg                ( RdWideCfg                 ),
+    .CollectiveCfg        ( CollectiveWideCfg         ),
     .AxiCfgOffload        ( AxiCfgW                   ),
     .AxiCfgParallel       ( '0                        )
   ) i_wide_req_floo_router (
