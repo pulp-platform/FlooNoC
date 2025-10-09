@@ -7,16 +7,16 @@
 // To be able to have multiple infligth reduction at the same time we need to track each element
 // belonging to an individal reduction. Only elements with equal tag will be reduced together.
 // This separation into a seperate module allows to reduce the tracking effort inside the rest
-// of the system. Depending on the system restriction we can have a more sophiticated tag 
-// generator implementation. In the most general case we would support reduction of 
+// of the system. Depending on the system restriction we can have a more sophiticated tag
+// generator implementation. In the most general case we would support reduction of
 // out-of-order arriving elements (NOT SUPPORTED!)
 
 // Current Implementation:
-// We want to support the most general input pattern without the overhead of out-of-order 
-// tracking. The main problem is that the tag can never be out of sync in respect for all 
-// inputs. If one element is excpected from a certain input direction then it is only allowed 
+// We want to support the most general input pattern without the overhead of out-of-order
+// tracking. The main problem is that the tag can never be out of sync in respect for all
+// inputs. If one element is excpected from a certain input direction then it is only allowed
 // to increment the Tag if the element actually arrives (and not sooner!) therefor we count
-// pending elements on each input. If no element is excpected from one direction then the Tag 
+// pending elements on each input. If no element is excpected from one direction then the Tag
 // should be incremented immidiatly.
 
 // Example:
@@ -42,7 +42,7 @@
 //
 // Cycle 5  A > No Flit expected --> internal Tag set to 4
 //          B > Flit 2.1B arrives --> gets Tag 3 --> internal Tag set to 4
-//          C > Flit 2.1C arrives --> gets Tag 3 --> internal Tag set to 4 
+//          C > Flit 2.1C arrives --> gets Tag 3 --> internal Tag set to 4
 //
 // Cycle 6  None*
 //
@@ -67,12 +67,12 @@
 
 // Restriction:
 // - With the current implementation it is impossible to handle two different incoming reduction
-//   (different target address) request in the same cycle. However it should work if a pending 
+//   (different target address) request in the same cycle. However it should work if a pending
 //   elements incomes together with an new reduction request (Not tested!).
 // - All inputs needs to be strictly in order.
 
 // Open Points:
-// - Check if the module works with backpressure or not. Maybe necessary to introduce output 
+// - Check if the module works with backpressure or not. Maybe necessary to introduce output
 //   stage if valid is asserted but not accepted by ready yet.
 // - Evaluate the target adress to allow for more than one incoming reduction at the same time
 
@@ -143,15 +143,16 @@ for (genvar i = 0; i < NumRoutes; i++) begin : gen_pending_tracker
     );
 end
 
-// Generat the mask - if no pending incoming req then forward the mask, otherwise set to 0!
+// TODO(lleone): Transpose input mask to gen_mask_with_pending. WHY? IS IT REALLY NECESSARY?
+// Generate the mask - if no pending incoming req then forward the mask, otherwise set to 0!
 for (genvar i = 0; i < NumRoutes; i++) begin
     for (genvar j = 0; j < NumRoutes; j++) begin
-        assign gen_mask_with_pending[j][i] = 
+        assign gen_mask_with_pending[j][i] =
                 ((outstanding_pending[i] == 1'b0) && (handshake[i] == 1'b1)) ? mask_i[i][j] : 1'b0;
     end
 end
 
-// The general mask indicates if the router excpect an element on this input. The or-connection 
+// The general mask indicates if the router excpect an element on this input. The or-connection
 // between all inputs is to receive the first handshake on any interface availble.
 // The mask is only taken into consideration in the general mask if no pending element exists on
 // the input as the strict in-order-requiremnt determines that the next incoming element
@@ -180,8 +181,8 @@ always_comb begin
         // Increment the Tag if we have a valid handshake and the bit in the general mask is set
         // (Element expected from this input and element is actually there)
         if((general_mask[i] == 1'b1) && (handshake[i] == 1'b1) && (new_reduction_incoming == 1'b1)) begin
-            // Edge case: On another input we have new incoming request but we have also a pending one 
-            // with the same mask on this input therefore the received entry is the pending one 
+            // Edge case: On another input we have new incoming request but we have also a pending one
+            // with the same mask on this input therefore the received entry is the pending one
             // (handled further down) and not the "new" one - so increment the pending one
             if(outstanding_pending[i] == 1'b1) begin
                 inc_pending[i] = 1'b1;
@@ -216,6 +217,7 @@ always_comb begin
     end
 end
 
+// TODO(lleone): WHY NOT USING A NORMAL COUNTER? In this code you might inceremnet twice if both signals are asseretd? If so use delta counter?
 // Generate the Tag's here!
 always_comb begin
     // Init all Vars

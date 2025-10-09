@@ -8,6 +8,7 @@ module floo_synth_nw_router
   import floo_pkg::*;
   import floo_synth_params_pkg::*;
   import floo_synth_nw_pkg::*;
+  import floo_synth_collective_pkg::*;
 #(
   parameter int unsigned NumPorts = int'(floo_pkg::NumDirections)
 ) (
@@ -23,23 +24,46 @@ module floo_synth_nw_router
   output floo_req_t [NumPorts-1:0] floo_req_o,
   output floo_rsp_t [NumPorts-1:0] floo_rsp_o,
   input  floo_wide_t [NumPorts-1:0] floo_wide_i,
-  output floo_wide_t [NumPorts-1:0] floo_wide_o
+  output floo_wide_t [NumPorts-1:0] floo_wide_o,
+  /// Wide IF towards the offload logic
+  output floo_pkg::collect_op_e              offload_wide_req_op_o,
+  output RdDataWide_t                   offload_wide_req_operand1_o,
+  output RdDataWide_t                   offload_wide_req_operand2_o,
+  output logic                          offload_wide_req_valid_o,
+  input logic                           offload_wide_req_ready_i,
+  /// Wide IF from external FPU
+  input RdDataWide_t                    offload_wide_resp_result_i,
+  input logic                           offload_wide_resp_valid_i,
+  output logic                          offload_wide_resp_ready_o,
+  /// Narrow IF towards the offload logic
+  output floo_pkg::collect_op_e            offload_narrow_req_op_o,
+  output RdDataNarrow_t                 offload_narrow_req_operand1_o,
+  output RdDataNarrow_t                 offload_narrow_req_operand2_o,
+  output logic                          offload_narrow_req_valid_o,
+  input logic                           offload_narrow_req_ready_i,
+  /// Narrow IF from external FPU
+  input RdDataNarrow_t                  offload_narrow_resp_result_i,
+  input logic                           offload_narrow_resp_valid_i,
+  output logic                          offload_narrow_resp_ready_o
 );
 
+localparam bit Reduction = 1'b1;
+if (!Reduction) begin
   floo_nw_router #(
-    .AxiCfgN      ( AxiCfgN             ),
-    .AxiCfgW      ( AxiCfgW             ),
-    .RouteAlgo    ( RouteCfg.RouteAlgo  ),
-    .NumRoutes    ( NumPorts            ),
-    .NumAddrRules ( 1                   ),
-    .InFifoDepth  ( InFifoDepth         ),
-    .OutFifoDepth ( OutFifoDepth        ),
-    .XYRouteOpt   ( 1'b0                ),
-    .id_t         ( id_t                ),
-    .hdr_t        ( hdr_t               ),
-    .floo_req_t   ( floo_req_t          ),
-    .floo_rsp_t   ( floo_rsp_t          ),
-    .floo_wide_t  ( floo_wide_t         )
+    .AxiCfgN       ( AxiCfgN             ),
+    .AxiCfgW       ( AxiCfgW             ),
+    .RouteAlgo     ( RouteCfg.RouteAlgo  ),
+    .NumRoutes     ( NumPorts            ),
+    .NumAddrRules  ( 1                   ),
+    .InFifoDepth   ( InFifoDepth         ),
+    .OutFifoDepth  ( OutFifoDepth        ),
+    .XYRouteOpt    ( 1'b0                ),
+    .EnDecoupledRW ( 1'b0                ),
+    .id_t          ( id_t                ),
+    .hdr_t         ( hdr_t               ),
+    .floo_req_t    ( floo_req_t          ),
+    .floo_rsp_t    ( floo_rsp_t          ),
+    .floo_wide_t   ( floo_wide_t         )
   ) i_floo_nw_router (
     .clk_i          ( clk_i           ),
     .rst_ni         ( rst_ni          ),
@@ -51,7 +75,81 @@ module floo_synth_nw_router
     .floo_req_o     ( floo_req_o      ),
     .floo_rsp_o     ( floo_rsp_o      ),
     .floo_wide_i    ( floo_wide_i     ),
-    .floo_wide_o    ( floo_wide_o     )
+    .floo_wide_o    ( floo_wide_o     ),
+    .offload_wide_req_op_o          (),
+    .offload_wide_req_operand1_o    (),
+    .offload_wide_req_operand2_o    (),
+    .offload_wide_req_valid_o       (),
+    .offload_wide_req_ready_i       ('0),
+    .offload_wide_resp_result_i     ('0),
+    .offload_wide_resp_valid_i      ('0),
+    .offload_wide_resp_ready_o      (),
+    // Narrow Reduction offload port
+    .offload_narrow_req_op_o        (),
+    .offload_narrow_req_operand1_o  (),
+    .offload_narrow_req_operand2_o  (),
+    .offload_narrow_req_valid_o     (),
+    .offload_narrow_req_ready_i     ('0),
+    .offload_narrow_resp_result_i   ('0),
+    .offload_narrow_resp_valid_i    ('0),
+    .offload_narrow_resp_ready_o    ()
   );
+end else begin
+  floo_nw_router #(
+    .AxiCfgN      ( AxiCfgN             ),
+    .AxiCfgW      ( AxiCfgW             ),
+    .RouteAlgo    ( RouteCfg.RouteAlgo  ),
+    .NumRoutes    ( NumPorts            ),
+    .NumAddrRules ( 1                   ),
+    .InFifoDepth  ( InFifoDepth         ),
+    .OutFifoDepth ( OutFifoDepth        ),
+    .XYRouteOpt   ( 1'b0                ),
+    .NoLoopback   (1'b0),
+    .EnDecoupledRW (1'b0),
+    .id_t         ( id_t                ),
+    .hdr_t        ( hdr_coll_t          ),
+    .floo_req_t   ( floo_req_t          ),
+    .floo_rsp_t   ( floo_rsp_t          ),
+    .floo_wide_t  ( floo_wide_t         ),
+    .RdWideOperation_t        (floo_pkg::collect_op_e),
+    .RdNarrowOperation_t      (floo_pkg::collect_op_e),
+    .RdWideData_t             (RdDataWide_t),
+    .RdNarrowData_t           (RdDataNarrow_t),
+    .CollectiveOpCfg          (ParallelOpCfg),          // To be modified for different synth cfg results
+    .RdWideCfg                (WideGenReductionCfg),     // To be modified for different synth cfg results
+    .RdNarrowCfg              (NarrowGenReductionCfg),   // To be modified for different synth cfg results
+    .RdRespCfg                (ResponseReductionCfg)     // To be modified for different synth cfg results
+  ) i_floo_nw_router (
+    .clk_i          ( clk_i           ),
+    .rst_ni         ( rst_ni          ),
+    .test_enable_i  ( test_enable_i   ),
+    .id_i           ( id_i            ),
+    .id_route_map_i ( id_route_map_i  ),
+    .floo_req_i     ( floo_req_i      ),
+    .floo_rsp_i     ( floo_rsp_i      ),
+    .floo_req_o     ( floo_req_o      ),
+    .floo_rsp_o     ( floo_rsp_o      ),
+    .floo_wide_i    ( floo_wide_i     ),
+    .floo_wide_o    ( floo_wide_o     ),
+    .offload_wide_req_op_o          (offload_wide_req_op_o),
+    .offload_wide_req_operand1_o    (offload_wide_req_operand1_o),
+    .offload_wide_req_operand2_o    (offload_wide_req_operand2_o),
+    .offload_wide_req_valid_o       (offload_wide_req_valid_o),
+    .offload_wide_req_ready_i       (offload_wide_req_ready_i),
+    .offload_wide_resp_result_i     (offload_wide_resp_result_i),
+    .offload_wide_resp_valid_i      (offload_wide_resp_valid_i),
+    .offload_wide_resp_ready_o      (offload_wide_resp_ready_o),
+    // Narrow Reduction offload port
+    .offload_narrow_req_op_o        (offload_narrow_req_op_o),
+    .offload_narrow_req_operand1_o  (offload_narrow_req_operand1_o),
+    .offload_narrow_req_operand2_o  (offload_narrow_req_operand2_o),
+    .offload_narrow_req_valid_o     (offload_narrow_req_valid_o),
+    .offload_narrow_req_ready_i     (offload_narrow_req_ready_i),
+    .offload_narrow_resp_result_i   (offload_narrow_resp_result_i),
+    .offload_narrow_resp_valid_i    (offload_narrow_resp_valid_i),
+    .offload_narrow_resp_ready_o    (offload_narrow_resp_ready_o)
+  );
+end
+
 
 endmodule

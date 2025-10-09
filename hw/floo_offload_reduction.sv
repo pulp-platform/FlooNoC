@@ -11,14 +11,14 @@
 // The main design goal was to allow a fully pipelined operation e.g. if out inputs provide each
 // cycle a new elements to reduce then the underlying reduction utilization should be 100% during
 // the reduction. However as this required more tracking effort we support other modes too.
-// When we reduce elements from at tleast three different inputs we are required to have a
-// partial result buffer for intermidiate results.
+// When we reduce elements from at least three different inputs we are required to have a
+// partial result buffer for intermediate results.
 //
 // Overall three modes are supported: Generic, Stalling, Simple, see the controller for more
 // documentation.
 //
 // For the generic system we require a tag based system to allow tracking of each elements as we
-// elementsfrom different reduction iteration in-fligth. All elements which hold the same tag
+// elements from different reduction iteration in-flight. All elements which hold the same tag
 // need to be reduced together. This allows to separate the tag generation and the reduction logic.
 //
 // Additionally ever element gets an mask which indicates which elements are already reduced in
@@ -30,9 +30,9 @@
 
 // Restriction:
 // - Currently we only support reduction of elements belonging to the same reduction stream.
-//   In AXI term: different beats beloning to the same burst are okay but not two different
-//   burts.
-// - The max number of input is currently fixed to 6. This can be extended but th size of
+//   In AXI term: different beats belonging to the same burst are okay but not two different
+//   bursts.
+// - The max number of input is currently fixed to 6. This can be extended but the size of
 //   the tag_t depends on it.
 // - We only support symmetric configurations e.g. NumInput and NumOutput needs to be equal
 
@@ -87,9 +87,9 @@ module floo_offload_reduction import floo_pkg::*; #(
 /* All local parameter */
 
 // Set the complexity of the Controller
-localparam bit GENERIC  = (RdCfg.RdControllConf == ControllerGeneric) ? 1'b1 : 1'b0;
-localparam bit SIMPLE   = (RdCfg.RdControllConf == ControllerSimple) ? 1'b1 : 1'b0;
-localparam bit STALLING = (RdCfg.RdControllConf == ControllerStalling) ? 1'b1 : 1'b0;
+localparam bit GENERIC  = (RdCfg.RdControllConf == ControllerGeneric);
+localparam bit SIMPLE   = (RdCfg.RdControllConf == ControllerSimple);
+localparam bit STALLING = (RdCfg.RdControllConf == ControllerStalling);
 
 /* All Typedef Vars */
 // Index Variable to control the crossbar and the partial buffer
@@ -404,6 +404,7 @@ end
 assign reduction_resp_data.data = reduction_resp_data_i;
 
 // Demux the output of the fpu
+// TODO (lleone): Change if !SIMPLE
 if((GENERIC == 1'b1) || (STALLING == 1'b1)) begin : gen_demux_partial_result
   stream_demux #(
     .N_OUP              (2)

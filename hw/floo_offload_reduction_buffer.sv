@@ -22,7 +22,8 @@ module floo_offload_reduction_buffer #(
     /// Number of outputs for the buffer
     parameter integer NOutPorts                         = 1,
     /// Dependent parameters, DO NOT OVERRIDE!
-    parameter integer LogNElements                      = (NElements > 32'd1) ? unsigned'($clog2(NElements)) : 1'b1
+    /// TODO(lleone): There is a function for this
+    parameter integer LogNElements                       = (NElements > 32'd1) ? unsigned'($clog2(NElements)) : 1'b1
 ) (
     /// Control Inputs
     input  logic                                        clk_i,
@@ -40,7 +41,7 @@ module floo_offload_reduction_buffer #(
     input  logic [NOutPorts-1:0]                        inp_sel_valid_i,
     input  logic [NOutPorts-1:0][LogNElements-1:0]      inp_sel_i,
     /// Spyglass to all entries of the Buffer
-    output logic [NElements-1:0]                        spyglass_valid_o, 
+    output logic [NElements-1:0]                        spyglass_valid_o,
     output tag_t [NElements-1:0]                        spyglass_tag_o
 );
 

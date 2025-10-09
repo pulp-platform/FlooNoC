@@ -4,7 +4,7 @@
 //
 // Raphael Roth <raroth@student.ethz.ch>
 
-// This module controls the hole reduction by setting all Mux / DeMus / Buff Select into its
+// This module controls the whole reduction by setting all Mux / DeMux / Buff Select into its
 // appropriate position. To control the reduction(s) we have one buffer which stores all the
 // required metadata.
 //
@@ -24,20 +24,20 @@
 //              the reduction. The partial buffer can be reduced to its minimum size of 2.
 //
 // Simple:      least hw overhead
-//              All incoming reduction can consits of only two elements therefor no partial buffer
-//              is required. However the user writing the software has to garantee that the only
-//              two elements are used in eac reduction. This requires that the sw guy is aware of
+//              All incoming reduction can consist of only two elements therefor no partial buffer
+//              is required. However the user writing the software has to guarantee that the only
+//              two elements are used in each reduction. This requires that the sw guy is aware of
 //              the physical implementation of the NoC. No tag or mask is required as we can start
 //              the reduction as soon as we have two elements on the input.
 //
-// To garantee the ordering in the generic implementation this modul implements priority scheme
+// To guarantee the ordering in the generic implementation this module implements priority scheme
 // e.g. the first buffer entry has the most priority, then the second, then the third etc.
 // It works only on elements from lower priority if the higher ones can not schedule
 // any operation.
 //
 // This module must be aware of the underlying communication protocol embedded in the FlooNoc.
 // Any header like information (e.g. AXI AW transmission) needs to be forwarded just once
-// without reducing anything. This is implmented by a bypass option.
+// without reducing anything. This is implemented by a bypass option.
 
 // Limits:
 // - We can not handle out-of-order
@@ -261,7 +261,7 @@ end else begin : gen_no_stalling
     assign head_fifo_ready_o = stalling_ready;
 end
 
-// Check if on any input we have new data are available. Each input is checked against
+// Check if on any input we have new data available. Each input is checked against
 // each buffer entry if the tag is available. However only one input will be forwarded
 // into the buffer.
 if(GENERIC || STALLING) begin : gen_filter_unkown_flit_tags
@@ -269,7 +269,7 @@ if(GENERIC || STALLING) begin : gen_filter_unkown_flit_tags
     always_comb begin
         // Init all Vars
         unkown_incoming_flit = '0;
-        unkown_incoming_valid = 1'b0;
+        unkown_incoming_valid = '0;
 
         // Loop over all inputs
         for(int k = 0; k < NumRoutes; k++) begin
@@ -321,14 +321,14 @@ end
 // Dedect if the system does apply backpressure
 // The problem is that we want to fill the FPU pipeline. However if backpressure is applied we can
 // only insert an element if at least one element originates in the partial result buffer.
-// Otherwise we could deadlock thehole system.
+// Otherwise we could deadlock the system.
 assign backpressure_fpu_resp = reduction_resp_valid_i & (~reduction_resp_ready_i);
 
 // The control part can be split into 4 distinctive stages (with additional substages)
 // 1. Stage: Populate the buffer with new data
-// 2. Stage: Schedule an reduction when possible
-// 3. Stage: Schedule an direct passthrough if possible (AXI AW)
-// 4. Stage: Retire an buffer entry if the corresponding tag leaves the reduction logic
+// 2. Stage: Schedule a reduction when possible
+// 3. Stage: Schedule a direct passthrough if possible (AXI AW)
+// 4. Stage: Retire a buffer entry if the corresponding tag leaves the reduction logic
 // 5. Stage: If one higher prio buffer entry is free then push the buffer by one position
 
 // The entries of the buffer are prioritized by the index. Operation from the first index
@@ -401,7 +401,7 @@ if(GENERIC || STALLING) begin : gen_controller_stalling_generic
                     // Check if we have to directly forward the flit
                     buffer_d[i].f_forwarding = (new_incoming_flit.flit.hdr.collective_op == floo_pkg::SeqAW) ? 1'b1 : 1'b0;
                     if((buffer_d[i].f_forwarding == 1'b1) && (RdEnableBypass == 1'b0)) begin
-                        $error($time, "Somehow an AW flit got to an reduction which does not support bypass - Why?");
+                        $error($time, "An AW flit got to a reduction controller which does not support bypass");
                     end
                 end
             end
@@ -410,8 +410,7 @@ if(GENERIC || STALLING) begin : gen_controller_stalling_generic
             //      - Entry in Buffer is valid
             //      - No higher prioritized buffer already has scheduled an operation
             //      - The reduction is not an AW transaction
-            if( (buffer_d[i].f_valid == 1'b1) &&
-                (locked_d == 1'b0) &&
+            if( (buffer_d[i].f_valid == 1'b1) && (locked_d == 1'b0) &&
                 (buffer_d[i].f_forwarding == 0)) begin
 
                 // First iterate over the partial result buffer
@@ -499,7 +498,7 @@ if(GENERIC || STALLING) begin : gen_controller_stalling_generic
                 bypass_flit.flit = buffer_d[i].header;
                 bypass_flit.mask = buffer_d[i].output_dir;
                 bypass_flit.tag = buffer_d[i].tag;
-                // Forward the bypass ready signal to the input's which requires the signal
+                // Multicast the bypass ready signal to the input's which requires the signal
                 stalling_ready = (buffer_d[i].final_mask & {(NumRoutes){bypass_ready}});
             end
 
@@ -521,13 +520,14 @@ if(GENERIC || STALLING) begin : gen_controller_stalling_generic
                 // ATTENTION! DO NOT OVERWRITE THE buffer_d[i].mask & .header fields!
                 // Otherwise the stalling implementation won't work
                 if(i > 0) begin
-                    $error($time, "We retired an element other from buffer entry 0. This should not happen. Why?");
+                    $error($time, "We retired an element other from buffer entry 0. This should not happen.");
                 end
             end
         end
 
         // 5 Stage: Copy the data to a higher prio slot if it is free and we are valid
         // (Stalling case already handled by having i only 0!)
+        // TODO(lleone): Can you change the loop to start from i = 1?
         for(int i = 0; i < RdBufferSize; i++) begin
             if(i != 0) begin
                 if((buffer_d[i-1].f_valid == 1'b0) && (buffer_d[i].f_valid == 1'b1)) begin
@@ -582,7 +582,7 @@ end else begin
     assign selected_op_d = '0;
 end
 
-// Determint when a element from the buffer should be retired. In the stalling case we track
+// Determint when an element from the buffer should be retired. In the stalling case we track
 // if the element is to be forwarded to the output after this iteration.
 if(GENERIC) begin : gen_generic_retirement
     assign retire_element = final_valid_o & final_ready_i;

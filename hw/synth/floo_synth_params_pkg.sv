@@ -8,6 +8,7 @@
 `include "floo_noc/typedef.svh"
 
 package floo_synth_params_pkg;
+  import floo_pkg::*;
 
   // Router parameters
   localparam int unsigned InFifoDepth = 2;
@@ -16,7 +17,7 @@ package floo_synth_params_pkg;
   // Default route config for testing
   localparam floo_pkg::route_cfg_t RouteCfg = '{
     RouteAlgo: floo_pkg::XYRouting,
-    UseIdTable: 0,
+    UseIdTable: 1,
     XYAddrOffsetX: 16,
     XYAddrOffsetY: 20,
     default: '0 // Potentially enable Multicast features
@@ -131,5 +132,171 @@ package floo_synth_nw_vc_pkg;
   `FLOO_TYPEDEF_NW_CHAN_ALL(vc_axi, vc_req, vc_rsp, vc_wide, axi_narrow_in, axi_wide_in,
       AxiCfgN, AxiCfgW, vc_hdr_t)
   `FLOO_TYPEDEF_NW_LINK_ALL(vc_req, vc_rsp, vc_wide, vc_req, vc_rsp, vc_wide)
+
+endpackage
+
+
+package floo_synth_collective_pkg;
+  import floo_pkg::*;
+  import floo_synth_params_pkg::*;
+  import floo_synth_nw_pkg::*;
+
+  typedef logic [0:0] rob_idx_t;
+
+  // TODO (lleone): Script the following configurations with Python
+  // Offload unit configuration
+  localparam reduction_cfg_t WideGenReductionCfg = '{
+    RdControllConf: ControllerGeneric,
+    RdFifoFallThrough: 1'b1,
+    RdFifoDepth: 0,
+    RdPipelineDepth: 5,
+    RdPartialBufferSize: 6,
+    RdTagBits: 5,
+    RdSupportAxi: 1'b1,
+    RdEnableBypass: 1'b1,
+    RdSupportLoopback: 1'b1
+  };
+
+  localparam reduction_cfg_t WideStallingReductionCfg = '{
+    RdControllConf: ControllerStalling,
+    RdFifoFallThrough: 1'b1,
+    RdFifoDepth: 0,
+    RdPipelineDepth: 5,
+    RdPartialBufferSize: 6,
+    RdTagBits: 5,
+    RdSupportAxi: 1'b1,
+    RdEnableBypass: 1'b1,
+    RdSupportLoopback: 1'b1
+  };
+
+  localparam reduction_cfg_t WideSimpleReductionCfg = '{
+    RdControllConf: ControllerSimple,
+    RdFifoFallThrough: 1'b1,
+    RdFifoDepth: 0,
+    RdPipelineDepth: 5,
+    RdPartialBufferSize: 6,
+    RdTagBits: 5,
+    RdSupportAxi: 1'b1,
+    RdEnableBypass: 1'b1,
+    RdSupportLoopback: 1'b1
+  };
+
+localparam reduction_cfg_t NarrowGenReductionCfg = '{
+    RdControllConf: ControllerGeneric,
+    RdFifoFallThrough: 1'b1,
+    RdFifoDepth: 0,
+    RdPipelineDepth: 1,
+    RdPartialBufferSize: 3,
+    RdTagBits: 5,
+    RdSupportAxi: 1'b1,
+    RdEnableBypass: 1'b1,
+    RdSupportLoopback: 1'b1
+  };
+
+  localparam reduction_cfg_t NarrowStallingReductionCfg = '{
+    RdControllConf: ControllerStalling,
+    RdFifoFallThrough: 1'b1,
+    RdFifoDepth: 0,
+    RdPipelineDepth: 1,
+    RdPartialBufferSize: 3,
+    RdTagBits: 5,
+    RdSupportAxi: 1'b1,
+    RdEnableBypass: 1'b1,
+    RdSupportLoopback: 1'b1
+  };
+
+  localparam reduction_cfg_t NarrowSimpleReductionCfg = '{
+    RdControllConf: ControllerSimple,
+    RdFifoFallThrough: 1'b1,
+    RdFifoDepth: 0,
+    RdPipelineDepth: 1,
+    RdPartialBufferSize: 3,
+    RdTagBits: 5,
+    RdSupportAxi: 1'b1,
+    RdEnableBypass: 1'b1,
+    RdSupportLoopback: 1'b1
+  };
+
+  localparam reduction_cfg_t ResponseReductionCfg = '{
+    RdEnableBypass: 1'b1,
+    RdSupportLoopback: 1'b1,
+    default: '0
+  };
+
+  // Route config with collective support enabled
+  // This configuration is the one to be changed in order to enable or disable
+  // different collective operation support
+  // TODO (lleone): SCript this with Python
+  localparam floo_pkg::collect_op_cfg_t CollectiveOpCfg = '{
+    EnNarrowMulticast:  1'b1,
+    EnWideMulticast:    1'b1,
+    EnLSBAnd:           1'b1,
+    EnF_Add:            1'b1,
+    EnF_Mul:            1'b1,
+    EnF_Min:            1'b1,
+    EnF_Max:            1'b1,
+    default:            '0
+  };
+
+  localparam floo_pkg::collect_op_cfg_t MulticastOpCfg = '{
+    EnNarrowMulticast:  1'b1,
+    EnWideMulticast:    1'b1,
+    EnLSBAnd:           1'b0,
+    EnF_Add:            1'b0,
+    EnF_Mul:            1'b0,
+    EnF_Min:            1'b0,
+    EnF_Max:            1'b0,
+    default:            '0
+  };
+
+  localparam floo_pkg::collect_op_cfg_t ParallelOpCfg = '{
+    EnNarrowMulticast:  1'b1,
+    EnWideMulticast:    1'b1,
+    EnLSBAnd:           1'b1,
+    EnF_Add:            1'b0,
+    EnF_Mul:            1'b0,
+    EnF_Min:            1'b0,
+    EnF_Max:            1'b0,
+    default:            '0
+  };
+
+  localparam floo_pkg::collect_op_cfg_t NarrSequentialOpCfg = '{
+    EnNarrowMulticast:  1'b1,
+    EnWideMulticast:    1'b1,
+    EnLSBAnd:           1'b1,
+    EnF_Add:            1'b0,
+    EnF_Mul:            1'b0,
+    EnF_Min:            1'b0,
+    EnF_Max:            1'b0,
+    EnA_Add:            1'b1,
+    EnA_Mul:            1'b1,
+    EnA_Min_S:          1'b1,
+    EnA_Min_U:          1'b1,
+    EnA_Max_S:          1'b1,
+    EnA_Max_U:          1'b1
+  };
+
+  localparam floo_pkg::collect_op_cfg_t WideSequentialOpCfg = '{
+    EnNarrowMulticast:  1'b1,
+    EnWideMulticast:    1'b1,
+    EnLSBAnd:           1'b1,
+    EnF_Add:            1'b1,
+    EnF_Mul:            1'b1,
+    EnF_Min:            1'b1,
+    EnF_Max:            1'b1,
+    EnA_Add:            1'b0,
+    EnA_Mul:            1'b0,
+    EnA_Min_S:          1'b0,
+    EnA_Min_U:          1'b0,
+    EnA_Max_S:          1'b0,
+    EnA_Max_U:          1'b0
+  };
+
+
+  typedef logic[AxiCfgW.DataWidth-1:0] RdDataWide_t;
+  typedef logic[AxiCfgN.DataWidth-1:0] RdDataNarrow_t;
+
+  `FLOO_TYPEDEF_HDR_T(hdr_coll_t, id_t, id_t, nw_ch_e, rob_idx_t, id_t, collect_op_e)
+  //`FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req, rsp, wide, 1, 2) for VC support
 
 endpackage
