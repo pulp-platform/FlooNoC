@@ -486,8 +486,8 @@ class RouteMap(BaseModel):
             string += sv_struct_typedef(self.rule_type(), rule_type_dict)
         else:
             rule_type_dict = {"offset": "int unsigned", "len": "int unsigned", "base_id": "int unsigned"}
-            string += sv_struct_typedef("mask_sel_t", rule_type_dict)
-            rule_type_dict = {"id": "id_t", "mask_x": "mask_sel_t", "mask_y": "mask_sel_t"}
+            string += sv_struct_typedef("mcast_mask_sel_t", rule_type_dict)
+            rule_type_dict = {"id": "id_t", "mask_x": "mcast_mask_sel_t", "mask_y": "mcast_mask_sel_t"}
             string += sv_struct_typedef("mcast_idx_t", rule_type_dict)
             rule_type_dict = {"idx": "mcast_idx_t", "start_addr": addr_type, "end_addr": addr_type}
             string += sv_struct_typedef(self.rule_type(), rule_type_dict)
