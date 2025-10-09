@@ -5,11 +5,11 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from typing import Optional, List, TypeVar, Union
+from typing import Dict, Optional, List, TypeVar, Union
 from typing_extensions import Annotated
 from pydantic import BaseModel, StringConstraints
 
-from floogen.utils import snake_to_camel, sv_param_decl, sv_typedef, sv_struct_render
+from floogen.utils import snake_to_camel, sv_param_decl, sv_typedef, sv_struct_render, sv_struct_typedef
 
 class ProtocolDesc(BaseModel):
     """Protocol class to describe a protocol."""
@@ -26,7 +26,7 @@ class AXI4(ProtocolDesc):
     data_width: int
     addr_width: int
     id_width: int
-    user_width: int
+    user_width: Union[int, Dict[str, int]] = 1
     type_prefix: Optional[str] = "axi"
 
     def type_name(self) -> str:
@@ -51,7 +51,14 @@ class AXI4(ProtocolDesc):
         string += sv_typedef(name_t + "_data_t", array_size=self.data_width)
         string += sv_typedef(name_t + "_strb_t", array_size=self.data_width // 8)
         string += sv_typedef(name_t + "_id_t", array_size=self.id_width)
-        string += sv_typedef(name_t + "_user_t", array_size=self.user_width)
+
+        match self.user_width:
+            case int(v):
+                string += sv_typedef(name_t + "_user_t", array_size=v)
+            case dict(d):
+                fields = {k: f"logic [{v-1}:0]" for k, v in d.items() if k not in ignored_user_fields}
+                string += sv_struct_typedef(name_t + "_user_t", fields)
+
         string += f"`AXI_TYPEDEF_ALL_CT({name_t}, \
             {name_t}_req_t, \
             {name_t}_rsp_t, \
@@ -68,10 +75,15 @@ class AXI4(ProtocolDesc):
         fields = {
             "AddrWidth": mgr_axi.addr_width,
             "DataWidth": mgr_axi.data_width,
-            "UserWidth": mgr_axi.user_width,
             "InIdWidth": mgr_axi.id_width,
             "OutIdWidth": sbr_axi.id_width,
         }
+        match mgr_axi.user_width:
+            case int(v):
+                fields["UserWidth"] = v
+            case dict(d):
+                fields["UserWidth"] = sum([v for k, v in d.items() if k != "mcast_mask"])
+
         return sv_param_decl(name, sv_struct_render(fields), dtype="axi_cfg_t")
 
 
