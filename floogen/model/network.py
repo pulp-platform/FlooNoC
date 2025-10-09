@@ -102,10 +102,11 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             if len(set(prot.data_width for prot in self.protocols if prot.type == "wide")) != 1:
                 raise ValueError("All `wide` protocols must have the same data width")
             # Check that `narrow` and `wide` protocols have the same user width
-            if len(set(prot.user_width for prot in self.protocols if prot.type == "narrow")) != 1:
-                raise ValueError("All `narrow` protocols must have the same user width")
-            if len(set(prot.user_width for prot in self.protocols if prot.type == "wide")) != 1:
-                raise ValueError("All `wide` protocols must have the same user width")
+            if not self.routing.en_multicast:
+                if len(set(prot.user_width for prot in self.protocols if prot.type == "narrow")) != 1:
+                    raise ValueError("All `narrow` protocols must have the same user width")
+                if len(set(prot.user_width for prot in self.protocols if prot.type == "wide")) != 1:
+                    raise ValueError("All `wide` protocols must have the same user width")
             # Check that `type` is defined when using `narrow-wide` network
             if any(prot.type not in ["narrow", "wide"] for prot in self.protocols) and \
                 "narrow-wide" in self.network_type:

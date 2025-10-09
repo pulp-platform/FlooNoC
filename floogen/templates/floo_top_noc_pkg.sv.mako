@@ -42,7 +42,12 @@ package floo_${noc.name}_noc_pkg;
   ${noc.routing.render_route_cfg(name="RouteCfg")}
 
 % for prot in noc.protocols:
-  ${prot.render_typedefs()}
+  % if not noc.routing.en_multicast:
+    ${prot.render_typedefs()}
+  % else:
+    ${prot.render_typedefs(prefix="mcast")}
+    ${prot.render_typedefs(ignored_user_fields=["mcast_mask"])}
+  % endif
 % endfor
 
   ${noc.routing.render_hdr_typedef(network_type=noc.network_type)}
