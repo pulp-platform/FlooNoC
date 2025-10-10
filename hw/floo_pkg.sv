@@ -259,6 +259,8 @@ package floo_pkg;
     /// support loopback for the local link - collective will
     /// be forwarded to the local port too.
     bit RdSupportLoopback;
+    /// Cut offload interface
+    bit CutOffloadIntf;
   } reduction_cfg_t;
 
   /// Configuration to specify how extensive collective support is enabled
@@ -358,7 +360,8 @@ package floo_pkg;
     RdTagBits: 5,
     RdSupportAxi: 1'b1,
     RdEnableBypass: 1'b1,
-    RdSupportLoopback: 1'b1
+    RdSupportLoopback: 1'b1,
+    CutOffloadIntf: 1'b1
   };
 
   /// The default configuration for collective operations

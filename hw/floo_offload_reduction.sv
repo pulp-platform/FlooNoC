@@ -129,6 +129,13 @@ typedef struct packed {
   tag_t tag;
 } red_data_tag_t;
 
+// TODO (lleone): Remove and create teh proper REQ/RSP struct for the offload interface
+typedef struct packed {
+  RdOperation_t op;
+  RdData_t      operand1;
+  RdData_t      operand2;
+} red_intsr_t;
+
 /* Variable declaration */
 
 // Variable for the tag generation
@@ -192,7 +199,11 @@ part_res_idx_t [1:0] ctrl_sel_buffer_idx;
 tag_t [RdCfg.RdPartialBufferSize-1:0] spyglass_tag;
 logic [RdCfg.RdPartialBufferSize-1:0] spyglass_valid;
 
-/* Module Declaration */
+// Output instruction for the functional unit
+red_intsr_t reduction_instr_out, reduction_intsr_out_cut;
+logic reduction_req_valid_out, reduction_req_ready_in;
+RdData_t reduction_resp_data_in;
+logic reduction_resp_valid_in, reduction_resp_ready_out;
 
 // The tag is only required for the Generic configuration
 // For each incoming element generate the corresponding tag.
@@ -278,15 +289,15 @@ floo_offload_reduction_controller #(
   .operand_ready_i              (input_mapped_operands_ready),
   .reduction_req_operation_o    (reduction_scheduled_operation),
   .reduction_req_mask_i         (merged_data[0].mask | merged_data[1].mask),
-  .reduction_req_valid_i        (reduction_req_valid_o),
-  .reduction_req_ready_i        (reduction_req_ready_i),
+  .reduction_req_valid_i        (reduction_req_valid_out),
+  .reduction_req_ready_i        (reduction_req_ready_in),
   .fully_red_data_i             (fully_reduced_data),
   .fully_red_valid_i            (fully_reduced_valid),
   .fully_red_ready_o            (fully_reduced_ready),
   .reduction_resp_mask_i        (reduction_resp_data.mask),
   .reduction_resp_tag_i         (reduction_resp_data.tag),
-  .reduction_resp_valid_i       (reduction_resp_valid_i),
-  .reduction_resp_ready_i       (reduction_resp_ready_o),
+  .reduction_resp_valid_i       (reduction_resp_valid_in),
+  .reduction_resp_ready_i       (reduction_resp_ready_out),
   .final_flit_o                 (final_flit),
   .final_valid_o                (final_valid),
   .final_ready_i                (final_ready),
@@ -331,16 +342,16 @@ stream_join #(
 );
 
 // Connect the HS for the output request to the FPU
-assign reduction_req_valid_o = join_operands_valid;
-assign join_operands_ready = reduction_req_ready_i;
+assign reduction_req_valid_out = join_operands_valid;
+assign join_operands_ready = reduction_req_ready_in;
 
 // Output the operands here
 // TODO(raroth): Introduce Cut here to allow cutting the Offload unit.
 //       Extend the Configuration to allow fo this cut!
 //       Cut the response from the offload unit too!
-assign reduction_req_op1_o = merged_data[0].data;
-assign reduction_req_op2_o = merged_data[1].data;
-assign reduction_req_type_o = reduction_scheduled_operation;
+assign reduction_instr_out.operand1 = merged_data[0].data;
+assign reduction_instr_out.operand2 = merged_data[1].data;
+assign reduction_instr_out.op = reduction_scheduled_operation;
 
 // Note: At this position in the dataflow of this file lies the external reduction hardware
 // After some (5) cycles the request turns comes back as response.
@@ -362,9 +373,9 @@ if(GENERIC == 1'b1) begin : gen_fifo_for_tag
       .empty_o          (),
       .usage_o          (),
       .data_i           (merged_data[0].tag),
-      .push_i           (reduction_req_ready_i & reduction_req_valid_o),  // active fpu req hs
+      .push_i           (reduction_req_ready_in & reduction_req_valid_out),  // active fpu req hs
       .data_o           (reduction_resp_data.tag),
-      .pop_i            (reduction_resp_valid_i & reduction_resp_ready_o) // active fpu resp hs
+      .pop_i            (reduction_resp_valid_in & reduction_resp_ready_out) // active fpu resp hs
   );
 end else begin
   assign reduction_resp_data.tag = '0;
@@ -392,16 +403,16 @@ if((GENERIC == 1'b1) || (STALLING == 1'b1)) begin : gen_fifo_for_mask
       .empty_o          (),
       .usage_o          (),
       .data_i           (merged_data[0].mask | merged_data[1].mask),
-      .push_i           (reduction_req_ready_i & reduction_req_valid_o),  // active fpu req hs
+      .push_i           (reduction_req_ready_in & reduction_req_valid_out),  // active fpu req hs
       .data_o           (reduction_resp_data.mask),
-      .pop_i            (reduction_resp_valid_i & reduction_resp_ready_o) // active fpu resp hs
+      .pop_i            (reduction_resp_valid_in & reduction_resp_ready_out) // active fpu resp hs
   );
 end else begin
   assign reduction_resp_data.mask = '0;
 end
 
 // Merge the response from the reduction with the interal tag / mask storage
-assign reduction_resp_data.data = reduction_resp_data_i;
+assign reduction_resp_data.data = reduction_resp_data_in;
 
 // Demux the output of the fpu
 // TODO (lleone): Change if !SIMPLE
@@ -409,15 +420,15 @@ if((GENERIC == 1'b1) || (STALLING == 1'b1)) begin : gen_demux_partial_result
   stream_demux #(
     .N_OUP              (2)
   ) i_stream_demux_output_fpu (
-    .inp_valid_i        (reduction_resp_valid_i),
-    .inp_ready_o        (reduction_resp_ready_o),
+    .inp_valid_i        (reduction_resp_valid_in),
+    .inp_ready_o        (reduction_resp_ready_out),
     .oup_sel_i          (ctrl_demux),
     .oup_valid_o        ({fully_reduced_valid, input_partial_result_buf_valid}),
     .oup_ready_i        ({fully_reduced_ready, input_partial_result_buf_ready})
   );
 end else begin
-  assign fully_reduced_valid = reduction_resp_valid_i;
-  assign reduction_resp_ready_o = fully_reduced_ready;
+  assign fully_reduced_valid = reduction_resp_valid_in;
+  assign reduction_resp_ready_out = fully_reduced_ready;
   assign input_partial_result_buf_valid = 1'b0;
 end
 
@@ -485,6 +496,41 @@ end else begin
   assign spyglass_valid = '0;
   assign spyglass_tag = '0;
 end
+
+// TODO (lleone): Create a REQ/RSP struct for teh following interface
+// and replace all the spill regsiters with just one for REQ and one for RSP
+  spill_register #(
+        .T (red_intsr_t),
+        .Bypass (!RdCfg.CutOffloadIntf)
+  ) i_offload_cut_req (
+        .clk_i,
+        .rst_ni,
+        .data_i   (reduction_instr_out),
+        .valid_i  (reduction_req_valid_out),
+        .ready_o  (reduction_req_ready_in),
+        .data_o   (reduction_intsr_out_cut),
+        .valid_o  (reduction_req_valid_o),
+        .ready_i  (reduction_req_ready_i)
+  );
+
+  spill_register #(
+        .T (RdData_t),
+        .Bypass (!RdCfg.CutOffloadIntf)
+  ) i_offload_cut_rsp (
+        .clk_i,
+        .rst_ni,
+        .data_i   (reduction_resp_data_i),
+        .valid_i  (reduction_resp_valid_i),
+        .ready_o  (reduction_resp_ready_o),
+        .data_o   (reduction_resp_data_in),
+        .valid_o  (reduction_resp_valid_in),
+        .ready_i  (reduction_resp_ready_out)
+  );
+
+// TODO(lleone): When uniforming the offload interface, get rid of this part, isnce the cur will be of the type of the interface
+assign reduction_req_type_o = reduction_intsr_out_cut.op;
+assign reduction_req_op1_o = reduction_intsr_out_cut.operand1;
+assign reduction_req_op2_o = reduction_intsr_out_cut.operand2;
 
 /* ASSERTION Checks */
 // The fp reduction supports up to 6 operands
