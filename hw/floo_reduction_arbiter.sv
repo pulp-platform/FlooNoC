@@ -12,8 +12,8 @@ module floo_reduction_arbiter import floo_pkg::*;
 #(
   /// Number of input ports
   parameter int unsigned NumRoutes            = 1,
-  /// Enable Parallel Reduction
-  parameter bit          EnParallelReduction  = 1'b0,
+  /// Collective ops configuration
+  parameter collect_op_cfg_t  CollectOpCfg    = CollectiveOpDefaultCfg,
   /// Type definitions
   parameter type         flit_t               = logic,
   parameter type         hdr_t                = logic,
@@ -119,13 +119,13 @@ module floo_reduction_arbiter import floo_pkg::*;
   // Forward flits directly - Just choose to forward the selected one
   always_comb begin : gen_forward
     data_forward_flit = '0;
-    if (EnParallelReduction) data_forward_flit = data_i[input_sel];
+    if (CollectOpCfg.EnLSBAnd) data_forward_flit = data_i[input_sel];
   end
 
   // And all the LSB
   always_comb begin : gen_and_lsb
     data_LSBAnd = '0;
-    if (EnParallelReduction) begin
+    if (CollectOpCfg.EnLSBAnd) begin
       data_LSBAnd = data_i[input_sel];
       lsb = 1'b1;
 
@@ -153,9 +153,9 @@ module floo_reduction_arbiter import floo_pkg::*;
     // Assign inital value
     data_o = '0;
     case ({incoming_red_op, 1'b1})
-      {SelectAW, EnParallelReduction}:  data_o = data_forward_flit;
-      {LSBAnd, EnParallelReduction}:    data_o = data_LSBAnd;
-      {CollectB, 1'b1}:                 data_o = data_collectB;
+      {SelectAW, CollectOpCfg.EnLSBAnd}:  data_o = data_forward_flit;
+      {LSBAnd,   CollectOpCfg.EnLSBAnd}:  data_o = data_LSBAnd;
+      {CollectB, 1'b1}:                   data_o = data_collectB;
       default:;
     endcase
   end

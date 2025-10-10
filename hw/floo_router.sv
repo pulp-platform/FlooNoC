@@ -104,6 +104,7 @@ module floo_router
   // the output arbiter.
   // Generate local Number of routes
   localparam int unsigned localNumInputs = (EnSequentialReduction == 1'b1) ? (NumInput + 1) : (NumInput);
+  localparam int unsigned NumParallelRedRoutes = (EnParallelReduction | EnMultiCast) ? NumInput : 0 ;
 
   // Generate the vars to handle the input of the router
   flit_t [NumInput-1:0][NumVirtChannels-1:0] in_data, in_routed_data;
@@ -434,14 +435,15 @@ module floo_router
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_output
       // Output arbiter
       floo_output_arbiter #(
-        .NumRoutes            ( localNumInputs                    ),
-        .NumParallelRedRoutes ( EnParallelReduction ? NumInput : 0),
-        .flit_t               ( flit_t                            ),
-        .hdr_t                ( hdr_t                             ),
-        .id_t                 ( id_t                              ),
-        .RdSupportLoopback    ( RedCfg.RdSupportLoopback           ),
-        .RdSupportAxi         ( RedCfg.RdSupportAxi                ),
-        .AxiCfg               ( AxiCfgParallel                    )
+        .NumRoutes            ( localNumInputs            ),
+        .NumParallelRedRoutes ( NumParallelRedRoutes      ),
+        .CollectOpCfg         ( CollectiveCfg.OpCfg       ),
+        .flit_t               ( flit_t                    ),
+        .hdr_t                ( hdr_t                     ),
+        .id_t                 ( id_t                      ),
+        .RdSupportLoopback    ( RedCfg.RdSupportLoopback  ),
+        .RdSupportAxi         ( RedCfg.RdSupportAxi       ),
+        .AxiCfg               ( AxiCfgParallel            )
       ) i_output_arbiter (
         .clk_i,
         .rst_ni,
