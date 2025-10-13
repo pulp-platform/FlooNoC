@@ -5,16 +5,15 @@
 [project]
 name = "floogen"
 version = "0.6.1"
-authors = [
-  { name="Tim Fischer", email="fischeti@iis.ee.ethz.ch" },
-]
 description = "A Network Generator for FlooNoC"
 readme = "README.md"
+license = { text = "Apache-2.0" }
 requires-python = ">=3.10"
+authors = [{ name = "Tim Fischer", email = "fischeti@iis.ee.ethz.ch" }]
 classifiers = [
-    "Programming Language :: Python :: 3.10",
-    "License :: OSI Approved :: Apache License",
-    "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.10",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
 ]
 
 dependencies = [
@@ -23,18 +22,8 @@ dependencies = [
   "matplotlib",
   "mako",
   "ruamel.yaml",
-  "hjson",
-  "jsonref",
   "click",
-  "pylint",
-  "ruff",
-  "pytest",
-  "pygame"
 ]
-
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
 
 [project.urls]
 Homepage = "https://github.com/pulp-platform/FlooNoC"
@@ -42,16 +31,18 @@ Homepage = "https://github.com/pulp-platform/FlooNoC"
 [project.scripts]
 floogen = "floogen.cli:main"
 
-[tool.setuptools]
-packages = [
-  "floogen",
-  "floogen.model",
-  "floogen.templates",
-  "floogen.tests",
-]
+[dependency-groups]
+dev = ["pytest", "ruff", "pylint"]
+viz = ["pygame"]
 
-[tool.setuptools.package-data]
-"floogen.templates" = ["*.mako"]
+[build-system]
+requires = ["uv_build>=0.9.2,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "floogen"
+module-root = ""
+wheel-exclude = ["floogen/tests/**"]
 
 [tool.pytest.ini_options]
 testpaths = ["floogen/tests"]
@@ -59,7 +50,7 @@ testpaths = ["floogen/tests"]
 [tool.pylint.format]
 max-line-length = 100
 jobs = 4
-suggestion-mode = 'yes'
+suggestion-mode = "yes"
 
 [tool.ruff]
 line-length = 100
