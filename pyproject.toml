@@ -30,8 +30,6 @@ floogen = "floogen.cli:main"
 
 [dependency-groups]
 dev = ["pytest", "ruff", "pylint"]
-
-[project.optional-dependencies]
 viz = ["pygame"]
 
 [build-system]
