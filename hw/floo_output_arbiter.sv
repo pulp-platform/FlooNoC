@@ -19,7 +19,7 @@ module floo_output_arbiter import floo_pkg::*;
   /// Number of paraellel reduction capable ports
   parameter int unsigned NumParallelRedRoutes = 0,
   /// Collective ops configuration
-  parameter collect_op_cfg_t  CollectOpCfg    = CollectiveOpDefaultCfg,
+  parameter collect_op_be_cfg_t  CollectOpCfg    = CollectiveSupportDefaultCfg,
   /// Type definitions
   parameter type         flit_t               = logic,
   parameter type         hdr_t                = logic,

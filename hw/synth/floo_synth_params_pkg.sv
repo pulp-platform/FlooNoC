@@ -154,7 +154,8 @@ package floo_synth_collective_pkg;
     RdTagBits: 5,
     RdSupportAxi: 1'b1,
     RdEnableBypass: 1'b1,
-    RdSupportLoopback: 1'b1
+    RdSupportLoopback: 1'b1,
+    CutOffloadIntf: 1'b1
   };
 
   localparam reduction_cfg_t WideStallingReductionCfg = '{
@@ -166,7 +167,8 @@ package floo_synth_collective_pkg;
     RdTagBits: 5,
     RdSupportAxi: 1'b1,
     RdEnableBypass: 1'b1,
-    RdSupportLoopback: 1'b1
+    RdSupportLoopback: 1'b1,
+    CutOffloadIntf: 1'b1
   };
 
   localparam reduction_cfg_t WideSimpleReductionCfg = '{
@@ -178,7 +180,8 @@ package floo_synth_collective_pkg;
     RdTagBits: 5,
     RdSupportAxi: 1'b1,
     RdEnableBypass: 1'b1,
-    RdSupportLoopback: 1'b1
+    RdSupportLoopback: 1'b1,
+    CutOffloadIntf: 1'b1
   };
 
 localparam reduction_cfg_t NarrowGenReductionCfg = '{
@@ -190,7 +193,8 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
     RdTagBits: 5,
     RdSupportAxi: 1'b1,
     RdEnableBypass: 1'b1,
-    RdSupportLoopback: 1'b1
+    RdSupportLoopback: 1'b1,
+    CutOffloadIntf: 1'b1
   };
 
   localparam reduction_cfg_t NarrowStallingReductionCfg = '{
@@ -202,7 +206,8 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
     RdTagBits: 5,
     RdSupportAxi: 1'b1,
     RdEnableBypass: 1'b1,
-    RdSupportLoopback: 1'b1
+    RdSupportLoopback: 1'b1,
+    CutOffloadIntf: 1'b1
   };
 
   localparam reduction_cfg_t NarrowSimpleReductionCfg = '{
@@ -214,7 +219,8 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
     RdTagBits: 5,
     RdSupportAxi: 1'b1,
     RdEnableBypass: 1'b1,
-    RdSupportLoopback: 1'b1
+    RdSupportLoopback: 1'b1,
+    CutOffloadIntf: 1'b1
   };
 
   localparam reduction_cfg_t ResponseReductionCfg = '{
@@ -227,7 +233,7 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
   // This configuration is the one to be changed in order to enable or disable
   // different collective operation support
   // TODO (lleone): SCript this with Python
-  localparam floo_pkg::collect_op_cfg_t CollectiveOpCfg = '{
+  localparam floo_pkg::collect_op_fe_cfg_t CollectiveOpCfg = '{
     EnNarrowMulticast:  1'b1,
     EnWideMulticast:    1'b1,
     EnLSBAnd:           1'b1,
@@ -238,7 +244,7 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
     default:            '0
   };
 
-  localparam floo_pkg::collect_op_cfg_t MulticastOpCfg = '{
+  localparam floo_pkg::collect_op_fe_cfg_t MulticastOpCfg = '{
     EnNarrowMulticast:  1'b1,
     EnWideMulticast:    1'b1,
     EnLSBAnd:           1'b0,
@@ -249,7 +255,7 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
     default:            '0
   };
 
-  localparam floo_pkg::collect_op_cfg_t ParallelOpCfg = '{
+  localparam floo_pkg::collect_op_fe_cfg_t ParallelOpCfg = '{
     EnNarrowMulticast:  1'b1,
     EnWideMulticast:    1'b1,
     EnLSBAnd:           1'b1,
@@ -260,7 +266,7 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
     default:            '0
   };
 
-  localparam floo_pkg::collect_op_cfg_t NarrSequentialOpCfg = '{
+  localparam floo_pkg::collect_op_fe_cfg_t NarrSequentialOpCfg = '{
     EnNarrowMulticast:  1'b1,
     EnWideMulticast:    1'b1,
     EnLSBAnd:           1'b1,
@@ -276,7 +282,7 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
     EnA_Max_U:          1'b1
   };
 
-  localparam floo_pkg::collect_op_cfg_t WideSequentialOpCfg = '{
+  localparam floo_pkg::collect_op_fe_cfg_t WideSequentialOpCfg = '{
     EnNarrowMulticast:  1'b1,
     EnWideMulticast:    1'b1,
     EnLSBAnd:           1'b1,

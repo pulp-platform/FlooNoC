@@ -56,7 +56,7 @@ module floo_nw_router #(
   parameter type RdWideData_t                       = logic,
   parameter type RdNarrowData_t                     = logic,
   /// Parameter to define which type of collective operation support
-  parameter floo_pkg::collect_op_cfg_t CollectiveOpCfg = floo_pkg::CollectiveOpDefaultCfg,
+  parameter floo_pkg::collect_op_fe_cfg_t CollectiveOpCfg = floo_pkg::CollectiveOpDefaultCfg,
   /// Parameter for the wide reduction configuration
   parameter floo_pkg::reduction_cfg_t RdWideCfg     = floo_pkg::ReductionDefaultCfg,
   /// Parameter for the narrow reduction configuration
@@ -123,63 +123,57 @@ module floo_nw_router #(
   // hiding the complexity to the user
   localparam int unsigned WideVirtChannel = (EnDecoupledRW) ? 2 : 1;
 
-  localparam floo_pkg::collective_cfg_t CollectiveReqCfg = '{
-    OpCfg: '{
-      EnNarrowMulticast : floo_pkg::is_en_collective(CollectiveOpCfg),
-      EnWideMulticast   : 1'b0,
-      EnLSBAnd          : CollectiveOpCfg.EnLSBAnd,
-      EnF_Add           : 1'b0,
-      EnF_Mul           : 1'b0,
-      EnF_Min           : 1'b0,
-      EnF_Max           : 1'b0,
-      EnA_Add           : CollectiveOpCfg.EnA_Add,
-      EnA_Mul           : CollectiveOpCfg.EnA_Mul,
-      EnA_Min_S         : CollectiveOpCfg.EnA_Min_S,
-      EnA_Min_U         : CollectiveOpCfg.EnA_Min_U,
-      EnA_Max_S         : CollectiveOpCfg.EnA_Max_S,
-      EnA_Max_U         : CollectiveOpCfg.EnA_Max_U
-    },
-    RedCfg: RdNarrowCfg
+  localparam floo_pkg::collect_op_be_cfg_t CollectiveReqCfg = '{
+    EnMulticast : CollectiveOpCfg.EnNarrowMulticast,
+    EnLSBAnd    : CollectiveOpCfg.EnLSBAnd,
+    EnF_Add     : 1'b0,
+    EnF_Mul     : 1'b0,
+    EnF_Min     : 1'b0,
+    EnF_Max     : 1'b0,
+    EnA_Add     : CollectiveOpCfg.EnA_Add,
+    EnA_Mul     : CollectiveOpCfg.EnA_Mul,
+    EnA_Min_S   : CollectiveOpCfg.EnA_Min_S,
+    EnA_Min_U   : CollectiveOpCfg.EnA_Min_U,
+    EnA_Max_S   : CollectiveOpCfg.EnA_Max_S,
+    EnA_Max_U   : CollectiveOpCfg.EnA_Max_U,
+    EnSelectAW  : CollectiveOpCfg.EnLSBAnd,
+    EnCollectB  : 1'b0
   };
 
-  localparam floo_pkg::collective_cfg_t CollectiveRspCfg = '{
-    OpCfg: '{
-      EnNarrowMulticast : floo_pkg::is_en_narrow_reduction(CollectiveOpCfg) |
-                          floo_pkg::is_en_wide_reduction(CollectiveOpCfg),
-      EnWideMulticast   : 1'b0,
-      EnLSBAnd          : CollectiveOpCfg.EnNarrowMulticast |
-                          CollectiveOpCfg.EnWideMulticast,
-      EnF_Add           : 1'b0,
-      EnF_Mul           : 1'b0,
-      EnF_Min           : 1'b0,
-      EnF_Max           : 1'b0,
-      EnA_Add           : 1'b0,
-      EnA_Mul           : 1'b0,
-      EnA_Min_S         : 1'b0,
-      EnA_Min_U         : 1'b0,
-      EnA_Max_S         : 1'b0,
-      EnA_Max_U         : 1'b0
-    },
-    RedCfg: RdRespCfg
+  localparam floo_pkg::collect_op_be_cfg_t CollectiveRspCfg = '{
+    EnMulticast : floo_pkg::is_en_narrow_reduction(CollectiveOpCfg) |
+                  floo_pkg::is_en_wide_reduction(CollectiveOpCfg),
+    EnLSBAnd    : 1'b0,
+    EnF_Add     : 1'b0,
+    EnF_Mul     : 1'b0,
+    EnF_Min     : 1'b0,
+    EnF_Max     : 1'b0,
+    EnA_Add     : 1'b0,
+    EnA_Mul     : 1'b0,
+    EnA_Min_S   : 1'b0,
+    EnA_Min_U   : 1'b0,
+    EnA_Max_S   : 1'b0,
+    EnA_Max_U   : 1'b0,
+    EnSelectAW  : 1'b0,
+    EnCollectB  : CollectiveOpCfg.EnNarrowMulticast |
+                  CollectiveOpCfg.EnWideMulticast
   };
 
-  localparam floo_pkg::collective_cfg_t CollectiveWideCfg = '{
-    OpCfg: '{
-      EnNarrowMulticast : 1'b0,
-      EnWideMulticast   : CollectiveOpCfg.EnWideMulticast,
-      EnLSBAnd          : 1'b0,
-      EnF_Add           : CollectiveOpCfg.EnF_Add,
-      EnF_Mul           : CollectiveOpCfg.EnF_Mul,
-      EnF_Min           : CollectiveOpCfg.EnF_Min,
-      EnF_Max           : CollectiveOpCfg.EnF_Max,
-      EnA_Add           : 1'b0,
-      EnA_Mul           : 1'b0,
-      EnA_Min_S         : 1'b0,
-      EnA_Min_U         : 1'b0,
-      EnA_Max_S         : 1'b0,
-      EnA_Max_U         : 1'b0
-    },
-    RedCfg: RdWideCfg
+  localparam floo_pkg::collect_op_be_cfg_t CollectiveWideCfg = '{
+    EnMulticast : CollectiveOpCfg.EnWideMulticast,
+    EnLSBAnd    : 1'b0,
+    EnF_Add     : CollectiveOpCfg.EnF_Add,
+    EnF_Mul     : CollectiveOpCfg.EnF_Mul,
+    EnF_Min     : CollectiveOpCfg.EnF_Min,
+    EnF_Max     : CollectiveOpCfg.EnF_Max,
+    EnA_Add     : 1'b0,
+    EnA_Mul     : 1'b0,
+    EnA_Min_S   : 1'b0,
+    EnA_Min_U   : 1'b0,
+    EnA_Max_S   : 1'b0,
+    EnA_Max_U   : 1'b0,
+    EnSelectAW  : 1'b0,
+    EnCollectB  : 1'b0
   };
 
   floo_req_chan_t [NumInputs-1:0] req_in;
@@ -239,6 +233,7 @@ module floo_nw_router #(
     .RdOperation_t        ( RdNarrowOperation_t       ),
     .RdData_t             ( RdNarrowData_t            ),
     .CollectiveCfg        ( CollectiveReqCfg          ),
+    .RedCfg                ( RdNarrowCfg               ),
     .AxiCfgOffload        ( AxiCfgN                   ),
     .AxiCfgParallel       ( AxiCfgN                   )
   ) i_req_floo_router (
@@ -279,6 +274,7 @@ module floo_nw_router #(
     .flit_t               ( floo_rsp_generic_flit_t ),
     .hdr_t                ( hdr_t                   ),
     .CollectiveCfg        ( CollectiveRspCfg        ),
+    .RedCfg                ( RdRespCfg               ),
     .AxiCfgOffload        ( '0                      ),
     .AxiCfgParallel       ( AxiCfgN                 )
   ) i_rsp_floo_router (
@@ -322,6 +318,7 @@ module floo_nw_router #(
     .RdOperation_t        ( RdWideOperation_t         ),
     .RdData_t             ( RdWideData_t              ),
     .CollectiveCfg        ( CollectiveWideCfg         ),
+    .RedCfg               ( RdWideCfg                 ),
     .AxiCfgOffload        ( AxiCfgW                   ),
     .AxiCfgParallel       ( '0                        )
   ) i_wide_req_floo_router (

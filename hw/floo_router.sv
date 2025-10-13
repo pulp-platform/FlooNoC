@@ -52,7 +52,8 @@ module floo_router
   /// Data type of the offload reduction
   parameter type         RdData_t             = logic,
   /// Parameter for the reduction configuration
-  parameter collective_cfg_t CollectiveCfg    = '0,
+  parameter collect_op_be_cfg_t CollectiveCfg    = CollectiveSupportDefaultCfg,
+  parameter reduction_cfg_t     RedCfg           = '0,
   /// AXI configurations
   parameter axi_cfg_t    AxiCfgOffload        = '0,
   parameter axi_cfg_t    AxiCfgParallel       = '0
@@ -89,14 +90,9 @@ module floo_router
 
   // Generate some local parameters to understand which type of collective support
   // is required in the specific router instance
-  localparam reduction_cfg_t RedCfg  = CollectiveCfg.RedCfg;
-  localparam bit EnSequentialReduction = is_en_wide_reduction(CollectiveCfg.OpCfg) |
-                                      is_en_narrow_seq_reduction(CollectiveCfg.OpCfg);
-
-  localparam bit EnParallelReduction = is_en_parallel_reduction(CollectiveCfg.OpCfg);
-
-  localparam bit EnMultiCast = CollectiveCfg.OpCfg.EnWideMulticast |
-                               CollectiveCfg.OpCfg.EnNarrowMulticast;
+  localparam bit EnSequentialReduction = en_sequential_support(CollectiveCfg);
+  localparam bit EnParallelReduction   = en_parallel_support(CollectiveCfg);
+  localparam bit EnMultiCast = en_multicast_support(CollectiveCfg);
 
   // When a offloadable reduction is dedected then the data will be brunched off infront
   // of the router crossbar. The reduction logic will reduce the incoming flits and deliver
@@ -104,7 +100,7 @@ module floo_router
   // the output arbiter.
   // Generate local Number of routes
   localparam int unsigned localNumInputs = (EnSequentialReduction == 1'b1) ? (NumInput + 1) : (NumInput);
-  localparam int unsigned NumParallelRedRoutes = (EnParallelReduction | EnMultiCast) ? NumInput : 0 ;
+  localparam int unsigned NumParallelRedRoutes = (EnParallelReduction) ? NumInput : 0 ;
 
   // Generate the vars to handle the input of the router
   flit_t [NumInput-1:0][NumVirtChannels-1:0] in_data, in_routed_data;
@@ -437,7 +433,7 @@ module floo_router
       floo_output_arbiter #(
         .NumRoutes            ( localNumInputs            ),
         .NumParallelRedRoutes ( NumParallelRedRoutes      ),
-        .CollectOpCfg         ( CollectiveCfg.OpCfg       ),
+        .CollectOpCfg         ( CollectiveCfg             ),
         .flit_t               ( flit_t                    ),
         .hdr_t                ( hdr_t                     ),
         .id_t                 ( id_t                      ),

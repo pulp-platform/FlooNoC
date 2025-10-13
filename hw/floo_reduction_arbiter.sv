@@ -13,7 +13,7 @@ module floo_reduction_arbiter import floo_pkg::*;
   /// Number of input ports
   parameter int unsigned NumRoutes            = 1,
   /// Collective ops configuration
-  parameter collect_op_cfg_t  CollectOpCfg    = CollectiveOpDefaultCfg,
+  parameter collect_op_be_cfg_t  CollectOpCfg    = CollectiveSupportDefaultCfg,
   /// Type definitions
   parameter type         flit_t               = logic,
   parameter type         hdr_t                = logic,
@@ -37,17 +37,8 @@ module floo_reduction_arbiter import floo_pkg::*;
   output flit_t                  data_o
 );
 
-  // Generate the AXI specific types
-  typedef logic [AxiCfg.AddrWidth-1:0] axi_addr_t;
-  typedef logic [AxiCfg.InIdWidth-1:0] axi_in_id_t;
-  typedef logic [AxiCfg.OutIdWidth-1:0] axi_out_id_t;
-  typedef logic [AxiCfg.UserWidth-1:0] axi_user_t;
-  typedef logic [AxiCfg.DataWidth-1:0] axi_data_t;
-  typedef logic [AxiCfg.DataWidth/8-1:0] axi_strb_t;
-
-  `AXI_TYPEDEF_ALL_CT(axi, axi_req_t, axi_rsp_t, axi_addr_t, axi_in_id_t, axi_data_t, axi_strb_t, axi_user_t)
-  `AXI_TYPEDEF_AW_CHAN_T(axi_out_aw_chan_t, axi_addr_t, axi_out_id_t, axi_user_t)
-  `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi, AxiCfg, hdr_t)
+  `FLOO_TYPEDEF_AXI_FROM_CFG(axi, AxiCfg)
+  `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi_in, AxiCfg, hdr_t)
 
   // We calculte the different reduction in parallel and select the result at the output
   flit_t data_forward_flit;
@@ -134,7 +125,7 @@ module floo_reduction_arbiter import floo_pkg::*;
         if(in_route_mask[i]) begin
           // Extract the last bit from the data
           if(RdSupportAxi) begin
-            floo_axi_w_flit_t axi_w_data;
+            axi_data_t axi_w_data;
             axi_w_data = extractAxiWData(data_i[i]);
             lsb &= axi_w_data[0];
           end
@@ -178,7 +169,7 @@ module floo_reduction_arbiter import floo_pkg::*;
   endfunction
 
   // Extract data from AXI specific W frame!
-  function automatic floo_axi_w_flit_t extractAxiWData(flit_t metadata);
+  function automatic axi_data_t extractAxiWData(flit_t metadata);
       floo_axi_w_flit_t w_flit;
       // Parse the entire flit
       w_flit = floo_axi_w_flit_t'(metadata);

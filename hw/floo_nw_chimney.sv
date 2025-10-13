@@ -155,7 +155,7 @@ module floo_nw_chimney #(
   } vc_e;
 
   // Collective communication configuration
-  localparam floo_pkg::collect_op_cfg_t CollectOpCfg = RouteCfg.CollectiveCfg.OpCfg;
+  localparam floo_pkg::collect_op_fe_cfg_t CollectOpCfg = RouteCfg.CollectiveCfg.OpCfg;
   localparam int unsigned NumVirtualChannels = EnDecoupledRW ? 2 : 1;
 
   // Duplicate AXI port signals to degenerate ports
@@ -1733,6 +1733,8 @@ module floo_nw_chimney #(
                            (floo_req_unpack_generic.hdr.axi_ch == WideAr)))
   `ASSERT(NoWideSbrPortWRequest,  ChimneyCfgW.EnSbrPort || !(floo_wide_in_wr_valid_q &&
                            (floo_wide_unpack_generic_wr.hdr.axi_ch == WideW)))
+
+  //TODO (lleone): Add assertion to check if input is a collective but support disabled
 
   // We do not support reduction with ROB Buffer
   `ASSERT_INIT(NoRobReduction,
