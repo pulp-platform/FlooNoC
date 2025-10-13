@@ -45,16 +45,6 @@ module-name = "floogen"
 module-root = ""
 wheel-exclude = ["floogen/tests/**"]
 
-# [build-system]
-# requires = ["setuptools>=61.0"]
-# build-backend = "setuptools.build_meta"
-
-# [tool.setuptools]
-# packages = ["floogen", "floogen.model", "floogen.templates"]
-
-# [tool.setuptools.package-data]
-# "floogen.templates" = ["*.mako"]
-
 [tool.pytest.ini_options]
 testpaths = ["floogen/tests"]
 
