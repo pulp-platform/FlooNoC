@@ -15,15 +15,13 @@ classifiers = [
   "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
 ]
+
 dependencies = [
   "pydantic",
   "networkx",
   "matplotlib",
   "mako",
   "ruamel.yaml",
-  "hjson",
-  "jsonref",
-  "click",
 ]
 
 [project.urls]
