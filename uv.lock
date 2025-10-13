@@ -251,16 +251,14 @@ dependencies = [
     { name = "ruamel-yaml" },
 ]
 
-[package.optional-dependencies]
-viz = [
-    { name = "pygame" },
-]
-
 [package.dev-dependencies]
 dev = [
     { name = "pylint" },
     { name = "pytest" },
     { name = "ruff" },
+]
+viz = [
+    { name = "pygame" },
 ]
 
 [package.metadata]
@@ -272,10 +270,8 @@ requires-dist = [
     { name = "matplotlib" },
     { name = "networkx" },
     { name = "pydantic" },
-    { name = "pygame", marker = "extra == 'viz'" },
     { name = "ruamel-yaml" },
 ]
-provides-extras = ["viz"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -283,6 +279,7 @@ dev = [
     { name = "pytest" },
     { name = "ruff" },
 ]
+viz = [{ name = "pygame" }]
 
 [[package]]
 name = "fonttools"
