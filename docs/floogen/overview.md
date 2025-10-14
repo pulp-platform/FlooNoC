@@ -11,19 +11,40 @@ _FlooGen_ is the generation framework bundled with _FlooNoC_. Given a network de
 
 ## Get started with _FlooGen_
 
-To install _FlooGen_, python >= 3.10 is required, which allows you to install _FlooGen_ via pip:
+To install _FlooGen_, python >= 3.10 is required. _FlooGen_ supports [uv](https://docs.astral.sh/uv/), which is the most convenient way of using _FlooGen_, since it handles all the dependencies and virtual environment automatically. Alternatively, you can also install _FlooGen_ using `pip`.
 
-```bash
-git clone https://github.com/pulp-platform/FlooNoC.git
-cd FlooNoC
-pip install .
-```
+=== "uv"
+
+    ```bash
+    # (Optional) Install uv if you don't have it yet
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    git clone https://github.com/pulp-platform/FlooNoC.git && cd FlooNoC
+    ```
+
+=== "pip"
+
+    ```bash
+    git clone https://github.com/pulp-platform/FlooNoC.git && cd FlooNoC
+    # (Optional) Set up virtual environment
+    python -m venv .venv
+    source .venv/bin/activate
+    # Install FlooGen with pip
+    pip install .
+    ```
 
 You can try out _FlooGen_ by running it with an example configuration file:
 
-```bash
-floogen -c floogen/examples/axi_mesh.yaml -o out
-```
+=== "uv"
+
+    ```bash
+    uv run floogen -c floogen/examples/axi_mesh.yaml -o out
+    ```
+
+=== "pip"
+
+    ```bash
+    floogen -c floogen/examples/axi_mesh.yaml -o out
+    ```
 
 which will generate two files in the `out/` directory:
 - `axi_mesh_pkg.sv`: A SystemVerilog package containing all the types, constants and routing information needed to use the generated NoC.
