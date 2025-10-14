@@ -26,25 +26,6 @@ dependencies = [
   "pygame"
 ]
 
-[project.optional-dependencies]
-docs = [
-  "mkdocs",
-  "mkdocs-material",
-  "mkdocstrings[python]",
-  "pillow",
-  "cairosvg",
-  "mkdocs-git-revision-date-localized-plugin",
-  "mkdocs-git-committers-plugin-2"
-]
-dev = [
-  "ruff",
-  "pytest"
-]
-
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
 [project.urls]
 Homepage = "https://github.com/pulp-platform/FlooNoC"
 
@@ -54,6 +35,15 @@ floogen = "floogen.cli:main"
 [dependency-groups]
 dev = ["pytest", "ruff", "pylint"]
 viz = ["pygame"]
+docs = [
+  "mkdocs",
+  "mkdocs-material",
+  "mkdocstrings[python]",
+  "pillow",
+  "cairosvg",
+  "mkdocs-git-revision-date-localized-plugin",
+  "mkdocs-git-committers-plugin-2",
+  ]
 
 [build-system]
 requires = ["uv_build>=0.9.2,<0.10.0"]
