@@ -90,6 +90,7 @@ nav:
   - Tips & Tricks: hw/tips.md
 - FlooGen:
   - Overview: floogen/overview.md
+  - General Information: floogen/network_types.md
   - Routing & Topologies: floogen/routing.md
   - Protocols: floogen/protocols.md
   - Endpoints: floogen/endpoints.md
