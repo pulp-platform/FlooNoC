@@ -58,7 +58,6 @@ module floo_reduction_arbiter import floo_pkg::*;
   typedef logic [cf_math_pkg::idx_width(NumRoutes)-1:0] arb_idx_t;
   arb_idx_t input_sel;
 
-
   for (genvar i = 0; i < NumRoutes; i++) begin : gen_invalid_data
       floo_reduction_sync #(
       .NumRoutes          ( NumRoutes ),
@@ -75,7 +74,6 @@ module floo_reduction_arbiter import floo_pkg::*;
       .in_route_mask_o  ( in_route_mask[i] )
     );
   end
-
 
   // Use a leading zero counter to find the first valid reduction input
   lzc #(
@@ -156,9 +154,9 @@ module floo_reduction_arbiter import floo_pkg::*;
     endcase
   end
 
-  // Connect the ready signal
+  // Connect the valid and ready signals
   assign valid_o = red_valid_in[input_sel];
-  assign ready_o = (ready_i & valid_o)? valid_i & in_route_mask[input_sel] : '0;
+  assign ready_o = (ready_i & valid_o) ? valid_i & in_route_mask[input_sel] : '0;
 
   // -----------------------------
   // AXI Specific Helper functions
