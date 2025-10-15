@@ -233,6 +233,7 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
   // This configuration is the one to be changed in order to enable or disable
   // different collective operation support
   // TODO (lleone): SCript this with Python
+
   localparam floo_pkg::collect_op_fe_cfg_t CollectiveOpCfg = '{
     EnNarrowMulticast:  1'b1,
     EnWideMulticast:    1'b1,
@@ -298,6 +299,28 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
     EnA_Max_U:          1'b0
   };
 
+  localparam floo_pkg::collect_op_fe_cfg_t CollectOpCfgList [0:5] = '{
+    0: '0,
+    1: CollectiveOpCfg,
+    2: MulticastOpCfg,
+    3: ParallelOpCfg,
+    4: NarrSequentialOpCfg,
+    5: WideSequentialOpCfg
+  };
+
+  localparam reduction_cfg_t NarrRedCfgList [0:3] = '{
+    0: '0,
+    1: NarrowSimpleReductionCfg,
+    2: NarrowStallingReductionCfg,
+    3: NarrowGenReductionCfg
+  };
+
+  localparam reduction_cfg_t WideRedCfgList [0:3] = '{
+    0: '0,
+    1: WideSimpleReductionCfg,
+    2: WideStallingReductionCfg,
+    3: WideGenReductionCfg
+  };
 
   typedef logic[AxiCfgW.DataWidth-1:0] RdDataWide_t;
   typedef logic[AxiCfgN.DataWidth-1:0] RdDataNarrow_t;

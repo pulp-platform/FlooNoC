@@ -10,7 +10,10 @@ module floo_synth_nw_router
   import floo_synth_nw_pkg::*;
   import floo_synth_collective_pkg::*;
 #(
-  parameter int unsigned NumPorts = int'(floo_pkg::NumDirections)
+  parameter int unsigned NumPorts = int'(floo_pkg::NumDirections),
+  parameter int unsigned  EnCollective  = 0,
+  parameter int unsigned  EnNarrOffload    = 0,
+  parameter int unsigned  EnWideOffload    = 0
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -47,8 +50,12 @@ module floo_synth_nw_router
   output logic                          offload_narrow_resp_ready_o
 );
 
-localparam bit Reduction = 1'b1;
-if (!Reduction) begin
+
+localparam floo_pkg::collect_op_fe_cfg_t OpCfg = CollectOpCfgList[EnCollective];
+localparam reduction_cfg_t NarrRedCfg = NarrRedCfgList[EnNarrOffload];
+localparam reduction_cfg_t WideRedCfg = WideRedCfgList[EnWideOffload];
+
+if (!EnCollective) begin
   floo_nw_router #(
     .AxiCfgN       ( AxiCfgN             ),
     .AxiCfgW       ( AxiCfgW             ),
@@ -115,10 +122,10 @@ end else begin
     .RdNarrowOperation_t      (floo_pkg::collect_op_e),
     .RdWideData_t             (RdDataWide_t),
     .RdNarrowData_t           (RdDataNarrow_t),
-    .CollectiveOpCfg          (ParallelOpCfg),          // To be modified for different synth cfg results
-    .RdWideCfg                (WideGenReductionCfg),     // To be modified for different synth cfg results
-    .RdNarrowCfg              (NarrowGenReductionCfg),   // To be modified for different synth cfg results
-    .RdRespCfg                (ResponseReductionCfg)     // To be modified for different synth cfg results
+    .CollectiveOpCfg          (OpCfg),          // To be modified for different synth cfg results
+    .RdWideCfg                (WideRedCfg),     // To be modified for different synth cfg results
+    .RdNarrowCfg              (NarrRedCfg),   // To be modified for different synth cfg results
+    .RdRespCfg                (ResponseReductionCfg)
   ) i_floo_nw_router (
     .clk_i          ( clk_i           ),
     .rst_ni         ( rst_ni          ),
