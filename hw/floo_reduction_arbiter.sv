@@ -52,33 +52,38 @@ module floo_reduction_arbiter import floo_pkg::*;
   logic [1:0] resp;
 
   // calculated expected input source lists for each input flit
-  logic [NumRoutes-1:0]  in_route_mask;
+  logic [NumRoutes-1:0][NumRoutes-1:0]  in_route_mask;
+  logic [NumRoutes-1:0]                 red_valid_in;
 
   typedef logic [cf_math_pkg::idx_width(NumRoutes)-1:0] arb_idx_t;
   arb_idx_t input_sel;
 
-  // Use a leading zero counter to find the first valid input to reduce
+
+  for (genvar i = 0; i < NumRoutes; i++) begin : gen_invalid_data
+      floo_reduction_sync #(
+      .NumRoutes          ( NumRoutes ),
+      .RdSupportLoopback  ( RdSupportLoopback ),
+      .arb_idx_t          ( arb_idx_t ),
+      .flit_t             ( flit_t    ),
+      .id_t               ( id_t      )
+    ) i_reduction_sync (
+      .sel_i            ( arb_idx_t'(i)    ),
+      .data_i           ( data_i           ),
+      .valid_i          ( valid_i          ),
+      .xy_id_i          ( xy_id_i          ),
+      .valid_o          ( red_valid_in[i]  ),
+      .in_route_mask_o  ( in_route_mask[i] )
+    );
+  end
+
+
+  // Use a leading zero counter to find the first valid reduction input
   lzc #(
     .WIDTH(NumRoutes)
   ) i_lzc (
-    .in_i  ( valid_i   ),
-    .cnt_o ( input_sel ),
+    .in_i  ( red_valid_in ),
+    .cnt_o ( input_sel    ),
     .empty_o ()
-  );
-
-  floo_reduction_sync #(
-    .NumRoutes          ( NumRoutes ),
-    .RdSupportLoopback  ( RdSupportLoopback ),
-    .arb_idx_t          ( arb_idx_t ),
-    .flit_t             ( flit_t    ),
-    .id_t               ( id_t      )
-  ) i_reduction_sync (
-    .sel_i            ( input_sel     ),
-    .data_i           ( data_i        ),
-    .valid_i          ( valid_i       ),
-    .xy_id_i          ( xy_id_i       ),
-    .valid_o          ( valid_o       ),
-    .in_route_mask_o  ( in_route_mask )
   );
 
   // Select the incoming reduction operation
@@ -95,7 +100,7 @@ module floo_reduction_arbiter import floo_pkg::*;
     resp = '0;
     // We check every input port from which we expect a response
     for (int i = 0; i < NumRoutes; i++) begin
-      if(in_route_mask[i]) begin
+      if(in_route_mask[input_sel][i]) begin
         // Select only the bits of the payload that are part of the response
         // and check if at least one of the participants sent an error.
         resp = extractAxiBResp(data_i[i]);
@@ -122,7 +127,7 @@ module floo_reduction_arbiter import floo_pkg::*;
 
       // We check every input port from which we expect a response
       for (int i = 0; i < NumRoutes; i++) begin
-        if(in_route_mask[i]) begin
+        if(in_route_mask[input_sel][i]) begin
           // Extract the last bit from the data
           if(RdSupportAxi) begin
             axi_data_t axi_w_data;
@@ -152,12 +157,14 @@ module floo_reduction_arbiter import floo_pkg::*;
   end
 
   // Connect the ready signal
-  assign ready_o = (ready_i & valid_o)? valid_i & in_route_mask : '0;
+  assign valid_o = red_valid_in[input_sel];
+  assign ready_o = (ready_i & valid_o)? valid_i & in_route_mask[input_sel] : '0;
 
   // -----------------------------
   // AXI Specific Helper functions
   // -----------------------------
 
+  //TODO(lleone): Move those functions into floo_pkg
   // Insert data into AXI specific W frame!
   function automatic flit_t insertAxiWlsb(flit_t metadata, logic data);
       floo_axi_w_flit_t w_flit;

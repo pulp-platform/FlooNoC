@@ -242,7 +242,12 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
     EnF_Mul:            1'b1,
     EnF_Min:            1'b1,
     EnF_Max:            1'b1,
-    default:            '0
+    EnA_Add:            1'b1,
+    EnA_Mul:            1'b1,
+    EnA_Min_S:          1'b1,
+    EnA_Min_U:          1'b1,
+    EnA_Max_S:          1'b1,
+    EnA_Max_U:          1'b1
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t MulticastOpCfg = '{
@@ -291,12 +296,12 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
     EnF_Mul:            1'b1,
     EnF_Min:            1'b1,
     EnF_Max:            1'b1,
-    EnA_Add:            1'b0,
-    EnA_Mul:            1'b0,
-    EnA_Min_S:          1'b0,
-    EnA_Min_U:          1'b0,
-    EnA_Max_S:          1'b0,
-    EnA_Max_U:          1'b0
+    EnA_Add:            1'b1,
+    EnA_Mul:            1'b1,
+    EnA_Min_S:          1'b1,
+    EnA_Min_U:          1'b1,
+    EnA_Max_S:          1'b1,
+    EnA_Max_U:          1'b1
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t CollectOpCfgList [0:5] = '{

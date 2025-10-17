@@ -906,10 +906,10 @@ endfunction
 // Store all locked in signals
 `FF(locked_q, locked_d, '0, clk_i, rst_ni)
 `FF(selected_input_q, selected_input_d, '0, clk_i, rst_ni)
-`FF(selected_partial_result_buffer_q, selected_partial_result_buffer_d, '0, clk_i, rst_ni)
-`FF(selected_partial_result_mux_q, selected_partial_result_mux_d, '0, clk_i, rst_ni)
-`FF(selected_op_q, selected_op_d, floo_pkg::F_Add, clk_i, rst_ni)
-`FF(selected_tag_q, selected_tag_d, '0, clk_i, rst_ni)
+`FF(selected_partial_result_buffer_q, selected_partial_result_buffer_d, '0, clk_i, rst_ni)  // Only generic and stalling
+`FF(selected_partial_result_mux_q, selected_partial_result_mux_d, '0, clk_i, rst_ni)        // Only generic and stalling
+`FF(selected_op_q, selected_op_d, floo_pkg::F_Add, clk_i, rst_ni)                           // Only generic and stalling
+`FF(selected_tag_q, selected_tag_d, '0, clk_i, rst_ni)                                      // Only generic and stalling
 
 /* ASSERTION Checks */
 // We can only run GENERIC or SIMPLE or STALLING
