@@ -51,7 +51,7 @@ module floo_axi_chimney #(
   parameter type axi_in_rsp_t               = logic,
   /// AXI subordinate request channel type
   parameter type axi_out_req_t              = logic,
-  // AXI subordinate response channel type
+  /// AXI subordinate response channel type
   parameter type axi_out_rsp_t              = logic,
   /// Floo `req` link type
   parameter type floo_req_t                 = logic,
@@ -656,7 +656,8 @@ module floo_axi_chimney #(
       .axi_in_req_t   ( axi_in_req_t            ),
       .axi_in_rsp_t   ( axi_in_rsp_t            ),
       .axi_out_req_t  ( axi_out_req_t           ),
-      .axi_out_rsp_t  ( axi_out_rsp_t           )
+      .axi_out_rsp_t  ( axi_out_rsp_t           ),
+      .axi_aw_chan_t  ( axi_aw_chan_t           )
     ) i_floo_meta_buffer (
       .clk_i,
       .rst_ni,

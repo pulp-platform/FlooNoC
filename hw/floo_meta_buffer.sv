@@ -32,6 +32,8 @@ module floo_meta_buffer #(
   parameter type axi_out_req_t  = logic,
   /// AXI out response channel
   parameter type axi_out_rsp_t  = logic,
+  /// AXI address write channel
+  parameter type axi_aw_chan_t  = logic,
   /// Information to be buffered for responses
   parameter type buf_t          = logic
 ) (
@@ -64,6 +66,32 @@ module floo_meta_buffer #(
   buf_t [MaxAtomicTxns-1:0] atop_r_buf, atop_b_buf;
 
   id_out_t no_atop_aw_req_id, no_atop_ar_req_id;
+
+  axi_aw_chan_t axi_aw;
+  logic push_axi_aw, pop_axi_aw;
+  logic axi_aw_empty, axi_aw_valid;
+
+  assign axi_aw_valid = !axi_aw_empty;
+  assign push_axi_aw  = axi_req_i.aw_valid;
+  assign pop_axi_aw   = axi_rsp_i.aw_ready && axi_aw_valid;
+
+  fifo_v3 #(
+    .FALL_THROUGH ( 1'b1          ),
+    .DEPTH        ( MaxTxns       ),
+    .dtype        ( axi_aw_chan_t )
+  ) i_axi_aw_fifo (
+    .clk_i,
+    .rst_ni,
+    .flush_i    ( 1'b0          ),
+    .testmode_i ( test_enable_i ),
+    .full_o     (               ),
+    .empty_o    ( axi_aw_empty  ),
+    .usage_o    (               ),
+    .data_i     ( axi_req_i.aw  ),
+    .push_i     ( push_axi_aw   ),
+    .data_o     ( axi_aw        ),
+    .pop_i      ( pop_axi_aw    )
+  );
 
   if (MaxUniqueIds == 1) begin : gen_no_atop_fifos
 
@@ -116,8 +144,8 @@ module floo_meta_buffer #(
 
     // Non-atomic transaction IDs are assigned to the range [MaxAtomicTxns, 2**OutIdWidth-1),
     // Therefore `MaxAtomicTxns` is added/subtracted to/from the ID to get the original ID
-    assign no_atop_aw_req_id = id_min_t'(MaxAtomicTxns) + id_min_t'(axi_req_i.aw.id);
-    assign no_atop_ar_req_id = id_min_t'(MaxAtomicTxns) + id_min_t'(axi_req_i.ar.id);
+    assign no_atop_aw_req_id = id_min_t'(MaxAtomicTxns) + id_min_t'(axi_aw.id);
+    assign no_atop_ar_req_id = id_min_t'(MaxAtomicTxns) + id_min_t'(axi_aw.id);
     assign no_atop_aw_req_id_in = axi_rsp_i.b.id - id_min_t'(MaxAtomicTxns);
     assign no_atop_ar_req_id_in = axi_rsp_i.r.id - id_min_t'(MaxAtomicTxns);
     `ASSERT_INIT(TooFewIdBits2, MaxAtomicTxns + id_min_t'('1) < 2**OutIdWidth)
@@ -125,53 +153,53 @@ module floo_meta_buffer #(
     logic aw_no_atop_buf_not_full, ar_no_atop_buf_not_full;
 
     id_queue #(
-      .ID_WIDTH ( IdMinWidth  ),
-      .CAPACITY ( MaxTxns     ),
-      .FULL_BW  ( 1'b1        ),
-      .data_t   ( buf_t       )
+      .ID_WIDTH ( IdMinWidth ),
+      .CAPACITY ( MaxTxns    ),
+      .FULL_BW  ( 1'b1       ),
+      .data_t   ( buf_t      )
     ) i_aw_no_atop_id_queue (
       .clk_i,
       .rst_ni,
-      .inp_id_i         ( id_min_t'(axi_req_i.aw.id)  ),
-      .inp_data_i       ( aw_buf_i                    ),
-      .inp_req_i        ( aw_no_atop_push             ),
-      .inp_gnt_o        ( aw_no_atop_buf_not_full     ),
-      .exists_data_i    ( '0                          ),
-      .exists_mask_i    ( '0                          ),
-      .exists_req_i     ( '0                          ),
-      .exists_o         (                             ),
-      .exists_gnt_o     (                             ),
-      .oup_id_i         ( no_atop_aw_req_id_in        ),
-      .oup_pop_i        ( aw_no_atop_pop              ),
-      .oup_req_i        ( axi_rsp_i.b_valid           ),
-      .oup_data_o       ( no_atop_b_buf               ),
-      .oup_data_valid_o ( b_oup_data_valid            ),
-      .oup_gnt_o        ( b_oup_gnt                   )
+      .inp_id_i         ( id_min_t'(axi_aw.id)    ),
+      .inp_data_i       ( aw_buf_i                ),
+      .inp_req_i        ( aw_no_atop_push         ),
+      .inp_gnt_o        ( aw_no_atop_buf_not_full ),
+      .exists_data_i    ( '0                      ),
+      .exists_mask_i    ( '0                      ),
+      .exists_req_i     ( '0                      ),
+      .exists_o         (                         ),
+      .exists_gnt_o     (                         ),
+      .oup_id_i         ( no_atop_aw_req_id_in    ),
+      .oup_pop_i        ( aw_no_atop_pop          ),
+      .oup_req_i        ( axi_rsp_i.b_valid       ),
+      .oup_data_o       ( no_atop_b_buf           ),
+      .oup_data_valid_o ( b_oup_data_valid        ),
+      .oup_gnt_o        ( b_oup_gnt               )
     );
 
     id_queue #(
-      .ID_WIDTH ( IdMinWidth  ),
-      .CAPACITY ( MaxTxns     ),
-      .FULL_BW  ( 1'b1        ),
-      .data_t   ( buf_t       )
+      .ID_WIDTH ( IdMinWidth ),
+      .CAPACITY ( MaxTxns    ),
+      .FULL_BW  ( 1'b1       ),
+      .data_t   ( buf_t      )
     ) i_ar_no_atop_id_queue (
       .clk_i,
       .rst_ni,
-      .inp_id_i         ( id_min_t'(axi_req_i.ar.id)  ),
-      .inp_data_i       ( ar_buf_i                    ),
-      .inp_req_i        ( ar_no_atop_push             ),
-      .inp_gnt_o        ( ar_no_atop_buf_not_full     ),
-      .exists_data_i    ( '0                          ),
-      .exists_mask_i    ( '0                          ),
-      .exists_req_i     ( '0                          ),
-      .exists_o         (                             ),
-      .exists_gnt_o     (                             ),
-      .oup_id_i         ( no_atop_ar_req_id_in        ),
-      .oup_pop_i        ( ar_no_atop_pop              ),
-      .oup_req_i        ( axi_rsp_i.r_valid           ),
-      .oup_data_o       ( no_atop_r_buf               ),
-      .oup_data_valid_o ( r_oup_data_valid            ),
-      .oup_gnt_o        ( r_oup_gnt                   )
+      .inp_id_i         ( id_min_t'(axi_req_i.ar.id) ),
+      .inp_data_i       ( ar_buf_i                   ),
+      .inp_req_i        ( ar_no_atop_push            ),
+      .inp_gnt_o        ( ar_no_atop_buf_not_full    ),
+      .exists_data_i    ( '0                         ),
+      .exists_mask_i    ( '0                         ),
+      .exists_req_i     ( '0                         ),
+      .exists_o         (                            ),
+      .exists_gnt_o     (                            ),
+      .oup_id_i         ( no_atop_ar_req_id_in       ),
+      .oup_pop_i        ( ar_no_atop_pop             ),
+      .oup_req_i        ( axi_rsp_i.r_valid          ),
+      .oup_data_o       ( no_atop_r_buf              ),
+      .oup_data_valid_o ( r_oup_data_valid           ),
+      .oup_gnt_o        ( r_oup_gnt                  )
     );
 
     assign ar_no_atop_buf_full = !ar_no_atop_buf_not_full;
@@ -188,8 +216,8 @@ module floo_meta_buffer #(
   assign ar_no_atop_pop = axi_rsp_o.r_valid && axi_req_i.r_ready && axi_rsp_o.r.last &&
                           !is_atop_r_rsp;
   // Non-atomic AW's
-  assign is_atop_aw = axi_req_i.aw_valid && axi_req_i.aw.atop[5:4] != axi_pkg::ATOP_NONE;
-  assign aw_no_atop_push = axi_req_o.aw_valid && axi_rsp_i.aw_ready && !is_atop_aw;
+  assign is_atop_aw = axi_aw_valid && axi_aw.atop[5:4] != axi_pkg::ATOP_NONE;
+  assign aw_no_atop_push = axi_req_i.aw_valid && !is_atop_aw;
   assign aw_no_atop_pop = axi_rsp_o.b_valid && axi_req_i.b_ready && !is_atop_b_rsp;
 
   assign is_atop_r_rsp = AtopSupport && axi_rsp_i.r_valid && (axi_rsp_i.r.id < MaxAtomicTxns);
@@ -209,7 +237,7 @@ module floo_meta_buffer #(
     logic [MaxAtomicTxns-1:0] available_atop_ids;
     logic no_atop_id_available;
 
-    assign atop_has_r_rsp = axi_req_i.aw.atop[axi_pkg::ATOP_R_RESP];
+    assign atop_has_r_rsp = axi_aw.atop[axi_pkg::ATOP_R_RESP];
     assign available_atop_ids = ar_atop_reg_empty & aw_atop_reg_empty;
     assign no_atop_id_available = (available_atop_ids == '0);
 
@@ -268,8 +296,8 @@ module floo_meta_buffer #(
       ar_atop_reg_pop = '0;
       aw_atop_reg_pop = '0;
       ar_atop_reg_push[atop_req_id] = is_atop_aw && atop_has_r_rsp &&
-                                      axi_req_o.aw_valid && axi_rsp_i.aw_ready;
-      aw_atop_reg_push[atop_req_id] = is_atop_aw && axi_req_o.aw_valid && axi_rsp_i.aw_ready;
+                                      axi_req_i.aw_valid;
+      aw_atop_reg_push[atop_req_id] = is_atop_aw && axi_req_i.aw_valid;
       ar_atop_reg_pop[axi_rsp_i.r.id] = is_atop_r_rsp &&
                                         axi_rsp_o.r_valid && axi_req_i.r_ready && axi_rsp_o.r.last;
       aw_atop_reg_pop[axi_rsp_i.b.id] = is_atop_b_rsp && axi_rsp_o.b_valid && axi_req_i.b_ready;
@@ -278,6 +306,7 @@ module floo_meta_buffer #(
     always_comb begin
       `AXI_SET_REQ_STRUCT(axi_req_o, axi_req_i)
       `AXI_SET_RESP_STRUCT(axi_rsp_o, axi_rsp_i)
+      `AXI_SET_AW_STRUCT(axi_req_o.aw, axi_aw);
       // Use fixed ID for non-atomic requests and unique ID for atomic requests
       axi_req_o.ar.id = no_atop_ar_req_id;
       axi_req_o.aw.id = (is_atop_aw)? atop_req_id : no_atop_aw_req_id;
@@ -286,15 +315,16 @@ module floo_meta_buffer #(
       axi_rsp_o.b.id = (is_atop_b_rsp)? atop_b_buf[axi_rsp_i.b.id] : no_atop_b_buf.id;
       axi_req_o.ar_valid = axi_req_i.ar_valid && !ar_no_atop_buf_full;
       axi_rsp_o.ar_ready = axi_rsp_i.ar_ready && !ar_no_atop_buf_full;
-      axi_req_o.aw_valid = axi_req_i.aw_valid && ((is_atop_aw)?
+      axi_req_o.aw_valid = axi_aw_valid && ((is_atop_aw)?
                             !no_atop_id_available : !aw_no_atop_buf_full);
-      axi_rsp_o.aw_ready = axi_rsp_i.aw_ready && ((is_atop_aw)?
+      axi_rsp_o.aw_ready = axi_req_i.aw_valid && ((is_atop_aw)?
                             !no_atop_id_available : !aw_no_atop_buf_full);
     end
   end else begin : gen_no_atop_support
     always_comb begin
       `AXI_SET_REQ_STRUCT(axi_req_o, axi_req_i)
       `AXI_SET_RESP_STRUCT(axi_rsp_o, axi_rsp_i)
+      `AXI_SET_AW_STRUCT(axi_req_o.aw, axi_aw);
       // Use fixed ID for non-atomic requests and unique ID for atomic requests
       axi_req_o.ar.id = no_atop_ar_req_id;
       axi_req_o.aw.id = no_atop_aw_req_id;
@@ -303,8 +333,8 @@ module floo_meta_buffer #(
       axi_rsp_o.b.id = no_atop_b_buf.id;
       axi_req_o.ar_valid = axi_req_i.ar_valid && !ar_no_atop_buf_full;
       axi_rsp_o.ar_ready = axi_rsp_i.ar_ready && !ar_no_atop_buf_full;
-      axi_req_o.aw_valid = axi_req_i.aw_valid && !aw_no_atop_buf_full;
-      axi_rsp_o.aw_ready = axi_rsp_i.aw_ready && !aw_no_atop_buf_full;
+      axi_req_o.aw_valid = axi_aw_valid && !aw_no_atop_buf_full;
+      axi_rsp_o.aw_ready = axi_req_i.aw_valid && !aw_no_atop_buf_full;
     end
   end
 

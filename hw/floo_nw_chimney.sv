@@ -1099,7 +1099,8 @@ module floo_nw_chimney #(
       .axi_in_req_t   ( axi_narrow_in_req_t       ),
       .axi_in_rsp_t   ( axi_narrow_in_rsp_t       ),
       .axi_out_req_t  ( axi_narrow_out_req_t      ),
-      .axi_out_rsp_t  ( axi_narrow_out_rsp_t      )
+      .axi_out_rsp_t  ( axi_narrow_out_rsp_t      ),
+      .axi_aw_chan_t  ( axi_narrow_aw_chan_t      )
     ) i_narrow_meta_buffer (
       .clk_i,
       .rst_ni,
@@ -1143,7 +1144,8 @@ module floo_nw_chimney #(
       .axi_in_req_t   ( axi_wide_in_req_t         ),
       .axi_in_rsp_t   ( axi_wide_in_rsp_t         ),
       .axi_out_req_t  ( axi_wide_out_req_t        ),
-      .axi_out_rsp_t  ( axi_wide_out_rsp_t        )
+      .axi_out_rsp_t  ( axi_wide_out_rsp_t        ),
+      .axi_aw_chan_t  ( axi_wide_aw_chan_t        )
     ) i_wide_meta_buffer (
       .clk_i,
       .rst_ni,
