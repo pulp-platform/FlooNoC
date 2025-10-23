@@ -204,4 +204,14 @@ module floo_route_xymask import floo_pkg::*; #(
   // We only support five input/output routes
   `ASSERT_INIT(NoMultiCastSupport, NumRoutes == 5)
 
+  // TODO(colluca): fix code and uncomment
+  // always_comb begin
+  //   // Check that module does nothing when unsupported
+  //   `ASSERT_I(
+  //     NoReductionInForward,
+  //     (FwdMode ? is_multicast_op(channel_i.hdr.collective_op) || (route_sel_o == '0) :
+  //     !is_multicast_op(channel_i.hdr.collective_op) || (route_sel_o == '0)),
+  //     "Mask should be 0 on unsupported operation.")
+  // end
+
 endmodule
