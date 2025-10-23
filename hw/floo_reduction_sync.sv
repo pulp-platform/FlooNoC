@@ -40,6 +40,9 @@ module floo_reduction_sync import floo_pkg::*;
     .route_sel_o  ( in_route_mask_o )
   );
 
+  logic [NumRoutes-1:0] filtered_route_mask;
+  assign filtered_route_mask = in_route_mask_o & {NumRoutes{valid_i[sel_i]}};
+
   for (genvar in = 0; in < NumRoutes; in++) begin : gen_routes
     // Compare whether the `mask` and `dst_id` are equal to the selected input port
     assign compare_same[in] = ((data_i[in].hdr.collective_mask == data_i[sel_i].hdr.collective_mask) &&
@@ -57,10 +60,10 @@ module floo_reduction_sync import floo_pkg::*;
     end
   end
 
-  // Reduction is valid only if all expected inputs [in_route_mask_o] are valid.
-  // Inputs not involved in the reduction are ignored [~(in_route_mask_o)].
-  assign all_reduction_srcs_valid = &(same_and_valid | ~in_route_mask_o);
+  // Reduction is valid only if all expected inputs [filtered_route_mask] are valid.
+  // Inputs not involved in the reduction are ignored [~(filtered_route_mask)].
+  assign all_reduction_srcs_valid = &(same_and_valid | ~filtered_route_mask);
 
   // To have a valid output at least one input must be valid.
-  assign valid_o = (in_route_mask_o == '0)? 1'b0 : (|valid_i & all_reduction_srcs_valid);
+  assign valid_o = (filtered_route_mask == '0)? 1'b0 : (|valid_i & all_reduction_srcs_valid);
 endmodule
