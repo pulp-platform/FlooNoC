@@ -346,9 +346,6 @@ assign reduction_req_valid_out = join_operands_valid;
 assign join_operands_ready = reduction_req_ready_in;
 
 // Output the operands here
-// TODO(raroth): Introduce Cut here to allow cutting the Offload unit.
-//       Extend the Configuration to allow fo this cut!
-//       Cut the response from the offload unit too!
 assign reduction_instr_out.operand1 = merged_data[0].data;
 assign reduction_instr_out.operand2 = merged_data[1].data;
 assign reduction_instr_out.op = reduction_scheduled_operation;

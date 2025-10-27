@@ -400,6 +400,7 @@ module floo_router
     end
   end
 
+  // TODO (lleone): Move the folloiwng FF inside the multicast
   `FF(past_handshakes_q, past_handshakes_d, '0)
 
   // We merge the data from the reduction module as an additional input of our output arbiter.
