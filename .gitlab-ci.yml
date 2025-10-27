@@ -2,13 +2,14 @@
 # Solderpad Hardware License, Version 0.51, see LICENSE for details.
 # SPDX-License-Identifier: SHL-0.51
 
+# Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 # Author: Michael Rogenmoser <michaero@iis.ee.ethz.ch>
 
 variables:
   QUESTA_SEPP: questa-2025.1
   VCS_SEPP: vcs-2025.06
   BENDER: bender
-  PYTHON: /usr/local/anaconda3/bin/python
+  UV: /home/fischeti/.local/bin/uv
 
 stages:
   - init
@@ -64,12 +65,7 @@ compile-meshes:
       - DUT: [axi_mesh, nw_mesh]
         ROUTE_ALGO: [xy, src, id]
   script:
-    # Install `floogen`
-    - $PYTHON -m venv .venv
-    - source .venv/bin/activate
-    - pip install .
-    # Generate sources
-    - floogen -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
+    - $UV run floogen -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
     # Compile the network
     - make compile-sim EXTRA_BENDER_FLAGS="-t ${DUT}" WORK="work_${DUT}_${ROUTE_ALGO}" | tee compile.log 2>&1
     - '! grep "\*\* Error" compile.log'
