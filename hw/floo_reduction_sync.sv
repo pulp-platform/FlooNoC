@@ -19,13 +19,14 @@ module floo_reduction_sync import floo_pkg::*;
   input  arb_idx_t               sel_i,
   input  flit_t [NumRoutes-1:0]  data_i,
   input  logic  [NumRoutes-1:0]  valid_i,
+  output logic  [NumRoutes-1:0]  ready_o,
   input  id_t                    xy_id_i,
   output logic                   valid_o,
+  input  logic                   ready_i,
   output logic  [NumRoutes-1:0]  in_route_mask_o
 );
 
-  logic [NumRoutes-1:0]  compare_same, same_and_valid;
-  logic all_reduction_srcs_valid;
+  logic [NumRoutes-1:0]  filtered_valid_in, filtered_local;
 
   // Compute the input mask based on the selected input port's destination and mask fields.
   // This determines which input ports are expected to participate in the reduction.
@@ -43,27 +44,32 @@ module floo_reduction_sync import floo_pkg::*;
   logic [NumRoutes-1:0] filtered_route_mask;
   assign filtered_route_mask = in_route_mask_o & {NumRoutes{valid_i[sel_i]}};
 
-  for (genvar in = 0; in < NumRoutes; in++) begin : gen_routes
-    // Compare whether the `mask` and `dst_id` are equal to the selected input port
-    assign compare_same[in] = ((data_i[in].hdr.collective_mask == data_i[sel_i].hdr.collective_mask) &&
-                               (data_i[in].hdr.dst_id == data_i[sel_i].hdr.dst_id));
 
-    // Determine if this input should be considered valid for the reduction:
-    // when no LoopBack support is provided, the local port has to be considered
-    // valid if it is the destination of the collective opearation.
+  // Filter valids from the expected input sources. If the collective targets
+  // the local node and loopback is unsupported, also mark the local port as valid
+  // so the flit can reach the endpoint and avoid deadlock.
+  for (genvar in = 0; in < NumRoutes; in++) begin : gen_valid
+    // Only valid form same reduction streams are propagated
+    assign filtered_valid_in[in] =  valid_i[in] && (data_i[in].hdr.dst_id == data_i[sel_i].hdr.dst_id) &&
+                                    (data_i[in].hdr.collective_mask == data_i[sel_i].hdr.collective_mask);
+
+    // Mask local port if loopback is not supported
     if (!RdSupportLoopback) begin
-      assign same_and_valid[in] = (data_i[sel_i].hdr.dst_id == xy_id_i && in == Eject) ||
-                                  (compare_same[in] & valid_i[in]);
+      assign filtered_local[in] = filtered_valid_in[in] ||
+                                  (data_i[sel_i].hdr.dst_id == xy_id_i && in == Eject);
     end else begin
-      // When LoopBack support is provided, the local port must always be considered
-      assign same_and_valid[in] = (compare_same[in] & valid_i[in]);
+      assign filtered_local[in] = filtered_valid_in[in];
     end
   end
 
-  // Reduction is valid only if all expected inputs [filtered_route_mask] are valid.
-  // Inputs not involved in the reduction are ignored [~(filtered_route_mask)].
-  assign all_reduction_srcs_valid = &(same_and_valid | ~filtered_route_mask);
+  stream_join_dynamic #(
+    .N_INP ( NumRoutes )
+  ) i_stream_join_dynamic (
+    .inp_valid_i   ( filtered_local      ),
+    .inp_ready_o   ( ready_o             ),
+    .sel_i         ( filtered_route_mask ),
+    .oup_valid_o   ( valid_o             ),
+    .oup_ready_i   ( ready_i             )
+  );
 
-  // To have a valid output at least one input must be valid.
-  assign valid_o = (filtered_route_mask == '0)? 1'b0 : (|valid_i & all_reduction_srcs_valid);
 endmodule

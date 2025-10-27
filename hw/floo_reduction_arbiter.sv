@@ -54,10 +54,16 @@ module floo_reduction_arbiter import floo_pkg::*;
   // calculated expected input source lists for each input flit
   logic [NumRoutes-1:0][NumRoutes-1:0]  in_route_mask;
   logic [NumRoutes-1:0]                 red_valid_in;
+  logic [NumRoutes-1:0][NumRoutes-1:0]  ready_out;
 
   typedef logic [cf_math_pkg::idx_width(NumRoutes)-1:0] arb_idx_t;
   arb_idx_t input_sel;
 
+  // TODO (lleone): The handshake betwene the input and output shoudl be implemented with
+  // a stream fork. The one in common cell is not suitable for this condition because
+  // it connectes the input stream to ALL of output ports. We would need a stream fork
+  // that connects the input stream to ANY of the output ports.
+  assign ready_o = ready_out[input_sel];
   for (genvar i = 0; i < NumRoutes; i++) begin : gen_invalid_data
       floo_reduction_sync #(
       .NumRoutes          ( NumRoutes ),
@@ -69,8 +75,10 @@ module floo_reduction_arbiter import floo_pkg::*;
       .sel_i            ( arb_idx_t'(i)    ),
       .data_i           ( data_i           ),
       .valid_i          ( valid_i          ),
+      .ready_o          ( ready_out[i]     ),
       .xy_id_i          ( xy_id_i          ),
       .valid_o          ( red_valid_in[i]  ),
+      .ready_i          ( ready_i          ),
       .in_route_mask_o  ( in_route_mask[i] )
     );
   end
@@ -156,7 +164,8 @@ module floo_reduction_arbiter import floo_pkg::*;
 
   // Connect the valid and ready signals
   assign valid_o = red_valid_in[input_sel];
-  assign ready_o = (ready_i & valid_o) ? valid_i & in_route_mask[input_sel] : '0;
+  // TODO (lleone): Delete this line
+  // assign ready_o = (ready_i & valid_o) ? valid_i & in_route_mask[input_sel] : '0;
 
   // -----------------------------
   // AXI Specific Helper functions
