@@ -567,7 +567,30 @@ class RouteMap(BaseModel):
 
 
 class Routing(BaseModel):
-    """Routing Description class."""
+    """
+    The class that holds essentially all the routing information needed.
+
+    Attributes:
+        route_algo (RouteAlgo): The routing algorithm to use. See RouteAlgo enum for the options.
+        use_id_table (bool): Whether to use a table to decode the destination ID.
+        sam (RouteMap): The system address map.
+        table (RouteMap): The routing table of the router.
+        addr_offset_bits (int): The number of bits to decode the X and Y coordinates from the address. Only used if `use_id_table` is False and `route_algo` is XY.
+        xy_id_offset (Union[SimpleId, Coord]): A constant offset to add to the X and Y coordinates. Only used if `route_algo` is XY.
+        num_endpoints (int): The number of endpoints in the network.
+        num_id_bits (int): The number of bits to represent the ID. Only used if `route_algo` is ID or SRC.
+        num_x_bits (int): The number of bits to represent the X coordinate. Only used if `route_algo` is XY.
+        num_y_bits (int): The number of bits to represent the Y coordinate. Only used if `route_algo` is XY.
+        num_route_bits (int): The number of bits to represent the route. Only used if `route_algo` is SRC.
+        addr_width (int): The width of the address bus.
+        rob_idx_bits (int): The number of bits to represent the reorder buffer index.
+        port_id_bits (int): The number of bits to represent the local port ID.
+        en_multicast (bool): Whether to enable multicast support. Only supported with XY routing.
+        multicast_sam (RouteMap): The multicast system address map. Only used if `en_multicast` is True.
+        en_parallel_reduction (bool): Whether to enable parallel reduction support (Experimental)
+        en_narrow_offload_reduction (bool): Whether to enable narrow offload reduction support (Experimental)
+        en_wide_offload_reduction (bool): Whether to enable wide offload reduction support
+    """
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
