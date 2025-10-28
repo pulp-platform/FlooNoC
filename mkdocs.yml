@@ -98,5 +98,7 @@ nav:
   - Connections: floogen/connections.md
   - CLI: floogen/cli.md
   - Known Issues: floogen/known_issues.md
-  - Utils: floogen/utils.md
+  - Reference:
+    - Routing Model: floogen/reference/routing.md
+    - Utils: floogen/reference/utils.md
 - Changelog: changelog.md
