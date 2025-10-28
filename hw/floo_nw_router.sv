@@ -6,6 +6,7 @@
 
 `include "axi/typedef.svh"
 `include "floo_noc/typedef.svh"
+`include "common_cells/registers.svh"
 
 /// Wrapper of a multi-link router for narrow and wide links
 module floo_nw_router #(
@@ -28,6 +29,8 @@ module floo_nw_router #(
   /// Disable illegal connections in router
   /// (only applies for `RouteAlgo == XYRouting`)
   parameter bit          XYRouteOpt           = 1'b1,
+  /// Enable multicast feature
+  parameter bit          EnMultiCast          = 1'b0,
   /// Node ID type
   parameter type id_t                         = logic,
   /// Header type
@@ -120,23 +123,26 @@ module floo_nw_router #(
   end
 
   floo_router #(
-    .NumPhysChannels  ( 1                       ),
-    .NumVirtChannels  ( 1                       ),
     .NumInput         ( NumInputs               ),
     .NumOutput        ( NumOutputs              ),
-    .flit_t           ( floo_req_generic_flit_t ),
+    .NumPhysChannels  ( 1                       ),
+    .NumVirtChannels  ( 1                       ),
     .InFifoDepth      ( InFifoDepth             ),
     .OutFifoDepth     ( OutFifoDepth            ),
     .RouteAlgo        ( RouteAlgo               ),
     .XYRouteOpt       ( XYRouteOpt              ),
-    .id_t             ( id_t                    ),
     .NumAddrRules     ( NumAddrRules            ),
-    .addr_rule_t      ( addr_rule_t             )
+    .NoLoopback       ( 1'b1                    ),
+    .EnMultiCast      ( EnMultiCast             ),
+    .EnReduction      ( 1'b0                    ),
+    .id_t             ( id_t                    ),
+    .addr_rule_t      ( addr_rule_t             ),
+    .flit_t           ( floo_req_generic_flit_t )
   ) i_req_floo_router (
     .clk_i,
     .rst_ni,
     .test_enable_i,
-    .xy_id_i(id_i),
+    .xy_id_i        ( id_i ),
     .id_route_map_i,
     .valid_i        ( req_valid_in  ),
     .ready_o        ( req_ready_out ),
@@ -146,25 +152,48 @@ module floo_nw_router #(
     .data_o         ( req_out       )
   );
 
+  // We construct the masks for the narrow and wide B responses here.
+  // Every bit of the payload is set to 0, except for the bits that
+  // correspond to the resp field.
+  localparam axi_narrow_b_chan_t NarrowBMask = '{resp: 2'b11, default: '0};
+  localparam floo_axi_narrow_b_flit_t NarrowBFlitMask = '{
+    payload: NarrowBMask,
+    hdr: '0,
+    rsvd: '0
+  };
+  localparam axi_narrow_b_chan_t WideBMask = '{resp: 2'b11, default: '0};
+  localparam floo_axi_wide_b_flit_t WideBFlitMask = '{
+    payload: WideBMask,
+    hdr: '0,
+    rsvd: '0
+  };
 
+  // Enable reduction for the B response.
+  // Disable multicast for the B response.
   floo_router #(
-    .NumPhysChannels  ( 1                       ),
-    .NumVirtChannels  ( 1                       ),
     .NumInput         ( NumInputs               ),
     .NumOutput        ( NumOutputs              ),
+    .NumPhysChannels  ( 1                       ),
+    .NumVirtChannels  ( 1                       ),
     .InFifoDepth      ( InFifoDepth             ),
     .OutFifoDepth     ( OutFifoDepth            ),
     .RouteAlgo        ( RouteAlgo               ),
     .XYRouteOpt       ( XYRouteOpt              ),
-    .flit_t           ( floo_rsp_generic_flit_t ),
-    .id_t             ( id_t                    ),
     .NumAddrRules     ( NumAddrRules            ),
-    .addr_rule_t      ( addr_rule_t             )
+    .NoLoopback       ( 1'b1                    ),
+    .EnMultiCast      ( 1'b0                    ),
+    .EnReduction      ( EnMultiCast             ),
+    .id_t             ( id_t                    ),
+    .addr_rule_t      ( addr_rule_t             ),
+    .flit_t           ( floo_rsp_generic_flit_t ),
+    .payload_t        ( floo_rsp_payload_t      ),
+    .NarrowRspMask    ( floo_rsp_generic_flit_t'(NarrowBFlitMask.payload) ),
+    .WideRspMask      ( floo_rsp_generic_flit_t'(WideBFlitMask.payload)   )
   ) i_rsp_floo_router (
     .clk_i,
     .rst_ni,
     .test_enable_i,
-    .xy_id_i(id_i),
+    .xy_id_i        ( id_i ),
     .id_route_map_i,
     .valid_i        ( rsp_valid_in  ),
     .ready_o        ( rsp_ready_out ),
@@ -176,22 +205,25 @@ module floo_nw_router #(
 
 
   floo_router #(
+    .NumRoutes        ( NumRoutes                 ),
     .NumPhysChannels  ( 1                         ),
     .NumVirtChannels  ( 1                         ),
-    .NumRoutes        ( NumRoutes                 ),
-    .flit_t           ( floo_wide_generic_flit_t  ),
     .InFifoDepth      ( InFifoDepth               ),
     .OutFifoDepth     ( OutFifoDepth              ),
     .RouteAlgo        ( RouteAlgo                 ),
     .XYRouteOpt       ( XYRouteOpt                ),
-    .id_t             ( id_t                      ),
     .NumAddrRules     ( NumAddrRules              ),
-    .addr_rule_t      ( addr_rule_t               )
+    .NoLoopback       ( 1'b1                      ),
+    .EnMultiCast      ( EnMultiCast               ),
+    .EnReduction      ( 1'b0                      ),
+    .id_t             ( id_t                      ),
+    .addr_rule_t      ( addr_rule_t               ),
+    .flit_t           ( floo_wide_generic_flit_t  )
   ) i_wide_req_floo_router (
     .clk_i,
     .rst_ni,
     .test_enable_i,
-    .xy_id_i(id_i),
+    .xy_id_i        ( id_i ),
     .id_route_map_i,
     .valid_i        ( wide_valid_in   ),
     .ready_o        ( wide_ready_out  ),

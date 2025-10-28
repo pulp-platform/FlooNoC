@@ -55,14 +55,15 @@ def render_sources(network: Network, args: argparse.Namespace):
         if args.rdl:
             rdl_file_name = outdir / f"{network.name}.rdl"
             with open(rdl_file_name, "w+", encoding="utf-8") as rdl_file:
-                rdl_file.write(network.render_rdl(rdl_as_mem=args.rdl_as_mem))
+                rdl_file.write(network.render_rdl(rdl_as_mem=args.rdl_as_mem,
+                                                  rdl_memwidth=args.rdl_memwidth))
     else:
         if not args.only_top and not args.rdl:
             print(rendered_pkg)
         if not args.only_pkg and not args.rdl:
             print(rendered_top)
         if args.rdl:
-            print(network.render_rdl(rdl_as_mem=args.rdl_as_mem))
+            print(network.render_rdl(rdl_as_mem=args.rdl_as_mem, rdl_memwidth=args.rdl_memwidth))
 
 
 def parse_args():
@@ -108,6 +109,13 @@ def parse_args():
         action="store_true",
         default=False,
         help="Add memory blocks for address regions without 'rdl_name' declared.",
+    )
+    parser.add_argument(
+        "--rdl-memwidth",
+        dest="rdl_memwidth",
+        type=int,
+        default=8,
+        help="Use the memory width of the RDL address region as the width of the memory block.",
     )
     parser.add_argument(
         "--no-format",

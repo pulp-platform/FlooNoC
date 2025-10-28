@@ -1,0 +1,14 @@
+# Copyright 2025 ETH Zurich and University of Bologna.
+# Solderpad Hardware License, Version 0.51, see LICENSE for details.
+# SPDX-License-Identifier: SHL-0.51
+
+# Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
+
+# This is a dummy Bender.yml file to avoid missing dependency warnings
+# when `floo_noc` is used as a Bender dependency in other projects.
+# It will be replaced by the actual `pd` repository during CI runs.
+
+package:
+  name: floo_noc_pd
+  authors:
+    - "Tim Fischer <fischeti@iis.ee.ethz.ch>"

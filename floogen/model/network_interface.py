@@ -5,13 +5,13 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from typing import Optional, ClassVar, List
+from typing import Optional, ClassVar, List, Union
 from importlib.resources import files, as_file
 
 from pydantic import BaseModel
 from mako.lookup import Template
 
-from floogen.model.routing import Id, SimpleId, Coord, AddrRange, Routing, RouteMap
+from floogen.model.routing import SimpleId, Coord, AddrRange, Routing, RouteMap
 from floogen.model.protocol import AXI4
 from floogen.model.link import NarrowWideLink, AxiLink
 from floogen.model.endpoint import EndpointDesc
@@ -26,9 +26,9 @@ class NetworkInterface(BaseModel):
     description: str = ""
     routing: Routing
     table: Optional[RouteMap] = None
-    id: Optional[Id] = None
+    id: Optional[Union[SimpleId, Coord]] = None
     uid: Optional[SimpleId] = None
-    arr_idx: Optional[Id] = None
+    arr_idx: Optional[Union[SimpleId, Coord]] = None
     addr_range: Optional[List[AddrRange]] = None
 
     def is_sbr(self) -> bool:

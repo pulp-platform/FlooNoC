@@ -81,7 +81,7 @@ class AXI4Bus(AXI4):
     base_name: str
     source: Union[str, List[str]]
     dest: Union[str, List[str]]
-    array: Optional[List[int]] = None
+    arr_dim: Optional[List[int]] = None
     arr_idx: Optional[List[int]] = None
     is_declared: bool = False
     subtype: str = ""
@@ -92,15 +92,15 @@ class AXI4Bus(AXI4):
 
     def _array_to_sv_array(self):
         """Convert the array to a SystemVerilog array."""
-        if self.array is not None:
-            return "".join([f"[{i-1}:0]" if i != 1 else "" for i in self.array])
+        if self.arr_dim is not None:
+            return "".join([f"[{i-1}:0]" if i != 1 else "" for i in self.arr_dim])
         return ""
 
     def _idx_to_sv_idx(self):
         """Convert the array to a SystemVerilog array."""
         if self.arr_idx is not None:
             string = ""
-            for idx, val in zip(self.arr_idx, self.array):
+            for idx, val in zip(self.arr_idx, self.arr_dim):
                 if val != 1:
                     string += f"[{idx}]"
             return string

@@ -6,8 +6,7 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 from enum import Enum
-from typing import Optional, List, Tuple
-from abc import ABC, abstractmethod
+from typing import Optional, List, Tuple, Union
 
 from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator
 
@@ -65,25 +64,7 @@ class XYDirections(Enum):
     def __int__(self):
         return self.value
 
-class Id(BaseModel, ABC):
-    """ID class."""
-
-    @abstractmethod
-    def render(self):
-        """Declare the Id generated code."""
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, value):
-        if not issubclass(value, Id):
-            raise ValueError("Invalid Object")
-        return value
-
-
-class SimpleId(Id):
+class SimpleId(BaseModel):
     """ID class."""
 
     id: int
@@ -118,7 +99,7 @@ class SimpleId(Id):
         return f"[{self.id}]"
 
 
-class Coord(Id):
+class Coord(BaseModel):
     """2D coordinate class."""
 
     x: int
@@ -142,6 +123,17 @@ class Coord(Id):
         if self.x == other.x:
             return self.port_id < other.port_id
         return False
+
+    @staticmethod
+    def from_dict(coord_dict: dict):
+        """Create a Coord object from a dictionary."""
+        if isinstance(coord_dict, dict):
+            return Coord(
+                x=coord_dict.get("x", 0),
+                y=coord_dict.get("y", 0),
+                port_id=coord_dict.get("port_id", 0)
+            )
+        return None
 
     def render(self, as_index=False):
         """Render the SystemVerilog coordinate."""
@@ -168,15 +160,17 @@ class Coord(Id):
 class AddrRange(BaseModel):
     """Address range class."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_assignement=True)
 
     start: int = Field(ge=0)
     end: int = Field(ge=0)
     size: int
     base: Optional[int] = None
-    idx: Optional[int] = None
-    desc: Optional[str] = None
+    arr_idx: Optional[Tuple[int, ...]] = None
+    arr_dim: Optional[Tuple[int, ...]] = None
     rdl_name: Optional[str] = None
+    en_multicast: bool = False
+    desc: Optional[str] = None
 
     def __str__(self):
         return f"[{self.start:X}:{self.end:X}]"
@@ -188,9 +182,18 @@ class AddrRange(BaseModel):
             raise ValueError("Invalid address range specification")
         addr_dict = {k: v for k, v in self.items() if v is not None}
         match addr_dict:
-            case {"size": size, "base": base, "idx": idx}:
-                addr_dict["start"] = base + size * idx
-                addr_dict["end"] = addr_dict["start"] + size
+            case {"size": size, "base": base, "arr_idx": arr_idx}:
+                match arr_idx:
+                    case (m,):
+                        addr_dict["start"] = base + size * m
+                        addr_dict["end"] = addr_dict["start"] + size
+                    case (m, n):
+                        if addr_dict["arr_dim"] is None:
+                            raise ValueError("Array dimension must be specified for 2D arrays")
+                        addr_dict["start"] = base + size * (m * addr_dict["arr_dim"][1] + n)
+                        addr_dict["end"] = addr_dict["start"] + size
+                    case _:
+                        raise ValueError("Invalid array index specification")
             case {"size": size, "base": base}:
                 addr_dict["start"] = base
                 addr_dict["end"] = base + size
@@ -212,11 +215,16 @@ class AddrRange(BaseModel):
             raise ValueError("Address range start must be less than end")
         return self
 
-    def set_idx(self, idx):
+    def set_arr(self, arr_idx, arr_dim):
         """Update the address range with the given index."""
-        self.idx = idx
+        self.arr_idx = arr_idx
+        self.arr_dim = arr_dim
         if self.base is not None:
-            self.start = self.base + self.size * idx
+            match arr_idx:
+                case (m,):
+                    self.start = self.base + self.size * m
+                case (m, n):
+                    self.start = self.base + self.size * (m * arr_dim[1] + n)
             self.end = self.start + self.size
         else:
             raise ValueError("Address range base not set")
@@ -228,7 +236,7 @@ class RouteMapRule(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    dest: Id
+    dest: Union[SimpleId, Coord]
     addr_range: AddrRange
     desc: Optional[str] = None
 
@@ -240,37 +248,94 @@ class RouteMapRule(BaseModel):
 
     def render(self, aw=None):
         """Render the SystemVerilog routing rule."""
+        struct_fields = {
+            "idx": self.dest.render(),
+            "start_addr": self.addr_range.start,
+            "end_addr": self.addr_range.end
+        }
         if aw is not None:
-            return (
-                f"'{{idx: {self.dest.render()}, "
-                f"start_addr: {aw}'h{self.addr_range.start:0{cdiv(aw,4)}x}, "
-                f"end_addr: {aw}'h{self.addr_range.end:0{cdiv(aw,4)}x}}}"
-            )
-        return (
-            f"'{{idx: {self.dest.render()}, "
-            f"start_addr: {self.addr_range.start}, "
-            f"end_addr: {self.addr_range.end}}}"
-        )
+            # Routing table use simple integers, and don't have any address width
+            struct_fields["start_addr"] = f"{aw}'h{self.addr_range.start:0{cdiv(aw,4)}x}"
+            struct_fields["end_addr"] = f"{aw}'h{self.addr_range.end:0{cdiv(aw,4)}x}"
 
-    def get_rdl(self, instance_name, rdl_as_mem=False):
+        return sv_struct_render(struct_fields)
+
+    def render_desc(self):
+        '''Render the description of the routing rule.'''
+        rule_desc = self.desc
+        match self.addr_range.arr_idx:
+            case (m,):
+                rule_desc += f"_{m}"
+            case (m, n):
+                rule_desc += f"_x{m}_y{n}"
+            case _:
+                pass
+        return rule_desc
+
+    def get_rdl(self, instance_name, rdl_as_mem=False, rdl_memwidth=8):
         """Render the SystemRDL routing rule."""
         if self.addr_range.rdl_name is not None:
-            return [{"start_addr": self.addr_range.start,
+            return [
+                {
+                    "start_addr": self.addr_range.start,
+                    "size": self.addr_range.size,
                     "rdl_name": self.addr_range.rdl_name,
-                    "instance_name": instance_name}]
+                    "instance_name": instance_name,
+                    "arr_dim": self.addr_range.arr_dim,
+                }
+            ]
         if rdl_as_mem:
-            return [{"start_addr": self.addr_range.start,
-                     "rdl_name": f"external mem {{ \
-mementries = 0x{(self.addr_range.end - self.addr_range.start):X}; memwidth = 8; }}",
-                     "instance_name": instance_name}]
+            mementries = (self.addr_range.end - self.addr_range.start) // rdl_memwidth * 8
+            mem_string = (
+                f"external mem {{ mementries = 0x{mementries:X}; memwidth = {rdl_memwidth}; }}"
+            )
+            return [
+                {
+                    "start_addr": self.addr_range.start,
+                    "size": self.addr_range.size,
+                    "rdl_name": mem_string,
+                    "instance_name": instance_name,
+                    "arr_dim": self.addr_range.arr_dim,
+                }
+            ]
         return []
+
+class RouteMapRuleMcast(RouteMapRule):
+    """Routing rule class for multicast information."""
+
+    mask_offset: Optional[Tuple[int, int]] = None
+    mask_len: Optional[Tuple[int, int]] = None
+    base_id: Optional[Tuple[int, int]] = None
+
+    def render(self, aw=None):
+        """Render the SystemVerilog routing rule."""
+        if aw is None:
+            raise ValueError("Address width must be specified for multicast routing")
+
+        # In multicast, the `idx` field becomes a nested structure
+        # where the `id` is the original `idx`
+        struct_fields = {
+            "idx": {"id": self.dest.render()},
+            "start_addr": f"{aw}'h{self.addr_range.start:0{cdiv(aw,4)}x}",
+            "end_addr": f"{aw}'h{self.addr_range.end:0{cdiv(aw,4)}x}",
+        }
+
+        # Non-multicast nodes, don't need any mask information
+        if self.mask_offset is None:
+            struct_fields["idx"]["mask_x"] = {"default": "'0"}
+            struct_fields["idx"]["mask_y"] = {"default": "'0"}
+        else:
+            struct_fields["idx"]["mask_x"] = {"offset": self.mask_offset[0], "len": self.mask_len[0], "base_id": self.base_id[0]}
+            struct_fields["idx"]["mask_y"] = {"offset": self.mask_offset[1], "len": self.mask_len[1], "base_id": self.base_id[1]}
+
+        return sv_struct_render(struct_fields)
 
 
 class RouteRule(BaseModel):
     """Routing rule class."""
 
     route: Optional[List[Tuple[int, int]]]
-    id: Id
+    id: Union[SimpleId, Coord]
     desc: Optional[str] = None
 
     def render(self, num_route_bits):
@@ -416,8 +481,17 @@ class RouteMap(BaseModel):
         string += sv_param_decl(f"{snake_to_camel(self.name)}NumRules", len(rules)) + "\n"
         addr_type = f"logic [{aw-1}:0]" if aw is not None else "id_t"
         rule_type_dict = {}
-        rule_type_dict = {"idx": "id_t", "start_addr": addr_type, "end_addr": addr_type}
-        string += sv_struct_typedef(self.rule_type(), rule_type_dict)
+        if not isinstance(rules[0], RouteMapRuleMcast):
+            rule_type_dict = {"idx": "id_t", "start_addr": addr_type, "end_addr": addr_type}
+            string += sv_struct_typedef(self.rule_type(), rule_type_dict)
+        else:
+            rule_type_dict = {"offset": "int unsigned", "len": "int unsigned", "base_id": "int unsigned"}
+            string += sv_struct_typedef("mask_sel_t", rule_type_dict)
+            rule_type_dict = {"id": "id_t", "mask_x": "mask_sel_t", "mask_y": "mask_sel_t"}
+            string += sv_struct_typedef("mcast_idx_t", rule_type_dict)
+            rule_type_dict = {"idx": "mcast_idx_t", "start_addr": addr_type, "end_addr": addr_type}
+            string += sv_struct_typedef(self.rule_type(), rule_type_dict)
+
         rules_str = ""
         if not rules:
             string += sv_param_decl(
@@ -430,7 +504,7 @@ class RouteMap(BaseModel):
             rules_str += f"{rule.render(aw)}"
             rules_str += ',' if i != len(rules) - 1 else ' '
             if rule.desc is not None:
-                rules_str += f"// {rule.desc}\n"
+                rules_str += f"// {snake_to_camel(rule.render_desc())}\n"
         string += sv_param_decl(
             f"{snake_to_camel(self.name)}",
             value="'{\n" + rules_str + "\n}",
@@ -439,19 +513,37 @@ class RouteMap(BaseModel):
         )
         return string
 
-    def render_rdl(self, rdl_as_mem=False):
+    def render_rdl(self, rdl_as_mem=False, rdl_memwidth=8):
         """Render the SystemRDL addrmap internals."""
         string = ""
         rules = self.rules.copy()
         rdl_setups = []
         for i, rule in enumerate(rules):
+            match rule.addr_range.arr_idx:
+                case None:
+                    pass
+                case (m,) if m != 0:
+                    continue
+                case (m, n) if m != 0 or n != 0:
+                    continue
             block_name = f"{self.name}_{i}"
             if rule.desc is not None:
                 block_name = rule.desc
-            rdl_setups.extend(rule.get_rdl(f"{block_name}", rdl_as_mem))
+            rdl_setups.extend(rule.get_rdl(f"{block_name}", rdl_as_mem, rdl_memwidth))
         newlist = sorted(rdl_setups, key=lambda d: d['start_addr'])
         for item in newlist:
-            string += f"  {item['rdl_name']} {item['instance_name']} @0x{item['start_addr']:X};\n"
+            string += f"  {item['rdl_name']} {item['instance_name']}"
+            match item['arr_dim']:
+                case (m,):
+                    string += f"[{m}]"
+                case (m, n):
+                    string += f"[{m*n}]"
+                case _:
+                    pass
+            string += f" @0x{item['start_addr']:X}"
+            if item['arr_dim'] is not None:
+                string += f" += 0x{item['size']:X}"
+            string += ";\n"
         return string
 
     def render_rdl_inc(self):
@@ -475,7 +567,30 @@ class RouteMap(BaseModel):
 
 
 class Routing(BaseModel):
-    """Routing Description class."""
+    """
+    The class that holds essentially all the routing information needed.
+
+    Attributes:
+        route_algo (RouteAlgo): The routing algorithm to use. See RouteAlgo enum for the options.
+        use_id_table (bool): Whether to use a table to decode the destination ID.
+        sam (RouteMap): The system address map.
+        table (RouteMap): The routing table of the router.
+        addr_offset_bits (int): The number of bits to decode the X and Y coordinates from the address. Only used if `use_id_table` is False and `route_algo` is XY.
+        xy_id_offset (Union[SimpleId, Coord]): A constant offset to add to the X and Y coordinates. Only used if `route_algo` is XY.
+        num_endpoints (int): The number of endpoints in the network.
+        num_id_bits (int): The number of bits to represent the ID. Only used if `route_algo` is ID or SRC.
+        num_x_bits (int): The number of bits to represent the X coordinate. Only used if `route_algo` is XY.
+        num_y_bits (int): The number of bits to represent the Y coordinate. Only used if `route_algo` is XY.
+        num_route_bits (int): The number of bits to represent the route. Only used if `route_algo` is SRC.
+        addr_width (int): The width of the address bus.
+        rob_idx_bits (int): The number of bits to represent the reorder buffer index.
+        port_id_bits (int): The number of bits to represent the local port ID.
+        en_multicast (bool): Whether to enable multicast support. Only supported with XY routing.
+        multicast_sam (RouteMap): The multicast system address map. Only used if `en_multicast` is True.
+        en_parallel_reduction (bool): Whether to enable parallel reduction support (Experimental)
+        en_narrow_offload_reduction (bool): Whether to enable narrow offload reduction support (Experimental)
+        en_wide_offload_reduction (bool): Whether to enable wide offload reduction support
+    """
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
@@ -484,7 +599,7 @@ class Routing(BaseModel):
     sam: Optional[RouteMap] = None
     table: Optional[RouteMap] = None
     addr_offset_bits: Optional[int] = None
-    xy_id_offset: Optional[Id] = None
+    xy_id_offset: Optional[Union[SimpleId, Coord]] = None
     num_endpoints: Optional[int] = None
     num_id_bits: Optional[int] = None
     num_x_bits: Optional[int] = None
@@ -494,6 +609,11 @@ class Routing(BaseModel):
     rob_idx_bits: int = 1
     port_id_bits: int = 1
     num_vc_id_bits: int = 0
+    en_multicast: bool = False
+    multicast_sam: Optional[RouteMap] = None
+    en_parallel_reduction: bool = False
+    en_narrow_offload_reduction: bool = False
+    en_wide_offload_reduction: bool = False
 
     @field_validator("route_algo", mode="before")
     @classmethod
@@ -503,6 +623,28 @@ class Routing(BaseModel):
             v = RouteAlgo[v]
         return v
 
+    @model_validator(mode="after")
+    def validate_collective(self):
+        """Reduction can be supported with multicast only."""
+        if not self.en_multicast and (
+            self.en_parallel_reduction or
+            self.en_narrow_offload_reduction or
+            self.en_wide_offload_reduction
+        ):
+            raise ValueError(
+                "Multicast must be enabled to use any reduction feature "
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_multicast_route_algo(self):
+        """Multicast is supported with XY routing only"""
+        if self.en_multicast and self.route_algo != RouteAlgo.XY:
+            raise ValueError(
+                "Multicast is only supported with XY routing algorithm, "
+                f"but got {self.route_algo}"
+            )
+        return self
     def render_param_decl(self) -> str:
         """Render the SystemVerilog parameter declaration."""
         string = ""
@@ -563,6 +705,18 @@ class Routing(BaseModel):
         ch_type = "axi_ch_e" if network_type == "axi" else "nw_ch_e"
 
         if self.num_vc_id_bits == 0:
+            if self.en_multicast:
+                if ( self.en_parallel_reduction
+                    or self.en_narrow_offload_reduction
+                    or self.en_wide_offload_reduction
+                ):
+                    return (
+                        f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t,"
+                        f"id_t, collect_comm_e, reduction_op_t)")
+
+                return (
+                    f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t,"
+                    f"id_t, collect_comm_e)")
             return f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t)"
         return f"`FLOO_TYPEDEF_VC_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t, vc_id_t)"
 
@@ -578,5 +732,9 @@ class Routing(BaseModel):
                                 self.route_algo == RouteAlgo.ID and not self.use_id_table else 0,
             "NumSamRules": len(self.sam),
             "NumRoutes": self.num_endpoints if self.route_algo == RouteAlgo.SRC else 0,
+            "EnMultiCast": bool_to_sv(self.en_multicast),
+            "EnParallelReduction": bool_to_sv(self.en_parallel_reduction),
+            "EnNarrowOffloadReduction": bool_to_sv(self.en_narrow_offload_reduction),
+            "EnWideOffloadReduction": bool_to_sv(self.en_wide_offload_reduction)
         }
         return sv_param_decl(name, sv_struct_render(fields), dtype="route_cfg_t")

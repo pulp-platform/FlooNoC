@@ -83,6 +83,48 @@ package floo_pkg;
     NumAxiChannels = 3'd5
   } axi_ch_e;
 
+  /// The types of collective communication
+  typedef enum logic [1:0] {
+    /// Normal communication
+    Unicast = 2'd0,
+    /// Multicast communication
+    Multicast = 2'd1,
+    /// Parallel reduction operations
+    ParallelReduction = 2'd2,
+    /// Offload Reduction
+    OffloadReduction = 2'd3
+  } collect_comm_e;
+
+  /// Different offloadable reduction
+  typedef enum logic [3:0] {
+    R_Select  = 4'b0000, // Select the first incoming flit
+    F_Add     = 4'b0100, // FP Addition
+    F_Mul     = 4'b0101, // FP Multiplication
+    F_Min     = 4'b0110, // FP Min
+    F_Max     = 4'b0111, // FP Max
+    A_Add     = 4'b1000, // Atomic Add (signed)
+    A_Mul     = 4'b1001, // (Non-) Atomic (signed)
+    A_Min_S   = 4'b1010, // Atomic Min (signed)
+    A_Min_U   = 4'b1110, // Atomic Min (unsigned)
+    A_Max_S   = 4'b1011, // Atomic Max (signed)
+    A_Max_U   = 4'b1111  // Atomic Max (unsigned)
+  } reduction_offload_op_e;
+
+  /// Different instantanous reduction
+  typedef enum logic [3:0] {
+    SelectAW  = 4'b0000,  // Select the first incoming flit
+    CollectB  = 4'b0001,  // Collect the B responses from an AXI transmission
+    LSBAnd    = 4'b0010   // AND Connect the LSB of the payload (useful for barrier ops)
+  } reduction_parallel_op_e;
+
+  /// Union for both Datatype(s) - because they need to have the same size for the chimney
+  /// The chimney needs this information as it does not know if we support an offload reduction
+  /// or an parallel reduction.
+  typedef union packed {
+    reduction_offload_op_e op_offload;
+    reduction_parallel_op_e op_parallel;
+  } reduction_op_t;
+
   /// The types of AXI channels in narrow-wide AXI network interfaces
   typedef enum logic [3:0] {
     NarrowAw = 4'd0,
@@ -145,6 +187,14 @@ package floo_pkg;
     /// The number of routes for every routing table,
     /// Only used if `RouteAlgo == SourceRouting`
     int unsigned NumRoutes;
+    /// Whether to enable the multicast feature in the NoC
+    bit EnMultiCast;
+    /// Whether to use the parallel reduction on the narrow req link
+    bit EnParallelReduction;
+    /// Whether to use the offload reduction on the narrow req link
+    bit EnNarrowOffloadReduction;
+    /// Whether to use the offload reduction on the wide link
+    bit EnWideOffloadReduction;
   } route_cfg_t;
 
   /// Configuration for the network interface (chimney)
@@ -207,7 +257,11 @@ package floo_pkg;
     XYAddrOffsetY: 0,
     IdAddrOffset: 0,
     NumSamRules: 0,
-    NumRoutes: 0
+    NumRoutes: 0,
+    EnMultiCast: 1'b0,
+    EnParallelReduction: 1'b0,
+    EnNarrowOffloadReduction: 1'b0,
+    EnWideOffloadReduction: 1'b0
   };
 
   /// The AXI channel to link mapping in a single-AXI network interface

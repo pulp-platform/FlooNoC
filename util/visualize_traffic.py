@@ -86,7 +86,8 @@ def gen_mesh_traffic():
                 num_destinations = NUM_X * NUM_Y
                 if source < num_destinations // 2:
                     ext = source * 2
-                else: ext = (source * 2) - num_destinations + 1
+                else:
+                    ext = (source * 2) - num_destinations + 1
                 ext_addr = (ext % NUM_X + 1, ext // NUM_X + 1)
             elif args.traffic_type == "transpose":
                 dest_x = y
