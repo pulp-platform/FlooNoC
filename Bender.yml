@@ -38,16 +38,12 @@ sources:
   - hw/floo_reduction_sync.sv
   - hw/floo_route_xymask.sv
   - hw/floo_alu.sv
-  - hw/floo_offload_reduction_stalling.sv
-  - hw/floo_offload_reduction_buffer.sv
-  - hw/floo_offload_reduction_taggen.sv
-  - hw/floo_offload_reduction_controller.sv
   # Level 2
   - hw/floo_route_select.sv
   - hw/floo_route_comp.sv
   - hw/floo_meta_buffer.sv
   - hw/floo_reduction_arbiter.sv
-  - hw/floo_offload_reduction.sv
+  - hw/floo_reduction_unit.sv
   # Level 3
   - hw/floo_output_arbiter.sv
   # Level 4

@@ -23,26 +23,16 @@ module floo_reduction_sync import floo_pkg::*;
   input  id_t                    xy_id_i,
   output logic                   valid_o,
   input  logic                   ready_i,
-  output logic  [NumRoutes-1:0]  in_route_mask_o
+  input logic  [NumRoutes-1:0]    in_route_mask_i
 );
 
   logic [NumRoutes-1:0]  filtered_valid_in, filtered_local;
 
-  // Compute the input mask based on the selected input port's destination and mask fields.
-  // This determines which input ports are expected to participate in the reduction.
-  floo_route_xymask #(
-    .NumRoutes ( NumRoutes ),
-    .flit_t    ( flit_t    ),
-    .id_t      ( id_t      ),
-    .FwdMode   ( 0         ) // We enable the backward mode for reduction
-  ) i_route_xymask (
-    .channel_i    ( data_i[sel_i]   ),
-    .xy_id_i      ( xy_id_i         ),
-    .route_sel_o  ( in_route_mask_o )
-  );
 
   logic [NumRoutes-1:0] filtered_route_mask;
-  assign filtered_route_mask = in_route_mask_o & {NumRoutes{valid_i[sel_i]}};
+  // The incoming mask is combinatorial. The valid is used to make sure the mask used in the following logic
+  // is actually from a valid flit.
+  assign filtered_route_mask = in_route_mask_i & {NumRoutes{valid_i[sel_i]}};
 
 
   // Filter valids from the expected input sources. If the collective targets

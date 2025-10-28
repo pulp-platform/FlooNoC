@@ -112,7 +112,7 @@ module floo_router
   logic  [NumInput-1:0] red_offload_valid_in, red_offload_ready_in;
   flit_t [NumInput-1:0] red_offload_data_in;
   logic  [NumInput-1:0][NumOutput-1:0] red_offload_route_selected;
-  logic  [NumInput-1:0][NumOutput-1:0] red_offload_expected_in_route_loopback;
+  logic  [NumInput-1:0][NumInput-1:0] red_offload_expected_in_route_loopback;
 
   // SIgnals top connect offload reduction logic to output virtual channel 0
   logic  [NumOutput-1:0] red_offload_valid_out, red_offload_ready_out;
@@ -279,36 +279,35 @@ module floo_router
       end
     end
 
-    floo_offload_reduction #(
-      .NumRoutes                  (NumInput),
+    floo_reduction_unit #(
+      .NumInputs                  (NumInput),
+      .NumOutputs                 (NumOutput),
       .flit_t                     (flit_t),
       .hdr_t                      (hdr_t),
       .id_t                       (id_t),
-      .RdData_t                   (RdData_t),
-      .RdOperation_t              (RdOperation_t),
-      .RdCfg                      (RedCfg),
+      .reduction_data_t           (RdData_t),
+      .RedCfg                     (RedCfg),
       .AxiCfg                     (AxiCfgOffload)
-    ) i_offload_reduction_logic (
+    ) i_reduction_unit (
       .clk_i                      (clk_i),
       .rst_ni                     (rst_ni),
-      .flush_i                    (1'b0),
-      .node_id_i                  (xy_id_i),
+      .xy_id_i                    (xy_id_i),
       .valid_i                    (red_offload_valid_in),
       .ready_o                    (red_offload_ready_in),
       .data_i                     (red_offload_data_in),
-      .output_route_i             (red_offload_route_selected),
-      .expected_input_i           (red_offload_expected_in_route_loopback),
+      .routed_out_mask_i          (red_offload_route_selected),
+      .in_mask_i                  (red_offload_expected_in_route_loopback),
       .valid_o                    (red_offload_valid_out),
       .ready_i                    (red_offload_ready_out),
       .data_o                     (red_offload_data_out),
-      .reduction_req_type_o       (offload_req_op_o),
-      .reduction_req_op1_o        (offload_req_operand1_o),
-      .reduction_req_op2_o        (offload_req_operand2_o),
-      .reduction_req_valid_o      (offload_req_valid_o),
-      .reduction_req_ready_i      (offload_req_ready_i),
-      .reduction_resp_data_i      (offload_resp_result_i),
-      .reduction_resp_valid_i     (offload_resp_valid_i),
-      .reduction_resp_ready_o     (offload_resp_ready_o)
+      .operation_o                (offload_req_op_o),
+      .operand1_o                 (offload_req_operand1_o),
+      .operand2_o                 (offload_req_operand2_o),
+      .operands_valid_o           (offload_req_valid_o),
+      .operands_ready_i           (offload_req_ready_i),
+      .result_i                   (offload_resp_result_i),
+      .result_valid_i             (offload_resp_valid_i),
+      .result_ready_o             (offload_resp_ready_o)
     );
 
     for (genvar out = 0; out < NumOutput; out++) begin : gen_output_virt_sel

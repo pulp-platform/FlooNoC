@@ -65,7 +65,20 @@ module floo_reduction_arbiter import floo_pkg::*;
   // that connects the input stream to ANY of the output ports.
   assign ready_o = ready_out[input_sel];
   for (genvar i = 0; i < NumRoutes; i++) begin : gen_invalid_data
-      floo_reduction_sync #(
+    // Compute list of possible input sources for each input port
+    // This module determines which inputs are expected to participate in the reduction
+    floo_route_xymask #(
+      .NumRoutes ( NumRoutes ),
+      .flit_t    ( flit_t    ),
+      .id_t      ( id_t      ),
+      .FwdMode   ( 0         ) // We enable the backward mode for reduction
+    ) i_route_xymask (
+      .channel_i    ( data_i[i]   ),
+      .xy_id_i      ( xy_id_i         ),
+      .route_sel_o  ( in_route_mask[i] )
+    );
+
+    floo_reduction_sync #(
       .NumRoutes          ( NumRoutes ),
       .RdSupportLoopback  ( RdSupportLoopback ),
       .arb_idx_t          ( arb_idx_t ),
@@ -79,7 +92,7 @@ module floo_reduction_arbiter import floo_pkg::*;
       .xy_id_i          ( xy_id_i          ),
       .valid_o          ( red_valid_in[i]  ),
       .ready_i          ( ready_i          ),
-      .in_route_mask_o  ( in_route_mask[i] )
+      .in_route_mask_i  ( in_route_mask[i] )
     );
   end
 
