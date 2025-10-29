@@ -436,7 +436,7 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
     XYAddrOffsetY: 20,
     CollectiveCfg: '{
       OpCfg: CollectiveOpCfg,
-      RedCfg: WideGenReductionCfg
+      RedCfg: WideSimpleReductionCfg
     },
     default: '0 // Potentially enable Multicast features
   };
