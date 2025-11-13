@@ -37,7 +37,7 @@ module floo_nw_router #(
   parameter type hdr_t                        = logic,
   /// Number of rules in the route table
   /// (only used for `RouteAlgo == IdTable`)
-  parameter int unsigned NumAddrRules         = 0,
+  parameter int unsigned NumAddrRules         = 1,
   /// Address rule type
   /// (only used for `RouteAlgo == IdTable`)
   parameter type addr_rule_t                  = logic,
