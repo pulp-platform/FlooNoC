@@ -34,6 +34,10 @@ module floo_nw_chimney #(
   parameter int unsigned MaxAtomicTxns           = 1,
   /// Enable support for decoupling read and write channels
   parameter bit EnDecoupledRW                      = 1'b0,
+  /// Specify how many physical channel are used for teh wide connection
+  parameter int unsigned NumWidePhysChannels        = 1,
+  /// Specify which VC implementation to use for the wide channels
+  parameter floo_pkg::vc_impl_e VcImplementation        = floo_pkg::VcNaive,
   /// Node ID type for routing
   parameter type id_t                                   = logic,
   /// RoB index type for reordering.
@@ -82,7 +86,6 @@ module floo_nw_chimney #(
   parameter type floo_rsp_t                             = logic,
   /// Floo `wide` link type
   parameter type floo_wide_t                            = logic,
-  parameter type floo_wide_in_t                         = logic,
   /// SRAM configuration type `tc_sram_impl` in RoB
   /// Only used if technology-dependent SRAM is used
   parameter type sram_cfg_t                             = logic,
@@ -117,7 +120,7 @@ module floo_nw_chimney #(
   /// Input links from NoC
   input  floo_req_t   floo_req_i,
   input  floo_rsp_t   floo_rsp_i,
-  input  floo_wide_in_t  floo_wide_i
+  input  floo_wide_t  floo_wide_i
 );
 
   import floo_pkg::*;
@@ -151,8 +154,8 @@ module floo_nw_chimney #(
 
   // Virtual channel enumeration
   typedef enum logic {
-    VC_RD = 1'b1,
-    VC_WR = 1'b0
+    READ  = 1'b1,
+    WRITE = 1'b0
   } vc_e;
 
   // Collective communication configuration
@@ -285,12 +288,30 @@ module floo_nw_chimney #(
   logic floo_wide_out_ready;
 
   if (EnDecoupledRW) begin : gen_vc_demux
-    assign floo_wide_in_wr_valid = floo_wide_i.valid[VC_WR];
-    assign floo_wide_in_rd_valid = floo_wide_i.valid[VC_RD];
-    assign floo_wide_o.ready[VC_WR] = floo_wide_out_wr_ready;
-    assign floo_wide_o.ready[VC_RD] = floo_wide_out_rd_ready;
-    assign floo_wide_in_wr = floo_wide_i.wide[VC_WR];
-    assign floo_wide_in_rd = floo_wide_i.wide[VC_RD];
+    assign floo_wide_in_wr_valid = floo_wide_i.valid[WRITE];
+    assign floo_wide_in_rd_valid = floo_wide_i.valid[READ];
+    assign floo_wide_o.ready[WRITE] = floo_wide_out_wr_ready;
+    assign floo_wide_o.ready[READ] = floo_wide_out_rd_ready;
+    if (NumWidePhysChannels == 1) begin : gen_single_phys_ch
+      // Connect the single physical channel to both read and write
+      // the valid and ready coming from teh VCs will be used to know if the data can be used
+      assign floo_wide_in_wr = floo_wide_i.wide;
+      assign floo_wide_in_rd = floo_wide_i.wide;
+
+      if (VcImplementation == floo_pkg::VcCreditBased) begin : gen_credit_support
+        // Drive credit signals for incoming requests
+        `FF(floo_wide_o.credit[WRITE], floo_wide_in_wr_valid & floo_wide_out_wr_ready, 1'b0);
+        `FF(floo_wide_o.credit[READ], floo_wide_in_rd_valid & floo_wide_out_rd_ready, 1'b0);
+      end else begin: gen_no_credit_support
+        assign floo_wide_o.credit = '0;
+      end
+
+    end else if (NumWidePhysChannels == 2) begin : gen_dual_phys_ch
+      assign floo_wide_in_wr = floo_wide_i.wide[WRITE];
+      assign floo_wide_in_rd = floo_wide_i.wide[READ];
+    end else begin
+      $fatal(1, "NW CHIMNEY: Unsupported number of wide physical channels");
+    end
   end else begin : gen_no_vc_demux
     assign floo_wide_in = floo_wide_i.wide;
     assign floo_wide_in_valid = floo_wide_i.valid;
@@ -1366,33 +1387,48 @@ module floo_nw_chimney #(
     .valid_o  ( floo_rsp_o.valid      )
   );
 
-  floo_wormhole_arbiter #(
-    .NumRoutes  ( 3                         ),
-    .flit_t     ( floo_wide_generic_flit_t  )
-  ) i_wide_wormhole_arbiter (
-    .clk_i,
-    .rst_ni,
-    .valid_i  ( floo_wide_arb_req_in         ),
-    .data_i   ( floo_wide_arb_in             ),
-    .ready_o  ( floo_wide_arb_gnt_out        ),
-    .data_o   ( floo_wide_o.wide             ),
-    .ready_i  ( floo_wide_req_arb_gnt_in     ),
-    .valid_o  ( floo_wide_req_arb_valid_out  )
-  );
+  if (NumWidePhysChannels == 1) begin: gen_wide_out_wrmh
+    floo_wormhole_arbiter #(
+      .NumRoutes  ( 3                         ),
+      .flit_t     ( floo_wide_generic_flit_t  )
+    ) i_wide_wormhole_arbiter (
+      .clk_i,
+      .rst_ni,
+      .valid_i  ( floo_wide_arb_req_in         ),
+      .data_i   ( floo_wide_arb_in             ),
+      .ready_o  ( floo_wide_arb_gnt_out        ),
+      .data_o   ( floo_wide_o.wide             ),
+      .ready_i  ( floo_wide_req_arb_gnt_in     ),
+      .valid_o  ( floo_wide_req_arb_valid_out  )
+    );
 
-  // Mux the valid of the read and write channels to the ACK/NACK protocol
-  // of the virtual channel for decoupled read and write output requests.
-  // AW/W -> Virtual Channel 0
-  // R -> Virtual Channel 1
-  // TODO(lleone): check if this really solve DEADLOCK!!!!
-  if (EnDecoupledRW) begin: gen_vc_rw_ack
-    assign floo_wide_o.valid[0] = (floo_wide_o.wide.generic.hdr.axi_ch != WideR) ? floo_wide_req_arb_valid_out : 1'b0;
-    assign floo_wide_o.valid[1] = (floo_wide_o.wide.generic.hdr.axi_ch == WideR) ? floo_wide_req_arb_valid_out : 1'b0;
-    assign floo_wide_req_arb_gnt_in = (floo_wide_o.wide.generic.hdr.axi_ch != WideR) ?
-                                       floo_wide_i.ready[0] : floo_wide_i.ready[1];
-  end else begin: gen_no_vc_rw_ack
-    assign floo_wide_o.valid = floo_wide_req_arb_valid_out;
-    assign floo_wide_req_arb_gnt_in = floo_wide_i.ready;
+    // Mux the valid of the read and write channels to the ACK/NACK protocol
+    // of the virtual channel for decoupled read and write output requests.
+    // AW/W -> Virtual Channel 0
+    // R -> Virtual Channel 1
+    // TODO(lleone): check if this really solve DEADLOCK!!!!
+    if (EnDecoupledRW) begin: gen_vc_rw_ack
+      assign floo_wide_o.valid[0] = (floo_wide_o.wide[0].generic.hdr.axi_ch != WideR) ? floo_wide_req_arb_valid_out : 1'b0;
+      assign floo_wide_o.valid[1] = (floo_wide_o.wide[0].generic.hdr.axi_ch == WideR) ? floo_wide_req_arb_valid_out : 1'b0;
+      assign floo_wide_req_arb_gnt_in = (floo_wide_o.wide[0].generic.hdr.axi_ch != WideR) ?
+                                        floo_wide_i.ready[0] : floo_wide_i.ready[1];
+    end else begin: gen_no_vc_rw_ack
+      assign floo_wide_o.valid = floo_wide_req_arb_valid_out;
+      assign floo_wide_req_arb_gnt_in = floo_wide_i.ready;
+    end
+  end else if (NumWidePhysChannels == 2) begin: gen_wide_phys_ch
+    // Connect write channel
+    assign floo_wide_o.wide[0] = floo_wide_arb_in[WideW];
+    assign floo_wide_o.valid[0] = floo_wide_arb_req_in[WideW];
+    assign floo_wide_arb_gnt_out[WideW] = floo_wide_i.ready[0];
+
+    // Connect read channel
+    assign floo_wide_o.wide[1] = floo_wide_arb_in[WideR];
+    assign floo_wide_o.valid[1] = floo_wide_arb_req_in[WideR];
+    assign floo_wide_arb_gnt_out[WideR] = floo_wide_i.ready[1];
+
+  end else begin
+    $fatal(1, "NW CHIMNEY: Unsupported number of wide physical channels");
   end
 
 

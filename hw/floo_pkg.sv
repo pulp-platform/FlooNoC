@@ -83,6 +83,13 @@ package floo_pkg;
     NumAxiChannels = 3'd5
   } axi_ch_e;
 
+  /// Virtual channel implementation types
+  typedef enum logic[1:0] {
+    VcNaive = 2'd0,
+    VcCreditBased = 2'd1,
+    VcPreemptValid  = 2'd2
+  } vc_impl_e;
+
   /// TODO(lleone): delet this portion of code
   // /// The types of collective communication
   // typedef enum logic [1:0] {

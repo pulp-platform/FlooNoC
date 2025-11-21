@@ -2,7 +2,7 @@
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
 //
-// Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
+// Author: Lorenzo Leone <lleone@iis.ee.ethz.ch>
 
 `include "axi/typedef.svh"
 `include "floo_noc/typedef.svh"
@@ -31,8 +31,11 @@ module floo_nw_router #(
   parameter bit          XYRouteOpt                 = 1'b1,
   /// Disables loopback connections
   parameter bit          NoLoopback                 = 1'b1,
-  /// Enable decoupling between Read and Write wide channels using virtual channels
-  parameter bit          EnDecoupledRW              = 1'b0,
+  /// Enable decoupling between Read and Write WIDE channels using virtual channels
+  /// assumed that write transactions are alwasy on VC0.
+  parameter int unsigned  NumWideVirtChannels       = 32'd1,
+  parameter int unsigned  NumWidePhysChannels       = 32'd1,
+  parameter floo_pkg::vc_impl_e VcImplementation    = floo_pkg::VcNaive,
   /// Node ID type
   parameter type id_t                               = logic,
   /// Header type
@@ -49,7 +52,6 @@ module floo_nw_router #(
   parameter type floo_rsp_t                         = logic,
   /// Floo `wide` link type
   parameter type floo_wide_t                        = logic,
-  parameter type floo_wide_out_t                    = logic,
   /// Possible operation for offloading (must match type in header)
   parameter type RdWideOperation_t                  = logic,
   parameter type RdNarrowOperation_t                = logic,
@@ -80,7 +82,7 @@ module floo_nw_router #(
   output  floo_req_t [NumOutputs-1:0]   floo_req_o,
   output  floo_rsp_t [NumInputs-1:0]    floo_rsp_o,
   input   floo_wide_t [NumRoutes-1:0]   floo_wide_i,
-  output  floo_wide_out_t [NumRoutes-1:0]   floo_wide_o,
+  output  floo_wide_t [NumRoutes-1:0]   floo_wide_o,
   /// Wide IF towards the offload logic
   output RdWideOperation_t              offload_wide_req_op_o,
   output RdWideData_t                   offload_wide_req_operand1_o,
@@ -119,10 +121,6 @@ module floo_nw_router #(
   `AXI_TYPEDEF_ALL_CT(axi_wide, axi_wide_req_t, axi_wide_rsp_t, axi_addr_t,
       axi_wide_in_id_t, axi_wide_data_t, axi_wide_strb_t, axi_wide_user_t)
   `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow, axi_wide, AxiCfgN, AxiCfgW, hdr_t)
-
-  // Local parameters to properly configure collective operation support
-  // hiding the complexity to the user
-  localparam int unsigned WideVirtChannel = (EnDecoupledRW) ? 2 : 1;
 
   localparam floo_pkg::collect_op_be_cfg_t CollectiveReqCfg = '{
     EnMulticast : CollectiveOpCfg.EnNarrowMulticast,
@@ -181,14 +179,15 @@ module floo_nw_router #(
   floo_rsp_chan_t [NumInputs-1:0] rsp_out;
   floo_req_chan_t [NumOutputs-1:0] req_out;
   floo_rsp_chan_t [NumOutputs-1:0] rsp_in;
-  floo_wide_chan_t [NumRoutes-1:0] wide_in;
-  floo_wide_chan_t [NumRoutes-1:0][WideVirtChannel-1:0] wide_out;
+  floo_wide_chan_t [NumRoutes-1:0][NumWidePhysChannels-1:0] wide_in;
+  floo_wide_chan_t [NumRoutes-1:0][NumWidePhysChannels-1:0] wide_out;
   logic [NumInputs-1:0] req_valid_in, req_ready_out;
   logic [NumInputs-1:0] rsp_valid_out, rsp_ready_in;
   logic [NumOutputs-1:0] req_valid_out, req_ready_in;
   logic [NumOutputs-1:0] rsp_valid_in, rsp_ready_out;
-  logic [NumRoutes-1:0][WideVirtChannel-1:0] wide_valid_in, wide_valid_out;
-  logic [NumRoutes-1:0][WideVirtChannel-1:0] wide_ready_in, wide_ready_out;
+  logic [NumRoutes-1:0][NumWideVirtChannels-1:0] wide_valid_in, wide_valid_out;
+  logic [NumRoutes-1:0][NumWideVirtChannels-1:0] wide_ready_in, wide_ready_out;
+  logic [NumRoutes-1:0][NumWideVirtChannels-1:0] wide_credit_in, wide_credit_out;
 
   for (genvar i = 0; i < NumInputs; i++) begin : gen_chimney_req
     assign req_valid_in[i] = floo_req_i[i].valid;
@@ -215,6 +214,8 @@ module floo_nw_router #(
     assign floo_wide_o[i].valid = wide_valid_out[i];
     assign wide_ready_in[i] = floo_wide_i[i].ready;
     assign floo_wide_o[i].wide = wide_out[i];
+    assign floo_wide_o[i].credit = wide_credit_out[i];
+    assign wide_credit_in[i] = floo_wide_i[i].credit;
   end
 
   floo_router #(
@@ -247,9 +248,11 @@ module floo_nw_router #(
     .valid_i                  ( req_valid_in                    ),
     .ready_o                  ( req_ready_out                   ),
     .data_i                   ( req_in                          ),
+    .credit_i                 ( '0                              ),
     .valid_o                  ( req_valid_out                   ),
     .ready_i                  ( req_ready_in                    ),
     .data_o                   ( req_out                         ),
+    .credit_o                 (                                 ),
     .offload_req_op_o         ( offload_narrow_req_op_o         ),
     .offload_req_operand1_o   ( offload_narrow_req_operand1_o   ),
     .offload_req_operand2_o   ( offload_narrow_req_operand2_o   ),
@@ -288,9 +291,11 @@ module floo_nw_router #(
     .valid_i                  ( rsp_valid_in  ),
     .ready_o                  ( rsp_ready_out ),
     .data_i                   ( rsp_in        ),
+    .credit_i                 ( '0           ),
     .valid_o                  ( rsp_valid_out ),
     .ready_i                  ( rsp_ready_in  ),
     .data_o                   ( rsp_out       ),
+    .credit_o                 (               ),
     .offload_req_op_o         (               ),
     .offload_req_operand1_o   (               ),
     .offload_req_operand2_o   (               ),
@@ -304,15 +309,15 @@ module floo_nw_router #(
 
   floo_router #(
     .NumRoutes            ( NumRoutes                 ),
-    .NumPhysChannels      ( 1                         ),
-    .NumVirtChannels      ( WideVirtChannel           ),
+    .NumPhysChannels      ( NumWidePhysChannels       ),
+    .NumVirtChannels      ( NumWideVirtChannels       ),
     .InFifoDepth          ( InFifoDepth               ),
     .OutFifoDepth         ( OutFifoDepth              ),
     .RouteAlgo            ( RouteAlgo                 ),
     .XYRouteOpt           ( XYRouteOpt                ),
     .NumAddrRules         ( NumAddrRules              ),
     .NoLoopback           ( NoLoopback                ),
-    .EnCollVirtChannel    ( EnDecoupledRW             ),
+    .VcImplementation     ( VcImplementation          ),
     .id_t                 ( id_t                      ),
     .addr_rule_t          ( addr_rule_t               ),
     .flit_t               ( floo_wide_generic_flit_t  ),
@@ -332,9 +337,11 @@ module floo_nw_router #(
     .valid_i                  ( wide_valid_in                 ),
     .ready_o                  ( wide_ready_out                ),
     .data_i                   ( wide_in                       ),
+    .credit_i                 ( wide_credit_in                ),
     .valid_o                  ( wide_valid_out                ),
     .ready_i                  ( wide_ready_in                 ),
     .data_o                   ( wide_out                      ),
+    .credit_o                 ( wide_credit_out               ),
     .offload_req_op_o         ( offload_wide_req_op_o         ),
     .offload_req_operand1_o   ( offload_wide_req_operand1_o   ),
     .offload_req_operand2_o   ( offload_wide_req_operand2_o   ),
