@@ -2,7 +2,7 @@
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
 //
-// Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
+// Author: Lorenzo Leone <lleone@iis.ee.ethz.ch>
 
 `include "axi/typedef.svh"
 `include "floo_noc/typedef.svh"
@@ -51,7 +51,6 @@ module floo_nw_router #(
   parameter type floo_rsp_t                         = logic,
   /// Floo `wide` link type
   parameter type floo_wide_t                        = logic,
-  parameter type floo_wide_out_t                    = logic,
   /// Possible operation for offloading (must match type in header)
   parameter type RdWideOperation_t                  = logic,
   parameter type RdNarrowOperation_t                = logic,
@@ -82,7 +81,7 @@ module floo_nw_router #(
   output  floo_req_t [NumOutputs-1:0]   floo_req_o,
   output  floo_rsp_t [NumInputs-1:0]    floo_rsp_o,
   input   floo_wide_t [NumRoutes-1:0]   floo_wide_i,
-  output  floo_wide_out_t [NumRoutes-1:0]   floo_wide_o,
+  output  floo_wide_t [NumRoutes-1:0]   floo_wide_o,
   /// Wide IF towards the offload logic
   output RdWideOperation_t              offload_wide_req_op_o,
   output RdWideData_t                   offload_wide_req_operand1_o,
@@ -124,10 +123,6 @@ module floo_nw_router #(
   `AXI_TYPEDEF_ALL_CT(axi_wide, axi_wide_req_t, axi_wide_rsp_t, axi_addr_t,
       axi_wide_in_id_t, axi_wide_data_t, axi_wide_strb_t, axi_wide_user_t)
   `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow, axi_wide, AxiCfgN, AxiCfgW, hdr_t)
-
-  // Local parameters to properly configure collective operation support
-  // hiding the complexity to the user
-  localparam int unsigned WideVirtChannel = (EnDecoupledRW) ? 2 : 1;
 
   localparam floo_pkg::collect_op_be_cfg_t CollectiveReqCfg = '{
     EnMulticast : CollectiveOpCfg.EnNarrowMulticast,

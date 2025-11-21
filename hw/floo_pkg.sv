@@ -117,18 +117,6 @@ package floo_pkg;
     Phys = 2'd2
   } wide_rw_decouple_e;
 
-  /// The types of collective communication
-  typedef enum logic [1:0] {
-    /// Normal communication
-    Unicast = 2'd0,
-    /// Multicast communication
-    Multicast = 2'd1,
-    /// Parallel reduction operations
-    ParallelReduction = 2'd2,
-    /// Offload Reduction
-    OffloadReduction = 2'd3
-  } collect_comm_e;
-
   /// TODO(lleone): delet this portion of code
   // /// The types of collective communication
   // typedef enum logic [1:0] {

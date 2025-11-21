@@ -384,13 +384,6 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
   typedef logic[AxiCfgW.DataWidth-1:0] RdDataWide_t;
   typedef logic[AxiCfgN.DataWidth-1:0] RdDataNarrow_t;
 
-  // TODO(lleone): Each field must become [1:0] when testing VC
-  typedef struct packed {
-    logic [1:0] valid;
-    logic [1:0] ready;
-    floo_wide_chan_t [1:0] wide;
-  } floo_wide_double_t;
-
   `FLOO_TYPEDEF_HDR_T(hdr_coll_t, id_t, id_t, nw_ch_e, rob_idx_t, id_t, collect_op_e)
   // `FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req, rsp, wide, 1, 2)
 

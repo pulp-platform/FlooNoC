@@ -31,7 +31,7 @@ module floo_synth_nw_chimney
   input  floo_req_t  floo_req_i,
   input  floo_rsp_t  floo_rsp_i,
   output floo_wide_t floo_wide_o,
-  input  floo_wide_double_t floo_wide_i
+  input  floo_wide_t floo_wide_i
 );
 
 localparam floo_pkg::route_cfg_t RouteCfgColl = (EnCollective) ? CollectRouteCfg : RouteCfg;
@@ -44,6 +44,7 @@ localparam floo_pkg::route_cfg_t RouteCfgColl = (EnCollective) ? CollectRouteCfg
     .RouteCfg             ( RouteCfgColl          ), //TODO (lleone): change to enable multicast/collective
     .AtopSupport          ( AtopSupport           ),
     .EnDecoupledRW        ( 1'b1                  ),
+    .NumWidePhysChannels  (1),
     .MaxAtomicTxns        ( MaxAtomicTxns         ),
     // SAM?
     .id_t                 ( id_t                  ),
@@ -65,7 +66,6 @@ localparam floo_pkg::route_cfg_t RouteCfgColl = (EnCollective) ? CollectRouteCfg
     .floo_req_t           ( floo_req_t            ),
     .floo_rsp_t           ( floo_rsp_t            ),
     .floo_wide_t          ( floo_wide_t           ),
-    .floo_wide_in_t       ( floo_wide_double_t    ),
     .user_narrow_struct_t ( collective_narrow_user_t),
     .user_wide_struct_t   ( collective_wide_user_t)
   ) i_floo_nw_chimney (
