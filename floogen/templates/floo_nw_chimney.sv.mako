@@ -24,6 +24,7 @@ floo_nw_chimney  #(
   .dst_t   (route_t),
 % endif
   .hdr_t  (hdr_t),
+% if not ni.is_multicast_ni():
   .sam_rule_t(sam_rule_t),
   .Sam(Sam),
   .axi_narrow_in_req_t(${narrow_in_prot.type_name()}_req_t),
@@ -34,6 +35,22 @@ floo_nw_chimney  #(
   .axi_wide_in_rsp_t(${wide_in_prot.type_name()}_rsp_t),
   .axi_wide_out_req_t(${wide_out_prot.type_name()}_req_t),
   .axi_wide_out_rsp_t(${wide_out_prot.type_name()}_rsp_t),
+% else:
+  .sam_rule_t(mcast_sam_rule_t),
+  .sam_idx_t(mcast_idx_t),
+  .mask_sel_t(mcast_mask_sel_t),
+  .Sam(McastSam),
+  // TODO(fischeti/lleone): Extend to narrow/wide user structs
+  .user_struct_t(${narrow_in_prot.type_name(prefix="mcast")}_user_t),
+  .axi_narrow_in_req_t(${narrow_in_prot.type_name(prefix="mcast")}_req_t),
+  .axi_narrow_in_rsp_t(${narrow_in_prot.type_name(prefix="mcast")}_rsp_t),
+  .axi_narrow_out_req_t(${narrow_out_prot.type_name(prefix="mcast")}_req_t),
+  .axi_narrow_out_rsp_t(${narrow_out_prot.type_name(prefix="mcast")}_rsp_t),
+  .axi_wide_in_req_t(${wide_in_prot.type_name(prefix="mcast")}_req_t),
+  .axi_wide_in_rsp_t(${wide_in_prot.type_name(prefix="mcast")}_rsp_t),
+  .axi_wide_out_req_t(${wide_out_prot.type_name(prefix="mcast")}_req_t),
+  .axi_wide_out_rsp_t(${wide_out_prot.type_name(prefix="mcast")}_rsp_t),
+% endif
   .floo_req_t(floo_req_t),
   .floo_rsp_t(floo_rsp_t),
   .floo_wide_t(floo_wide_t)

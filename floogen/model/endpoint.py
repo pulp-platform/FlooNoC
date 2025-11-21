@@ -7,7 +7,7 @@
 from typing import Optional, List, Union, Tuple
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
-from floogen.model.routing import AddrRange, Id, Coord
+from floogen.model.routing import AddrRange, SimpleId, Coord
 from floogen.model.protocol import Protocols
 
 
@@ -23,7 +23,7 @@ class EndpointDesc(BaseModel):
     array: Optional[Union[Tuple[int], Tuple[int, int]]] = None
     num: Optional[int] = None
     addr_range: List[AddrRange] = []
-    xy_id_offset: Optional[Id] = None
+    xy_id_offset: Optional[Union[SimpleId, Coord]] = None
     mgr_port_protocol: Optional[List[str]] = None
     sbr_port_protocol: Optional[List[str]] = None
 
@@ -90,6 +90,10 @@ class EndpointDesc(BaseModel):
         """Return true if the endpoint is only a manager."""
         return self.is_mgr() and not self.is_sbr()
 
+    def is_multicast_ep(self) -> bool:
+        """Return true if the endpoint supports multicast."""
+        return any([b for b in self.addr_range if b.en_multicast])
+
     def get_ni_name(self, name: str) -> str:
         """Return the name of the NI."""
         return name.replace(self.name, f"{self.name}_ni")
@@ -114,8 +118,9 @@ class Endpoint(EndpointDesc):
     def render_ports(self, pkg_name=""):
         """Render the ports of the endpoint."""
         ports = []
+        mcast_prefix = "mcast" if self.is_multicast_ep() else ""
         for port in self.mgr_ports:
-            ports += port.render_port(pkg_name)
+            ports += port.render_port(pkg_name, prefix=mcast_prefix)
         for port in self.sbr_ports:
-            ports += port.render_port(pkg_name)
+            ports += port.render_port(pkg_name, prefix=mcast_prefix)
         return ports

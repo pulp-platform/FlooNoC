@@ -26,6 +26,9 @@ package floo_${noc.name}_noc_pkg;
 
 % if noc.routing.use_id_table:
   ${noc.routing.sam.render(aw=noc.routing.addr_width)}
+  % if noc.routing.en_multicast:
+    ${noc.routing.multicast_sam.render(aw=noc.routing.addr_width)}
+  %endif
 % else:
   localparam int unsigned NumSamRules = 1;
   typedef logic sam_rule_t;
@@ -39,7 +42,12 @@ package floo_${noc.name}_noc_pkg;
   ${noc.routing.render_route_cfg(name="RouteCfg")}
 
 % for prot in noc.protocols:
-  ${prot.render_typedefs()}
+  % if not noc.routing.en_multicast:
+    ${prot.render_typedefs()}
+  % else:
+    ${prot.render_typedefs(prefix="mcast")}
+    ${prot.render_typedefs(ignored_user_fields=["mcast_mask"])}
+  % endif
 % endfor
 
   ${noc.routing.render_hdr_typedef(network_type=noc.network_type)}

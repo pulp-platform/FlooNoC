@@ -5,11 +5,11 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from typing import Optional, List, TypeVar, Union
+from typing import Dict, Optional, List, TypeVar, Union
 from typing_extensions import Annotated
 from pydantic import BaseModel, StringConstraints
 
-from floogen.utils import snake_to_camel, sv_param_decl, sv_typedef, sv_struct_render
+from floogen.utils import snake_to_camel, sv_param_decl, sv_typedef, sv_struct_render, sv_struct_typedef
 
 class ProtocolDesc(BaseModel):
     """Protocol class to describe a protocol."""
@@ -26,14 +26,12 @@ class AXI4(ProtocolDesc):
     data_width: int
     addr_width: int
     id_width: int
-    user_width: int
+    user_width: Union[int, Dict[str, int]] = 1
     type_prefix: Optional[str] = "axi"
 
-    def type_name(self) -> str:
+    def type_name(self, prefix="") -> str:
         """Return the full name of the protocol."""
-        if self.type_prefix is not None:
-            return f"{self.type_prefix}_{self.name}"
-        return self.name
+        return "_".join(filter(None, [prefix, self.type_prefix, self.name]))
 
     def render_params(self) -> str:
         """Render the parameters of the protocol."""
@@ -44,14 +42,21 @@ class AXI4(ProtocolDesc):
         string += sv_param_decl(cfull_name + "UserWidth", self.user_width)
         return string + "\n"
 
-    def render_typedefs(self) -> str:
+    def render_typedefs(self, prefix="", ignored_user_fields=[]) -> str:
         """Render the typedefs of the protocol."""
-        name_t = self.type_name()
+        name_t = self.type_name() if prefix == "" else f"{prefix}_{self.type_name()}"
         string = sv_typedef(name_t + "_addr_t", array_size=self.addr_width)
         string += sv_typedef(name_t + "_data_t", array_size=self.data_width)
         string += sv_typedef(name_t + "_strb_t", array_size=self.data_width // 8)
         string += sv_typedef(name_t + "_id_t", array_size=self.id_width)
-        string += sv_typedef(name_t + "_user_t", array_size=self.user_width)
+
+        match self.user_width:
+            case int(v):
+                string += sv_typedef(name_t + "_user_t", array_size=v)
+            case dict(d):
+                fields = {k: f"logic [{v-1}:0]" for k, v in d.items() if k not in ignored_user_fields}
+                string += sv_struct_typedef(name_t + "_user_t", fields)
+
         string += f"`AXI_TYPEDEF_ALL_CT({name_t}, \
             {name_t}_req_t, \
             {name_t}_rsp_t, \
@@ -68,10 +73,15 @@ class AXI4(ProtocolDesc):
         fields = {
             "AddrWidth": mgr_axi.addr_width,
             "DataWidth": mgr_axi.data_width,
-            "UserWidth": mgr_axi.user_width,
             "InIdWidth": mgr_axi.id_width,
             "OutIdWidth": sbr_axi.id_width,
         }
+        match mgr_axi.user_width:
+            case int(v):
+                fields["UserWidth"] = v
+            case dict(d):
+                fields["UserWidth"] = sum([v for k, v in d.items() if k != "mcast_mask"])
+
         return sv_param_decl(name, sv_struct_render(fields), dtype="axi_cfg_t")
 
 
@@ -106,13 +116,13 @@ class AXI4Bus(AXI4):
             return string
         return ""
 
-    def req_type(self) -> str:
+    def req_type(self, prefix="") -> str:
         """Return the request type of the protocol."""
-        return f"{self.type_name()}_req_t"
+        return f"{self.type_name(prefix=prefix)}_req_t"
 
-    def rsp_type(self) -> str:
+    def rsp_type(self, prefix="") -> str:
         """Return the response type of the protocol."""
-        return f"{self.type_name()}_rsp_t"
+        return f"{self.type_name(prefix=prefix)}_rsp_t"
 
     def req_name(self, port=False, idx=False) -> str:
         """Return the request name of the protocol."""
@@ -134,16 +144,16 @@ class AXI4Bus(AXI4):
         string += f"{self.rsp_type()} {self.rsp_name()};\n"
         return string + "\n"
 
-    def render_port(self, pkg_name="") -> List[str]:
+    def render_port(self, pkg_name="", prefix="") -> List[str]:
         """Render the port of the protocol."""
         rev_direction = self._invert_dir()
         ports = []
         ports.append(
-            f"{self.direction} {pkg_name}{self.req_type()} \
+            f"{self.direction} {pkg_name}{self.req_type(prefix=prefix)} \
             {self._array_to_sv_array()} {self.req_name(port=True)}"
         )
         ports.append(
-            f"{rev_direction} {pkg_name}{self.rsp_type()} \
+            f"{rev_direction} {pkg_name}{self.rsp_type(prefix=prefix)} \
             {self._array_to_sv_array()} {self.rsp_name(port=True)}"
         )
         return ports
