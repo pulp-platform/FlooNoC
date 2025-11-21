@@ -38,13 +38,9 @@ module floo_router
   /// Disables Y->X connections in XYRouting
   parameter bit          XYRouteOpt           = 1'b1,
   /// Disables loopback connections
-  parameter bit          NoLoopback       = 1'b1,
+  parameter bit          NoLoopback           = 1'b1,
   /// Select VC implementation
-  parameter floo_pkg::vc_impl_e VcImpl    = floo_pkg::VcNaive,
-  /// Enable Multicast feature
-  parameter bit          EnMultiCast      = 1'b0,
-  /// Enable reduction feature
-  parameter bit          EnReduction      = 1'b0,
+  parameter floo_pkg::vc_impl_e VcImpl        = floo_pkg::VcNaive,
   /// Various types
   parameter type         addr_rule_t          = logic,
   parameter type         flit_t               = logic,
@@ -190,6 +186,7 @@ module floo_router
     end
   end
 
+
   // Var for the "normal" dataflow without any reduction
   logic  [NumInput-1:0][NumVirtChannels-1:0] cross_valid, cross_ready;
 
@@ -288,7 +285,7 @@ module floo_router
         assign red_offload_route_selected[in]   = red_route_selected[in][0];
         assign red_offload_expected_in_route_loopback[in] = red_expected_in_route_loopback[in][0];
     end
-    if (EnCollVirtChannel) begin
+    if (NumVirtChannels > 1) begin
       for (genvar in = 0; in < NumInput; in++) begin: gen_vc1_tied
         assign red_ready_in[in][1]  = '0; // Tied to zero the ready from offload unit to VC1
       end
@@ -333,7 +330,7 @@ module floo_router
     end
 
     // Tie down all unused signals
-    if(EnCollVirtChannel) begin
+    if(NumVirtChannels > 1) begin
       for (genvar out = 0; out < NumOutput; out++) begin
         assign red_data_out[out][1] = '0;
         assign red_valid_out[out][1] = '0;
@@ -495,7 +492,9 @@ module floo_router
       end
     end
 
-    // Arbitrate virtual channels onto the physical channel
+    // At the end point, we cannot make valid dependent on ready.
+    // However, this is the case in the `floo_vc_arbiter`.
+    // For this reason, there must be cuts at the input of the endpoint.
     floo_vc_arbiter #(
       .NumVirtChannels  ( NumVirtChannels  ),
       .flit_t           ( flit_t           ),
@@ -504,11 +503,9 @@ module floo_router
     ) i_vc_arbiter (
       .clk_i,
       .rst_ni,
-
       .valid_i  ( out_buffered_valid[out] ),
       .ready_o  ( out_buffered_ready[out] ),
       .data_i   ( out_buffered_data [out] ),
-
       .ready_i  ( ready_i  [out] ),
       .valid_o  ( valid_o  [out] ),
       .data_o   ( data_o   [out] ),
@@ -557,7 +554,7 @@ module floo_router
 
   // If you have offload reduction and more than one virtual channel,
   // the reduction traffic must arrive from Virtual Channel 0
-  if (EnSequentialReduction && (NumVirtChannels > 1) && EnCollVirtChannel) begin: gen_vc_red
+  if (EnSequentialReduction && (NumVirtChannels > 1)) begin: gen_vc_red
     for (genvar in = 0; in < NumInput; in++) begin
         `ASSERT(CollOpReceivedOnWrongVirtChannel, !red_valid_in[in][1])
     end
@@ -571,7 +568,7 @@ module floo_router
   `ASSERT_INIT(SupportAXI, !EnSequentialReduction || RedCfg.RdSupportAxi)
   // We can not support Loopback when you have reduction and the NoLoopback option is disabled
   `ASSERT_INIT(SupportLoopback, !(EnSequentialReduction && RedCfg.RdSupportLoopback && NoLoopback))
-  // We cannot support sequential reduction with multiple VC if EnCollVirtChannel is not set
-  `ASSERT_INIT(NoRedVcSupport, !(EnSequentialReduction && (NumVirtChannels > 1) && !EnCollVirtChannel))
+  // We cannot support sequential reduction with multiple VC
+  // `ASSERT_INIT(NoRedVcSupport, !(EnSequentialReduction && (NumVirtChannels > 1)))
 
 endmodule
