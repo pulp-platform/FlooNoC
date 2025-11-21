@@ -16,6 +16,7 @@ dependencies:
   axi: { git: "https://github.com/pulp-platform/axi.git", version: 0.39.7 }
   axi_riscv_atomics: { git: "https://github.com/pulp-platform/axi_riscv_atomics.git", version: 0.8.2 }
   floo_noc_pd: {path: ./pd}
+  FPnew:              { git: "https://github.com/pulp-platform/cvfpu.git",        rev:      pulp-v0.1.3 }
 
 export_include_dirs:
   - hw/include
@@ -36,16 +37,18 @@ sources:
   - hw/floo_rob_wrapper.sv
   - hw/floo_reduction_sync.sv
   - hw/floo_route_xymask.sv
+  - hw/floo_alu.sv
   # Level 2
   - hw/floo_route_select.sv
   - hw/floo_route_comp.sv
   - hw/floo_meta_buffer.sv
   - hw/floo_reduction_arbiter.sv
+  - hw/floo_reduction_unit.sv
   # Level 3
   - hw/floo_output_arbiter.sv
   # Level 4
   - hw/floo_nw_join.sv
-  - hw/floo_axi_chimney.sv
+  #- hw/floo_axi_chimney.sv
   - hw/floo_nw_chimney.sv
   - hw/floo_router.sv
   # Level 5 (Wrappers)
@@ -84,14 +87,15 @@ sources:
       - hw/test/axi_reorder_remap_compare.sv
       - hw/test/axi_bw_monitor.sv
       - hw/test/floo_hbm_model.sv
+#      - hw/test/floo_reduction_offloads.sv
       - hw/test/axi_aw_w_sync.sv
       # Level 2
-      - hw/tb/tb_floo_axi_chimney.sv
+      #- hw/tb/tb_floo_axi_chimney.sv
       - hw/tb/tb_floo_nw_chimney.sv
       - hw/tb/tb_floo_router.sv
       - hw/tb/tb_floo_rob.sv
       - hw/tb/tb_floo_vc_router.sv
-      - hw/tb/tb_floo_rob_multicast.sv
+      #- hw/tb/tb_floo_rob_multicast.sv
 
   - target: all(any(floo_test, floo_synth), axi_mesh)
     files:

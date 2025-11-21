@@ -36,6 +36,8 @@ module floo_route_comp
   output id_t mask_o
 );
 
+  localparam bit EnCollective = floo_pkg::is_en_collective(RouteCfg.CollectiveCfg.OpCfg);
+
   // Use an address decoder to map the address to a destination ID.
   // The `rule_t` struct has to have the fields `idx`, `start_addr` and `end_addr`.
   // `SourceRouting` is a special case, where the the `idx` is the actual (pre-computed) route.
@@ -73,7 +75,7 @@ module floo_route_comp
       .en_default_idx_i ( 1'b0        ),
       .default_idx_i    ( '0          )
     );
-    if (RouteCfg.EnMultiCast && RouteCfg.UseIdTable &&
+    if (EnCollective && RouteCfg.UseIdTable &&
         (RouteCfg.RouteAlgo == floo_pkg::XYRouting))
     begin : gen_mcast_mask
       floo_mask_decode #(
@@ -106,7 +108,7 @@ module floo_route_comp
     assign id_o.port_id = '0;
     assign id_o.x = addr_i[RouteCfg.XYAddrOffsetX +: $bits(id_o.x)];
     assign id_o.y = addr_i[RouteCfg.XYAddrOffsetY +: $bits(id_o.y)];
-    if(RouteCfg.EnMultiCast) begin : gen_mcast_mask
+    if(EnCollective) begin : gen_mcast_mask
       assign mask_o.x = mask_i[RouteCfg.XYAddrOffsetX +: $bits(id_o.x)];
       assign mask_o.y = mask_i[RouteCfg.XYAddrOffsetY +: $bits(id_o.y)];
       assign mask_o.port_id = '0;
