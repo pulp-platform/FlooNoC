@@ -5,13 +5,13 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from typing import Optional, ClassVar, List
+from typing import Optional, ClassVar, List, Union
 from importlib.resources import files, as_file
 
 from pydantic import BaseModel
 from mako.lookup import Template
 
-from floogen.model.routing import Id, SimpleId, Coord, AddrRange, Routing, RouteMap
+from floogen.model.routing import SimpleId, Coord, AddrRange, Routing, RouteMap
 from floogen.model.protocol import AXI4
 from floogen.model.link import NarrowWideLink, AxiLink
 from floogen.model.endpoint import EndpointDesc
@@ -26,9 +26,9 @@ class NetworkInterface(BaseModel):
     description: str = ""
     routing: Routing
     table: Optional[RouteMap] = None
-    id: Optional[Id] = None
+    id: Optional[Union[SimpleId, Coord]] = None
     uid: Optional[SimpleId] = None
-    arr_idx: Optional[Id] = None
+    arr_idx: Optional[Union[SimpleId, Coord]] = None
     addr_range: Optional[List[AddrRange]] = None
 
     def is_sbr(self) -> bool:
@@ -46,6 +46,10 @@ class NetworkInterface(BaseModel):
     def is_only_mgr(self) -> bool:
         """Return true if the network interface is only a manager."""
         return self.endpoint.is_mgr() and not self.endpoint.is_sbr()
+
+    def is_multicast_ni(self) -> bool:
+        """Return true if the network interface supports multicast."""
+        return any([b for b in self.addr_range if b.en_multicast])
 
     def render_enum_name(self) -> str:
         """Render the enum name."""
