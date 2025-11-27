@@ -41,6 +41,10 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         pkg_tpl: ClassVar = Template(filename=str(_tpl_path))
     with as_file(files(floogen.templates).joinpath("floo_addrmap.rdl.mako")) as _tpl_path:
         rdl_tpl: ClassVar = Template(filename=str(_tpl_path))
+    with as_file(files(floogen.templates).joinpath("floo_axi_tile.sv.mako")) as _tpl_path:
+        tile_tpl: ClassVar = Template(filename=str(_tpl_path))
+    with as_file(files(floogen.templates).joinpath("floo_top_noc_tiles.sv.mako")) as _tpl_path:
+        noc_tiles_tpl: ClassVar = Template(filename=str(_tpl_path))
 
     name: str
     description: Optional[str]
@@ -805,6 +809,14 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     def render_rdl(self, rdl_as_mem=False, rdl_memwidth=8):
         """Render the network RDL in the generated code."""
         return self.rdl_tpl.render(noc=self, rdl_as_mem=rdl_as_mem, rdl_memwidth=rdl_memwidth)
+
+    def render_tile(self):
+        """Render the tile wrapper (chimney + router) in the generated code."""
+        return self.tile_tpl.render(noc=self)
+
+    def render_network_tiles(self):
+        """Render the tile-based network in the generated code."""
+        return self.noc_tiles_tpl.render(noc=self)
 
     def visualize(self, savefig=True, filename: pathlib.Path = "network.png"):
         """Visualize the network graph."""
