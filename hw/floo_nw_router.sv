@@ -29,6 +29,11 @@ module floo_nw_router #(
   /// Disable illegal connections in router
   /// (only applies for `RouteAlgo == XYRouting`)
   parameter bit          XYRouteOpt           = 1'b1,
+  /// Enable decoupling between Read and Write WIDE channels using virtual channels
+  /// assumed that write transactions are alwasy on VC0.
+  parameter int unsigned  NumWideVirtChannels       = 32'd1,
+  parameter int unsigned  NumWidePhysChannels       = 32'd1,
+  parameter floo_pkg::vc_impl_e VcImplementation    = floo_pkg::VcNaive,
   /// Enable multicast feature
   parameter bit          EnMultiCast          = 1'b0,
   /// Node ID type
@@ -87,13 +92,15 @@ module floo_nw_router #(
   floo_rsp_chan_t [NumInputs-1:0] rsp_out;
   floo_req_chan_t [NumOutputs-1:0] req_out;
   floo_rsp_chan_t [NumOutputs-1:0] rsp_in;
-  floo_wide_chan_t [NumRoutes-1:0] wide_in, wide_out;
+  floo_wide_chan_t [NumRoutes-1:0][NumWidePhysChannels-1:0] wide_in;
+  floo_wide_chan_t [NumRoutes-1:0][NumWidePhysChannels-1:0] wide_out;
   logic [NumInputs-1:0] req_valid_in, req_ready_out;
   logic [NumInputs-1:0] rsp_valid_out, rsp_ready_in;
   logic [NumOutputs-1:0] req_valid_out, req_ready_in;
   logic [NumOutputs-1:0] rsp_valid_in, rsp_ready_out;
-  logic [NumRoutes-1:0] wide_valid_in, wide_valid_out;
-  logic [NumRoutes-1:0] wide_ready_in, wide_ready_out;
+  logic [NumRoutes-1:0][NumWideVirtChannels-1:0] wide_valid_in, wide_valid_out;
+  logic [NumRoutes-1:0][NumWideVirtChannels-1:0] wide_ready_in, wide_ready_out;
+  logic [NumRoutes-1:0][NumWideVirtChannels-1:0] wide_credit_in, wide_credit_out;
 
   for (genvar i = 0; i < NumInputs; i++) begin : gen_chimney_req
     assign req_valid_in[i] = floo_req_i[i].valid;
@@ -120,6 +127,8 @@ module floo_nw_router #(
     assign floo_wide_o[i].valid = wide_valid_out[i];
     assign wide_ready_in[i] = floo_wide_i[i].ready;
     assign floo_wide_o[i].wide = wide_out[i];
+    assign floo_wide_o[i].credit = wide_credit_out[i];
+    assign wide_credit_in[i] = floo_wide_i[i].credit;
   end
 
   floo_router #(
@@ -147,6 +156,7 @@ module floo_nw_router #(
     .valid_i        ( req_valid_in  ),
     .ready_o        ( req_ready_out ),
     .data_i         ( req_in        ),
+    .credit_i       ( '0            ),
     .valid_o        ( req_valid_out ),
     .ready_i        ( req_ready_in  ),
     .data_o         ( req_out       )
@@ -198,6 +208,7 @@ module floo_nw_router #(
     .valid_i        ( rsp_valid_in  ),
     .ready_o        ( rsp_ready_out ),
     .data_i         ( rsp_in        ),
+    .credit_i       ( '0            ),
     .valid_o        ( rsp_valid_out ),
     .ready_i        ( rsp_ready_in  ),
     .data_o         ( rsp_out       )
@@ -206,14 +217,15 @@ module floo_nw_router #(
 
   floo_router #(
     .NumRoutes        ( NumRoutes                 ),
-    .NumPhysChannels  ( 1                         ),
-    .NumVirtChannels  ( 1                         ),
+    .NumPhysChannels  ( NumWidePhysChannels       ),
+    .NumVirtChannels  ( NumWideVirtChannels       ),
     .InFifoDepth      ( InFifoDepth               ),
     .OutFifoDepth     ( OutFifoDepth              ),
     .RouteAlgo        ( RouteAlgo                 ),
     .XYRouteOpt       ( XYRouteOpt                ),
     .NumAddrRules     ( NumAddrRules              ),
     .NoLoopback       ( 1'b1                      ),
+    .VcImplementation ( VcImplementation          ),
     .EnMultiCast      ( EnMultiCast               ),
     .EnReduction      ( 1'b0                      ),
     .id_t             ( id_t                      ),
@@ -228,9 +240,11 @@ module floo_nw_router #(
     .valid_i        ( wide_valid_in   ),
     .ready_o        ( wide_ready_out  ),
     .data_i         ( wide_in         ),
+    .credit_i       ( wide_credit_in  ),
     .valid_o        ( wide_valid_out  ),
     .ready_i        ( wide_ready_in   ),
-    .data_o         ( wide_out        )
+    .data_o         ( wide_out        ),
+    .credit_o       ( wide_credit_out )
   );
 
 endmodule
