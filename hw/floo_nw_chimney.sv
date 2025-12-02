@@ -1301,12 +1301,6 @@ module floo_nw_chimney #(
                                   (floo_rsp_unpack_generic.hdr.axi_ch  == NarrowR);
   assign axi_valid_in[WideB]    = ChimneyCfgW.EnMgrPort && floo_rsp_in_valid &&
                                   (floo_rsp_unpack_generic.hdr.axi_ch  == WideB);
-  assign axi_valid_in[WideAw]   = floo_wide_in_valid &&
-                                  (floo_wide_unpack_generic.hdr.axi_ch == WideAw);
-  assign axi_valid_in[WideW]    = floo_wide_in_valid &&
-                                  (floo_wide_unpack_generic.hdr.axi_ch  == WideW);
-  assign axi_valid_in[WideR]    = ChimneyCfgW.EnMgrPort && floo_wide_in_valid &&
-                                  (floo_wide_unpack_generic.hdr.axi_ch  == WideR);
 
   assign axi_ready_out[NarrowAw]  = axi_narrow_meta_buf_rsp_out.aw_ready;
   assign axi_ready_out[NarrowW]   = axi_narrow_meta_buf_rsp_out.w_ready;
@@ -1325,7 +1319,7 @@ module floo_nw_chimney #(
   assign floo_rsp_out_ready  = axi_ready_out[floo_rsp_unpack_generic.hdr.axi_ch];
 
   // Flit unpacking on the wide interface
-  if (EnDecoupledRW) begin
+  if (EnDecoupledRW) begin: gen_mux_decouple_rdwr
 
     assign floo_wide_unpack_generic_wr = floo_wide_in_wr_q.generic;
     assign floo_wide_unpack_generic_rd = floo_wide_in_rd_q.generic;
@@ -1345,7 +1339,7 @@ module floo_nw_chimney #(
       .oup_ready_i({axi_ready_out[WideAw], axi_ready_out[WideW]})
     );
 
-  end else begin
+  end else begin:gen_nomux_decouple_rdwr
 
     // Demux single physical channel to AXI AW, W and R channels
     assign floo_wide_out_ready_q = axi_ready_out[floo_wide_in_q.generic.hdr.axi_ch];
@@ -1602,7 +1596,7 @@ module floo_nw_chimney #(
   `ASSERT(NoWideSbrPortArRequest, ChimneyCfgW.EnSbrPort || !(floo_req_in_valid &&
                            (floo_req_unpack_generic.hdr.axi_ch == WideAr)))
   `ASSERT(NoWideSbrPortWRequest,  ChimneyCfgW.EnSbrPort || !(floo_wide_in_valid &&
-                           (floo_wide_unpack_generic.hdr.axi_ch == WideW)))
+                           (floo_wide_unpack_generic_wr.hdr.axi_ch == WideW)))
 
   // When virtual channels for decoupled read and write is enabled,
   // req_i and req_o must have same amount of VCs, equal to NumVirtualChannels

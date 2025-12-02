@@ -168,8 +168,7 @@ module floo_rob_wrapper
       .inject_axi_id_i              ( '0                  ),
       .inject_i                     ( 1'b0                ),
       .pop_axi_id_i                 ( rsp_i.id            ),
-      .pop_i                        ( pop && rsp_ready_i  ), // Only pop on handshake
-      .any_outstanding_trx_o        (                     )
+      .pop_i                        ( pop && rsp_ready_i  )  // Only pop on handshake
     );
 
   end else begin : gen_error
