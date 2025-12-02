@@ -151,6 +151,6 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
   `ASSERT(OneHotOutputValid, $onehot0(valid_o))
 
   // Currently only supports two virtual channels
-  `ASSERT_INIT(SupportedNumVirtChannels, NumVirtChannels <= 2)
+  `ASSERT_INIT(SupportedNumVirtChannels, !VcImplementation || (NumVirtChannels <= 2))
 
 endmodule
