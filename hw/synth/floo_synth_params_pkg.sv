@@ -8,6 +8,7 @@
 `include "floo_noc/typedef.svh"
 
 package floo_synth_params_pkg;
+  import floo_pkg::*;
 
   // Router parameters
   localparam int unsigned InFifoDepth = 2;
@@ -16,7 +17,7 @@ package floo_synth_params_pkg;
   // Default route config for testing
   localparam floo_pkg::route_cfg_t RouteCfg = '{
     RouteAlgo: floo_pkg::XYRouting,
-    UseIdTable: 0,
+    UseIdTable: 1,
     XYAddrOffsetX: 16,
     XYAddrOffsetY: 20,
     default: '0 // Potentially enable Multicast features
@@ -96,7 +97,9 @@ package floo_synth_nw_pkg;
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi_wide, AxiCfgW)
   `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow_in, axi_wide_in,
       AxiCfgN, AxiCfgW, hdr_t)
-  `FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, req, rsp, wide)
+  // `FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, req, rsp, wide)
+  // Enable the following VC LINK when you want to experiment the use of virtual channels in collective
+  `FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req, rsp, wide, 1, 2, 1)
 
 endpackage
 

@@ -38,6 +38,8 @@ module floo_router
   parameter bit          XYRouteOpt       = 1'b1,
   /// Disables loopback connections
   parameter bit          NoLoopback       = 1'b1,
+  /// Select VC implementation
+  parameter floo_pkg::vc_impl_e VcImplementation = floo_pkg::VcNaive,
   /// Enable Multicast feature
   parameter bit          EnMultiCast      = 1'b0,
   /// Enable reduction feature
@@ -60,10 +62,12 @@ module floo_router
   input  logic  [NumInput-1:0][NumVirtChannels-1:0]  valid_i,
   output logic  [NumInput-1:0][NumVirtChannels-1:0]  ready_o,
   input  flit_t [NumInput-1:0][NumPhysChannels-1:0]  data_i,
+  output logic  [NumInput-1:0][NumVirtChannels-1:0]  credit_o,
   /// Output channels
   output logic  [NumOutput-1:0][NumVirtChannels-1:0] valid_o,
   input  logic  [NumOutput-1:0][NumVirtChannels-1:0] ready_i,
-  output flit_t [NumOutput-1:0][NumPhysChannels-1:0] data_o
+  output flit_t [NumOutput-1:0][NumPhysChannels-1:0] data_o,
+  input  logic  [NumOutput-1:0][NumVirtChannels-1:0] credit_i
 );
 
   // TODO MICHAERO: assert NumPhysChannels <= NumVirtChannels
@@ -72,6 +76,9 @@ module floo_router
   logic  [NumInput-1:0][NumVirtChannels-1:0] in_valid, in_ready;
 
   logic  [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] route_mask;
+
+  // Credit generation for virtual channel support
+  logic [NumInput-1:0][NumVirtChannels-1:0] credit_gnt_q, credit_gnt_d;
 
   // Router input part
   for (genvar in = 0; in < NumInput; in++) begin : gen_input
@@ -128,6 +135,14 @@ module floo_router
         .route_sel_id_o (                       )
       );
 
+      // Credit count generation. Assign 1 upon any handshake
+      if (VcImplementation == floo_pkg::VcCreditBased) begin: gen_credit_support
+        assign credit_o[in][v] = credit_gnt_q[in][v];
+        assign credit_gnt_d[in][v] = in_valid[in][v] & in_ready[in][v];
+        `FF(credit_gnt_q[in][v], credit_gnt_d[in][v], 1'b0);
+      end else begin: gen_no_credit
+        assign credit_o[in][v] = 1'b1;
+      end
     end
   end
 
@@ -266,20 +281,22 @@ module floo_router
 
     // Arbitrate virtual channels onto the physical channel
     floo_vc_arbiter #(
-      .NumVirtChannels ( NumVirtChannels ),
-      .flit_t          ( flit_t          ),
-      .NumPhysChannels ( NumPhysChannels )
+      .NumVirtChannels  ( NumVirtChannels  ),
+      .flit_t           ( flit_t           ),
+      .NumPhysChannels  ( NumPhysChannels  ),
+      .VcImplementation ( VcImplementation )
     ) i_vc_arbiter (
       .clk_i,
       .rst_ni,
 
-      .valid_i ( out_buffered_valid[out] ),
-      .ready_o ( out_buffered_ready[out] ),
-      .data_i  ( out_buffered_data [out] ),
+      .valid_i  ( out_buffered_valid[out] ),
+      .ready_o  ( out_buffered_ready[out] ),
+      .data_i   ( out_buffered_data [out] ),
 
-      .ready_i ( ready_i  [out] ),
-      .valid_o ( valid_o  [out] ),
-      .data_o  ( data_o   [out] )
+      .ready_i  ( ready_i  [out] ),
+      .valid_o  ( valid_o  [out] ),
+      .data_o   ( data_o   [out] ),
+      .credit_i ( credit_i[out] )
     );
   end
 
