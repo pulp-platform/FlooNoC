@@ -57,7 +57,9 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
       // other VC has a grant, switch VC in the next cycle
       if (vc_arb_req_out) begin
         if (!vc_arb_gnt_in) begin
-          if (ready_i[vc_arb_idx ? 0 : 1] && valid_i[vc_arb_idx ? 0 : 1]) mask_d = ~(1'b1 << vc_arb_idx);
+          if (ready_i[vc_arb_idx ? 0 : 1] && valid_i[vc_arb_idx ? 0 : 1]) begin: gen_valid_mask
+              mask_d = ~(1'b1 << vc_arb_idx);
+          end
         end else begin
           mask_d = '1;
         end

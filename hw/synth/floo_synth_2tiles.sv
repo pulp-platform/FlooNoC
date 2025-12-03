@@ -8,7 +8,7 @@
 // west <-> east ports together. For this reason, at the interface there will be twice the number of
 // ports compared to a single tile.
 //
-module floo_synth_nw_2tiles
+module floo_synth_2tiles
   import floo_pkg::*;
   import floo_synth_params_pkg::*;
   import floo_synth_nw_pkg::*;
@@ -61,8 +61,8 @@ floo_wide_t [NumPorts-1:0] floo_wide_0_out;
 localparam floo_pkg::vc_impl_e  VcImplementation = floo_pkg::vc_impl_e'(VcImpl);
 
 // Tile 1
-for (genvar p = 0; p < NumPorts; p++) begin
-  if (p != West) begin
+for (genvar p = 0; p < NumPorts; p++) begin: gen_tile_1_connections
+  if (p != West) begin: gen_skip_west_tile_1
     assign floo_req_1_in[p] = floo_req_1_i[tile1_idx_map(p)];
     assign floo_rsp_1_in[p] = floo_rsp_1_i[tile1_idx_map(p)];
     assign floo_rsp_1_o[tile1_idx_map(p)] = floo_rsp_1_out[p];
@@ -74,8 +74,8 @@ for (genvar p = 0; p < NumPorts; p++) begin
 end
 
 // Tile 0
-for (genvar p = 0; p < NumPorts; p++) begin
-  if (p != East) begin
+for (genvar p = 0; p < NumPorts; p++) begin: gen_tile_0_connections
+  if (p != East) begin: gen_skip_east_tile_0
     assign floo_req_0_in[p] = floo_req_0_i[tile0_idx_map(p)];
     assign floo_rsp_0_in[p] = floo_rsp_0_i[tile0_idx_map(p)];
     assign floo_rsp_0_o[tile0_idx_map(p)] = floo_rsp_0_out[p];
@@ -191,7 +191,7 @@ floo_nw_router #(
 );
 
 function automatic int tile0_idx_map(route_direction_e dir);
-  case (dir)
+  unique case (dir)
     North: return 0;
     // East:  return 1;
     South: return 1;
@@ -201,7 +201,7 @@ function automatic int tile0_idx_map(route_direction_e dir);
 endfunction
 
 function automatic int tile1_idx_map(route_direction_e dir);
-  case (dir)
+  unique case (dir)
     North: return 0;
     East:  return 1;
     South: return 2;
