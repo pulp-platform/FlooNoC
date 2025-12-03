@@ -9,6 +9,8 @@ import os
 import argparse
 from pathlib import Path
 
+from mako.template import Template
+
 from floogen.config_parser import parse_config
 from floogen.query import handle_query
 from floogen.model.network import Network
@@ -35,19 +37,26 @@ def render_sources(network: Network, args: argparse.Namespace):
 
     # Generate the network description
     rendered_pkg = network.render_package()
-    if args.tile_based:
-        rendered_top = network.render_network_tiles()
-        rendered_tile = network.render_tile()
-    else:
-        rendered_top = network.render_network()
-        rendered_tile = None
+    rendered_top = network.render_network()
+
+    # Render external templates
+    rendered_external = {}
+    for template_path in args.templates:
+        if not template_path.exists():
+            raise FileNotFoundError(f"Template not found: {template_path}")
+        tpl = Template(filename=str(template_path.resolve()))
+        rendered = tpl.render(noc=network)
+        # Derive output name: foo.sv.mako -> foo.sv
+        rendered_external[template_path.stem] = rendered
 
     # Format the output if requested
     if not args.no_format:
         rendered_top = verible_format(rendered_top, args.verible_fmt_bin, args.verible_fmt_args)
         rendered_pkg = verible_format(rendered_pkg, args.verible_fmt_bin, args.verible_fmt_args)
-        if rendered_tile:
-            rendered_tile = verible_format(rendered_tile, args.verible_fmt_bin, args.verible_fmt_args)
+        for name in rendered_external:
+            rendered_external[name] = verible_format(
+                rendered_external[name], args.verible_fmt_bin, args.verible_fmt_args
+            )
 
     # Write the network description to file or print it to stdout
     if args.outdir:
@@ -59,10 +68,12 @@ def render_sources(network: Network, args: argparse.Namespace):
             top_file_name = outdir / f"floo_{network.name}_noc.sv"
             with open(top_file_name, "w+", encoding="utf-8") as top_file:
                 top_file.write(rendered_top)
-        if rendered_tile and not args.rdl:
-            tile_file_name = outdir / f"floo_{network.name}_tile.sv"
-            with open(tile_file_name, "w+", encoding="utf-8") as tile_file:
-                tile_file.write(rendered_tile)
+        # Write external template outputs
+        for output_name, rendered_content in rendered_external.items():
+            if not args.rdl:
+                output_file = outdir / f"floo_{network.name}_{output_name}"
+                with open(output_file, "w+", encoding="utf-8") as f:
+                    f.write(rendered_content)
         if args.rdl:
             rdl_file_name = outdir / f"{network.name}.rdl"
             with open(rdl_file_name, "w+", encoding="utf-8") as rdl_file:
@@ -73,8 +84,10 @@ def render_sources(network: Network, args: argparse.Namespace):
             print(rendered_pkg)
         if not args.only_pkg and not args.rdl:
             print(rendered_top)
-        if rendered_tile and not args.rdl:
-            print(rendered_tile)
+        # Print external template outputs
+        for rendered_content in rendered_external.values():
+            if not args.rdl:
+                print(rendered_content)
         if args.rdl:
             print(network.render_rdl(rdl_as_mem=args.rdl_as_mem, rdl_memwidth=args.rdl_memwidth))
 
@@ -153,11 +166,16 @@ def parse_args():
         "-q", "--query", type=str, help="Query a specific key in the configuration."
     )
     parser.add_argument(
-        "--tile-based",
-        dest="tile_based",
-        action="store_true",
-        default=False,
-        help="Generate tile-based network with chimney+router wrapper.",
+        "-t",
+        "--template",
+        dest="templates",
+        action="append",
+        type=Path,
+        default=[],
+        help=(
+            "External template to render. May be specified multiple times. "
+            "Output filename: floo_{name}_{template_stem}.sv"
+        ),
     )
 
     return parser.parse_args()

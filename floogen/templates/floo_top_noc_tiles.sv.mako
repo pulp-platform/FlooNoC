@@ -61,58 +61,52 @@ ep_name = noc.endpoints[0].name
       id_t tile_id;
       assign tile_id = '{x: x, y: y, port_id: 0};
 
-      // Tile neighbor connections (directly connected without gating)
-      floo_req_t north_req_out, north_req_in;
-      floo_rsp_t north_rsp_out, north_rsp_in;
-      floo_req_t east_req_out, east_req_in;
-      floo_rsp_t east_rsp_out, east_rsp_in;
-      floo_req_t south_req_out, south_req_in;
-      floo_rsp_t south_rsp_out, south_rsp_in;
-      floo_req_t west_req_out, west_req_in;
-      floo_rsp_t west_rsp_out, west_rsp_in;
+      // Direction-indexed arrays for tile ports (North=0, East=1, South=2, West=3)
+      floo_req_t [West:North] tile_req_out, tile_req_in;
+      floo_rsp_t [West:North] tile_rsp_out, tile_rsp_in;
 
       // North connections
       if (y < NumY - 1) begin : gen_north_conn
-        assign ns_req[x][y] = north_req_out;
-        assign ns_rsp[x][y] = north_rsp_out;
-        assign north_req_in = sn_req[x][y];
-        assign north_rsp_in = sn_rsp[x][y];
+        assign ns_req[x][y] = tile_req_out[North];
+        assign ns_rsp[x][y] = tile_rsp_out[North];
+        assign tile_req_in[North] = sn_req[x][y];
+        assign tile_rsp_in[North] = sn_rsp[x][y];
       end else begin : gen_north_edge
-        assign north_req_in = '0;
-        assign north_rsp_in = '0;
+        assign tile_req_in[North] = '0;
+        assign tile_rsp_in[North] = '0;
       end
 
       // South connections
       if (y > 0) begin : gen_south_conn
-        assign sn_req[x][y-1] = south_req_out;
-        assign sn_rsp[x][y-1] = south_rsp_out;
-        assign south_req_in = ns_req[x][y-1];
-        assign south_rsp_in = ns_rsp[x][y-1];
+        assign sn_req[x][y-1] = tile_req_out[South];
+        assign sn_rsp[x][y-1] = tile_rsp_out[South];
+        assign tile_req_in[South] = ns_req[x][y-1];
+        assign tile_rsp_in[South] = ns_rsp[x][y-1];
       end else begin : gen_south_edge
-        assign south_req_in = '0;
-        assign south_rsp_in = '0;
+        assign tile_req_in[South] = '0;
+        assign tile_rsp_in[South] = '0;
       end
 
       // East connections
       if (x < NumX - 1) begin : gen_east_conn
-        assign ew_req[x][y] = east_req_out;
-        assign ew_rsp[x][y] = east_rsp_out;
-        assign east_req_in = we_req[x][y];
-        assign east_rsp_in = we_rsp[x][y];
+        assign ew_req[x][y] = tile_req_out[East];
+        assign ew_rsp[x][y] = tile_rsp_out[East];
+        assign tile_req_in[East] = we_req[x][y];
+        assign tile_rsp_in[East] = we_rsp[x][y];
       end else begin : gen_east_edge
-        assign east_req_in = '0;
-        assign east_rsp_in = '0;
+        assign tile_req_in[East] = '0;
+        assign tile_rsp_in[East] = '0;
       end
 
       // West connections
       if (x > 0) begin : gen_west_conn
-        assign we_req[x-1][y] = west_req_out;
-        assign we_rsp[x-1][y] = west_rsp_out;
-        assign west_req_in = ew_req[x-1][y];
-        assign west_rsp_in = ew_rsp[x-1][y];
+        assign we_req[x-1][y] = tile_req_out[West];
+        assign we_rsp[x-1][y] = tile_rsp_out[West];
+        assign tile_req_in[West] = ew_req[x-1][y];
+        assign tile_rsp_in[West] = ew_rsp[x-1][y];
       end else begin : gen_west_edge
-        assign west_req_in = '0;
-        assign west_rsp_in = '0;
+        assign tile_req_in[West] = '0;
+        assign tile_rsp_in[West] = '0;
       end
 
       // Tile instantiation
@@ -132,22 +126,10 @@ ep_name = noc.endpoints[0].name
         .axi_out_req_o   ( ${ep_name}_axi_out_req_o[x][y] ),
         .axi_out_rsp_i   ( ${ep_name}_axi_out_rsp_i[x][y] ),
 % endif
-        .floo_north_req_o( north_req_out ),
-        .floo_north_rsp_o( north_rsp_out ),
-        .floo_north_req_i( north_req_in  ),
-        .floo_north_rsp_i( north_rsp_in  ),
-        .floo_east_req_o ( east_req_out  ),
-        .floo_east_rsp_o ( east_rsp_out  ),
-        .floo_east_req_i ( east_req_in   ),
-        .floo_east_rsp_i ( east_rsp_in   ),
-        .floo_south_req_o( south_req_out ),
-        .floo_south_rsp_o( south_rsp_out ),
-        .floo_south_req_i( south_req_in  ),
-        .floo_south_rsp_i( south_rsp_in  ),
-        .floo_west_req_o ( west_req_out  ),
-        .floo_west_rsp_o ( west_rsp_out  ),
-        .floo_west_req_i ( west_req_in   ),
-        .floo_west_rsp_i ( west_rsp_in   )
+        .floo_req_o      ( tile_req_out ),
+        .floo_rsp_o      ( tile_rsp_out ),
+        .floo_req_i      ( tile_req_in  ),
+        .floo_rsp_i      ( tile_rsp_in  )
       );
 
     end // gen_y
