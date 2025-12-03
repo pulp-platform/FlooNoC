@@ -35,27 +35,11 @@ module floo_${noc.name}_tile
   input  ${out_prot.type_name()}_rsp_t axi_out_rsp_i,
 % endif
 
-  // Router links to neighbors (directly exposed)
-  // North
-  output floo_req_t floo_north_req_o,
-  output floo_rsp_t floo_north_rsp_o,
-  input  floo_req_t floo_north_req_i,
-  input  floo_rsp_t floo_north_rsp_i,
-  // East
-  output floo_req_t floo_east_req_o,
-  output floo_rsp_t floo_east_rsp_o,
-  input  floo_req_t floo_east_req_i,
-  input  floo_rsp_t floo_east_rsp_i,
-  // South
-  output floo_req_t floo_south_req_o,
-  output floo_rsp_t floo_south_rsp_o,
-  input  floo_req_t floo_south_req_i,
-  input  floo_rsp_t floo_south_rsp_i,
-  // West
-  output floo_req_t floo_west_req_o,
-  output floo_rsp_t floo_west_rsp_o,
-  input  floo_req_t floo_west_req_i,
-  input  floo_rsp_t floo_west_rsp_i
+  // Router links to neighbors
+  output floo_req_t [West:North] floo_req_o,
+  output floo_rsp_t [West:North] floo_rsp_o,
+  input  floo_req_t [West:North] floo_req_i,
+  input  floo_rsp_t [West:North] floo_rsp_i
 );
 
   // Internal links between chimney and router (Eject direction)
@@ -65,37 +49,25 @@ module floo_${noc.name}_tile
   floo_rsp_t chimney_to_router_rsp;
 
   // Router internal signals
-  floo_req_t [4:0] router_req_in;
-  floo_rsp_t [4:0] router_rsp_out;
-  floo_req_t [4:0] router_req_out;
-  floo_rsp_t [4:0] router_rsp_in;
+  floo_req_t [Eject:North] router_req_in;
+  floo_rsp_t [Eject:North] router_rsp_out;
+  floo_req_t [Eject:North] router_req_out;
+  floo_rsp_t [Eject:North] router_rsp_in;
 
-  // Router input assignments (from neighbors and chimney)
-  // Direction mapping: North=0, East=1, South=2, West=3, Eject=4
-  assign router_req_in[0] = floo_north_req_i;  // North
-  assign router_req_in[1] = floo_east_req_i;   // East
-  assign router_req_in[2] = floo_south_req_i;  // South
-  assign router_req_in[3] = floo_west_req_i;   // West
-  assign router_req_in[4] = chimney_to_router_req;  // Eject (from local chimney)
+  // Router connections using direction enums
+  // External directions (North=0, East=1, South=2, West=3) connect to neighbors
+  for (genvar d = North; d <= West; d++) begin : gen_dir_connect
+    assign router_req_in[d] = floo_req_i[d];
+    assign router_rsp_in[d] = floo_rsp_i[d];
+    assign floo_req_o[d] = router_req_out[d];
+    assign floo_rsp_o[d] = router_rsp_out[d];
+  end
 
-  assign router_rsp_in[0] = floo_north_rsp_i;  // North
-  assign router_rsp_in[1] = floo_east_rsp_i;   // East
-  assign router_rsp_in[2] = floo_south_rsp_i;  // South
-  assign router_rsp_in[3] = floo_west_rsp_i;   // West
-  assign router_rsp_in[4] = chimney_to_router_rsp;  // Eject (from local chimney)
-
-  // Router output assignments (to neighbors and chimney)
-  assign floo_north_req_o = router_req_out[0];  // North
-  assign floo_east_req_o  = router_req_out[1];  // East
-  assign floo_south_req_o = router_req_out[2];  // South
-  assign floo_west_req_o  = router_req_out[3];  // West
-  assign router_to_chimney_req = router_req_out[4];  // Eject (to local chimney)
-
-  assign floo_north_rsp_o = router_rsp_out[0];  // North
-  assign floo_east_rsp_o  = router_rsp_out[1];  // East
-  assign floo_south_rsp_o = router_rsp_out[2];  // South
-  assign floo_west_rsp_o  = router_rsp_out[3];  // West
-  assign router_to_chimney_rsp = router_rsp_out[4];  // Eject (to local chimney)
+  // Eject direction connects to local chimney
+  assign router_req_in[Eject] = chimney_to_router_req;
+  assign router_rsp_in[Eject] = chimney_to_router_rsp;
+  assign router_to_chimney_req = router_req_out[Eject];
+  assign router_to_chimney_rsp = router_rsp_out[Eject];
 
   // Router instantiation
   floo_axi_router #(
