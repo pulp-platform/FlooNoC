@@ -105,7 +105,6 @@ module floo_nw_router #(
   for (genvar i = 0; i < NumInputs; i++) begin : gen_chimney_req
     assign req_valid_in[i] = floo_req_i[i].valid;
     assign floo_req_o[i].ready = req_ready_out[i];
-    assign floo_req_o[i].credit = '0; // Narrow links never rely on credit based flow
     assign req_in[i] = floo_req_i[i].req;
     assign floo_rsp_o[i].valid = rsp_valid_out[i];
     assign rsp_ready_in[i] = floo_rsp_i[i].ready;
@@ -119,7 +118,6 @@ module floo_nw_router #(
     assign rsp_valid_in[i] = floo_rsp_i[i].valid;
     assign floo_rsp_o[i].ready = rsp_ready_out[i];
     assign rsp_in[i] = floo_rsp_i[i].rsp;
-    assign floo_rsp_o[i].credit = '0; // Narrow links never rely on credit based flow
   end
 
   for (genvar i = 0; i < NumRoutes; i++) begin : gen_chimney_wide
@@ -129,8 +127,25 @@ module floo_nw_router #(
     assign floo_wide_o[i].valid = wide_valid_out[i];
     assign wide_ready_in[i] = floo_wide_i[i].ready;
     assign floo_wide_o[i].wide = wide_out[i];
-    assign floo_wide_o[i].credit = wide_credit_out[i];
-    assign wide_credit_in[i] = floo_wide_i[i].credit;
+  end
+
+  // Generation of credit based conenctions only when necessary
+  if (VcImplementation == floo_pkg::VcCreditBased) begin: gen_credit_connections
+    // Narrow lreq inks never rely on credit based flow
+    for (genvar i = 0; i < NumInputs; i++) begin: gen_credit_tied_zero_req
+      assign floo_req_o[i].credit = '0;
+    end
+    // Narrow rsp links never rely on credit based flow
+    for (genvar i = 0; i < NumOutputs; i++) begin: gen_credit_tied_zero_rsp
+      assign floo_rsp_o[i].credit = '0;
+    end
+    // Wide links credit connections
+    for (genvar i = 0; i < NumRoutes; i++) begin: gen_credit_wide
+      assign floo_wide_o[i].credit = wide_credit_out[i];
+      assign wide_credit_in[i] = floo_wide_i[i].credit;
+    end
+  end else begin: gen_no_credit_connections
+    assign wide_credit_in = '0;
   end
 
   floo_router #(
