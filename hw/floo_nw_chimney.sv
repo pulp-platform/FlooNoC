@@ -302,7 +302,7 @@ module floo_nw_chimney #(
     end else if (NumWidePhysChannels == 2) begin : gen_dual_phys_ch
       assign floo_wide_in_wr = floo_wide_i.wide[WRITE];
       assign floo_wide_in_rd = floo_wide_i.wide[READ];
-    end else begin
+    end else begin: gen_illegal_cfg
       $fatal(1, "NW CHIMNEY: Unsupported number of wide physical channels");
     end
   end else begin : gen_no_vc_demux
@@ -1238,8 +1238,10 @@ module floo_nw_chimney #(
     // R -> Virtual Channel 1
     // TODO(lleone): check if this really solve DEADLOCK!!!!
     if (EnDecoupledRW) begin: gen_vc_rw_ack
-      assign floo_wide_o.valid[WRITE] = (floo_wide_o.wide[0].generic.hdr.axi_ch != WideR) ? floo_wide_req_arb_valid_out : 1'b0;
-      assign floo_wide_o.valid[READ] = (floo_wide_o.wide[0].generic.hdr.axi_ch == WideR) ? floo_wide_req_arb_valid_out : 1'b0;
+      assign floo_wide_o.valid[WRITE] = (floo_wide_o.wide[0].generic.hdr.axi_ch != WideR) ?
+                                         floo_wide_req_arb_valid_out : 1'b0;
+      assign floo_wide_o.valid[READ] = (floo_wide_o.wide[0].generic.hdr.axi_ch == WideR) ?
+                                         floo_wide_req_arb_valid_out : 1'b0;
       assign floo_wide_req_arb_gnt_in = (floo_wide_o.wide[0].generic.hdr.axi_ch != WideR) ?
                                         floo_wide_i.ready[WRITE] : floo_wide_i.ready[READ];
     end else begin: gen_no_vc_rw_ack
@@ -1256,8 +1258,7 @@ module floo_nw_chimney #(
     assign floo_wide_o.wide[1] = floo_wide_arb_in[WideR];
     assign floo_wide_o.valid[1] = floo_wide_arb_req_in[WideR];
     assign floo_wide_arb_gnt_out[WideR] = floo_wide_i.ready[1];
-
-  end else begin
+  end else begin: gen_illegal_cfg
     $fatal(1, "NW CHIMNEY: Unsupported number of wide physical channels");
   end
 
@@ -1606,13 +1607,17 @@ module floo_nw_chimney #(
 
   // When virtual channels for decoupled read and write is enabled,
   // req_i and req_o must have same amount of VCs, equal to NumVirtualChannels
-  `ASSERT_INIT(VCMismatchInputReady, !EnDecoupledRW | ($bits(floo_wide_i.ready) == NumVirtualChannels),
-    $sformatf("Input request must have %0d VCs when EnDecoupledRW==1", NumVirtualChannels));
-  `ASSERT_INIT(VCMismatchOutputReady, !EnDecoupledRW | ($bits(floo_wide_o.ready) == NumVirtualChannels),
-    $sformatf("Output request must have %0d VCs when EnDecoupledRW==1", NumVirtualChannels));
-  `ASSERT_INIT(VCMismatchInputValid, !EnDecoupledRW | ($bits(floo_wide_i.valid) == NumVirtualChannels),
-    $sformatf("Input request must have %0d VCs when EnDecoupledRW==1", NumVirtualChannels));
-  `ASSERT_INIT(VCMismatchOutputValid, !EnDecoupledRW | ($bits(floo_wide_o.valid) == NumVirtualChannels),
-    $sformatf("Output request must have %0d VCs when EnDecoupledRW==1", NumVirtualChannels));
+  `ASSERT_INIT(VCMismatchInputReady,
+          !EnDecoupledRW | ($bits(floo_wide_i.ready) == NumVirtualChannels),
+          $sformatf("Input request must have %0d VCs when EnDecoupledRW==1", NumVirtualChannels));
+  `ASSERT_INIT(VCMismatchOutputReady,
+          !EnDecoupledRW | ($bits(floo_wide_o.ready) == NumVirtualChannels),
+          $sformatf("Output request must have %0d VCs when EnDecoupledRW==1", NumVirtualChannels));
+  `ASSERT_INIT(VCMismatchInputValid,
+          !EnDecoupledRW | ($bits(floo_wide_i.valid) == NumVirtualChannels),
+          $sformatf("Input request must have %0d VCs when EnDecoupledRW==1", NumVirtualChannels));
+  `ASSERT_INIT(VCMismatchOutputValid,
+          !EnDecoupledRW | ($bits(floo_wide_o.valid) == NumVirtualChannels),
+          $sformatf("Output request must have %0d VCs when EnDecoupledRW==1", NumVirtualChannels));
 
 endmodule
