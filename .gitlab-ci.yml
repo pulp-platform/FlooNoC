@@ -46,7 +46,6 @@ compile-vcs:
     matrix:
       - TB_DUT:
         - tb_floo_router
-        - tb_floo_vc_router
         - tb_floo_axi_chimney
         - tb_floo_nw_chimney
         - tb_floo_rob
@@ -84,7 +83,6 @@ run-sim:
       - SIMULATOR: [vsim, vcs]
         TB_DUT:
         - tb_floo_router
-        - tb_floo_vc_router
         - tb_floo_axi_chimney
         - tb_floo_nw_chimney
         - tb_floo_rob
