@@ -17,7 +17,7 @@ package floo_synth_params_pkg;
   // Default route config for testing
   localparam floo_pkg::route_cfg_t RouteCfg = '{
     RouteAlgo: floo_pkg::XYRouting,
-    UseIdTable: 1,
+    UseIdTable: 0,
     XYAddrOffsetX: 16,
     XYAddrOffsetY: 20,
     default: '0 // Potentially enable Multicast features
