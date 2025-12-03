@@ -810,9 +810,12 @@ module floo_nw_chimney #(
   logic wide_r_rob_rob_req;
   logic wide_r_rob_last;
   rob_idx_t wide_r_rob_rob_idx;
-  assign wide_r_rob_rob_req = floo_wide_in_rd_q.wide_r.hdr.rob_req;
-  assign wide_r_rob_rob_idx = floo_wide_in_rd_q.wide_r.hdr.rob_idx;
-  assign wide_r_rob_last = floo_wide_in_rd_q.wide_r.payload.last;
+  assign wide_r_rob_rob_req = (!EnDecoupledRW) ? floo_wide_in_q.wide_r.hdr.rob_req :
+                                                  floo_wide_in_rd_q.wide_r.hdr.rob_req;
+  assign wide_r_rob_rob_idx = (!EnDecoupledRW) ? floo_wide_in_q.wide_r.hdr.rob_idx :
+                                                floo_wide_in_rd_q.wide_r.hdr.rob_idx;
+  assign wide_r_rob_last = (!EnDecoupledRW) ? floo_wide_in_q.wide_r.payload.last :
+                                              floo_wide_in_rd_q.wide_r.payload.last;
 
   floo_rob_wrapper #(
     .RoBType        ( ChimneyCfgW.RRoBType      ),
@@ -1229,16 +1232,16 @@ module floo_nw_chimney #(
       .valid_o  ( floo_wide_req_arb_valid_out  )
     );
 
-    // Mux the valid of the read and write channels to the ACK/NACK protocol
-    // of the virtual channel for decoupled read and write output requests.
+    // Mux the ready of the read and write channels to the ACK/NACK protocol
+    // Demux the valid signals based on the channel type
     // AW/W -> Virtual Channel 0
     // R -> Virtual Channel 1
     // TODO(lleone): check if this really solve DEADLOCK!!!!
     if (EnDecoupledRW) begin: gen_vc_rw_ack
-      assign floo_wide_o.valid[0] = (floo_wide_o.wide[0].generic.hdr.axi_ch != WideR) ? floo_wide_req_arb_valid_out : 1'b0;
-      assign floo_wide_o.valid[1] = (floo_wide_o.wide[0].generic.hdr.axi_ch == WideR) ? floo_wide_req_arb_valid_out : 1'b0;
+      assign floo_wide_o.valid[WRITE] = (floo_wide_o.wide[0].generic.hdr.axi_ch != WideR) ? floo_wide_req_arb_valid_out : 1'b0;
+      assign floo_wide_o.valid[READ] = (floo_wide_o.wide[0].generic.hdr.axi_ch == WideR) ? floo_wide_req_arb_valid_out : 1'b0;
       assign floo_wide_req_arb_gnt_in = (floo_wide_o.wide[0].generic.hdr.axi_ch != WideR) ?
-                                        floo_wide_i.ready[0] : floo_wide_i.ready[1];
+                                        floo_wide_i.ready[WRITE] : floo_wide_i.ready[READ];
     end else begin: gen_no_vc_rw_ack
       assign floo_wide_o.valid = floo_wide_req_arb_valid_out;
       assign floo_wide_req_arb_gnt_in = floo_wide_i.ready;
@@ -1278,10 +1281,13 @@ module floo_nw_chimney #(
   assign axi_narrow_unpack_ar = floo_req_in.narrow_ar.payload;
   assign axi_narrow_unpack_r  = floo_rsp_in.narrow_r.payload;
   assign axi_narrow_unpack_b  = floo_rsp_in.narrow_b.payload;
-  assign axi_wide_unpack_aw   = floo_wide_in_wr_q.wide_aw.payload;
-  assign axi_wide_unpack_w    = floo_wide_in_wr_q.wide_w.payload;
+  assign axi_wide_unpack_aw   = (!EnDecoupledRW) ? floo_wide_in_q.wide_aw.payload :
+                                                   floo_wide_in_wr_q.wide_aw.payload;
+  assign axi_wide_unpack_w    = (!EnDecoupledRW) ? floo_wide_in_q.wide_w.payload :
+                                                   floo_wide_in_wr_q.wide_w.payload;
   assign axi_wide_unpack_ar   = floo_req_in.wide_ar.payload;
-  assign axi_wide_unpack_r    = floo_wide_in_rd_q.wide_r.payload;
+  assign axi_wide_unpack_r    = (!EnDecoupledRW) ? floo_wide_in_q.wide_r.payload :
+                                                   floo_wide_in_rd_q.wide_r.payload;
   assign axi_wide_unpack_b    = floo_rsp_in.wide_b.payload;
   assign floo_req_unpack_generic = floo_req_in.generic;
   assign floo_rsp_unpack_generic = floo_rsp_in.generic;

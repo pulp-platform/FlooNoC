@@ -161,7 +161,8 @@ module floo_nw_router #(
     .credit_i       ( '0            ),
     .valid_o        ( req_valid_out ),
     .ready_i        ( req_ready_in  ),
-    .data_o         ( req_out       )
+    .data_o         ( req_out       ),
+    .credit_o       ( /*unused */   )
   );
 
   // We construct the masks for the narrow and wide B responses here.
@@ -213,7 +214,8 @@ module floo_nw_router #(
     .credit_i       ( '0            ),
     .valid_o        ( rsp_valid_out ),
     .ready_i        ( rsp_ready_in  ),
-    .data_o         ( rsp_out       )
+    .data_o         ( rsp_out       ),
+    .credit_o       ( /*unused */   )
   );
 
 

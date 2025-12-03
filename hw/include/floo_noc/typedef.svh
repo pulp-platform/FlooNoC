@@ -281,11 +281,12 @@
 // `FLOO_TYPEDEF_AXI_FROM_CFG(my_axi, AxiCfg)
 // `FLOO_TYPEDEF_AXI_CHAN_ALL(my_axi, req, rsp, my_axi_in, AxiCfg, hdr_t)
 // FLOO_TYPEDEF_LINK_T(req, my_axi)
-`define FLOO_TYPEDEF_LINK_T(name, chan_name)  \
-  typedef struct packed {                     \
-    logic valid;                              \
-    logic ready;                              \
-    floo_``chan_name``_chan_t ``chan_name``;  \
+`define FLOO_TYPEDEF_LINK_T(name, chan_name, vc_num = 1, phy_num = 1)   \
+  typedef struct packed {                                        \
+    logic [vc_num-1:0] valid;                                    \
+    logic [vc_num-1:0] ready;                                    \
+    logic [vc_num-1:0] credit;                                 \
+    floo_``chan_name``_chan_t [phy_num-1:0] ``chan_name``;       \
   } floo_``name``_t;
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -378,10 +379,10 @@
 // `FLOO_TYPEDEF_AXI_FROM_CFG(my_wide_axi, AxiCfgW)
 // `FLOO_TYPEDEF_NW_CHAN_ALL(axi, my_req, my_rsp, my_wide, my_axi_narrow_in, my_axi_wide_in, AxiCfgN, AxiCfgW, hdr_t)
 // `FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, my_req, my_rsp, my_wide)
-`define FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, req_chan, rsp_chan, wide_chan) \
-  `FLOO_TYPEDEF_LINK_T(req, req_chan)                                           \
-  `FLOO_TYPEDEF_LINK_T(rsp, rsp_chan)                                           \
-  `FLOO_TYPEDEF_LINK_T(wide, wide_chan)
+`define FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, req_chan, rsp_chan, wide_chan, req_vc_num = 1, rsp_vc_num = 1, wide_vc_num = 1, wide_phy_num = 1) \
+  `FLOO_TYPEDEF_LINK_T(req, req_chan, req_vc_num, 1)                                           \
+  `FLOO_TYPEDEF_LINK_T(rsp, rsp_chan, rsp_vc_num, 1)                                           \
+  `FLOO_TYPEDEF_LINK_T(wide, wide_chan, wide_vc_num, wide_phy_num)
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Defines the all the link types with ready-valid handshaking interface
