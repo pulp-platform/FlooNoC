@@ -224,3 +224,8 @@ floogen -c <config_file> -o <output_dir>
 ### Configuration
 
 The example configuration above shows the basic structure of a configuration file. A more detailed description of the configuration file can be found in the [documentation](docs/floogen.md).
+
+## 📖 Documentation
+
+- [FlooGen Configuration Guide](docs/floogen.md) - Detailed guide on network configuration file format
+- [Routing Architecture](docs/routing.md) - Comprehensive explanation of routing algorithms, coordinate systems, and port mapping
