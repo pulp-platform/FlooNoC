@@ -71,17 +71,17 @@ module floo_${noc.name}_tile
 
   // Router instantiation
   floo_axi_router #(
-    .AxiCfg      ( AxiCfg     ),
-    .RouteAlgo   ( RouteAlgo  ),
-    .NumRoutes   ( 5          ),
-    .NumInputs   ( 5          ),
-    .NumOutputs  ( 5          ),
-    .InFifoDepth ( 2          ),
-    .OutFifoDepth( 2          ),
-    .id_t        ( id_t       ),
-    .hdr_t       ( hdr_t      ),
-    .floo_req_t  ( floo_req_t ),
-    .floo_rsp_t  ( floo_rsp_t )
+    .AxiCfg      ( AxiCfg             ),
+    .RouteAlgo   ( RouteCfg.RouteAlgo ),
+    .NumRoutes   ( 5                  ),
+    .NumInputs   ( 5                  ),
+    .NumOutputs  ( 5                  ),
+    .InFifoDepth ( 2                  ),
+    .OutFifoDepth( 2                  ),
+    .id_t        ( id_t               ),
+    .hdr_t       ( hdr_t              ),
+    .floo_req_t  ( floo_req_t         ),
+    .floo_rsp_t  ( floo_rsp_t         )
   ) i_router (
     .clk_i,
     .rst_ni,
