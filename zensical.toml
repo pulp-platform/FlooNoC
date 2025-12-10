@@ -8,9 +8,11 @@ site_name = "FlooNoC"
 site_description = "Documentation for the FlooNoC IPs and FlooGen generator."
 site_author = "Tim Fischer"
 site_url = "https://pulp-platform.github.io/FlooNoC"
+repo_url = "https://github.com/pulp-platform/FlooNoC"
 copyright = """
 Copyright 2025 ETH Zurich and University of Bologna.
 """
+docs_dir = "docs"
 
 nav = [
     {"Home" = [
@@ -44,23 +46,7 @@ nav = [
     {"Changelog" = "changelog.md"}
 ]
 
-# With the "extra_css" option you can add your own CSS styling to customize
-# your Zensical project according to your needs. You can add any number of
-# CSS files.
-#
-# The path provided should be relative to the "docs_dir".
-#
-# Read more: https://zensical.org/docs/customization/#additional-css
-#
-#extra_css = ["stylesheets/extra.css"]
-
-# With the `extra_javascript` option you can add your own JavaScript to your
-# project to customize the behavior according to your needs.
-#
-# The path provided should be relative to the "docs_dir".
-#
-# Read more: https://zensical.org/docs/customization/#additional-javascript
-#extra_javascript = ["javascripts/extra.js"]
+extra_css = ["stylesheets/extra.css"]
 
 [project.theme]
 
@@ -82,7 +68,7 @@ nav = [
 # - https://zensical.org/docs/setup/logo-and-icons/#favicon
 # - https://developer.mozilla.org/en-US/docs/Glossary/Favicon
 #
-#favicon = "images/favicon.png"
+favicon = "img/floo_noc_favicon_logo.png"
 
 language = "en"
 
@@ -198,6 +184,9 @@ features = [
 
 ]
 
+logo = "img/floo_noc_logo.png"
+icon.repo = "fontawesome/brands/github"
+
 # ----------------------------------------------------------------------------
 # In the "palette" subsection you can configure options for the color scheme.
 # You can configure different color # schemes, e.g., to turn on dark mode,
@@ -209,11 +198,15 @@ features = [
 # ----------------------------------------------------------------------------
 [[project.theme.palette]]
 scheme = "default"
+primary = "custom"
+accent = "green"
 toggle.icon = "lucide/sun"
 toggle.name = "Switch to dark mode"
 
 [[project.theme.palette]]
 scheme = "slate"
+primary = "custom"
+accent = "green"
 toggle.icon = "lucide/moon"
 toggle.name = "Switch to light mode"
 
@@ -226,25 +219,6 @@ toggle.name = "Switch to light mode"
 #[project.theme.font]
 #text = "Inter"
 #code = "Jetbrains Mono"
-
-# ----------------------------------------------------------------------------
-# You can configure your own logo to be shown in the header using the "logo"
-# option in the "icons" subsection. The logo can be a path to a file in your
-# "docs_dir" or it can be a path to an icon.
-#
-# Likewise, you can customize the logo used for the repository section of the
-# header. Zensical derives the default logo for this from the repository URL.
-# See below...
-#
-# There are other icons you can customize. See the documentation for details.
-#
-# Read more:
-# - https://zensical.org/docs/setup/logo-and-icons
-# - https://zensical.org/docs/authoring/icons-emojis/#search
-# ----------------------------------------------------------------------------
-#[project.theme.icon]
-#logo = "lucide/smile"
-#repo = "lucide/smile"
 
 # ----------------------------------------------------------------------------
 # The "extra" section contains miscellaneous settings.

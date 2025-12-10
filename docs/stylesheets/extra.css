@@ -2,7 +2,7 @@
 /* Licensed under the Apache License, Version 2.0, see LICENSE for details. */
 /* SPDX-License-Identifier: Apache-2.0 */
 
-:root {
+:root  > * {
   --md-primary-fg-color:        #02793C;
   --md-primary-fg-color--light: #21B42A;
   --md-primary-fg-color--dark:  #05422B;
