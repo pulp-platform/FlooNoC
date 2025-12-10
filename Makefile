@@ -218,7 +218,7 @@ clean-spyglass:
 ###################
 
 PD_REMOTE ?= git@iis-git.ee.ethz.ch:axi-noc/floo_noc_pd.git
-PD_BRANCH ?= master
+PD_BRANCH ?= floogen-cli # Revert to main once floogen CLI changes are merged
 PD_DIR = $(FLOO_ROOT)/pd
 
 .PHONY: init-pd
