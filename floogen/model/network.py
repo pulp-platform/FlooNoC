@@ -6,13 +6,11 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 import pathlib
-from importlib.resources import files, as_file
-from typing import Optional, List, ClassVar
+from typing import Optional, List
 from typing_extensions import Annotated
 
 import networkx as nx
 import matplotlib.pyplot as plt
-from mako.lookup import Template
 from pydantic import BaseModel, ConfigDict, StringConstraints, field_validator, model_validator
 
 from floogen.model.routing import Routing, RouteAlgo, RouteMapRule, RouteRule, RouteMap, RouteTable, RouteMapRuleMcast
@@ -25,7 +23,6 @@ from floogen.model.link import NarrowWideLink, NarrowWideVCLink, AxiLink
 from floogen.model.network_interface import NarrowWideAxiNI, AxiNI
 from floogen.model.protocol import AXI4, AXI4Bus
 from floogen.utils import clog2, sv_enum_typedef, sv_param_decl
-import floogen.templates
 
 
 class Network(BaseModel):  # pylint: disable=too-many-public-methods
@@ -34,17 +31,6 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
-
-    with as_file(files(floogen.templates).joinpath("floo_top_noc.sv.mako")) as _tpl_path:
-        noc_tpl: ClassVar = Template(filename=str(_tpl_path))
-    with as_file(files(floogen.templates).joinpath("floo_top_noc_pkg.sv.mako")) as _tpl_path:
-        pkg_tpl: ClassVar = Template(filename=str(_tpl_path))
-    with as_file(files(floogen.templates).joinpath("floo_addrmap.rdl.mako")) as _tpl_path:
-        rdl_tpl: ClassVar = Template(filename=str(_tpl_path))
-    with as_file(files(floogen.templates).joinpath("floo_axi_tile.sv.mako")) as _tpl_path:
-        tile_tpl: ClassVar = Template(filename=str(_tpl_path))
-    with as_file(files(floogen.templates).joinpath("floo_top_noc_tiles.sv.mako")) as _tpl_path:
-        noc_tiles_tpl: ClassVar = Template(filename=str(_tpl_path))
 
     name: str
     description: Optional[str]
@@ -797,26 +783,6 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             rule_desc = f"{rule.render_desc()}_sam_idx"
             fields_dict[rule_desc] = i
         return sv_enum_typedef(name="sam_idx_e", fields_dict=fields_dict)
-
-    def render_network(self):
-        """Render the network in the generated code."""
-        return self.noc_tpl.render(noc=self)
-
-    def render_package(self):
-        """Render the network package in the generated code."""
-        return self.pkg_tpl.render(noc=self)
-
-    def render_rdl(self, rdl_as_mem=False, rdl_memwidth=8):
-        """Render the network RDL in the generated code."""
-        return self.rdl_tpl.render(noc=self, rdl_as_mem=rdl_as_mem, rdl_memwidth=rdl_memwidth)
-
-    def render_tile(self):
-        """Render the tile wrapper (chimney + router) in the generated code."""
-        return self.tile_tpl.render(noc=self)
-
-    def render_network_tiles(self):
-        """Render the tile-based network in the generated code."""
-        return self.noc_tiles_tpl.render(noc=self)
 
     def visualize(self, savefig=True, filename: pathlib.Path = "network.png"):
         """Visualize the network graph."""
