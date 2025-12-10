@@ -70,4 +70,4 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Check minimum Python version
-        run: uv run floogen all -c axi_mesh_xy.yml > /dev/null
+        run: uv run floogen all -c floogen/examples/axi_mesh_xy.yml > /dev/null
