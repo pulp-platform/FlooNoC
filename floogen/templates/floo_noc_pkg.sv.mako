@@ -10,7 +10,7 @@
 `include "axi/typedef.svh"
 `include "floo_noc/typedef.svh"
 
-package floo_${noc.name}_noc_pkg;
+package floo_${name}_noc_pkg;
 
   import floo_pkg::*;
 

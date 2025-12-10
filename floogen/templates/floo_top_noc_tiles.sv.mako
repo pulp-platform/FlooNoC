@@ -8,9 +8,9 @@
 
 // AUTOMATICALLY GENERATED! DO NOT EDIT!
 
-module floo_${noc.name}_noc
+module floo_${name}_noc
   import floo_pkg::*;
-  import floo_${noc.name}_noc_pkg::*;
+  import floo_${name}_noc_pkg::*;
 (
   input logic clk_i,
   input logic rst_ni,
@@ -110,7 +110,7 @@ ep_name = noc.endpoints[0].name
       end
 
       // Tile instantiation
-      floo_${noc.name}_tile #(
+      floo_${name}_tile #(
         .EnSbrPort ( 1'b1 ),
         .EnMgrPort ( 1'b1 )
       ) i_tile (

@@ -9,9 +9,9 @@
 
 // AUTOMATICALLY GENERATED! DO NOT EDIT!
 
-module floo_${noc.name}_tile
+module floo_${name}_tile
   import floo_pkg::*;
-  import floo_${noc.name}_noc_pkg::*;
+  import floo_${name}_noc_pkg::*;
 #(
   parameter logic EnSbrPort = 1'b1,
   parameter logic EnMgrPort = 1'b1
