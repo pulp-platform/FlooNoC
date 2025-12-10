@@ -10,9 +10,6 @@ variables:
   VCS_SEPP: vcs-2025.06
   BENDER: bender
   UV: /home/fischeti/.local/bin/uv
-  # Hard link cached python packages since the UV cache directory
-  # is configured to be on the same filesystem as the build directory in the CI.
-  UV_CACHE_DIR: $CI_BUILDS_DIR/../cache/uv
   UV_LINK_MODE: hardlink
 
 stages:
@@ -69,7 +66,7 @@ compile-meshes:
       - DUT: [axi_mesh, nw_mesh]
         ROUTE_ALGO: [xy, src, id]
   script:
-    - $UV run floogen all -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
+    - $UV run --cache-dir $CI_BUILDS_DIR/../cache/uv floogen all -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
     # Compile the network
     - make compile-sim EXTRA_BENDER_FLAGS="-t ${DUT}" WORK="work_${DUT}_${ROUTE_ALGO}" | tee compile.log 2>&1
     - '! grep "\*\* Error" compile.log'
