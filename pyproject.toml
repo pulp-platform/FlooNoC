@@ -23,7 +23,7 @@ dependencies = [
   "mako",
   "ruamel.yaml",
   "click",
-  "pygame"
+  "zensical>=0.0.11",
 ]
 
 [project.urls]
