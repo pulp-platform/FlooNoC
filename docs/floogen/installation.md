@@ -46,24 +46,55 @@ Then install _FlooGen_ using with either `uv` or `pip`. We recommend using [uv](
         pip install .
         ```
 
+## Verification
+
+To verify that the installation was successful, try running the help command. You should see the CLI usage information.
+
+=== "uv"
+    ```bash
+    uv run floogen --help
+    ```
+
+=== "pip"
+    ```bash
+    floogen --help
+    ```
+
 ## Development & Documentation
 
 If you plan to contribute to _FlooGen_ or build the documentation locally, you should install the optional dependencies.
 
 === "uv"
     ```bash
-    uv run --all-groups floogen
+    # Nothing to do, `uv run --group dev` will handle it automatically
     ```
+
 
 === "pip"
     ```bash
     pip install .[dev,docs]
     ```
 
-## Verification
+The documentation is built using [Zensical](https://zensical.org/). To build the documentation locally, run:
 
-To verify that the installation was successful, try running the help command. You should see the CLI usage information.
+=== "uv"
+    ```bash
+    uv run --group docs zensical build
+    ```
 
-```bash
-floogen --help
-```
+=== "pip"
+    ```bash
+    zensical build
+    ```
+
+If you want to serve the documentation locally for easier browsing, run:
+
+=== "uv"
+    ```bash
+    uv run --group docs zensical serve -o
+    ```
+
+=== "pip"
+    ```bash
+    zensical serve -o
+    ```
