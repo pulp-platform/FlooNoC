@@ -198,7 +198,7 @@ features = [
 
 ]
 
-logo = "img/floo_noc_logo.png"
+logo = "img/floo_noc_favicon_logo.png"
 icon.repo = "fontawesome/brands/github"
 
 # ----------------------------------------------------------------------------
