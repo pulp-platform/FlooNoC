@@ -51,6 +51,10 @@ nav = [
             ]},
             {"Topology & Connections" = "floogen/connections.md"},
         ]},
+        {"Examples" = [
+            {"Simple" = "floogen/examples/simple.md"},
+            {"Complex" = "floogen/examples/complex.md"},
+        ]},
         {"Reference" = [
             {"Routing Model" = "floogen/reference/routing.md"},
             {"Utils" = "floogen/reference/utils.md"},
