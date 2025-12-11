@@ -493,7 +493,6 @@ name = "floogen"
 version = "0.7.0"
 source = { editable = "." }
 dependencies = [
-    { name = "click" },
     { name = "mako" },
     { name = "matplotlib" },
     { name = "networkx", version = "3.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -501,7 +500,6 @@ dependencies = [
     { name = "pydantic" },
     { name = "pygame" },
     { name = "ruamel-yaml" },
-    { name = "zensical" },
 ]
 
 [package.dev-dependencies]
@@ -511,13 +509,7 @@ dev = [
     { name = "ruff" },
 ]
 docs = [
-    { name = "cairosvg" },
-    { name = "mkdocs" },
-    { name = "mkdocs-git-committers-plugin-2" },
-    { name = "mkdocs-git-revision-date-localized-plugin" },
-    { name = "mkdocs-material" },
-    { name = "mkdocstrings", extra = ["python"] },
-    { name = "pillow" },
+    { name = "zensical" },
 ]
 viz = [
     { name = "pygame" },
@@ -525,14 +517,12 @@ viz = [
 
 [package.metadata]
 requires-dist = [
-    { name = "click" },
     { name = "mako" },
     { name = "matplotlib" },
     { name = "networkx" },
     { name = "pydantic" },
     { name = "pygame" },
     { name = "ruamel-yaml" },
-    { name = "zensical", specifier = ">=0.0.11" },
 ]
 
 [package.metadata.requires-dev]
@@ -541,15 +531,7 @@ dev = [
     { name = "pytest" },
     { name = "ruff" },
 ]
-docs = [
-    { name = "cairosvg" },
-    { name = "mkdocs" },
-    { name = "mkdocs-git-committers-plugin-2" },
-    { name = "mkdocs-git-revision-date-localized-plugin" },
-    { name = "mkdocs-material" },
-    { name = "mkdocstrings", extras = ["python"] },
-    { name = "pillow" },
-]
+docs = [{ name = "zensical", specifier = ">=0.0.11" }]
 viz = [{ name = "pygame" }]
 
 [[package]]

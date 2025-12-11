@@ -22,8 +22,6 @@ dependencies = [
   "matplotlib",
   "mako",
   "ruamel.yaml",
-  "click",
-  "zensical>=0.0.11",
 ]
 
 [project.urls]
@@ -34,6 +32,7 @@ floogen = "floogen.cli:main"
 
 [dependency-groups]
 dev = ["pytest", "ruff", "pylint"]
+docs = ["zensical>=0.0.11"]
 viz = ["pygame"]
 docs = [
   "mkdocs",
