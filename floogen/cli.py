@@ -141,6 +141,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="Use the memory width of the RDL address region as the width of the memory block.",
     )
 
+    # floogen templates <template1> <template2> ...
+    p_templates = subparsers.add_parser(
+        "template",
+        parents=[common, sv_format],
+        add_help=True,
+        help="Render custom (external) templates.",
+    )
+    p_templates.add_argument(
+        "template",
+        type=Path,
+        nargs="+",
+        help="Path to external template to render. Multiple templates can be specified.",
+    )
+
     # floogen visualize
     subparsers.add_parser(
         "visualize",
@@ -160,20 +174,6 @@ def build_parser() -> argparse.ArgumentParser:
         "query",
         type=str,
         help="Key to query in the configuration.",
-    )
-
-    # floogen templates <template1> <template2> ...
-    p_templates = subparsers.add_parser(
-        "template",
-        parents=[common, sv_format],
-        add_help=True,
-        help="Render only external templates.",
-    )
-    p_templates.add_argument(
-        "template",
-        type=Path,
-        nargs="+",
-        help="Path to external template to render. Multiple templates can be specified.",
     )
 
     return parser
