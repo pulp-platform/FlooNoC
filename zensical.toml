@@ -57,14 +57,32 @@ nav = [
         ]},
         {"Reference" = [
             {"Routing Model" = "floogen/reference/routing.md"},
+            {"Graph" = "floogen/reference/graph.md"},
+            {"Endpoint" = "floogen/reference/endpoint.md"},
+            {"Router" = "floogen/reference/router.md"},
+            {"Connection" = "floogen/reference/connection.md"},
+            {"Link" = "floogen/reference/link.md"},
+            {"Network Interface" = "floogen/reference/network_interface.md"},
+            {"Protocol" = "floogen/reference/protocol.md"},
             {"Utils" = "floogen/reference/utils.md"},
+        ]},
+        {"Others" = [
             {"Known Issues" = "floogen/known_issues.md"},
+            {"Changelog" = "changelog.md"}
         ]}
     ]},
-    {"Changelog" = "changelog.md"}
 ]
 
+
 extra_css = ["stylesheets/extra.css"]
+# extra_javascript = [
+#     "javascripts/mathjax.js",
+#     "https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"
+# ]
+
+# [project.markdown_extensions.pymdownx.arithmatex]
+# generic = true
+
 [project.plugins.mkdocstrings.handlers.python]
 inventories = ["https://docs.python.org/3/objects.inv"]
 paths = ["."]
