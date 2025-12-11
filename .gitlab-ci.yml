@@ -66,7 +66,7 @@ compile-meshes:
       - DUT: [axi_mesh, nw_mesh]
         ROUTE_ALGO: [xy, src, id]
   script:
-    - $UV run --cache-dir $CI_BUILDS_DIR/../cache/uv floogen all -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
+    - $UV run --cache-dir $CI_BUILDS_DIR/../cache/uv floogen rtl -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
     # Compile the network
     - make compile-sim EXTRA_BENDER_FLAGS="-t ${DUT}" WORK="work_${DUT}_${ROUTE_ALGO}" | tee compile.log 2>&1
     - '! grep "\*\* Error" compile.log'

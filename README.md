@@ -218,7 +218,7 @@ pip install .
 which allows you to use `floogen` with the following command:
 
 ```sh
-floogen all -c <config_file> -o <output_dir>
+floogen rtl -c <config_file> -o <output_dir>
 ```
 
 ### Configuration

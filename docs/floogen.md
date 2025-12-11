@@ -145,7 +145,7 @@ pip install .
 Once installed, you can run `floogen` with the following command:
 
 ```bash
-floogen all -c <config_file> -o <output_dir>
+floogen rtl -c <config_file> -o <output_dir>
 ```
 
 where `<config_file>` is the configuration file and `<output_dir>` is the output directory where the generated RTL code will be placed.
@@ -162,7 +162,7 @@ floogen --help
 The following targets are currently supported:
 - `pkg`: Generates the package file with the system parameters and the address table (if enabled).
 - `top`: Generates the top-level module of the network.
-- `all`: Alias for `pkg` and `top`, generates both the package file and the top-level module of the network.
+- `rtl`: Alias for `pkg` and `top`, generates both the package file and the top-level module of the network.
 - `rdl`: Generates the SystemRDL description of the network.
 - `visualize`: Visualizes the graph of the network.
 - `query`: Queries the configuration file and prints information about the network.

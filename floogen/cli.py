@@ -95,9 +95,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(dest="command")
 
-    # floogen all -> pkg + top
+    # floogen rtl -> pkg + top
     subparsers.add_parser(
-        "all",
+        "rtl",
         parents=[common, sv_format],
         add_help=True,
         help="Generate both the NoC package and top-module.",
@@ -203,7 +203,7 @@ def main():
 
     # Command specific render arguments
     match args.command:
-        case "all" | "pkg" | "top" | "template":
+        case "rtl" | "pkg" | "top" | "template":
             render_kwargs["format_output"] = not args.no_format
             render_kwargs["verible_fmt_bin"] = args.verible_fmt_bin
             render_kwargs["verible_fmt_args"] = args.verible_fmt_args
@@ -215,7 +215,7 @@ def main():
 
 
     match args.command:
-        case "all":
+        case "rtl":
             render_template(context,
                 tpl=tpl_dir / "floo_noc_pkg.sv.mako",
                 file_name=pkg_file_name,
