@@ -31,8 +31,11 @@ Homepage = "https://github.com/pulp-platform/FlooNoC"
 floogen = "floogen.cli:main"
 
 [dependency-groups]
-docs = ["zensical>=0.0.11"]
 dev = ["pytest", "ruff"]
+docs = [
+    "mkdocstrings-python>=2.0.1",
+    "zensical>=0.0.11",
+]
 viz = ["pygame"]
 docs = [
   "mkdocs",
