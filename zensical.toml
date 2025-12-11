@@ -126,25 +126,10 @@ features = [
     # https://zensical.org/docs/setup/navigation/#back-to-top-button
     "navigation.top",
 
-
-
-
-    # Zensical includes an announcement bar. This feature allows users to
-    # dismiss it then they have read the announcement.
-    # https://zensical.org/docs/setup/header/#announcement-bar
-    "announce.dismiss",
-
-    # If you have a repository configured and turn feature this on, Zensical
-    # will generate an edit button for the page. This works for common
-    # repository hosting services.
-    # https://zensical.org/docs/setup/repository/#code-actions
-    #"content.action.edit",
-
-    # If you have a repository configured and turn feature this on, Zensical
-    # will generate a button that allows the user to view the Markdown
-    # code for the current page.
-    # https://zensical.org/docs/setup/repository/#code-actions
-    #"content.action.view",
+    # This feature turns on navigation elements in the footer that allow the
+    # user to navigate to a next or previous page.
+    # https://zensical.org/docs/setup/footer/#navigation
+    "navigation.footer",
 
     # Code annotations allow you to add an icon with a tooltip to your
     # code blocks to provide explanations at crucial points.
@@ -176,26 +161,10 @@ features = [
     # https://zensical.org/docs/authoring/tooltips/#improved-tooltips
     "content.tooltips",
 
-    # With this feature enabled, Zensical will automatically hide parts
-    # of the header when the user scrolls past a certain point.
-    # https://zensical.org/docs/setup/header/#automatic-hiding
-    # "header.autohide",
-
-    # This feature turns on navigation elements in the footer that allow the
-    # user to navigate to a next or previous page.
-    # https://zensical.org/docs/setup/footer/#navigation
-    "navigation.footer",
-
-
-
-
-
     # When search highlighting is enabled and a user clicks on a search result,
     # Zensical will highlight all occurrences after following the link.
     # https://zensical.org/docs/setup/search/#search-highlighting
     "search.highlight",
-
-
 ]
 
 logo = "img/floo_noc_favicon_logo.png"
