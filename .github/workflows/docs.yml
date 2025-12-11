@@ -1,13 +1,22 @@
-name: Documentation
+# Copyright 2024 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+
+# Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
+
+name: Build and deploy Docs
+
 on:
   push:
     branches:
-      - master
       - main
+  workflow_dispatch:
+
 permissions:
   contents: read
   pages: write
   id-token: write
+
 jobs:
   deploy:
     environment:
@@ -17,11 +26,9 @@ jobs:
     steps:
       - uses: actions/configure-pages@v5
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: 3.x
-      - run: pip install zensical
-      - run: zensical build --clean
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+      - run: uv run --group docs zensical build --clean
       - uses: actions/upload-pages-artifact@v4
         with:
           path: site
