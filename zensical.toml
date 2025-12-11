@@ -34,14 +34,28 @@ nav = [
     ]},
     {"FlooGen" = [
         {"Overview" = "floogen/overview.md"},
-        {"General Information" = "floogen/network_types.md"},
-        {"Routing" = "floogen/routing.md"},
-        {"Protocols" = "floogen/protocols.md"},
-        {"Endpoints" = "floogen/endpoints.md"},
-        {"Routers" = "floogen/routers.md"},
-        {"Connections" = "floogen/connections.md"},
-        {"CLI" = "floogen/cli.md"},
-        {"Known Issues" = "floogen/known_issues.md"},
+        {"Installation" = "floogen/installation.md"},
+        {"Getting Started" = [
+            {"CLI Usage" = "floogen/cli.md"},
+            {"Minimal Example" = "floogen/minimal_example.md"}, # Split from overview.md
+        ]},
+        {"Configuration Guide" = [
+            {"Global Settings" = [
+                {"System Configuration" = "floogen/network_types.md"},
+                {"Routing" = "floogen/routing.md"},
+            ]},
+            {"Network Components" = [
+                {"Protocols" = "floogen/protocols.md"},
+                {"Endpoints" = "floogen/endpoints.md"},
+                {"Routers" = "floogen/routers.md"},
+            ]},
+            {"Topology & Connections" = "floogen/connections.md"},
+        ]},
+        {"Reference" = [
+            {"Routing Model" = "floogen/reference/routing.md"},
+            {"Utils" = "floogen/reference/utils.md"},
+            {"Known Issues" = "floogen/known_issues.md"},
+        ]}
     ]},
     {"Changelog" = "changelog.md"}
 ]
