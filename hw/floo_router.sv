@@ -39,7 +39,7 @@ module floo_router
   /// Disables loopback connections
   parameter bit          NoLoopback       = 1'b1,
   /// Select VC implementation
-  parameter floo_pkg::vc_impl_e VcImplementation = floo_pkg::VcNaive,
+  parameter floo_pkg::vc_impl_e VcImpl    = floo_pkg::VcNaive,
   /// Enable Multicast feature
   parameter bit          EnMultiCast      = 1'b0,
   /// Enable reduction feature
@@ -136,7 +136,7 @@ module floo_router
       );
 
       // Credit count generation. Assign 1 upon any handshake
-      if (VcImplementation == floo_pkg::VcCreditBased) begin: gen_credit_support
+      if (VcImpl == floo_pkg::VcCreditBased) begin: gen_credit_support
         assign credit_o[in][v] = credit_gnt_q[in][v];
         assign credit_gnt_d[in][v] = in_valid[in][v] & in_ready[in][v];
         `FF(credit_gnt_q[in][v], credit_gnt_d[in][v], 1'b0);
@@ -284,7 +284,7 @@ module floo_router
       .NumVirtChannels  ( NumVirtChannels  ),
       .flit_t           ( flit_t           ),
       .NumPhysChannels  ( NumPhysChannels  ),
-      .VcImplementation ( VcImplementation )
+      .VcImpl ( VcImpl )
     ) i_vc_arbiter (
       .clk_i,
       .rst_ni,

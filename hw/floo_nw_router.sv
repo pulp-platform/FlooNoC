@@ -33,7 +33,7 @@ module floo_nw_router #(
   /// assumed that write transactions are alwasy on VC0.
   parameter int unsigned  NumWideVirtChannels       = 32'd1,
   parameter int unsigned  NumWidePhysChannels       = 32'd1,
-  parameter floo_pkg::vc_impl_e VcImplementation    = floo_pkg::VcNaive,
+  parameter floo_pkg::vc_impl_e VcImpl              = floo_pkg::VcNaive,
   /// Enable multicast feature
   parameter bit          EnMultiCast          = 1'b0,
   /// Node ID type
@@ -130,7 +130,7 @@ module floo_nw_router #(
   end
 
   // Generation of credit based conenctions only when necessary
-  if (VcImplementation == floo_pkg::VcCreditBased) begin: gen_credit_connections
+  if (VcImpl == floo_pkg::VcCreditBased) begin: gen_credit_connections
     // Narrow lreq inks never rely on credit based flow
     for (genvar i = 0; i < NumInputs; i++) begin: gen_credit_tied_zero_req
       assign floo_req_o[i].credit = '0;
@@ -244,7 +244,7 @@ module floo_nw_router #(
     .XYRouteOpt       ( XYRouteOpt                ),
     .NumAddrRules     ( NumAddrRules              ),
     .NoLoopback       ( 1'b1                      ),
-    .VcImplementation ( VcImplementation          ),
+    .VcImpl           ( VcImpl                    ),
     .EnMultiCast      ( EnMultiCast               ),
     .EnReduction      ( 1'b0                      ),
     .id_t             ( id_t                      ),
