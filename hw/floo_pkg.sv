@@ -85,10 +85,25 @@ package floo_pkg;
 
   /// Virtual channel implementation types
   typedef enum logic[1:0] {
+    /// The naive implementation  placed the valid and the data on the physical link
+    /// if teh downstream subordinate is ready. However this will create an in2out
+    /// path that span over the entire cluster tile, possibly limiting clock frequency.
     VcNaive = 2'd0,
-    VcCreditBased = 2'd1,
+    /// The credit based approach allows to cut the in2out path.
+    /// However, to support maximum transmission bandwidth, the subordinate input FIFO
+    /// must be able to store at least 3 flits, increasing significantly the router area.
+    VcCredit = 2'd1,
+    /// The preemptive valid approach allows to cut the in2out path.
+    /// This does not require the subordiante input FIFO to be larger than 2 flits,
+    /// while still supporting maximum transmission bandwidth.
     VcPreemptValid  = 2'd2
   } vc_impl_e;
+
+  // Virtual channel index association for read and write channels
+  typedef enum logic {
+    Read  = 1'b1,
+    Write = 1'b0
+  } vc_e;
 
   /// The types of collective communication
   typedef enum logic [1:0] {

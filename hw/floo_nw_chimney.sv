@@ -156,12 +156,6 @@ module floo_nw_chimney #(
   // For future extension, add an extra opcode in the user_struct_t
   typedef axi_addr_t user_mask_t ;
 
-  // Virtual channel enumeration
-  typedef enum logic {
-    READ  = 1'b1,
-    WRITE = 1'b0
-  } vc_e;
-
   localparam int unsigned NumVirtualChannels = EnDecoupledRW ? 2 : 1;
 
   // Duplicate AXI port signals to degenerate ports
@@ -286,27 +280,27 @@ module floo_nw_chimney #(
   logic floo_wide_out_ready;
 
   if (EnDecoupledRW) begin : gen_vc_demux
-    assign floo_wide_in_wr_valid = floo_wide_i.valid[WRITE];
-    assign floo_wide_in_rd_valid = floo_wide_i.valid[READ];
-    assign floo_wide_o.ready[WRITE] = floo_wide_out_wr_ready;
-    assign floo_wide_o.ready[READ] = floo_wide_out_rd_ready;
+    assign floo_wide_in_wr_valid = floo_wide_i.valid[Write];
+    assign floo_wide_in_rd_valid = floo_wide_i.valid[Read];
+    assign floo_wide_o.ready[Write] = floo_wide_out_wr_ready;
+    assign floo_wide_o.ready[Read] = floo_wide_out_rd_ready;
     if (NumWidePhysChannels == 1) begin : gen_single_phys_ch
       // Connect the single physical channel to both read and write
       // the valid and ready coming from teh VCs will be used to know if the data can be used
       assign floo_wide_in_wr = floo_wide_i.wide;
       assign floo_wide_in_rd = floo_wide_i.wide;
 
-      if (VcImpl == floo_pkg::VcCreditBased) begin : gen_credit_support
+      if (VcImpl == floo_pkg::VcCredit) begin : gen_credit_support
         // Drive credit signals for incoming requests
-        `FF(floo_wide_o.credit[WRITE], floo_wide_in_wr_valid & floo_wide_out_wr_ready, 1'b0);
-        `FF(floo_wide_o.credit[READ], floo_wide_in_rd_valid & floo_wide_out_rd_ready, 1'b0);
+        `FF(floo_wide_o.credit[Write], floo_wide_in_wr_valid & floo_wide_out_wr_ready, 1'b0);
+        `FF(floo_wide_o.credit[Read], floo_wide_in_rd_valid & floo_wide_out_rd_ready, 1'b0);
       end else begin: gen_no_credit_support
         assign floo_wide_o.credit = '0;
       end
 
     end else if (NumWidePhysChannels == 2) begin : gen_dual_phys_ch
-      assign floo_wide_in_wr = floo_wide_i.wide[WRITE];
-      assign floo_wide_in_rd = floo_wide_i.wide[READ];
+      assign floo_wide_in_wr = floo_wide_i.wide[Write];
+      assign floo_wide_in_rd = floo_wide_i.wide[Read];
     end else begin: gen_illegal_cfg
       $fatal(1, "NW CHIMNEY: Unsupported number of wide physical channels");
     end
@@ -1243,12 +1237,12 @@ module floo_nw_chimney #(
     // R -> Virtual Channel 1
     // TODO(lleone): check if this really solve DEADLOCK!!!!
     if (EnDecoupledRW) begin: gen_vc_rw_ack
-      assign floo_wide_o.valid[WRITE] = (floo_wide_o.wide[0].generic.hdr.axi_ch != WideR) ?
+      assign floo_wide_o.valid[Write] = (floo_wide_o.wide[0].generic.hdr.axi_ch != WideR) ?
                                          floo_wide_req_arb_valid_out : 1'b0;
-      assign floo_wide_o.valid[READ] = (floo_wide_o.wide[0].generic.hdr.axi_ch == WideR) ?
+      assign floo_wide_o.valid[Read] = (floo_wide_o.wide[0].generic.hdr.axi_ch == WideR) ?
                                          floo_wide_req_arb_valid_out : 1'b0;
       assign floo_wide_req_arb_gnt_in = (floo_wide_o.wide[0].generic.hdr.axi_ch != WideR) ?
-                                        floo_wide_i.ready[WRITE] : floo_wide_i.ready[READ];
+                                        floo_wide_i.ready[Write] : floo_wide_i.ready[Read];
     end else begin: gen_no_vc_rw_ack
       assign floo_wide_o.valid = floo_wide_req_arb_valid_out;
       assign floo_wide_req_arb_gnt_in = floo_wide_i.ready;
