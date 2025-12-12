@@ -13,7 +13,7 @@ module floo_vc_arbiter import floo_pkg::*;
   parameter int unsigned NumVirtChannels  = 1,
   parameter type         flit_t           = logic,
   parameter int unsigned NumPhysChannels  = 1,
-  parameter vc_impl_e    VcImplementation = VcNaive,
+  parameter vc_impl_e    VcImpl           = VcNaive,
   parameter int unsigned NumCredits       = 3
 ) (
   input  logic                        clk_i,
@@ -72,13 +72,13 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
     // VC arbitration logic //
     //////////////////////////
 
-    if (VcImplementation == VcPreemptValid) begin : gen_preempt_valid
+    if (VcImpl == VcPreemptValid) begin : gen_preempt_valid
       // Initially, any valid channel can request access to the physical channel.
       // However, to guarantee deadlock freedom, we must be able to preempt the
       // virtual channel holding the physical link and put the other channel on
       // the link. To do so, we mask the VC holding the link, when required.
       assign vc_arb_req_in = valid_i & mask_q;
-    end else if (VcImplementation == VcCreditBased) begin : gen_credit_based
+    end else if (VcImpl == VcCreditBased) begin : gen_credit_based
       // In case of credit based approach, the valid is set only if there are credits left
       assign vc_arb_req_in = valid_i & credit_left;
     end else begin : gen_standard
@@ -120,7 +120,7 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
       .idx_o    ( vc_arb_idx        )
     );
 
-  if (VcImplementation == VcCreditBased) begin: gen_credit
+  if (VcImpl == VcCreditBased) begin: gen_credit
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_vc_credits
       credit_counter #(
         .NumCredits(NumCredits)
@@ -153,6 +153,6 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
   `ASSERT(OneHotOutputValid, $onehot0(valid_o))
 
   // Currently only supports two virtual channels
-  `ASSERT_INIT(SupportedNumVirtChannels, !VcImplementation || (NumVirtChannels <= 2))
+  `ASSERT_INIT(SupportedNumVirtChannels, !VcImpl || (NumVirtChannels <= 2))
 
 endmodule

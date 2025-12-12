@@ -33,11 +33,16 @@ module floo_nw_chimney #(
   /// and one ID is reserved for non-atomic transactions
   parameter int unsigned MaxAtomicTxns           = 1,
   /// Enable support for decoupling read and write channels
+  /// when enabled, the wide read and write transactions
+  /// use separate channels (virtual or physical)
   parameter bit EnDecoupledRW                      = 1'b0,
-  /// Specify how many physical channel are used for teh wide connection
+  /// Specify how many physical channel are used for the wide connection
+  /// This parameter is used together with `EnDecoupledRW`. When read
+  /// and write channekls are decoupled, the two streams can either share
+  /// a single physical channel or use two separate physical channels.
   parameter int unsigned NumWidePhysChannels        = 1,
   /// Specify which VC implementation to use for the wide channels
-  parameter floo_pkg::vc_impl_e VcImplementation        = floo_pkg::VcNaive,
+  parameter floo_pkg::vc_impl_e VcImpl              = floo_pkg::VcNaive,
   /// Node ID type for routing
   parameter type id_t                                   = logic,
   /// RoB index type for reordering.
@@ -291,7 +296,7 @@ module floo_nw_chimney #(
       assign floo_wide_in_wr = floo_wide_i.wide;
       assign floo_wide_in_rd = floo_wide_i.wide;
 
-      if (VcImplementation == floo_pkg::VcCreditBased) begin : gen_credit_support
+      if (VcImpl == floo_pkg::VcCreditBased) begin : gen_credit_support
         // Drive credit signals for incoming requests
         `FF(floo_wide_o.credit[WRITE], floo_wide_in_wr_valid & floo_wide_out_wr_ready, 1'b0);
         `FF(floo_wide_o.credit[READ], floo_wide_in_rd_valid & floo_wide_out_rd_ready, 1'b0);
