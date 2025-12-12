@@ -136,7 +136,7 @@ module floo_router
       );
 
       // Credit count generation. Assign 1 upon any handshake
-      if (VcImpl == floo_pkg::VcCreditBased) begin: gen_credit_support
+      if (VcImpl == floo_pkg::VcCredit) begin: gen_credit_support
         assign credit_o[in][v] = credit_gnt_q[in][v];
         assign credit_gnt_d[in][v] = in_valid[in][v] & in_ready[in][v];
         `FF(credit_gnt_q[in][v], credit_gnt_d[in][v], 1'b0);
