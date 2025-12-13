@@ -47,7 +47,7 @@ def render_template(context: dict, tpl: Path,
 def build_parser() -> argparse.ArgumentParser:
     """Parse the command line arguments."""
 
-    # Parser that holds all common options (no help, reused)
+    # Parser that holds all common options
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument(
         "-c", "--config", type=Path, required=True,
@@ -60,6 +60,8 @@ def build_parser() -> argparse.ArgumentParser:
             "If not specified, the files are printed to stdout."
         ),
     )
+
+    # Parser for SystemVerilog formatting options
     sv_format = argparse.ArgumentParser(add_help=False)
     sv_format.add_argument(
         "--no-format",
@@ -86,8 +88,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Override the module/package name and prefix for generated files."
     )
 
-    # Top-level parser ALSO gets the common options so
-    # `floogen -c cfg.yaml` works without subcommand.
+    # Top-level parser
     parser = argparse.ArgumentParser(
         description="FlooGen: A Network-on-Chip Generator for FlooNoC",
         add_help=True,
