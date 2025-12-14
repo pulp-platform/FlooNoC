@@ -14,15 +14,23 @@ All of those routing algorithms are static respectively deterministic. While dyn
 
 Dimension-ordered routing is a simple routing algorithm that routes flits based on XY-coordinates, which is why it is commonly used in 2D mesh networks. In dimension ordered routing, a flit is always routed in one dimension and then in the other. Since this routing cannot introduce any cycles, it is deadlock-free by design. The implementation of DOR is also very simple, as it only requires the current and destination coordinates of the flit. Each router knows its own XY coordinates and compares them to the destination coordinates of the flit. The routing algorithm then is the following:
 
-$$
-Port = \begin{cases}
-East & id_{dst, x} > id_{router, x} \\
-West & id_{dst, x} < id_{router, x} \\
-North & id_{dst, x} = id_{router, x} \land id_{dst, y} > id_{router, y} \\
-South & id_{dst, x} = id_{router, x} \land id_{dst, y} < id_{router, y} \\
-Eject & id_{dst, x} = id_{router, x} \land id_{dst, y} = id_{router, y}
-\end{cases}
-$$
+```verilog
+if (hdr.dst.x == router.x && hdr.dst.y == router.y) begin
+  route_sel_id = Eject + hdr.dst.port_id;
+end else if (hdr.dst.x == router.x) begin
+  if (hdr.dst.y < router.y) begin
+    route_sel_id = South;
+  end else begin
+    route_sel_id = North;
+  end
+end else begin
+  if (hdr.dst.x < router.x) begin
+    route_sel_id = West;
+  end else begin
+    route_sel_id = East;
+  end
+end
+```
 
 Meaning, the flits is routed to either the east or west until it reaches the correct X-coordinate, after which it is routed to the north or south until. If both coordinates match, the flit is ejected from the network i.e. it is sent to (one of the) local port(s) of the router.
 
