@@ -66,7 +66,7 @@ If you plan to contribute to _FlooGen_ or build the documentation locally, you s
 
 === "uv"
     ```bash
-    # Nothing to do, `uv run --group dev` will handle it automatically
+    # Nothing to do, `uv run --groups dev|docs` will download dependencies automatically
     ```
 
 

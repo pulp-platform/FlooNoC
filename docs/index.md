@@ -14,13 +14,13 @@ _FlooNoC_, is a Network-on-Chip (NoC) research project, which is part of the [PU
 
     [:octicons-arrow-right-24: Getting started](getting_started.md)
 
--   :fontawesome-solid-microchip:{ .lg .middle } __Hardware IPs__
+-   :fontawesome-solid-microchip:{ .lg .middle } __FlooNoC__
 
     ---
 
-    Check out the documentation of _FlooNoC_ hardware IPs.
+    Check out the documentation of _FlooNoC_.
 
-    [:octicons-arrow-right-24: Hardware IPs](hw/overview.md)
+    [:octicons-arrow-right-24: FlooNoC](hw/overview.md)
 
 -   :material-magic-staff:{ .lg .middle } __Network Generation__
 
