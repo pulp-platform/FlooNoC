@@ -11,9 +11,3 @@ However, this also means that the hardware IPs are heavily parametrizable and th
 1. **[Network Interfaces](chimneys.md)**: This section will explain the different network interfaces which are used to convert to the custom link-level protocol of _FlooNoC_.
 
 1. **[Routers](routers.md)**: This section will explain the routers routers that are available in _FlooNoC_ and how they can be configured.
-
-1. **[Common IPs](commons.md)**: Apart from the two essential IPs, routers and network interfaces, there are also some common IPs that can be used to extend the functionality of the NoC. This section will explain these IPs.
-
-1. **[Verification IPs](vips.md)**: This section will explain the verification IPs that are available in _FlooNoC_ and how they can be used to verify the NoC.
-
-1. **[Tips & Tricks](tips.md)**: This section will give some tips and tricks on how to use the _FlooNoC_ IPs.
