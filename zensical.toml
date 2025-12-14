@@ -19,14 +19,14 @@ nav = [
         "index.md",
     ]},
     {"FlooNoC" = [
-        {"Overview" = "hw/overview.md"},
-        {"Getting Started" = "hw/getting_started.md"},
+        {"Overview" = "floonoc/overview.md"},
+        {"Getting Started" = "floonoc/getting_started.md"},
         {"IP Reference" = [
-            {"Flits" = "hw/flits.md"},
-            {"Channels & Links" = "hw/links.md"},
-            {"Routing Algorithms" = "hw/route_algos.md"},
-            {"Network Interfaces" = "hw/chimneys.md"},
-            {"Router" = "hw/routers.md"}
+            {"Flits" = "floonoc/flits.md"},
+            {"Channels & Links" = "floonoc/links.md"},
+            {"Routing Algorithms" = "floonoc/route_algos.md"},
+            {"Network Interfaces" = "floonoc/chimneys.md"},
+            {"Router" = "floonoc/routers.md"}
         ]},
     ]},
     {"FlooGen" = [
