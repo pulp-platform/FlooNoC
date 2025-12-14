@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2025-11-24
+
+### Added
+
+#### Hardware
+
+- Add address to `DecodeError` assertion (https://github.com/pulp-platform/FlooNoC/pull/137)
+- Add Multicast capabilities for mesh-based systems with XY routing (https://github.com/pulp-platform/FlooNoC/pull/127)
+
+### FlooGen
+- Added support for systemRDL address map generation (https://github.com/pulp-platform/FlooNoC/pull/127 and https://github.com/pulp-platform/FlooNoC/pull/130)
+- Generate multicast address map (https://github.com/pulp-platform/FlooNoC/pull/142)
+
+### Fixed
+
+#### Hardware
+
+- Over-allocation for B responses in RoB (https://github.com/pulp-platform/FlooNoC/pull/145)
+
+
 ## [0.6.1] - 2025-04-09
 
 ### Added

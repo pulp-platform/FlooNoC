@@ -145,16 +145,37 @@ pip install .
 Once installed, you can run `floogen` with the following command:
 
 ```bash
-floogen -c <config_file> -o <output_dir>
+floogen rtl -c <config_file> -o <output_dir>
 ```
 
 where `<config_file>` is the configuration file and `<output_dir>` is the output directory where the generated RTL code will be placed.
 
 
-## Additonal arguments
+## FlooGen targets
 
-Apart from the configuration file, `floogen` supports additional options to customize the generated RTL code. The following options are supported:
+`floogen` supports different targets to generate different parts of the FlooNoC network. The easiest way to find out which targets are available is to run:
+
+```sh
+floogen --help
+```
+
+The following targets are currently supported:
+- `pkg`: Generates the package file with the system parameters and the address table (if enabled).
+- `top`: Generates the top-level module of the network.
+- `rtl`: Alias for `pkg` and `top`, generates both the package file and the top-level module of the network.
+- `rdl`: Generates the SystemRDL description of the network.
+- `visualize`: Visualizes the graph of the network.
+- `query`: Queries the configuration file and prints information about the network.
+- `template`: Generates files from custom mako templates.
+
+Those targets also have specific options that can be listed for example with:
+
+```sh
+floogen pkg --help
+```
+
+Some noteable options available for some of the targets are:
 
 - `--outdir`: the output directory where the generated RTL code will be placed. This is equivalent to the `-o` option. If it is not specified, the output is printed to stdout.
 - `--no-format`: do not format the generated RTL code. By default, the generated RTL code is formatted with verible format, for which the `verible-verilog-format` binary needs to be installed. If this option is set, the generated RTL code is not formatted.
-- `--visualize`: visualize the generated network. It will create a plot of the graph of the network. If the `--outdir` option is specified, the plot is saved in the output directory. Otherwise, it is shown in a window. This is mainly intended for a quick check of the generated network, not a tool for debugging.
+- `--verible-fmt-bin` and `verilog-fmt-args`: specify the path to the `verible-verilog-format` binary and additional arguments to be passed to it when formatting the generated RTL code.

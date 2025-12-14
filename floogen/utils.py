@@ -196,27 +196,23 @@ def sv_struct_typedef(name: str, fields: dict, union=False) -> str:
     return typedef
 
 def sv_struct_render(fields: dict) -> str:
-    """Declare a SystemVerilog struct based on a (nested) dictionary,
+    """
+        Declare a SystemVerilog struct based on a (nested) dictionary,
         where they keys of the dictionary are the field names, and the values are
         the actual values to assign.
 
-    Examples:
-        >>> sv_struct_render({'field1': '3'd0', 'field2': 'some_signal'})
-        "'{field1: 3'd0,field2: some_signal}'"
-        >>> sv_struct_render({'field1': '3'd0', 'field2': {'subfield1': 'some_signal', 'subfield2': 'SomeParam'}})
-        "'{
-            field1: 3'd0,
-            field2: '{
-                subfield1: some_signal,
-                subfield2: SomeParam
-            }
-        }"
-
-    Args:
-        fields (dict): Dictionary of field names and their corresponding values.
-
-    Returns:
-        str: SystemVerilog struct instantiation.
+        Example:
+            fields = {'field1': '3'd0',
+                      'field2': {'subfield1': 'some_signal',
+                                 'subfield2': 'SomeParam'}}
+            sv_struct_render(fields) ->
+            '{
+                field1: 3'd0,
+                field2: '{
+                    subfield1: some_signal,
+                    subfield2: SomeParam
+                },
+            }'
     """
     decl = "'{"
     for field, value in fields.items():

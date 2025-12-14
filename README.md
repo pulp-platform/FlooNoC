@@ -100,52 +100,6 @@ make run-sim TB_DUT=tb_floo_dut
 ```
 By replacing `tb_floo_dut` with the name of the testbench you want to simulate.
 
-## 🧰 List of IPs
-
-This repository includes the following NoC IPs:
-
-1. **Routers:** A collection of different NoC router designs with varying features such as virtual channels, input/output buffering, and adaptive routing algorithms.
-1. **Network Interfaces (NIs)**: A set of NoC network interfaces for connecting IPs to the NoC.
-2. **Common IPs** A set of IPs used by the NoC IPs, such as FIFOs, Cuts and arbiters.
-3. **Verification IPs (VIPs):** A set of VIPs to verify the correct functionality of the NoC IPs.
-4. **Testbenches:** A set of testbenches to evaluate the performance of the NoC IPs, including throughput, latency.
-
-### Routers
-| Name | Description | Doc |
-| --- | --- | --- |
-| [floo_router](hw/floo_router.sv) | A simple router with configurable number of ports, physical and virtual channels, and input/output buffers |  |
-| [floo_nw_router](hw/floo_nw_router.sv) | Wrapper of a multi-link router for narrow and wide links |  |
-
-### Network Interfaces
-| Name | Description | Doc |
-| --- | --- | --- |
-| [floo_axi_chimney](hw/floo_axi_chimney.sv) | A bidirectional network interface for connecting AXI4 Buses to the NoC |  |
-| [floo_nw_chimney](hw/floo_nw_chimney.sv) | A bidirectional network interface for connecting narrow & wide AXI Buses to the multi-link NoC |  |
-
-### Common IPs
-| Name | Description | Doc |
-| --- | --- | --- |
-| [floo_fifo](hw/floo_fifo.sv) | A FIFO buffer with configurable depth |  |
-| [floo_cut](hw/floo_cut.sv) | Elastic buffers for cuting timing paths |  |
-| [floo_cdc](hw/floo_cdc.sv) | A Clock-Domain-Crossing (CDC) module implemented with a gray-counter based FIFO. |  |
-| [floo_wormhole_arbiter](hw/floo_wormhole_arbiter.sv) | A wormhole arbiter |  |
-| [floo_vc_arbiter](hw/floo_vc_arbiter.sv) | A virtual channel arbiter |  |
-| [floo_route_comp](hw/floo_route_comp.sv) | A helper module to compute the packet destination |  |
-| [floo_rob](hw/floo_rob.sv) | A table-based Reorder Buffer |  |
-| [floo_simple_rob](hw/floo_simple_rob.sv) | A simplistic low-complexity Reorder Buffer |  |
-| [floo_rob_wrapper](hw/floo_simple_rob.sv) | A wrapper of all available types of RoBs including RoB-less version |  |
-| [floo_nw_join](hw/floo_nw_join.sv) | A mux for joining a narrow and wide AXI bus a single wide bus |  |
-
-### Verification IPs
-| Name | Description | Doc |
-| --- | --- | --- |
-| [axi_bw_monitor](hw/test/axi_bw_monitor.sv) | A AXI4 Bus Monitor for measuring the throughput and latency of the AXI4 Bus |  |
-| [axi_reorder_compare](hw/test/axi_reorder_compare.sv) | A AXI4 Bus Monitor for verifying the order of AXI transactions with the same ID |  |
-| [floo_axi_rand_slave](hw/test/floo_axi_rand_slave.sv) | A AXI4 Bus Multi-Slave generating random AXI respones with configurable response time |  |
-| [floo_axi_test_node](hw/test/floo_axi_test_node.sv) | A AXI4 Bus Master-Slave Node for generating random AXI transactions |  |
-| [floo_dma_test_node](hw/test/floo_dma_test_node.sv) | An endpoint node with a DMA master port and a Simulation Memory Slave port |  |
-| [floo_hbm_model](hw/test/floo_hbm_model.sv) | A very simple model of the HBM memory controller with configurable delay |  |
-
 ## 🛠️ Generation
 
 FlooNoC comes with a generation framework called `floogen`. It allows to create complex network configurations with a simple configuration file.
@@ -223,7 +177,7 @@ pip install .
 which allows you to use `floogen` with the following command:
 
 ```sh
-floogen -c <config_file> -o <output_dir>
+floogen rtl -c <config_file> -o <output_dir>
 ```
 
 ### Configuration
