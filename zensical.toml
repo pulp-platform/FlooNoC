@@ -26,10 +26,7 @@ nav = [
             {"Channels & Links" = "hw/links.md"},
             {"Routing Algorithms" = "hw/route_algos.md"},
             {"Network Interfaces" = "hw/chimneys.md"},
-            {"Router" = "hw/routers.md"},
-            {"Common IPs" = "hw/commons.md"},
-            {"Verification IPs" = "hw/vips.md"},
-            {"Tips & Tricks" = "hw/tips.md"}
+            {"Router" = "hw/routers.md"}
         ]},
     ]},
     {"FlooGen" = [
@@ -71,6 +68,13 @@ nav = [
             {"Changelog" = "changelog.md"}
         ]}
     ]},
+    {"Integration" = [
+        "integration/integration.md"
+    ]},
+    {"Changelog" = [
+        {"FlooNoC" = "changelog.md"},
+        {"FlooGen" = "floogen/changelog.md"}
+    ]}
 ]
 
 
