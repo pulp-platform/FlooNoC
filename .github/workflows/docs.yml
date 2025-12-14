@@ -10,7 +10,6 @@ on:
   push:
     branches:
       - main
-      - zensical # TODO: Remove before merging zensical into main
   workflow_dispatch:
 
 permissions:
