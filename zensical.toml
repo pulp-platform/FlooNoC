@@ -17,20 +17,20 @@ docs_dir = "docs"
 nav = [
     {"Home" = [
         "index.md",
-        {"License" = "license.md"},
-        {"Contributing" = "CONTRIBUTING.md"},
     ]},
-    {"Getting Started" = "getting_started.md"},
     {"FlooNoC" = [
         {"Overview" = "hw/overview.md"},
-        {"Flits" = "hw/flits.md"},
-        {"Channels & Links" = "hw/links.md"},
-        {"Routing Algorithms" = "hw/route_algos.md"},
-        {"Network Interfaces" = "hw/chimneys.md"},
-        {"Router" = "hw/routers.md"},
-        {"Common IPs" = "hw/commons.md"},
-        {"Verification IPs" = "hw/vips.md"},
-        {"Tips & Tricks" = "hw/tips.md"}
+        {"Getting Started" = "hw/getting_started.md"},
+        {"IP Reference" = [
+            {"Flits" = "hw/flits.md"},
+            {"Channels & Links" = "hw/links.md"},
+            {"Routing Algorithms" = "hw/route_algos.md"},
+            {"Network Interfaces" = "hw/chimneys.md"},
+            {"Router" = "hw/routers.md"},
+            {"Common IPs" = "hw/commons.md"},
+            {"Verification IPs" = "hw/vips.md"},
+            {"Tips & Tricks" = "hw/tips.md"}
+        ]},
     ]},
     {"FlooGen" = [
         {"Overview" = "floogen/overview.md"},
