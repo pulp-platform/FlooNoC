@@ -9,7 +9,11 @@
 <img src="docs/img/pulp_logo_icon.svg" alt="Logo" width="100" align="right">
 </a>
 
-_FlooNoC_, is a Network-on-Chip (NoC) research project, which is part of the [PULP (Parallel Ultra-Low Power) Platform](https://pulp-platform.org/). The main idea behind _FlooNoC_ is to provide a scalable high-performance NoC for non-coherent systems. _FlooNoC_ was mainly designed to interface with [AXI4+ATOPs](https://github.com/pulp-platform/axi/tree/master), but can easily be extended to other On-Chip protocols. _FlooNoC_ already provides network interface IPs (named chimneys) for AXI4 protocol, which converts to a custom-link level protocol that provides significantly better scalability than AXI4. _FlooNoC_ also includes protocol-agnostic routers based on the custom link-level protocol to transport payloads. Finally, _FlooNoC_ also include additional NoC components to assemble a complete NoC in a modular fashion. _FlooNoC_ is also highly flexible and supports a wide variety of topologies and routing algorithms. A Network generation framework called _FlooGen_ makes it possible to easily generate entire networks based on a simple configuration file.
+_FlooNoC_ is a configurable, open-source Network-on-Chip (NoC) architecture designed for high-bandwidth, non-coherent multi-core clusters and AI accelerators. It addresses the bandwidth bottlenecks of traditional serialized NoCs by deploying **wide physical channels** that transport entire AXI4 messages (header + data) in a single flit, eliminating serialization latency.
+
+Designed for the [PULP Platform](https://pulp-platform.org/), _FlooNoC_ decouples the low-complexity transport layer (routers) from the protocol handling (Network Interfaces), enabling high scalability. It supports **end-to-end AXI4** with multiple outstanding transactions and separates traffic into parallel physical streams—isolating bulk DMA transfers from latency-sensitive control messages.
+
+Included is **_FlooGen_**, a Python-based generation framework that produces fully connected SystemVerilog RTL, routing information and tables from a simple high-level configuration file.
 
 <div align="center">
 
@@ -20,27 +24,36 @@ _FlooNoC_, is a Network-on-Chip (NoC) research project, which is part of the [PU
 [![Static Badge](https://img.shields.io/badge/IEEE_TVLSI-blue?style=flat&label=DOI&color=00629b)](https://doi.org/10.1109/TVLSI.2025.3527225)
 [![Static Badge](https://img.shields.io/badge/2409.17606-blue?style=flat&label=arXiv&color=b31b1b)](https://arxiv.org/abs/2409.17606)
 
+[**Read the Documentation**](https://pulp-platform.github.io/FlooNoC/) •
 [Design Principles](#-design-principles) •
-[Getting started](#-getting-started) •
-[List of IPs](#-list-of-ips) •
-[Generation](#%EF%B8%8F-generation) •
+[Publication](#-publication) •
 [License](#-license)
 </div>
 
+## 📚 Documentation
+
+Complete documentation, including installation guides, simulation instructions, and IP references, is available online:
+
+### [👉 pulp-platform.github.io/FlooNoC](https://pulp-platform.github.io/FlooNoC/)
+
+The documentation is organized into two main tracks:
+
+| **Hardware IPs (FlooNoC)** | **Generator (FlooGen)** |
+|:--- |:--- |
+| Focuses on the SystemVerilog IPs, simulation, and integration. | Focuses on configuration, topology generation, and CLI usage. |
+| • [**Getting Started**](https://pulp-platform.github.io/FlooNoC/floonoc/getting_started/)<br>• [Architecture Overview](https://pulp-platform.github.io/FlooNoC/floonoc/overview/)<br>• [Routers & Chimneys](https://pulp-platform.github.io/FlooNoC/floonoc/routers/) | • [**Installation**](https://pulp-platform.github.io/FlooNoC/floogen/installation/)<br>• [Configuration Format](https://pulp-platform.github.io/FlooNoC/floogen/minimal_example/)<br>• [CLI Reference](https://pulp-platform.github.io/FlooNoC/floogen/cli/) |
 ## 💡 Design Principles
+_FlooNoC_ is built on five key principles to achieve high bandwidth and low latency:
 
-_FlooNoC_ design is based on the following key principles:
+1. **Wide Physical Channels**: Unlike traditional NoCs that serialize packets into narrow flits, _FlooNoC_ uses wide links to send entire messages (header + data) in a single cycle. This allows endpoints to utilize their full bandwidth without being constrained by NoC frequency or serialization overhead.
 
-1. **Full AXI4 Support**: _FlooNoC_ fully supports AXI4+ATOPs from AXI5 as outlined [here](https://github.com/pulp-platform/axi/tree/master), providing a high-bandwidth and latency-tolerant solution. _FlooNoC_ achieves this with full support for bursts and multiple outstanding transactions.
+2. **Full AXI4 Support**: The architecture fully supports AXI4+ATOPs (AXI5), handling bursts and multiple outstanding transactions efficiently. It provides end-to-end ordering and ID tracking, ensuring seamless integration with standard IP blocks.
 
-1. **Decoupled Links and Networks**: _FlooNoC_ uses a link-level protocol that is decoupled from the network-level protocol. This allows us to move the complexity of the network-level protocol into the network interfaces, while deploying low-complexity routers in the network, that enable better scalability than multi-layer AXI networks.
+3. **Decoupled Architecture**: Complexity is moved to the edges (Network Interfaces/Chimneys), keeping the routers simple and fast. This decoupling allows the network to scale to hundreds of cores without timing degradation.
 
-1. **Wide Physical Channels**: _FlooNoC_ uses wide physical channels to meet the high-bandwidth requirements at network endpoints without being constrained by the operating frequency. In contrast to traditional NoCs which use serialization with header and tail flits to transport a message, _FlooNoC_ avoids any kind of serialization and sends entire messages in a single flit including header and tail information.
+4. **Traffic Separation**: _FlooNoC_ can physically separate traffic classes. High-bandwidth, burst-based traffic (e.g., DMA) travels on wide links, while latency-sensitive control traffic travels on separate narrow links, preventing head-of-line blocking.
 
-1. **Separation of traffic**: _FlooNoC_ addresses diverse types of traffic that can occur in non-coherent systems, by decoupling multiple links to handle wide, high-bandwidth, burst-based traffic and narrow, latency-sensitive traffic with separate physical channels.
-
-1. **Modularity:** The _FlooNoC_ architecture is designed with modularity in mind. It includes a set of IPs that can be instantiated together to build a NoC. This approach not only promotes reusability but also facilitates flexibility in designing custom NoCs to cater to a variety of specific system requirements.
-
+5. **Modularity**: The system is composed of modular building blocks—Routers, Links, and Chimneys (Network Interfaces). This modularity allows _FlooGen_ to assemble arbitrary topologies (Mesh, Tree, Irregular) tailored to specific system requirements.
 
 ## 🔮 Origin of the name
 
@@ -51,7 +64,7 @@ The names of the IPs are inspired by the [Harry Potter](https://en.wikipedia.org
 ## 🔐 License
 All code checked into this repository is made available under a permissive license. All software sources are licensed under the Apache License 2.0 (see [`LICENSE-APACHE`](LICENSE-APACHE)), and all hardware sources in the `hw` folder are licensed under the Solderpad Hardware License 0.51 (see [`LICENSE-SHL`](LICENSE-SHL)).
 
-## 📚 Publication
+## 📖 Publication
 If you use FlooNoC in your research, please cite the following paper:
 <details>
 <summary><b>FlooNoC: A 645 Gbps/link 0.15 pJ/B/hop Open-Source NoC with Wide Physical Links and End-to-End AXI4 Parallel Multi-Stream Support</b></summary>
