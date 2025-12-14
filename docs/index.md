@@ -6,14 +6,6 @@ _FlooNoC_, is a Network-on-Chip (NoC) research project, which is part of the [PU
 
 <div class="grid cards" markdown>
 
--   :material-fast-forward:{ .lg .middle } __Setup & Installation__
-
-    ---
-
-    Install Bender for HW IPs and python dependencies for _FlooGen_
-
-    [:octicons-arrow-right-24: Getting started](getting_started.md)
-
 -   :fontawesome-solid-microchip:{ .lg .middle } __FlooNoC__
 
     ---
@@ -22,21 +14,13 @@ _FlooNoC_, is a Network-on-Chip (NoC) research project, which is part of the [PU
 
     [:octicons-arrow-right-24: FlooNoC](hw/overview.md)
 
--   :material-magic-staff:{ .lg .middle } __Network Generation__
+-   :material-magic-staff:{ .lg .middle } __FlooGen__
 
     ---
 
     Learn how to generate a _FlooNoC_ network using _FlooGen_
 
     [:octicons-arrow-right-24: FlooGen](floogen/overview.md)
-
--   :material-scale-balance:{ .lg .middle } __License__
-
-    ---
-
-    _FlooNoC_ is available open-source on [GitHub](https://github.com/pulp-platform/FlooNoC) under permissive licenses.
-
-    [:octicons-arrow-right-24: License](license.md)
 
 -   :material-bookshelf:{ .lg .middle } __Publication__
 
