@@ -59,17 +59,17 @@ clean-jobs:
 
 # Set the job name and directory if specified
 ifdef JOB_NAME
-		VSIM_FLAGS += +JOB_NAME=$(JOB_NAME)
+VSIM_FLAGS += +JOB_NAME=$(JOB_NAME)
 endif
 ifdef TRAFFIC_INJ_RATIO
-		VSIM_FLAGS += +TRAFFIC_INJ_RATIO=$(TRAFFIC_INJ_RATIO)
+VSIM_FLAGS += +TRAFFIC_INJ_RATIO=$(TRAFFIC_INJ_RATIO)
 endif
 ifdef JOB_DIR
-		VSIM_FLAGS += +JOB_DIR=$(JOB_DIR)
+VSIM_FLAGS += +JOB_DIR=$(JOB_DIR)
 endif
 ifdef LOG_FILE
-		VSIM_FLAGS += -l $(LOG_FILE)
-		VSIM_FLAGS += -nostdout
+VSIM_FLAGS += -l $(LOG_FILE)
+VSIM_FLAGS += -nostdout
 endif
 
 ########################
