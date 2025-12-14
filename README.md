@@ -24,7 +24,7 @@ Included is **_FlooGen_**, a Python-based generation framework that produces ful
 [![Static Badge](https://img.shields.io/badge/IEEE_TVLSI-blue?style=flat&label=DOI&color=00629b)](https://doi.org/10.1109/TVLSI.2025.3527225)
 [![Static Badge](https://img.shields.io/badge/2409.17606-blue?style=flat&label=arXiv&color=b31b1b)](https://arxiv.org/abs/2409.17606)
 
-[**Read the Documentation**](https://pulp-platform.github.io/FlooNoC/) •
+[Read the Documentation](https://pulp-platform.github.io/FlooNoC/) •
 [Design Principles](#-design-principles) •
 [Publication](#-publication) •
 [License](#-license)
@@ -32,16 +32,13 @@ Included is **_FlooGen_**, a Python-based generation framework that produces ful
 
 ## 📚 Documentation
 
-Complete documentation, including installation guides, simulation instructions, and IP references, is available online:
+The full [documentation](https://pulp-platform.github.io/FlooNoC/) is available online.
 
-### [👉 pulp-platform.github.io/FlooNoC](https://pulp-platform.github.io/FlooNoC/)
+We provide detailed guides for both the hardware IPs (FlooNoC) and the generation tool (FlooGen):
 
-The documentation is organized into two main tracks:
+* [View Hardware Docs ➔](https://pulp-platform.github.io/FlooNoC/floonoc/overview/) Learn how to simulate and integrate the SystemVerilog IPs.
+* [View Generator Docs ➔](https://pulp-platform.github.io/FlooNoC/floogen/overview/) Learn how to install the tool and generate custom network topologies.
 
-| **Hardware IPs (FlooNoC)** | **Generator (FlooGen)** |
-|:--- |:--- |
-| Focuses on the SystemVerilog IPs, simulation, and integration. | Focuses on configuration, topology generation, and CLI usage. |
-| • [**Getting Started**](https://pulp-platform.github.io/FlooNoC/floonoc/getting_started/)<br>• [Architecture Overview](https://pulp-platform.github.io/FlooNoC/floonoc/overview/)<br>• [Routers & Chimneys](https://pulp-platform.github.io/FlooNoC/floonoc/routers/) | • [**Installation**](https://pulp-platform.github.io/FlooNoC/floogen/installation/)<br>• [Configuration Format](https://pulp-platform.github.io/FlooNoC/floogen/minimal_example/)<br>• [CLI Reference](https://pulp-platform.github.io/FlooNoC/floogen/cli/) |
 ## 💡 Design Principles
 _FlooNoC_ is built on five key principles to achieve high bandwidth and low latency:
 
@@ -86,113 +83,3 @@ If you use FlooNoC in your research, please cite the following paper:
 
 </p>
 </details>
-
-## ⭐ Getting Started
-
-### Pre-requisites
-
-FlooNoC uses [bender](https://github.com/pulp-platform/bender) to manage its dependencies and to automatically generate compilation scripts. Further `Python >= 3.10` is required to install the generation framework.
-
-### Simulation
-Currently, we do not provide any open-source simulation setup. Internally, the FlooNoC was tested using QuestaSim, which can be launched with the following command:
-
-```sh
-# Compile the sources
-make compile-sim
-# Run the simulation
-make run-sim-batch TB_DUT=tb_floo_dut
-```
-
-or in the GUI, with prepared waveforms:
-
-```sh
-# Compile the sources
-make compile-sim
-# Run the simulation
-make run-sim TB_DUT=tb_floo_dut
-```
-By replacing `tb_floo_dut` with the name of the testbench you want to simulate.
-
-## 🛠️ Generation
-
-FlooNoC comes with a generation framework called `floogen`. It allows to create complex network configurations with a simple configuration file.
-
-### Capabilities
-
-`floogen` has a graph-based internal representation of the network configuration. This allows to easily add new features and capabilities to the generation framework. The following list shows the a couple of the current capabilities of `floogen`:
-
-- **Validation**: The configuration is validated before the generation to ensure that the configuration is valid. For instance, the configuration is checked for invalid user input, overlapping address ranges
-- **Routing**: XY-Routing and ID-Table routing are supported. `floogen` automatically generates the routing tables for the routers, as well as the address map for the network interfaces.
-- **Package Generation**: `floogen` automatically generates a SystemVerilog package with all the needed types and constants for the network configuration.
-- **Top Module Generation**: `floogen` automatically generates a top module that contains all router and network interfaces. The interfaces of the top module are AXI4 interfaces for all the enpdoints specified in the configuration.
-
-### Example
-
-The following example shows the configuration for a simple mesh topology with 4x4 routers and 4x4 chimneys with XY-Routing.
-
-```yaml
-  name: example_system
-  description: "Example of a configuration file"
-
-  routing:
-    route_algo: "XY"
-    use_id_table: true
-
-  protocols:
-    - name: "axi_in"
-      type: "AXI4"
-      data_width: 64
-      addr_width: 32
-      id_width: 3
-      user_width: 1
-    - name: "axi_out"
-      type: "AXI4"
-      data_width: 64
-      addr_width: 32
-      id_width: 3
-      user_width: 1
-
-  endpoints:
-    - name: "cluster"
-      array: [4, 4]
-      addr_range:
-        base: 0x1000_0000
-        size: 0x0004_0000
-      mgr_port_protocol:
-        - "axi_in"
-      sbr_port_protocol:
-        - "axi_out"
-
-  routers:
-    - name: "router"
-      array: [4, 4]
-
-  connections:
-    - src: "cluster"
-      dst: "router"
-      src_range:
-      - [0, 3]
-      - [0, 3]
-      dst_range:
-      - [0, 3]
-      - [0, 3]
-      bidirectional: true
-```
-
-### Usage
-
-To install `floogen` run the following command:
-
-```sh
-pip install .
-```
-
-which allows you to use `floogen` with the following command:
-
-```sh
-floogen rtl -c <config_file> -o <output_dir>
-```
-
-### Configuration
-
-The example configuration above shows the basic structure of a configuration file. A more detailed description of the configuration file can be found in the [documentation](docs/floogen.md).
