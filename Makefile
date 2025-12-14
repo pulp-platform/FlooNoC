@@ -11,13 +11,6 @@
 
 FLOO_ROOT ?= $(shell pwd)
 
-.PHONY: all clean compile-sim run-sim run-sim-batch
-all: compile-sim
-clean: clean-vsim clean-spyglass clean-jobs clean-sources clean-vcs
-compile-sim: compile-vsim
-run-sim: run-vsim
-run-sim-batch: run-vsim-batch
-
 ############
 # Programs #
 ############
@@ -46,73 +39,6 @@ BENDER_FLAGS := $(BENDER_FLAGS) $(EXTRA_BENDER_FLAGS)
 WORK 	 		?= work
 TB_DUT 		?= floo_noc_router_test
 
-VLOG_ARGS += -suppress vlog-2583
-VLOG_ARGS += -suppress vlog-13314
-VLOG_ARGS += -suppress vlog-13233
-VLOG_ARGS += -timescale \"1 ns / 1 ps\"
-VLOG_ARGS += -work $(WORK)
-
-VSIM_FLAGS += -64
-VSIM_FLAGS += -t 1ps
-VSIM_FLAGS += -sv_seed 0
-VSIM_FLAGS += -quiet
-VSIM_FLAGS += -work $(WORK)
-
-VLOGAN_ARGS := -assert svaext
-VLOGAN_ARGS += -assert disable_cover
-VLOGAN_ARGS += -timescale=1ns/1ps
-
-VCS_ARGS    += -Mlib=$(WORK)
-VCS_ARGS    += -Mdir=$(WORK)
-VCS_ARGS    += -j 8
-
-# Set the job name and directory if specified
-ifdef JOB_NAME
-		VSIM_FLAGS += +JOB_NAME=$(JOB_NAME)
-endif
-ifdef TRAFFIC_INJ_RATIO
-		VSIM_FLAGS += +TRAFFIC_INJ_RATIO=$(TRAFFIC_INJ_RATIO)
-endif
-ifdef JOB_DIR
-		VSIM_FLAGS += +JOB_DIR=$(JOB_DIR)
-endif
-ifdef LOG_FILE
-		VSIM_FLAGS += -l $(LOG_FILE)
-		VSIM_FLAGS += -nostdout
-endif
-
-# Automatically open the waveform if a wave.tcl file is present
-VSIM_FLAGS_GUI += -do "log -r /*"
-VSIM_FLAGS_GUI += -voptargs=+acc
-ifneq ("$(wildcard hw/tb/wave/$(TB_DUT).wave.tcl)","")
-    VSIM_FLAGS_GUI += -do "source hw/tb/wave/$(TB_DUT).wave.tcl"
-endif
-
-###########
-# FlooGen #
-###########
-
-FLOOGEN ?= floogen
-FLOO_CFG_DIR ?= $(FLOO_ROOT)floogen/examples
-FLOOGEN_CFG ?= $(FLOO_CFG_DIR)/axi_mesh_xy.yml
-
-FLOOGEN_OUT_DIR ?= $(FLOO_ROOT)generated
-
-.PHONY: install-floogen pkg-sources sources clean-sources
-
-check-floogen:
-	@which $(FLOOGEN) > /dev/null || (echo "Error: floogen not found. Please install floogen." && exit 1)
-
-install-floogen:
-	@which $(FLOOGEN) > /dev/null || (echo "Installing floogen..." && pip install .)
-
-sources: check-floogen
-	$(FLOOGEN) -c $(FLOOGEN_CFG) -o $(FLOOGEN_OUT_DIR) $(FLOOGEN_ARGS)
-
-clean-sources:
-	rm -rf $(FLOOGEN_OUT_DIR)
-	rm -f $(FLOOGEN_PKG_SRC)
-
 ######################
 # Traffic Generation #
 ######################
@@ -131,9 +57,44 @@ jobs: $(TRAFFIC_GEN)
 clean-jobs:
 	rm -rf $(TRAFFIC_OUTDIR)
 
+# Set the job name and directory if specified
+ifdef JOB_NAME
+		VSIM_FLAGS += +JOB_NAME=$(JOB_NAME)
+endif
+ifdef TRAFFIC_INJ_RATIO
+		VSIM_FLAGS += +TRAFFIC_INJ_RATIO=$(TRAFFIC_INJ_RATIO)
+endif
+ifdef JOB_DIR
+		VSIM_FLAGS += +JOB_DIR=$(JOB_DIR)
+endif
+ifdef LOG_FILE
+		VSIM_FLAGS += -l $(LOG_FILE)
+		VSIM_FLAGS += -nostdout
+endif
+
 ########################
 # QuestaSim Simulation #
 ########################
+
+VLOG_ARGS += -suppress vlog-2583
+VLOG_ARGS += -suppress vlog-13314
+VLOG_ARGS += -suppress vlog-13233
+VLOG_ARGS += -timescale \"1 ns / 1 ps\"
+VLOG_ARGS += -work $(WORK)
+
+VSIM_FLAGS += -64
+VSIM_FLAGS += -t 1ps
+VSIM_FLAGS += -sv_seed 0
+VSIM_FLAGS += -quiet
+VSIM_FLAGS += -work $(WORK)
+
+
+# Automatically open the waveform if a wave.tcl file is present
+VSIM_FLAGS_GUI += -do "log -r /*"
+VSIM_FLAGS_GUI += -voptargs=+acc
+ifneq ("$(wildcard hw/tb/wave/$(TB_DUT).wave.tcl)","")
+    VSIM_FLAGS_GUI += -do "source hw/tb/wave/$(TB_DUT).wave.tcl"
+endif
 
 .PHONY: compile-vsim run-vsim run-vsim-batch clean-vsim
 
@@ -162,6 +123,14 @@ clean-vsim:
 # VCS Simulation #
 ##################
 
+VLOGAN_ARGS := -assert svaext
+VLOGAN_ARGS += -assert disable_cover
+VLOGAN_ARGS += -timescale=1ns/1ps
+
+VCS_ARGS    += -Mlib=$(WORK)
+VCS_ARGS    += -Mdir=$(WORK)
+VCS_ARGS    += -j 8
+
 .PHONY: compile-vcs clean-vcs run-vcs run-vcs-batch
 
 scripts/compile_vcs.sh: Bender.yml Bender.lock
@@ -169,12 +138,12 @@ scripts/compile_vcs.sh: Bender.yml Bender.lock
 	$(BENDER) script vcs --vlog-arg "\$(VLOGAN_ARGS)" $(BENDER_FLAGS) --vlogan-bin "$(VLOGAN)" > $@
 	chmod +x $@
 
-compile-vcs: scripts/compile_vcs.sh
+bin/%.vcs: scripts/compile_vcs.sh
 	$< | tee scripts/compile_vcs.log
-
-bin/%.vcs: scripts/compile_vcs.sh compile-vcs
 	mkdir -p bin
 	$(VCS) $(VCS_ARGS) $(VCS_PARAMS) $* -o $@
+
+compile-vcs: bin/$(TB_DUT).vcs
 
 run-vcs run-vcs-batch:
 	bin/$(TB_DUT).vcs +permissive -exitstatus +permissive-off
@@ -228,3 +197,14 @@ init-pd:
 	git clone $(PD_REMOTE) $(PD_DIR) -b $(PD_BRANCH)
 
 -include $(PD_DIR)/pd.mk
+
+#################
+# Phony targets #
+#################
+
+.PHONY: all clean build
+
+all: compile-vsim run-sim-batch
+clean: clean-vsim clean-spyglass clean-jobs clean-sources clean-vcs
+build: compile-vsim
+run: run-vsim

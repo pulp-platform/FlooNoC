@@ -31,7 +31,7 @@ compile-vsim:
   needs:
     - collect-bender-sources
   script:
-    - make compile-sim | tee compile.log 2>&1
+    - make compile-vsim | tee compile.log 2>&1
     - '! grep "\*\* Error" compile.log'
   artifacts:
     paths:
@@ -52,7 +52,7 @@ compile-vcs:
         - tb_floo_nw_chimney
         - tb_floo_rob
   script:
-    - make bin/${TB_DUT}.vcs | tee compile.log 2>&1
+    - make compile-vcs | tee compile.log 2>&1
   artifacts:
     paths:
       - bin/
@@ -68,7 +68,7 @@ compile-meshes:
   script:
     - $UV run --cache-dir $CI_BUILDS_DIR/../cache/uv floogen rtl -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
     # Compile the network
-    - make compile-sim EXTRA_BENDER_FLAGS="-t ${DUT}" WORK="work_${DUT}_${ROUTE_ALGO}" | tee compile.log 2>&1
+    - make compile-vsim EXTRA_BENDER_FLAGS="-t ${DUT}" WORK="work_${DUT}_${ROUTE_ALGO}" | tee compile.log 2>&1
     - '! grep "\*\* Error" compile.log'
   artifacts:
     paths:
