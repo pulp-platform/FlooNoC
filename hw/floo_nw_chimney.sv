@@ -1215,6 +1215,10 @@ module floo_nw_chimney #(
     .ready_i  ( floo_rsp_i.ready      ),
     .valid_o  ( floo_rsp_o.valid      )
   );
+  if (VcImpl == floo_pkg::VcCredit) begin : gen_credit_tie // Credit is never used for narrow req/rsp
+    assign floo_req_o.credit = '0;
+    assign floo_rsp_o.credit = '0;
+  end
 
   if (NumWidePhysChannels == 1) begin: gen_wide_out_wrmh
     floo_wormhole_arbiter #(
