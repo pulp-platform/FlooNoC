@@ -32,15 +32,8 @@ module floo_nw_chimney #(
   /// Every atomic transactions needs to have a unique ID
   /// and one ID is reserved for non-atomic transactions
   parameter int unsigned MaxAtomicTxns           = 1,
-  /// Enable support for decoupling read and write channels
-  /// when enabled, the wide read and write transactions
-  /// use separate channels (virtual or physical)
-  parameter bit EnDecoupledRW                      = 1'b0,
-  /// Specify how many physical channel are used for the wide connection
-  /// This parameter is used together with `EnDecoupledRW`. When read
-  /// and write channekls are decoupled, the two streams can either share
-  /// a single physical channel or use two separate physical channels.
-  parameter int unsigned NumWidePhysChannels        = 1,
+  /// Enable or disable decoupling of read and write transfers on the wide link
+  parameter floo_pkg::wide_rw_decouple_e WideRwDecouple = floo_pkg::None,
   /// Specify which VC implementation to use for the wide channels
   parameter floo_pkg::vc_impl_e VcImpl              = floo_pkg::VcNaive,
   /// Node ID type for routing
@@ -156,7 +149,10 @@ module floo_nw_chimney #(
   // For future extension, add an extra opcode in the user_struct_t
   typedef axi_addr_t user_mask_t ;
 
-  localparam int unsigned NumVirtualChannels = EnDecoupledRW ? 2 : 1;
+  // Derive paramters for decoupling read and write
+  localparam bit EnDecoupledRW = (WideRwDecouple != floo_pkg::None);
+  localparam int unsigned NumVirtualChannels = (WideRwDecouple == floo_pkg::None) ? 1 : 2;
+  localparam int unsigned NumWidePhysChannels = (WideRwDecouple == floo_pkg::Phys) ? 2 : 1;
 
   // Duplicate AXI port signals to degenerate ports
   // in case they are not used
