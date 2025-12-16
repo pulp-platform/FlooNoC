@@ -372,7 +372,6 @@
 // - req_chan: Name of the `req` channel type to transport
 // - rsp_chan: Name of the `rsp` channel type to transport
 // - wide_chan: Name of the `wide` channel type to transport
-// - req_virt_chan: Number of virtual channel for the narrow link
 // - wide_virt_chan: Number of virtual channel for the wide link
 //
 // Usage Example:
@@ -383,8 +382,8 @@
 // `FLOO_TYPEDEF_AXI_FROM_CFG(my_wide_axi, AxiCfgW)
 // `FLOO_TYPEDEF_NW_CHAN_ALL(axi, my_req, my_rsp, my_wide, my_axi_narrow_in, my_axi_wide_in, AxiCfgN, AxiCfgW, hdr_t)
 // `FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, my_req, my_rsp, my_wide, 1, 2)
-`define FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req_chan, rsp_chan, wide_chan, req_virt_chan, wide_virt_chan, wide_phys_chan)  \
-  `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(req, req_chan, req_virt_chan, req_virt_chan)                                                            \
+`define FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req_chan, rsp_chan, wide_chan, wide_virt_chan, wide_phys_chan)  \
+  `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(req, req_chan, 1, 1)                                                            \
   `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(rsp, rsp_chan, 1, 1)                                                                        \
   `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(wide, wide_chan, wide_virt_chan, wide_phys_chan)
 

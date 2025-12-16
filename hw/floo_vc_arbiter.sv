@@ -51,22 +51,25 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
     // Lock and mask update logic //
     ////////////////////////////////
 
-    always_comb begin
-      mask_d = mask_q;
-      // If we have a valid request but no grant, and the
-      // other VC has a grant, switch VC in the next cycle
-      if (vc_arb_req_out) begin
-        if (!vc_arb_gnt_in) begin
-          if (ready_i[vc_arb_idx ? 0 : 1] && valid_i[vc_arb_idx ? 0 : 1]) begin: gen_valid_mask
-              mask_d = ~(1'b1 << vc_arb_idx);
+    if (VcImpl == VcPreemptValid) begin: gen_preempt_valid_mask
+      always_comb begin
+        mask_d = mask_q;
+        // If we have a valid request but no grant, and the
+        // other VC has a grant, switch VC in the next cycle. This logic works with only two VCs
+        // A more sophisticated arbitration mechanism would be needed for more VCs.
+        if (vc_arb_req_out) begin
+          if (!vc_arb_gnt_in) begin
+            if (ready_i[~vc_arb_idx] && valid_i[~vc_arb_idx]) begin: gen_valid_mask
+                mask_d = ~(1'b1 << vc_arb_idx);
+            end
+          end else begin
+            mask_d = '1;
           end
-        end else begin
-          mask_d = '1;
         end
       end
-    end
 
-    `FF(mask_q, mask_d, '1, clk_i, rst_ni)
+      `FF(mask_q, mask_d, '1, clk_i, rst_ni)
+    end
 
     //////////////////////////
     // VC arbitration logic //
@@ -153,6 +156,6 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
   `ASSERT(OneHotOutputValid, $onehot0(valid_o))
 
   // Currently only supports two virtual channels
-  `ASSERT_INIT(SupportedNumVirtChannels, (VcImpl != floo_pkg::VcNaive) || (NumVirtChannels <= 2))
+  `ASSERT_INIT(SupportedNumVirtChannels, (VcImpl == floo_pkg::VcNaive) || (NumVirtChannels <= 2))
 
 endmodule
