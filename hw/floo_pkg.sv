@@ -99,11 +99,23 @@ package floo_pkg;
     VcPreemptValid  = 2'd2
   } vc_impl_e;
 
-  // Virtual channel index association for read and write channels
+  /// Virtual channel index association for read and write channels
   typedef enum logic {
     Read  = 1'b1,
     Write = 1'b0
   } vc_e;
+
+  /// Implementation of the read/write wide scheme
+  typedef enum logic[1:0] {
+    /// Share same wide link for read and write channels
+    /// this create a coupling between read and write transfers
+    None = 2'd0,
+    /// Decouple read and write transfers, using vc_e implementation
+    /// Write transactions are always assigned to VC0, while Read to VC1
+    Vc = 2'd1,
+    /// Decouple read and write transfers, using separate wide links
+    Phys = 2'd2
+  } wide_rw_decouple_e;
 
   /// The types of collective communication
   typedef enum logic [1:0] {

@@ -29,10 +29,9 @@ module floo_nw_router #(
   /// Disable illegal connections in router
   /// (only applies for `RouteAlgo == XYRouting`)
   parameter bit          XYRouteOpt           = 1'b1,
-  /// Enable decoupling between Read and Write WIDE channels using virtual channels
-  /// assumed that write transactions are alwasy on VC0.
-  parameter int unsigned  NumWideVirtChannels       = 32'd1,
-  parameter int unsigned  NumWidePhysChannels       = 32'd1,
+  /// Enable decoupling between Read and Write WIDE channels using virtual or
+  /// physical channels: assumed that write transactions are alwasy on VC0.
+  parameter floo_pkg::wide_rw_decouple_e WideRwDecouple = floo_pkg::None,
   parameter floo_pkg::vc_impl_e VcImpl              = floo_pkg::VcNaive,
   /// Enable multicast feature
   parameter bit          EnMultiCast          = 1'b0,
@@ -70,6 +69,9 @@ module floo_nw_router #(
   input   floo_wide_t [NumRoutes-1:0] floo_wide_i,
   output  floo_wide_t [NumRoutes-1:0] floo_wide_o
 );
+
+  localparam int unsigned NumWidePhysChannels = (WideRwDecouple == floo_pkg::Phys) ? 2 : 1;
+  localparam int unsigned NumWideVirtChannels = (WideRwDecouple == floo_pkg::None) ? 1 : 2;
 
   typedef logic [AxiCfgN.AddrWidth-1:0] axi_addr_t;
   typedef logic [AxiCfgN.InIdWidth-1:0] axi_narrow_in_id_t;
