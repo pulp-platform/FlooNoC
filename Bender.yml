@@ -109,6 +109,8 @@ sources:
     - hw/synth/floo_synth_nw_router.sv
 
   - target: floo_deprecated_hw
+    include_dirs:
+      - hw/deprecated/include
     files:
       # Level 1
       - hw/deprecated/vc_router_util/floo_credit_counter.sv
