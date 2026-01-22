@@ -36,7 +36,8 @@ dev = [
     "pytest",
     "ruff",
     "mkdocstrings-python>=2.0.1",
-    "zensical>=0.0.11",
+    # Bump with care, currently in pre-release status
+    "zensical==0.0.11",
 ]
 viz = ["pygame"]
 
