@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: SHL-0.51
 //
 // Michael Rogenmoser <michaero@iis.ee.ethz.ch>
+// Raphael Roth <raroth@student.ethz.ch>
 
 `include "common_cells/registers.svh"
 
@@ -27,7 +28,9 @@ module floo_route_select
   /// Various types used in the routing algorithm
   parameter type         flit_t           = logic,
   parameter type         addr_rule_t      = logic,
-  parameter type         id_t             = logic[IdWidth-1:0]
+  parameter type         id_t             = logic[IdWidth-1:0],
+  /// Inversed SRC / DST if we want to support Multicast on the B response
+  parameter bit          InversedSrcDst       = 1'b0
 ) (
   input  logic                          clk_i,
   input  logic                          rst_ni,
@@ -44,8 +47,14 @@ module floo_route_select
   output logic [RouteSelWidth-1:0]      route_sel_id_o
 );
 
+  // Selected route defined by th alg.
   logic [NumRoutes-1:0] route_sel;
   logic [RouteSelWidth-1:0] route_sel_id;
+
+  // We need to calc the multicast and the unicast route in parallel
+  // and mux them depending on the flit header!
+  logic [NumRoutes-1:0] route_sel_multicast;
+  logic [NumRoutes-1:0] route_sel_unicast;
 
   if (RouteAlgo == IdTable) begin : gen_id_table
     // Routing based on an ID table passed into the router (TBD parameter or signal)
@@ -102,43 +111,54 @@ module floo_route_select
 
     // One-hot encoding of the decoded route
 
+    // If we enable multicast then generate the output routes here seperatly
     if (EnMultiCast) begin : gen_mcast_route_sel
       floo_route_xymask #(
-        .NumRoutes     ( NumRoutes ),
-        .flit_t        ( flit_t    ),
-        .id_t          ( id_t      ),
-        .FwdMode       ( 1         )
+        .NumRoutes     ( NumRoutes        ),
+        .flit_t        ( flit_t           ),
+        .id_t          ( id_t             ),
+        .FwdMode       ( 1'b1             )
       ) i_route_xymask (
         .channel_i   ( channel_i ),
         .xy_id_i     ( xy_id_i   ),
-        .route_sel_o ( route_sel )
+        .route_sel_o ( route_sel_multicast )
       );
-      assign route_sel_id = '0; // Not defined in multicast
-    end else begin : gen_route_sel
-      id_t id_in;
-      assign id_in = id_t'(channel_i.hdr.dst_id);
-      always_comb begin
-        route_sel_id = East;
-        if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
-          route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
-        end else if (id_in.x == xy_id_i.x) begin
-          if (id_in.y < xy_id_i.y) begin
-            route_sel_id = South;
-          end else begin
-            route_sel_id = North;
-          end
-        end else begin
-          if (id_in.x < xy_id_i.x) begin
-            route_sel_id = West;
-          end else begin
-            route_sel_id = East;
-          end
-        end
-        route_sel = '0;
-        route_sel[route_sel_id] = 1'b1;
-      end
+    end else begin : gen_no_mcast
+      assign route_sel_multicast = '0;  // No MCast supported
     end
 
+    // Calculate here the unicast output mask
+    id_t id_in;
+    assign id_in = id_t'(channel_i.hdr.dst_id);
+    always_comb begin
+      route_sel_id = East;
+      if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
+        route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
+      end else if (id_in.x == xy_id_i.x) begin
+        if (id_in.y < xy_id_i.y) begin
+          route_sel_id = South;
+        end else begin
+          route_sel_id = North;
+        end
+      end else begin
+        if (id_in.x < xy_id_i.x) begin
+          route_sel_id = West;
+        end else begin
+          route_sel_id = East;
+        end
+      end
+      route_sel_unicast = '0;
+      route_sel_unicast[route_sel_id] = 1'b1;
+    end
+
+    // Depending on the flit header choose the correct route
+    if(EnMultiCast) begin
+      assign route_sel = (channel_i.hdr.collective_op == Multicast) ? route_sel_multicast : route_sel_unicast;
+    end else begin
+      assign route_sel = route_sel_unicast;
+    end
+
+    // Assign the data directly to the output
     assign channel_o = channel_i;
 
   end else begin : gen_err
