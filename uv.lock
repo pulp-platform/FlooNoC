@@ -237,11 +237,9 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "mkdocstrings-python" },
     { name = "pytest" },
     { name = "ruff" },
-]
-docs = [
-    { name = "mkdocstrings-python" },
     { name = "zensical" },
 ]
 viz = [
@@ -260,11 +258,9 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "mkdocstrings-python", specifier = ">=2.0.1" },
     { name = "pytest" },
     { name = "ruff" },
-]
-docs = [
-    { name = "mkdocstrings-python", specifier = ">=2.0.1" },
     { name = "zensical", specifier = ">=0.0.11" },
 ]
 viz = [{ name = "pygame" }]

@@ -32,8 +32,9 @@ Homepage = "https://github.com/pulp-platform/FlooNoC"
 floogen = "floogen.cli:main"
 
 [dependency-groups]
-dev = ["pytest", "ruff"]
-docs = [
+dev = [
+    "pytest",
+    "ruff",
     "mkdocstrings-python>=2.0.1",
     "zensical>=0.0.11",
 ]
