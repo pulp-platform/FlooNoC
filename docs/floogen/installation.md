@@ -66,20 +66,20 @@ If you plan to contribute to _FlooGen_ or build the documentation locally, you s
 
 === "uv"
     ```bash
-    # Nothing to do, `uv run --groups dev|docs` will download dependencies automatically
+    # Nothing to do, `uv run` will download dependencies automatically
     ```
 
 
 === "pip"
     ```bash
-    pip install .[dev,docs]
+    pip install .[dev]
     ```
 
 The documentation is built using [Zensical](https://zensical.org/). To build the documentation locally, run:
 
 === "uv"
     ```bash
-    uv run --group docs zensical build
+    uv run zensical build
     ```
 
 === "pip"
@@ -91,7 +91,7 @@ If you want to serve the documentation locally for easier browsing, run:
 
 === "uv"
     ```bash
-    uv run --group docs zensical serve -o
+    uv run zensical serve -o
     ```
 
 === "pip"
