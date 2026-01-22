@@ -12,7 +12,7 @@ _FlooNoC_, is a Network-on-Chip (NoC) research project, which is part of the [PU
 
     Check out the documentation of _FlooNoC_.
 
-    [:octicons-arrow-right-24: FlooNoC](hw/overview.md)
+    [:octicons-arrow-right-24: FlooNoC](floonoc/overview.md)
 
 -   :material-magic-staff:{ .lg .middle } __FlooGen__
 
@@ -34,8 +34,10 @@ _FlooNoC_, is a Network-on-Chip (NoC) research project, which is part of the [PU
 
     ---
 
-    Check out what has changed in the latest version of _FlooNoC_.
+    Check out what has changed in the latest versions of
 
-    [:octicons-arrow-right-24: Changelog](changelog.md)
+    [:octicons-arrow-right-24: FlooNoC](floonoc/changelog.md)
+
+    [:octicons-arrow-right-24: FlooGen](floogen/changelog.md)
 
 </div>
