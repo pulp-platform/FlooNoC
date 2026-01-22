@@ -52,23 +52,6 @@ sources:
   - hw/floo_axi_router.sv
   - hw/floo_nw_router.sv
 
-  # VC Router (Level 1)
-  - hw/vc_router_util/floo_credit_counter.sv
-  - hw/vc_router_util/floo_input_fifo.sv
-  - hw/vc_router_util/floo_input_port.sv
-  - hw/vc_router_util/floo_look_ahead_routing.sv
-  - hw/vc_router_util/floo_mux.sv
-  - hw/vc_router_util/floo_rr_arbiter.sv
-  - hw/vc_router_util/floo_sa_global.sv
-  - hw/vc_router_util/floo_sa_local.sv
-  - hw/vc_router_util/floo_vc_assignment.sv
-  - hw/vc_router_util/floo_vc_router_switch.sv
-  - hw/vc_router_util/floo_vc_selection.sv
-  # Level 2
-  - hw/floo_vc_router.sv
-  - hw/floo_nw_vc_chimney.sv
-  - hw/floo_nw_vc_router.sv
-
   - target: floo_test
     include_dirs:
       - hw/test/include
@@ -90,7 +73,6 @@ sources:
       - hw/tb/tb_floo_nw_chimney.sv
       - hw/tb/tb_floo_router.sv
       - hw/tb/tb_floo_rob.sv
-      - hw/tb/tb_floo_vc_router.sv
       - hw/tb/tb_floo_rob_multicast.sv
 
   - target: all(any(floo_test, floo_synth), axi_mesh)
@@ -115,6 +97,7 @@ sources:
     files:
       - hw/tb/tb_floo_nw_mesh.sv
 
+
   - target: all(floo_synth, synthesis)
     files:
     # Level 0
@@ -124,3 +107,26 @@ sources:
     - hw/synth/floo_synth_nw_chimney.sv
     - hw/synth/floo_synth_axi_router.sv
     - hw/synth/floo_synth_nw_router.sv
+
+  - target: floo_deprecated_hw
+    include_dirs:
+      - hw/deprecated/include
+    files:
+      # Level 1
+      - hw/deprecated/vc_router_util/floo_credit_counter.sv
+      - hw/deprecated/vc_router_util/floo_input_fifo.sv
+      - hw/deprecated/vc_router_util/floo_input_port.sv
+      - hw/deprecated/vc_router_util/floo_look_ahead_routing.sv
+      - hw/deprecated/vc_router_util/floo_mux.sv
+      - hw/deprecated/vc_router_util/floo_rr_arbiter.sv
+      - hw/deprecated/vc_router_util/floo_sa_global.sv
+      - hw/deprecated/vc_router_util/floo_sa_local.sv
+      - hw/deprecated/vc_router_util/floo_vc_assignment.sv
+      - hw/deprecated/vc_router_util/floo_vc_router_switch.sv
+      - hw/deprecated/vc_router_util/floo_vc_selection.sv
+
+      # Level 1
+      - hw/floo_vc_router.sv
+      - hw/floo_nw_vc_chimney.sv
+      - hw/floo_nw_vc_router.sv
+      - hw/tb/tb_floo_vc_router.sv
