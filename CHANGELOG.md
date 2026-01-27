@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 ### FlooGen
 - Added support for systemRDL address map generation (https://github.com/pulp-platform/FlooNoC/pull/127 and https://github.com/pulp-platform/FlooNoC/pull/130)
 - Generate multicast address map (https://github.com/pulp-platform/FlooNoC/pull/142)
+- Refactor CLI with subcommands instead of flags (see https://github.com/pulp-platform/FlooNoC/pull/155 for more details)
+- Add support for custom templates (https://github.com/pulp-platform/FlooNoC/pull/155)
 
 ### Fixed
 
