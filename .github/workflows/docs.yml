@@ -28,6 +28,10 @@ jobs:
       - uses: actions/checkout@v5
       - name: Install uv
         uses: astral-sh/setup-uv@v6
+        # Zensical does not allow symlinks outside of the docs folder,
+        # so we copy it in.
+      - name: Copy CHANGELOG
+        run: cp CHANGELOG.md docs/CHANGELOG.md
       - run: uv run zensical build --clean
       - uses: actions/upload-pages-artifact@v4
         with:
