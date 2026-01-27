@@ -1,6 +1,6 @@
 # _FlooGen_: The NoC Generation Framework
 
-_FlooGen_ is the Python-based configuration and generation framework bundled with _FlooNoC_. While _FlooNoC_ provides the efficient hardware IP blocks (mainly routers and network interfaces), _FlooGen_ acts as the system architect that assembles them into a functional Network-on-Chip.
+_FlooGen_ is the Python-based configuration and generation framework bundled with [_FlooNoC_](https://github.com/pulp-platform/FlooNoC). While [_FlooNoC_](https://github.com/pulp-platform/FlooNoC) provides the efficient hardware IP blocks (mainly routers and network interfaces), _FlooGen_ acts as the system architect that assembles them into a functional Network-on-Chip.
 
 It transforms a high-level, human-readable description of your network (topology, routing rules, protocols) into fully connected, verified, and synthesizable SystemVerilog RTL.
 

@@ -6,15 +6,19 @@
 name = "floogen"
 version = "0.7.0"
 description = "A Network Generator for FlooNoC"
-readme = "README.md"
-license = { text = "Apache-2.0" }
+readme = "docs/floogen/overview.md"
+license = "Apache-2.0"
+license-files = ["LICENSE-APACHE"]
 requires-python = ">=3.10"
 authors = [{ name = "Tim Fischer", email = "fischeti@iis.ee.ethz.ch" }]
 classifiers = [
   "Programming Language :: Python :: 3.10",
   "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
+  "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+  "Development Status :: 4 - Beta",
 ]
+keywords = ["noc", "network-on-chip", "generator", "systemverilog", "eda", "pulp-platform"]
 
 dependencies = [
   "pydantic",
@@ -27,6 +31,9 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/pulp-platform/FlooNoC"
+Repository = "https://github.com/pulp-platform/FlooNoC"
+Documentation = "https://pulp-platform.github.io/FlooNoC/"
+Changelog = "https://github.com/pulp-platform/FlooNoC/blob/main/CHANGELOG.md"
 
 [project.scripts]
 floogen = "floogen.cli:main"
