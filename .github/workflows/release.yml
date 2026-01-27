@@ -1,0 +1,56 @@
+# Copyright 2025 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
+
+name: "Publish"
+
+on:
+    push:
+        tags:
+            - v*
+    workflow_dispatch:
+
+jobs:
+    publish-pypi:
+        name: Publish to PyPI
+        if: github.event_name == 'push'
+        runs-on: ubuntu-latest
+        permissions:
+            id-token: write
+            contents: read
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v5
+            - name: Install uv
+              uses: astral-sh/setup-uv@v7
+            - name: Build
+              run: uv build
+            - name: Smoke tests
+              run: |
+                  uv run --isolated --no-project --with dist/*.whl floogen rtl -c floogen/examples/axi_mesh_xy.yml
+                  uv run --isolated --no-project --with dist/*.tar.gz floogen rtl -c floogen/examples/axi_mesh_xy.yml
+            - name: Publish
+              run: uv publish
+
+    publish-test-pypi:
+        name: Publish to Test PyPI
+        if: github.event_name == 'workflow_dispatch'
+        runs-on: ubuntu-latest
+        permissions:
+            id-token: write
+            contents: read
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v5
+            - name: Install uv
+              uses: astral-sh/setup-uv@v7
+            - name: Build
+              run: uv build
+            - name: Smoke tests
+              run: |
+                  uv run --isolated --no-project --with dist/*.whl floogen rtl -c floogen/examples/axi_mesh_xy.yml
+                  uv run --isolated --no-project --with dist/*.tar.gz floogen rtl -c floogen/examples/axi_mesh_xy.yml
+            - name: Publish
+              run: uv publish --index testpypi
