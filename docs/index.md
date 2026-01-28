@@ -34,10 +34,9 @@ _FlooNoC_, is a Network-on-Chip (NoC) research project, which is part of the [PU
 
     ---
 
-    Check out what has changed in the latest versions of
+    Check out what has changed in the latest versions.
 
-    [:octicons-arrow-right-24: FlooNoC](floonoc/changelog.md)
+    [:octicons-arrow-right-24: Changelog](CHANGELOG.md)
 
-    [:octicons-arrow-right-24: FlooGen](floogen/changelog.md)
 
 </div>

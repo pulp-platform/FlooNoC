@@ -71,10 +71,7 @@ nav = [
     {"Integration" = [
         "integration/integration.md"
     ]},
-    {"Changelog" = [
-        {"FlooNoC" = "floonoc/changelog.md"},
-        {"FlooGen" = "floogen/changelog.md"}
-    ]}
+    {"Changelog" = "CHANGELOG.md"}
 ]
 
 
