@@ -4,12 +4,17 @@
 //
 // Tim Fischer <fischeti@iis.ee.ethz.ch>
 
+`include "common_cells/assertions.svh"
+`include "common_cells/registers.svh"
+
 /// A virtual channel arbiter
 module floo_vc_arbiter import floo_pkg::*;
 #(
-  parameter int unsigned NumVirtChannels = 1,
-  parameter type         flit_t          = logic,
-  parameter int unsigned NumPhysChannels = 1
+  parameter int unsigned NumVirtChannels  = 1,
+  parameter type         flit_t           = logic,
+  parameter int unsigned NumPhysChannels  = 1,
+  parameter vc_impl_e    VcImpl           = VcNaive,
+  parameter int unsigned NumCredits       = 3
 ) (
   input  logic                        clk_i,
   input  logic                        rst_ni,
@@ -20,7 +25,8 @@ module floo_vc_arbiter import floo_pkg::*;
   /// Ports towards the physical channels
   input  logic  [NumVirtChannels-1:0] ready_i,
   output logic  [NumVirtChannels-1:0] valid_o,
-  output flit_t [NumPhysChannels-1:0] data_o
+  output flit_t [NumPhysChannels-1:0] data_o,
+  input  logic  [NumVirtChannels-1:0] credit_i
 );
 
 if (NumVirtChannels == NumPhysChannels) begin : gen_virt_eq_phys
@@ -35,10 +41,58 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
     logic [NumVirtChannels-1:0] vc_arb_req_in;
     logic                       vc_arb_req_out, vc_arb_gnt_in;
 
-    // A Virtual channel is only considered for arbitration if the virtual
-    // channel holds valid data `valid_i` and the next router is ready to
-    // receive data on this virtual channel `ready_i`.
-    assign vc_arb_req_in = valid_i & ready_i;
+    // Signals to support credit based arbitration
+    logic [NumVirtChannels-1:0] credit_handshake, credit_left;
+
+    // Mask used to switch VC requests
+    logic [NumVirtChannels-1:0] mask_q, mask_d;
+
+    ////////////////////////////////
+    // Lock and mask update logic //
+    ////////////////////////////////
+
+    if (VcImpl == VcPreemptValid) begin: gen_preempt_valid_mask
+      always_comb begin
+        mask_d = mask_q;
+        // If we have a valid request but no grant, and the
+        // other VC has a grant, switch VC in the next cycle. This logic works with only two VCs
+        // A more sophisticated arbitration mechanism would be needed for more VCs.
+        if (vc_arb_req_out) begin
+          if (!vc_arb_gnt_in) begin
+            if (ready_i[~vc_arb_idx] && valid_i[~vc_arb_idx]) begin: gen_valid_mask
+                mask_d = ~(1'b1 << vc_arb_idx);
+            end
+          end else begin
+            mask_d = '1;
+          end
+        end
+      end
+
+      `FF(mask_q, mask_d, '1, clk_i, rst_ni)
+    end
+
+    //////////////////////////
+    // VC arbitration logic //
+    //////////////////////////
+
+    if (VcImpl == VcPreemptValid) begin : gen_preempt_valid
+      // Initially, any valid channel can request access to the physical channel.
+      // However, to guarantee deadlock freedom, we must be able to preempt the
+      // virtual channel holding the physical link and put the other channel on
+      // the link. To do so, we mask the VC holding the link, when required.
+      assign vc_arb_req_in = valid_i & mask_q;
+    end else if (VcImpl == VcCredit) begin : gen_credit_based
+      // In case of credit based approach, the valid is set only if there are credits left
+      assign vc_arb_req_in = valid_i & credit_left;
+    end else begin : gen_standard
+      // A Virtual channel is only considered for arbitration if the virtual
+      // channel holds valid data `valid_i` and the next router is ready to
+      // receive data on this virtual channel `ready_i`.
+      assign vc_arb_req_in = valid_i & ready_i;
+    end
+
+    // A credit is taken only after handshake has occured
+    assign credit_handshake = valid_o & ready_o;
 
     // The arbitration tree only accepts a single grant signal. Therefore,
     // The grant of the channel that has won the arbitration is forwarded
@@ -68,6 +122,25 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
       .data_o   ( data_o            ),
       .idx_o    ( vc_arb_idx        )
     );
+
+  if (VcImpl == VcCredit) begin: gen_credit
+    for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_vc_credits
+      credit_counter #(
+        .NumCredits(NumCredits)
+      ) i_vc_credit_counter (
+        .clk_i            ( clk_i                     ),
+        .rst_ni           ( rst_ni                    ),
+        .credit_o         ( /* unused */              ),
+        .credit_give_i    ( credit_i[v]               ),
+        .credit_take_i    ( credit_handshake[v]       ),
+        .credit_init_i    ( 1'b0                      ),
+        .credit_left_o    ( credit_left[v]            ),
+        .credit_crit_o    ( /* unused */              ),
+        .credit_full_o    ( /* unused */              )
+      );
+    end
+  end
+
   end else begin : gen_odd_phys
     $fatal(1, "unimplemented!");
 
@@ -75,5 +148,14 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
 
   end
 
+  ////////////////
+  // Assertions //
+  ////////////////
+
+  // Only one VC can access the physical link at a time
+  `ASSERT(OneHotOutputValid, $onehot0(valid_o))
+
+  // Currently only supports two virtual channels
+  `ASSERT_INIT(SupportedNumVirtChannels, (VcImpl == floo_pkg::VcNaive) || (NumVirtChannels <= 2))
 
 endmodule
