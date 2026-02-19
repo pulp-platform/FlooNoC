@@ -23,7 +23,7 @@ This guide covers how to set up the environment to simulate and verify the *Floo
 
 
 !!! note
-    Ensure the Bender binary is in your `PATH`, or set the `BENDER` environment variable to point to it.
+    Minimum required version of bender is `0.30.0`. Ensure the Bender binary is in your `PATH`, or set the `BENDER` environment variable to point to it.
 
 Then you can check whether Bender is installed correctly by fetching the dependencies:
 
