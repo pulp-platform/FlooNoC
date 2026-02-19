@@ -25,9 +25,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/configure-pages@v5
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         # Zensical does not allow symlinks outside of the docs folder,
         # so we copy it in.
       - name: Copy CHANGELOG

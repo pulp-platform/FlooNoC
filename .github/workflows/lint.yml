@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check Bender up-to-date
-        uses: pulp-platform/pulp-actions/bender-up-to-date@v2
+        uses: pulp-platform/pulp-actions/bender-up-to-date@v2.4.4
 
   ################
   # Verible Lint #
@@ -47,7 +47,7 @@ jobs:
   ruff:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: astral-sh/ruff-action@v3
 
   #################
@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: lint license
-        uses: pulp-platform/pulp-actions/lint-license@v2
+        uses: pulp-platform/pulp-actions/lint-license@v2.4.4
         with:
           license: |
             Copyright (\d{4}(-\d{4})?\s)?(ETH Zurich and University of Bologna|lowRISC contributors).
