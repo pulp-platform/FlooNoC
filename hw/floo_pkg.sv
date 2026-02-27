@@ -86,7 +86,7 @@ package floo_pkg;
   /// Virtual channel implementation types
   typedef enum logic[1:0] {
     /// The naive implementation  placed the valid and the data on the physical link
-    /// if teh downstream subordinate is ready. However this will create an in2out
+    /// if the downstream subordinate is ready. However this will create an in2out
     /// path that span over the entire cluster tile, possibly limiting clock frequency.
     VcNaive = 2'd0,
     /// The credit based approach allows to cut the in2out path.
