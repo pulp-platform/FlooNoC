@@ -48,7 +48,7 @@ sources:
   - hw/floo_output_arbiter.sv
   # Level 4
   - hw/floo_nw_join.sv
-  #- hw/floo_axi_chimney.sv
+  - hw/floo_axi_chimney.sv
   - hw/floo_nw_chimney.sv
   - hw/floo_router.sv
   # Level 5 (Wrappers)

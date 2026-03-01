@@ -732,9 +732,6 @@ class Routing(BaseModel):
                                 self.route_algo == RouteAlgo.ID and not self.use_id_table else 0,
             "NumSamRules": len(self.sam),
             "NumRoutes": self.num_endpoints if self.route_algo == RouteAlgo.SRC else 0,
-            "EnMultiCast": bool_to_sv(self.en_multicast),
-            "EnParallelReduction": bool_to_sv(self.en_parallel_reduction),
-            "EnNarrowOffloadReduction": bool_to_sv(self.en_narrow_offload_reduction),
-            "EnWideOffloadReduction": bool_to_sv(self.en_wide_offload_reduction)
+            "CollectiveCfg": "CollectiveDefaultCfg"
         }
         return sv_param_decl(name, sv_struct_render(fields), dtype="route_cfg_t")
