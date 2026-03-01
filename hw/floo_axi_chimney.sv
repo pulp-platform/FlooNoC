@@ -88,7 +88,7 @@ module floo_axi_chimney #(
   /// Coordinates/ID of the current tile
   input  id_t id_i,
   /// Routing table for the current tile
-  input  route_t [RouteCfg.NumRoutes-1:0] route_table_i,
+  input  route_t [(RouteCfg.NumRoutes > 0 ? RouteCfg.NumRoutes-1 : 0):0] route_table_i,
   /// Output links to NoC
   output floo_req_t floo_req_o,
   output floo_rsp_t floo_rsp_o,
@@ -98,6 +98,10 @@ module floo_axi_chimney #(
 );
 
   import floo_pkg::*;
+
+  // Collective communication configuration
+  localparam floo_pkg::collect_op_fe_cfg_t CollectOpCfg = RouteCfg.CollectiveCfg.OpCfg;
+  localparam bit EnMultiCast = CollectOpCfg.EnNarrowMulticast | CollectOpCfg.EnWideMulticast;
 
   typedef logic [AxiCfg.AddrWidth-1:0] axi_addr_t;
   typedef logic [AxiCfg.InIdWidth-1:0] axi_in_id_t;
@@ -197,7 +201,7 @@ module floo_axi_chimney #(
     `AXI_ASSIGN_RESP_STRUCT(axi_in_rsp_o, axi_rsp_out)
 
     // Extract the multicast mask bits from the AXI user bits
-    if (RouteCfg.EnMultiCast) begin : gen_mask
+    if (EnMultiCast) begin : gen_mask
       user_struct_t user;
       assign user = axi_in_req_i.aw.user;
       assign axi_req_in_mask = user.mcast_mask;
@@ -231,7 +235,7 @@ module floo_axi_chimney #(
         .valid_o    ( axi_ar_queue_valid_out  ),
         .ready_i    ( axi_ar_queue_ready_in   )
       );
-      if (RouteCfg.EnMultiCast) begin : gen_mask_cuts
+      if (EnMultiCast) begin : gen_mask_cuts
         spill_register #(
           .T (logic [AxiCfg.UserWidth-1:0])
         ) i_usermask_queue (
@@ -517,7 +521,7 @@ module floo_axi_chimney #(
   `FFL(axi_aw_id_q, id_out[AxiAw], axi_aw_queue_valid_out &&
                                    axi_aw_queue_ready_in, '0)
 
-  if (RouteCfg.EnMultiCast) begin : gen_mcast
+  if (EnMultiCast) begin : gen_mcast
     localparam int unsigned AddrWidth = $bits(axi_addr_t);
     axi_addr_t [NumAxiChannels-1:0] x_addr_mask;
     axi_addr_t [NumAxiChannels-1:0] y_addr_mask;
@@ -548,8 +552,8 @@ module floo_axi_chimney #(
     assign mcast_mask[AxiAw] = mask_id[AxiAw];
     assign mcast_mask[AxiAr] = '0;
     assign mcast_mask[AxiW]  = axi_aw_mask_q;
-    assign mcast_mask[AxiR]  = ar_out_hdr_out.hdr.mask;
-    assign mcast_mask[AxiB]  = aw_out_hdr_out.hdr.mask;
+    assign mcast_mask[AxiR]  = ar_out_hdr_out.hdr.collective_mask;
+    assign mcast_mask[AxiB]  = aw_out_hdr_out.hdr.collective_mask;
 
     `FFL(axi_aw_mask_q, mcast_mask[AxiAw], axi_aw_queue_valid_out &&
                                      axi_aw_queue_ready_in, '0)
@@ -563,73 +567,73 @@ module floo_axi_chimney #(
 
   always_comb begin
     floo_axi_aw             = '0;
-    floo_axi_aw.hdr.rob_req = aw_rob_req_out;
-    floo_axi_aw.hdr.rob_idx = aw_rob_idx_out;
-    floo_axi_aw.hdr.dst_id  = dst_id[AxiAw];
-    floo_axi_aw.hdr.mask    = mcast_mask[AxiAw];
-    floo_axi_aw.hdr.src_id  = id_i;
-    floo_axi_aw.hdr.last    = 1'b0;
-    floo_axi_aw.hdr.axi_ch  = AxiAw;
-    floo_axi_aw.hdr.atop    = axi_aw_queue.atop != axi_pkg::ATOP_NONE;
-    floo_axi_aw.payload     = axi_aw_queue;
-    floo_axi_aw.hdr.commtype = (mcast_mask[AxiAw] != '0)? Multicast : Unicast;
+    floo_axi_aw.hdr.rob_req         = aw_rob_req_out;
+    floo_axi_aw.hdr.rob_idx         = aw_rob_idx_out;
+    floo_axi_aw.hdr.dst_id          = dst_id[AxiAw];
+    floo_axi_aw.hdr.collective_mask = mcast_mask[AxiAw];
+    floo_axi_aw.hdr.src_id          = id_i;
+    floo_axi_aw.hdr.last            = 1'b0;
+    floo_axi_aw.hdr.axi_ch         = AxiAw;
+    floo_axi_aw.hdr.atop            = axi_aw_queue.atop != axi_pkg::ATOP_NONE;
+    floo_axi_aw.payload             = axi_aw_queue;
+    floo_axi_aw.hdr.collective_op   = (mcast_mask[AxiAw] != '0)? Multicast : Unicast;
   end
 
   always_comb begin
     floo_axi_w              = '0;
-    floo_axi_w.hdr.rob_req  = aw_rob_req_out;
-    floo_axi_w.hdr.rob_idx  = aw_rob_idx_out;
-    floo_axi_w.hdr.dst_id   = dst_id[AxiW];
-    floo_axi_w.hdr.mask     = mcast_mask[AxiW];
-    floo_axi_w.hdr.src_id   = id_i;
-    floo_axi_w.hdr.last     = axi_req_in.w.last;
-    floo_axi_w.hdr.axi_ch   = AxiW;
-    floo_axi_w.payload      = axi_req_in.w;
-    floo_axi_w.hdr.commtype = (mcast_mask[AxiW] != '0)? Multicast : Unicast;
+    floo_axi_w.hdr.rob_req         = aw_rob_req_out;
+    floo_axi_w.hdr.rob_idx         = aw_rob_idx_out;
+    floo_axi_w.hdr.dst_id          = dst_id[AxiW];
+    floo_axi_w.hdr.collective_mask = mcast_mask[AxiW];
+    floo_axi_w.hdr.src_id          = id_i;
+    floo_axi_w.hdr.last            = axi_req_in.w.last;
+    floo_axi_w.hdr.axi_ch         = AxiW;
+    floo_axi_w.payload             = axi_req_in.w;
+    floo_axi_w.hdr.collective_op   = (mcast_mask[AxiW] != '0)? Multicast : Unicast;
   end
 
   always_comb begin
     floo_axi_ar             = '0;
-    floo_axi_ar.hdr.rob_req = ar_rob_req_out;
-    floo_axi_ar.hdr.rob_idx = ar_rob_idx_out;
-    floo_axi_ar.hdr.dst_id  = dst_id[AxiAr];
-    floo_axi_ar.hdr.mask = mcast_mask[AxiAr];
-    floo_axi_ar.hdr.src_id  = id_i;
-    floo_axi_ar.hdr.last    = 1'b1;
-    floo_axi_ar.hdr.axi_ch  = AxiAr;
-    floo_axi_ar.payload     = axi_ar_queue;
-    floo_axi_ar.hdr.commtype = '0;
+    floo_axi_ar.hdr.rob_req         = ar_rob_req_out;
+    floo_axi_ar.hdr.rob_idx         = ar_rob_idx_out;
+    floo_axi_ar.hdr.dst_id          = dst_id[AxiAr];
+    floo_axi_ar.hdr.collective_mask = mcast_mask[AxiAr];
+    floo_axi_ar.hdr.src_id          = id_i;
+    floo_axi_ar.hdr.last            = 1'b1;
+    floo_axi_ar.hdr.axi_ch         = AxiAr;
+    floo_axi_ar.payload             = axi_ar_queue;
+    floo_axi_ar.hdr.collective_op   = '0;
   end
 
   always_comb begin
     floo_axi_b              = '0;
-    floo_axi_b.hdr.rob_req  = aw_out_hdr_out.hdr.rob_req;
-    floo_axi_b.hdr.rob_idx  = aw_out_hdr_out.hdr.rob_idx;
-    floo_axi_b.hdr.dst_id   = dst_id[AxiB];
-    floo_axi_b.hdr.mask     = mcast_mask[AxiB];
-    floo_axi_b.hdr.src_id   = id_i;
-    floo_axi_b.hdr.last     = 1'b1;
-    floo_axi_b.hdr.axi_ch   = AxiB;
-    floo_axi_b.hdr.atop     = aw_out_hdr_out.hdr.atop;
-    floo_axi_b.payload      = meta_buf_rsp_out.b;
-    floo_axi_b.payload.id   = aw_out_hdr_out.id;
-    floo_axi_b.hdr.commtype = (aw_out_hdr_out.hdr.commtype == Multicast)?
-                              ParallelReduction : Unicast;
+    floo_axi_b.hdr.rob_req         = aw_out_hdr_out.hdr.rob_req;
+    floo_axi_b.hdr.rob_idx         = aw_out_hdr_out.hdr.rob_idx;
+    floo_axi_b.hdr.dst_id          = dst_id[AxiB];
+    floo_axi_b.hdr.collective_mask = mcast_mask[AxiB];
+    floo_axi_b.hdr.src_id          = id_i;
+    floo_axi_b.hdr.last            = 1'b1;
+    floo_axi_b.hdr.axi_ch         = AxiB;
+    floo_axi_b.hdr.atop            = aw_out_hdr_out.hdr.atop;
+    floo_axi_b.payload             = meta_buf_rsp_out.b;
+    floo_axi_b.payload.id          = aw_out_hdr_out.id;
+    floo_axi_b.hdr.collective_op   = (aw_out_hdr_out.hdr.collective_op == Multicast)?
+                                      CollectB : Unicast;
   end
 
   always_comb begin
     floo_axi_r              = '0;
-    floo_axi_r.hdr.rob_req  = ar_out_hdr_out.hdr.rob_req;
-    floo_axi_r.hdr.rob_idx  = ar_out_hdr_out.hdr.rob_idx;
-    floo_axi_r.hdr.dst_id   = dst_id[AxiR];
-    floo_axi_r.hdr.mask     = mcast_mask[AxiR];
-    floo_axi_r.hdr.src_id   = id_i;
-    floo_axi_r.hdr.last     = 1'b1; // There is no reason to do wormhole routing for R bursts
-    floo_axi_r.hdr.axi_ch   = AxiR;
-    floo_axi_r.hdr.atop     = ar_out_hdr_out.hdr.atop;
-    floo_axi_r.payload      = meta_buf_rsp_out.r;
-    floo_axi_r.payload.id   = ar_out_hdr_out.id;
-    floo_axi_r.hdr.commtype = '0;
+    floo_axi_r.hdr.rob_req         = ar_out_hdr_out.hdr.rob_req;
+    floo_axi_r.hdr.rob_idx         = ar_out_hdr_out.hdr.rob_idx;
+    floo_axi_r.hdr.dst_id          = dst_id[AxiR];
+    floo_axi_r.hdr.collective_mask = mcast_mask[AxiR];
+    floo_axi_r.hdr.src_id          = id_i;
+    floo_axi_r.hdr.last            = 1'b1; // No reason to do wormhole routing for R bursts
+    floo_axi_r.hdr.axi_ch         = AxiR;
+    floo_axi_r.hdr.atop            = ar_out_hdr_out.hdr.atop;
+    floo_axi_r.payload             = meta_buf_rsp_out.r;
+    floo_axi_r.payload.id          = ar_out_hdr_out.id;
+    floo_axi_r.hdr.collective_op   = '0;
   end
 
   always_comb begin
@@ -661,6 +665,9 @@ module floo_axi_chimney #(
   // FLIT ARBITRATION  //
   ///////////////////////
 
+  floo_req_generic_flit_t floo_req_arb_data;
+  logic floo_req_arb_valid, floo_req_arb_ready;
+
   floo_wormhole_arbiter #(
     .NumRoutes  ( 2                       ),
     .flit_t     ( floo_req_generic_flit_t )
@@ -670,10 +677,27 @@ module floo_axi_chimney #(
     .valid_i  ( floo_req_arb_req_in   ),
     .data_i   ( floo_req_arb_in       ),
     .ready_o  ( floo_req_arb_gnt_out  ),
-    .data_o   ( floo_req_o.req        ),
-    .ready_i  ( floo_req_i.ready      ),
-    .valid_o  ( floo_req_o.valid      )
+    .data_o   ( floo_req_arb_data     ),
+    .ready_i  ( floo_req_arb_ready    ),
+    .valid_o  ( floo_req_arb_valid    )
   );
+
+  spill_register #(
+    .T     ( floo_req_generic_flit_t ),
+    .Bypass( 1'b0                    )
+  ) i_req_out_cut (
+    .clk_i,
+    .rst_ni,
+    .valid_i ( floo_req_arb_valid ),
+    .ready_o ( floo_req_arb_ready ),
+    .data_i  ( floo_req_arb_data  ),
+    .valid_o ( floo_req_o.valid   ),
+    .ready_i ( floo_req_i.ready   ),
+    .data_o  ( floo_req_o.req     )
+  );
+
+  floo_rsp_generic_flit_t floo_rsp_arb_data;
+  logic floo_rsp_arb_valid, floo_rsp_arb_ready;
 
   floo_wormhole_arbiter #(
     .NumRoutes  ( 2                       ),
@@ -684,9 +708,23 @@ module floo_axi_chimney #(
     .valid_i  ( floo_rsp_arb_req_in   ),
     .data_i   ( floo_rsp_arb_in       ),
     .ready_o  ( floo_rsp_arb_gnt_out  ),
-    .data_o   ( floo_rsp_o.rsp        ),
-    .ready_i  ( floo_rsp_i.ready      ),
-    .valid_o  ( floo_rsp_o.valid      )
+    .data_o   ( floo_rsp_arb_data     ),
+    .ready_i  ( floo_rsp_arb_ready    ),
+    .valid_o  ( floo_rsp_arb_valid    )
+  );
+
+  spill_register #(
+    .T     ( floo_rsp_generic_flit_t ),
+    .Bypass( 1'b0                    )
+  ) i_rsp_out_cut (
+    .clk_i,
+    .rst_ni,
+    .valid_i ( floo_rsp_arb_valid ),
+    .ready_o ( floo_rsp_arb_ready ),
+    .data_i  ( floo_rsp_arb_data  ),
+    .valid_o ( floo_rsp_o.valid   ),
+    .ready_i ( floo_rsp_i.ready   ),
+    .data_o  ( floo_rsp_o.rsp     )
   );
 
   ////////////////////

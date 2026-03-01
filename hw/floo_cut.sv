@@ -29,6 +29,45 @@ module floo_cut #(
     assign valid_o = valid_i;
     assign ready_o = ready_i;
     assign data_o  = data_i;
+  end else if (NumVirtChannels == NumPhysChannels) begin : gen_passthrough_cuts
+    // Standard forward pipeline for pass-through case (no vc arbitration needed).
+    // The original gen_floo_cuts has inverted ready wiring when NumCuts > 1 and
+    // the vc_arbiter is a pass-through: stage c=0 gets downstream ready directly
+    // while stage c=1 gets an intermediate ready, causing data loss and valid
+    // instability on cardinal direction inputs.
+
+    flit_t [NumChannels-1:0][NumCuts:0] data;
+    logic  [NumChannels-1:0][NumCuts:0][NumVirtChannels-1:0] valid, ready;
+
+    for (genvar n = 0; n < NumChannels; n++) begin : gen_channel
+      // Input at index 0
+      assign data[n][0]  = data_i[n];
+      assign valid[n][0] = valid_i[n];
+      // Output at index NumCuts
+      assign data_o[n]  = data[n][NumCuts];
+      assign valid_o[n] = valid[n][NumCuts];
+      // Ready flows backward: downstream at NumCuts, upstream at 0
+      assign ready[n][NumCuts] = ready_i[n];
+      assign ready_o[n]        = ready[n][0];
+
+      for (genvar c = 0; c < NumCuts; c++) begin : gen_cut
+        for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt
+          spill_register #(
+            .T      ( flit_t ),
+            .Bypass ( 1'b0   )
+          ) i_floo_spill_reg (
+            .clk_i,
+            .rst_ni,
+            .valid_i ( valid[n][c][v]   ),
+            .ready_o ( ready[n][c][v]   ),
+            .data_i  ( data[n][c]       ),
+            .valid_o ( valid[n][c+1][v] ),
+            .ready_i ( ready[n][c+1][v] ),
+            .data_o  ( data[n][c+1]     )
+          );
+        end
+      end
+    end
   end else begin : gen_floo_cuts
 
     flit_t  [NumChannels-1:0][NumCuts:0] data;
