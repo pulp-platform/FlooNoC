@@ -300,21 +300,25 @@ module floo_router
     );
   end
 
-  for (genvar i = 0; i < NumInput; i++) begin : gen_input_assert
-    for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_assert
-      // Assert that the input data is stable when valid is asserted
-      // `ASSERT(StableDataIn, valid_i[i][v] && !ready_o[i][v] |=> $stable(data_i[i][v]))
-      // Assert that valid is stable when ready is not asserted
-      `ASSERT(StableValidIn, valid_i[i][v] && !ready_o[i][v] |=> $stable(valid_i[i][v]))
+  if (VcImpl != VcPreemptValid) begin: gen_stbl_valin_assert
+    for (genvar i = 0; i < NumInput; i++) begin : gen_input_assert
+      for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_assert
+        // Assert that the input data is stable when valid is asserted
+        // `ASSERT(StableDataIn, valid_i[i][v] && !ready_o[i][v] |=> $stable(data_i[i][v]))
+        // Assert that valid is stable when ready is not asserted
+        `ASSERT(StableValidIn, valid_i[i][v] && !ready_o[i][v] |=> $stable(valid_i[i][v]))
+      end
     end
   end
 
-  for (genvar o = 0; o < NumOutput; o++) begin : gen_output_assert
-    for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_assert
-      // Assert that the input data is stable when valid is asserted
-      // `ASSERT(StableDataOut, valid_o[o][v] && !ready_i[o][v] |=> $stable(data_o[o][v]))
-      // Assert that valid is stable when ready is not asserted
-      `ASSERT(StableValidOut, valid_o[o][v] && !ready_i[o][v] |=> $stable(valid_o[o][v]))
+  if (VcImpl != VcPreemptValid) begin: gen_stbl_valout_assert
+    for (genvar o = 0; o < NumOutput; o++) begin : gen_output_assert
+      for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_assert
+        // Assert that the input data is stable when valid is asserted
+        // `ASSERT(StableDataOut, valid_o[o][v] && !ready_i[o][v] |=> $stable(data_o[o][v]))
+        // Assert that valid is stable when ready is not asserted
+        `ASSERT(StableValidOut, valid_o[o][v] && !ready_i[o][v] |=> $stable(valid_o[o][v]))
+      end
     end
   end
 
