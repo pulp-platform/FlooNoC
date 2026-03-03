@@ -18,7 +18,7 @@ dependencies:
   common_cells: 1.39.0
   common_verification: 0.2.3
   idma: {version: 0.6.2, upstream_name: iDMA}
-  floo_noc_pd: {path: ./pd}
+  floo_noc_pd: {path: ./pd, target: "floo_synth"}
 
 export_include_dirs:
   - hw/include
@@ -100,7 +100,7 @@ sources:
     files:
       - hw/tb/tb_floo_nw_mesh.sv
 
-  - target: all(floo_synth, synthesis)
+  - target: all(floo_synth)
     files:
     # Level 0
     - hw/synth/floo_synth_params_pkg.sv
