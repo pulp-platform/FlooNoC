@@ -112,7 +112,6 @@ module floo_reduction_arbiter import floo_pkg::*;
   // Reduction op implementations
   // ----------------------------
 
-  // TODO(lleone): Guard with a Cfg parameter that tells you which are the supported operations
   // Collect B response operation
   always_comb begin : gen_reduced_B
     data_collectB = data_i[input_sel];
@@ -177,8 +176,6 @@ module floo_reduction_arbiter import floo_pkg::*;
 
   // Connect the valid and ready signals
   assign valid_o = red_valid_in[input_sel];
-  // TODO (lleone): Delete this line
-  // assign ready_o = (ready_i & valid_o) ? valid_i & in_route_mask[input_sel] : '0;
 
   // -----------------------------
   // AXI Specific Helper functions

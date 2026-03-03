@@ -32,7 +32,7 @@ module floo_nw_router #(
   parameter bit          XYRouteOpt           = 1'b1,
   /// Disables loopback connections
   parameter bit          NoLoopback                 = 1'b1,
-    /// Enable decoupling between Read and Write WIDE channels using virtual or
+  /// Enable decoupling between Read and Write WIDE channels using virtual or
   /// physical channels: assumed that write transactions are alwasy on VC0.
   parameter floo_pkg::wide_rw_decouple_e WideRwDecouple = floo_pkg::None,
   parameter floo_pkg::vc_impl_e VcImpl              = floo_pkg::VcNaive,
@@ -125,58 +125,15 @@ module floo_nw_router #(
       axi_wide_in_id_t, axi_wide_data_t, axi_wide_strb_t, axi_wide_user_t)
   `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow, axi_wide, AxiCfgN, AxiCfgW, hdr_t)
 
-  localparam floo_pkg::collect_op_be_cfg_t CollectiveReqCfg = '{
-    EnMulticast : CollectiveOpCfg.EnNarrowMulticast,
-    EnLSBAnd    : CollectiveOpCfg.EnLSBAnd,
-    EnF_Add     : 1'b0,
-    EnF_Mul     : 1'b0,
-    EnF_Min     : 1'b0,
-    EnF_Max     : 1'b0,
-    EnA_Add     : CollectiveOpCfg.EnA_Add,
-    EnA_Mul     : CollectiveOpCfg.EnA_Mul,
-    EnA_Min_S   : CollectiveOpCfg.EnA_Min_S,
-    EnA_Min_U   : CollectiveOpCfg.EnA_Min_U,
-    EnA_Max_S   : CollectiveOpCfg.EnA_Max_S,
-    EnA_Max_U   : CollectiveOpCfg.EnA_Max_U,
-    EnSelectAW  : CollectiveOpCfg.EnLSBAnd,
-    EnCollectB  : 1'b0
-  };
+  // Convert user frontend ops into NoC backend
+  localparam floo_pkg::collect_op_be_cfg_t CollectiveReqCfg =
+             floo_pkg::req_coll_fe2be(CollectiveOpCfg);
 
-  localparam floo_pkg::collect_op_be_cfg_t CollectiveRspCfg = '{
-    EnMulticast : floo_pkg::is_en_narrow_reduction(CollectiveOpCfg) |
-                  floo_pkg::is_en_wide_reduction(CollectiveOpCfg),
-    EnLSBAnd    : 1'b0,
-    EnF_Add     : 1'b0,
-    EnF_Mul     : 1'b0,
-    EnF_Min     : 1'b0,
-    EnF_Max     : 1'b0,
-    EnA_Add     : 1'b0,
-    EnA_Mul     : 1'b0,
-    EnA_Min_S   : 1'b0,
-    EnA_Min_U   : 1'b0,
-    EnA_Max_S   : 1'b0,
-    EnA_Max_U   : 1'b0,
-    EnSelectAW  : 1'b0,
-    EnCollectB  : CollectiveOpCfg.EnNarrowMulticast |
-                  CollectiveOpCfg.EnWideMulticast
-  };
+  localparam floo_pkg::collect_op_be_cfg_t CollectiveRspCfg =
+             floo_pkg::rsp_coll_fe2be(CollectiveOpCfg);
 
-  localparam floo_pkg::collect_op_be_cfg_t CollectiveWideCfg = '{
-    EnMulticast : CollectiveOpCfg.EnWideMulticast,
-    EnLSBAnd    : 1'b0,
-    EnF_Add     : CollectiveOpCfg.EnF_Add,
-    EnF_Mul     : CollectiveOpCfg.EnF_Mul,
-    EnF_Min     : CollectiveOpCfg.EnF_Min,
-    EnF_Max     : CollectiveOpCfg.EnF_Max,
-    EnA_Add     : 1'b0,
-    EnA_Mul     : 1'b0,
-    EnA_Min_S   : 1'b0,
-    EnA_Min_U   : 1'b0,
-    EnA_Max_S   : 1'b0,
-    EnA_Max_U   : 1'b0,
-    EnSelectAW  : 1'b0,
-    EnCollectB  : 1'b0
-  };
+  localparam floo_pkg::collect_op_be_cfg_t CollectiveWideCfg =
+             floo_pkg::wide_coll_fe2be(CollectiveOpCfg);
 
   floo_req_chan_t [NumInputs-1:0] req_in;
   floo_rsp_chan_t [NumInputs-1:0] rsp_out;
@@ -253,7 +210,7 @@ module floo_nw_router #(
     .RdOperation_t        ( RdNarrowOperation_t       ),
     .RdData_t             ( RdNarrowData_t            ),
     .CollectiveCfg        ( CollectiveReqCfg          ),
-    .RedCfg                ( RdNarrowCfg               ),
+    .RedCfg               ( RdNarrowCfg               ),
     .AxiCfgOffload        ( AxiCfgN                   ),
     .AxiCfgParallel       ( AxiCfgN                   )
   ) i_req_floo_router (

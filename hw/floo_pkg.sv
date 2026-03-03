@@ -230,33 +230,12 @@ package floo_pkg;
 
   typedef logic [3:0] collect_op_t;
 
-  /// Controller configuration
-  typedef enum logic [1:0] {
-    /// Simple configuration
-    ControllerSimple = 2'd0,
-    /// Stalling configuration
-    ControllerStalling = 2'd1,
-    /// Generic configuration
-    ControllerGeneric = 2'd2
-  } floo_red_controller_e;
-
   /// Configuration for the offload reduction logic
   typedef struct packed {
-    /// configuration for the controller
-    floo_red_controller_e RdControllConf;
-    /// input fifo configuration
-    bit RdFifoFallThrough;
-    int unsigned RdFifoDepth;
     /// pipeline depth of the offload unit
     int unsigned RdPipelineDepth;
-    /// partial buffer size
-    int unsigned RdPartialBufferSize;
-    /// required tag bit if generic controller is used
-    int unsigned RdTagBits;
     /// is the underlying protocl AXI
     bit RdSupportAxi;
-    /// enable the bypass (required for AXI-AW)
-    bit RdEnableBypass;
     /// support loopback for the local link - collective will
     /// be forwarded to the local port too.
     bit RdSupportLoopback;
@@ -371,14 +350,8 @@ package floo_pkg;
 
   /// The default configuration for the offload reduction unit
   localparam reduction_cfg_t ReductionDefaultCfg = '{
-    RdControllConf: ControllerGeneric,
-    RdFifoFallThrough: 1'b1,
-    RdFifoDepth: 2,
     RdPipelineDepth: 5,
-    RdPartialBufferSize: 3,
-    RdTagBits: 5,
     RdSupportAxi: 1'b1,
-    RdEnableBypass: 1'b1,
     RdSupportLoopback: 1'b1,
     CutOffloadIntf: 1'b1
   };
@@ -648,13 +621,56 @@ package floo_pkg;
   endfunction
 
   /// Evaluate if the incoming operation is a sequential reduction
-  function automatic bit is_sequential_reduction_op(collect_op_e op);
+  function automatic bit is_seq_reduction_op(collect_op_e op);
     case (op)
       F_Add, F_Mul, F_Min, F_Max, SeqAW,
       A_Add, A_Mul, A_Min_S, A_Min_U, A_Max_S,
       A_Max_U: return 1'b1;
       default: return 1'b0;
     endcase
+  endfunction
+
+  ///----------------------------------------------------------------
+  /// Helper functions to map micro to macro operations for NW routers
+  /// Frontend to backend mapping for narrow request router
+  /// - FP operations are not supported
+  /// - CollectB is not supported
+  function automatic collect_op_be_cfg_t req_coll_fe2be(collect_op_fe_cfg_t fe_ops);
+    collect_op_be_cfg_t be = '0;
+    be.EnMulticast = fe_ops.EnNarrowMulticast;
+    be.EnLSBAnd    = fe_ops.EnLSBAnd;
+    be.EnA_Add     = fe_ops.EnA_Add;
+    be.EnA_Mul     = fe_ops.EnA_Mul;
+    be.EnA_Min_S   = fe_ops.EnA_Min_S;
+    be.EnA_Min_U   = fe_ops.EnA_Min_U;
+    be.EnA_Max_S   = fe_ops.EnA_Max_S;
+    be.EnA_Max_U   = fe_ops.EnA_Max_U;
+    be.EnSelectAW  = fe_ops.EnLSBAnd;
+    return be;
+  endfunction
+
+  /// Frontend to backend mapping for narrow response router
+  /// - Arithemtic reductions are not supported
+  /// - Multicast necessary only to route reduction responses
+  /// - Reduction support (CollectB) necessary only to join multicast responses
+  function automatic collect_op_be_cfg_t rsp_coll_fe2be(collect_op_fe_cfg_t fe_ops);
+    collect_op_be_cfg_t be = '0;
+    be.EnMulticast = is_en_narrow_reduction(fe_ops) | is_en_wide_reduction(fe_ops);
+    be.EnCollectB  = fe_ops.EnNarrowMulticast | fe_ops.EnWideMulticast;
+    return be;
+  endfunction
+
+  /// Frontend to backend mapping for wide request router
+  /// - ALU operations are not supported
+  /// - CollectB is not supported
+  function automatic collect_op_be_cfg_t wide_coll_fe2be(collect_op_fe_cfg_t fe_ops);
+    collect_op_be_cfg_t be = '0;
+    be.EnMulticast = fe_ops.EnWideMulticast;
+    be.EnF_Add     = fe_ops.EnF_Add;
+    be.EnF_Mul     = fe_ops.EnF_Mul;
+    be.EnF_Min     = fe_ops.EnF_Min;
+    be.EnF_Max     = fe_ops.EnF_Max;
+    return be;
   endfunction
 
 endpackage
