@@ -2,7 +2,8 @@
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
 //
-// Author: Lorenzo Leone <lleone@iis.ee.ethz.ch>
+// Tim Fischer <fischeti@iis.ee.ethz.ch>
+// Lorenzo Leone <lleone@iis.ee.ethz.ch>
 
 `include "axi/typedef.svh"
 `include "floo_noc/typedef.svh"
