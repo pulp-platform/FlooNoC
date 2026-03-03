@@ -641,7 +641,8 @@ module floo_nw_chimney #(
   );
 
 
-  if (is_en_narrow_collective(CollectOpCfg)) begin
+  // Tie off narrow collective fields at the endpoint
+  if (is_en_narrow_collective(CollectOpCfg)) begin: gen_narr_tieoff
     user_narrow_struct_t user_aw;
     user_narrow_struct_t user_w;
 
@@ -651,9 +652,6 @@ module floo_nw_chimney #(
       `AXI_SET_AW_STRUCT(axi_narrow_out_req_o.aw, axi_narrow_aw_queue_out);
       axi_narrow_meta_buf_rsp_in = axi_narrow_out_rsp_i;
       axi_narrow_meta_buf_rsp_in.aw_ready = narrow_aw_out_queue_ready;
-      // If the option is enabled: mask the collective operation bits here
-      // Do it in this way so potential future fields are passed without any problems
-
       // Mask the AW Channel
       user_aw = axi_narrow_out_req_o.aw.user;
       user_aw.collective_mask = '0;
@@ -666,7 +664,7 @@ module floo_nw_chimney #(
       axi_narrow_out_req_o.w.user = user_w;
     end
 
-  end else begin
+  end else begin: gen_narr_out
     always_comb begin
       axi_narrow_out_req_o = axi_narrow_meta_buf_req_out;
       axi_narrow_out_req_o.aw_valid = narrow_aw_out_queue_valid;
@@ -676,7 +674,8 @@ module floo_nw_chimney #(
     end
   end
 
-  if (is_en_wide_collective(CollectOpCfg)) begin
+  // Tie off wide collective fields at the endpoint
+  if (is_en_wide_collective(CollectOpCfg)) begin: gen_wide_tieoff
     user_wide_struct_t user_aw;
     user_wide_struct_t user_w;
     always_comb begin
@@ -696,7 +695,7 @@ module floo_nw_chimney #(
       user_w.collective_op = Unicast;
       axi_wide_out_req_o.w.user = user_w;
     end
-  end else begin
+  end else begin: gen_wide_out
     always_comb begin
       axi_wide_out_req_o = axi_wide_meta_buf_req_out;
       axi_wide_out_req_o.aw_valid = wide_aw_out_queue_valid;
@@ -1124,8 +1123,8 @@ module floo_nw_chimney #(
 
     if (is_en_narrow_reduction(CollectOpCfg)) begin
       if (is_reduction_op(red_coll_operation[NarrowAw])) begin
-        floo_narrow_aw.hdr.collective_op = is_sequential_reduction_op(red_coll_operation[NarrowAw]) ?
-                                           SeqAW : SelectAW;
+        floo_narrow_aw.hdr.collective_op = is_seq_reduction_op(red_coll_operation[NarrowAw]) ?
+                                            SeqAW : SelectAW;
       end
     end
   end
@@ -1192,7 +1191,7 @@ module floo_nw_chimney #(
     floo_narrow_r.hdr.collective_mask = collective_mask[NarrowR];
     floo_narrow_r.hdr.src_id          = id_i;
     floo_narrow_r.hdr.axi_ch          = NarrowR;
-    floo_narrow_r.hdr.last            = 1'b1; // There is no reason to do wormhole routing for R bursts
+    floo_narrow_r.hdr.last            = 1'b1; // No reason to do wormhole routing for R bursts
     floo_narrow_r.hdr.atop            = narrow_ar_buf_hdr_out.hdr.atop;
     floo_narrow_r.payload             = axi_narrow_meta_buf_rsp_out.r;
     floo_narrow_r.payload.id          = narrow_ar_buf_hdr_out.id;
@@ -1215,7 +1214,7 @@ module floo_nw_chimney #(
 
     if (is_en_wide_reduction(CollectOpCfg)) begin
       if (is_reduction_op(red_coll_operation[WideAw])) begin
-        floo_wide_aw.hdr.collective_op = is_sequential_reduction_op(red_coll_operation[WideAw]) ?
+        floo_wide_aw.hdr.collective_op = is_seq_reduction_op(red_coll_operation[WideAw]) ?
                                           SeqAW : SelectAW;
       end
     end
@@ -1283,7 +1282,7 @@ module floo_nw_chimney #(
     floo_wide_r.hdr.collective_mask  = collective_mask[WideR];
     floo_wide_r.hdr.src_id           = id_i;
     floo_wide_r.hdr.axi_ch           = WideR;
-    floo_wide_r.hdr.last             = 1'b1; // There is no reason to do wormhole routing for R bursts
+    floo_wide_r.hdr.last             = 1'b1; // No reason to do wormhole routing for R bursts
     floo_wide_r.payload              = axi_wide_meta_buf_rsp_out.r;
     floo_wide_r.payload.id           = wide_ar_buf_hdr_out.id;
     floo_wide_r.hdr.collective_op    = floo_pkg::collect_op_e'('0);
@@ -1363,12 +1362,12 @@ module floo_nw_chimney #(
   ) i_req_wormhole_arbiter (
     .clk_i,
     .rst_ni,
-    .valid_i  ( floo_req_arb_req_in  ),
-    .data_i   ( floo_req_arb_in      ),
-    .ready_o  ( floo_req_arb_gnt_out ),
-    .data_o   ( floo_req_o.req       ),
-    .ready_i  ( floo_req_i.ready     ),
-    .valid_o  ( floo_req_o.valid     )
+    .valid_i  ( floo_req_arb_req_in   ),
+    .data_i   ( floo_req_arb_in       ),
+    .ready_o  ( floo_req_arb_gnt_out  ),
+    .data_o   ( floo_req_o.req        ),
+    .ready_i  ( floo_req_i.ready      ),
+    .valid_o  ( floo_req_o.valid      )
   );
 
   floo_wormhole_arbiter #(
