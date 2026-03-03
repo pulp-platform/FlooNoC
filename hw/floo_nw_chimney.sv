@@ -289,7 +289,7 @@ module floo_nw_chimney #(
     assign floo_wide_o.ready[Read] = floo_wide_out_rd_ready;
     if (NumWidePhysChannels == 1) begin : gen_single_phys_ch
       // Connect the single physical channel to both read and write
-      // the valid and ready coming from teh VCs will be used to know if the data can be used
+      // the valid and ready coming from the VCs will be used to know if the data can be used
       assign floo_wide_in_wr = floo_wide_i.wide;
       assign floo_wide_in_rd = floo_wide_i.wide;
 
@@ -1084,7 +1084,7 @@ module floo_nw_chimney #(
   //  - Multicast => Paralle Reduction with CollectB
   //  - Reduction => Multicast B Response
 
-  // Assign all collective operation (if not supported, tehy are already tied to zero)
+  // Assign all collective operation (if not supported, they are already tied to zero)
   assign red_coll_operation[NarrowAw] = axi_narrow_red_op_queue;
   assign red_coll_operation[NarrowAr] = floo_pkg::collect_op_e'('0);
   assign red_coll_operation[WideAw]   = axi_wide_red_op_queue;
@@ -1111,7 +1111,7 @@ module floo_nw_chimney #(
     floo_narrow_aw.hdr.rob_req         = narrow_aw_rob_req_out;
     floo_narrow_aw.hdr.rob_idx         = rob_idx_t'(narrow_aw_rob_idx_out);
     floo_narrow_aw.hdr.dst_id          = dst_id[NarrowAw];
-    // Make sure that the injected mask is zero when teh operation is Unicast
+    // Make sure that the injected mask is zero when the operation is Unicast
     floo_narrow_aw.hdr.collective_mask = (red_coll_operation[NarrowAw] == Unicast) ?
                                          '0 : collective_mask[NarrowAw];
     floo_narrow_aw.hdr.src_id          = id_i;
