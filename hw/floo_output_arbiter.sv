@@ -24,10 +24,6 @@ module floo_output_arbiter import floo_pkg::*;
   parameter type         flit_t               = logic,
   parameter type         hdr_t                = logic,
   parameter type         id_t                 = logic,
-  /// Do we support local loopback e.g. should the logic expect the local flit or not
-  parameter bit          RdSupportLoopback    = 1'b0,
-  /// AXI dependent parameter
-  parameter bit          RdSupportAxi         = 1'b1,
   parameter axi_cfg_t    AxiCfg               = '0
 ) (
   input  logic                      clk_i,
@@ -111,8 +107,6 @@ module floo_output_arbiter import floo_pkg::*;
       .flit_t               ( flit_t               ),
       .hdr_t                ( hdr_t                ),
       .id_t                 ( id_t                 ),
-      .RdSupportLoopback    ( RdSupportLoopback    ),
-      .RdSupportAxi         ( RdSupportAxi         ),
       .AxiCfg               ( AxiCfg               )
     ) i_reduction_arbiter (
       .xy_id_i,

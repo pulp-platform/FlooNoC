@@ -3,7 +3,16 @@
 // SPDX-License-Identifier: SHL-0.51
 //
 // Author: Chen Wu <chenwu@student.ethz.ch>
+//         Lorenzo Leone <lleone@iis.ee.ethz.ch>
 //         Raphael Roth <raroth@student.ethz.ch>
+//
+// This module performs parallel reduction operations:
+// - CollectB: Reduction of B responses required for multicast support
+// - LSBAnd: Reduction of the LSB of the data field, used for synchronization
+// - SelectAW: Merging of incoming AW flits for the synchronization mechanism
+//
+// This module is not AXI-agnostic, as reduction requires extracting and
+// operating specifically on the data portion of the flit.
 
 `include "axi/typedef.svh"
 `include "floo_noc/typedef.svh"
@@ -18,11 +27,6 @@ module floo_reduction_arbiter import floo_pkg::*;
   parameter type         flit_t               = logic,
   parameter type         hdr_t                = logic,
   parameter type         id_t                 = logic,
-  /// Do we support local loopback e.g. should the logic expect the local flit or not
-  parameter bit          RdSupportLoopback    = 1'b0,
-  /// AXI dependent parameter for collective support
-  /// When performing collective, data bits need to be extracted from the payoload
-  parameter bit          RdSupportAxi         = 1'b1,
   parameter axi_cfg_t    AxiCfg               = '0
 ) (
   /// Current XY-coordinate of the router
@@ -59,10 +63,6 @@ module floo_reduction_arbiter import floo_pkg::*;
   typedef logic [cf_math_pkg::idx_width(NumRoutes)-1:0] arb_idx_t;
   arb_idx_t input_sel;
 
-  // TODO (lleone): The handshake betwene the input and output shoudl be implemented with
-  // a stream fork. The one in common cell is not suitable for this condition because
-  // it connectes the input stream to ALL of output ports. We would need a stream fork
-  // that connects the input stream to ANY of the output ports.
   assign ready_o = ready_out[input_sel];
   for (genvar i = 0; i < NumRoutes; i++) begin : gen_invalid_data
     // Compute list of possible input sources for each input port
@@ -80,16 +80,13 @@ module floo_reduction_arbiter import floo_pkg::*;
 
     floo_reduction_sync #(
       .NumRoutes          ( NumRoutes ),
-      .RdSupportLoopback  ( RdSupportLoopback ),
       .arb_idx_t          ( arb_idx_t ),
-      .flit_t             ( flit_t    ),
-      .id_t               ( id_t      )
+      .flit_t             ( flit_t    )
     ) i_reduction_sync (
       .sel_i            ( arb_idx_t'(i)    ),
       .data_i           ( data_i           ),
       .valid_i          ( valid_i          ),
       .ready_o          ( ready_out[i]     ),
-      .xy_id_i          ( xy_id_i          ),
       .valid_o          ( red_valid_in[i]  ),
       .ready_i          ( ready_i          ),
       .in_route_mask_i  ( in_route_mask[i] )
@@ -147,18 +144,14 @@ module floo_reduction_arbiter import floo_pkg::*;
       for (int i = 0; i < NumRoutes; i++) begin
         if(in_route_mask[input_sel][i]) begin
           // Extract the last bit from the data
-          if(RdSupportAxi) begin
-            axi_data_t axi_w_data;
-            axi_w_data = extractAxiWData(data_i[i]);
-            lsb &= axi_w_data[0];
-          end
+          axi_data_t axi_w_data;
+          axi_w_data = extractAxiWData(data_i[i]);
+          lsb &= axi_w_data[0];
         end
       end
 
       // Assign the bit again
-      if(RdSupportAxi) begin
-        data_LSBAnd = insertAxiWlsb(data_LSBAnd, lsb);
-      end
+      data_LSBAnd = insertAxiWlsb(data_LSBAnd, lsb);
     end
   end
 
