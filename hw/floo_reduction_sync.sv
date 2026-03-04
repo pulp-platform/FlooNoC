@@ -3,30 +3,30 @@
 // SPDX-License-Identifier: SHL-0.51
 //
 // Author: Chen Wu <chenwu@student.ethz.ch>
+//         Lorenzo Leone <lleone@iis.ee.ethz.ch>
 //         Raphael Roth <raroth@student.ethz.ch>
-
+//
+// This module is responsible for synchronizing multiple input streams.
+// IMPORTANT: This logic works only when loopback is nebaled in the router,
+//            because the destination node will also be part of the collective.
 module floo_reduction_sync import floo_pkg::*;
 #(
   /// Number of input ports
   parameter int unsigned NumRoutes  = 1,
-  /// Do we support local loopback e.g. should the logic expect the local flit or not
-  parameter bit          RdSupportLoopback    = 1'b0,
   /// Type definitions
   parameter type         arb_idx_t  = logic,
-  parameter type         flit_t     = logic,
-  parameter type         id_t       = logic
-) (
+  parameter type         flit_t     = logic
+  ) (
   input  arb_idx_t               sel_i,
   input  flit_t [NumRoutes-1:0]  data_i,
   input  logic  [NumRoutes-1:0]  valid_i,
   output logic  [NumRoutes-1:0]  ready_o,
-  input  id_t                    xy_id_i,
   output logic                   valid_o,
   input  logic                   ready_i,
   input logic  [NumRoutes-1:0]    in_route_mask_i
 );
 
-  logic [NumRoutes-1:0]  filtered_valid_in, filtered_local;
+  logic [NumRoutes-1:0]  filtered_valid_in;
 
 
   logic [NumRoutes-1:0] filtered_route_mask;
@@ -35,27 +35,18 @@ module floo_reduction_sync import floo_pkg::*;
   assign filtered_route_mask = in_route_mask_i & {NumRoutes{valid_i[sel_i]}};
 
 
-  // Filter valids from the expected input sources. If the collective targets
-  // the local node and loopback is unsupported, also mark the local port as valid
-  // so the flit can reach the endpoint and avoid deadlock.
+  // Filter valids from the expected input sources.
   for (genvar in = 0; in < NumRoutes; in++) begin : gen_valid
     // Only valid form same reduction streams are propagated
     assign filtered_valid_in[in] =  valid_i[in] && (data_i[in].hdr.dst_id == data_i[sel_i].hdr.dst_id) &&
                                     (data_i[in].hdr.collective_mask == data_i[sel_i].hdr.collective_mask);
 
-    // Mask local port if loopback is not supported
-    if (!RdSupportLoopback) begin
-      assign filtered_local[in] = filtered_valid_in[in] ||
-                                  (data_i[sel_i].hdr.dst_id == xy_id_i && in == Eject);
-    end else begin
-      assign filtered_local[in] = filtered_valid_in[in];
-    end
   end
 
   stream_join_dynamic #(
     .N_INP ( NumRoutes )
   ) i_stream_join_dynamic (
-    .inp_valid_i   ( filtered_local      ),
+    .inp_valid_i   ( filtered_valid_in      ),
     .inp_ready_o   ( ready_o             ),
     .sel_i         ( filtered_route_mask ),
     .oup_valid_o   ( valid_o             ),

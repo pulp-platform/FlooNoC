@@ -126,16 +126,13 @@ module floo_reduction_unit
 
   floo_reduction_sync #(
     .NumRoutes          ( NumInputs ),
-    .RdSupportLoopback  ( RedCfg.RdSupportLoopback ),
     .arb_idx_t          ( input_sel_t ),
-    .flit_t             ( flit_t    ),
-    .id_t               ( id_t      )
+    .flit_t             ( flit_t    )
   ) i_reduction_sync (
     .sel_i            ( operand1_sel            ),
     .data_i           ( data_i                  ),
     .valid_i          ( valid_i                 ),
     .ready_o          ( ready_o                 ),
-    .xy_id_i          ( xy_id_i                 ),
     .in_route_mask_i  ( in_mask_i[operand1_sel] ),
     .valid_o          ( operands_valid_out      ),
     .ready_i          ( operands_ready_in       )

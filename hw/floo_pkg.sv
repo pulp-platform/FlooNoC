@@ -234,11 +234,6 @@ package floo_pkg;
   typedef struct packed {
     /// pipeline depth of the offload unit
     int unsigned RdPipelineDepth;
-    /// is the underlying protocl AXI
-    bit RdSupportAxi;
-    /// support loopback for the local link - collective will
-    /// be forwarded to the local port too.
-    bit RdSupportLoopback;
     /// Cut offload interface
     bit CutOffloadIntf;
   } reduction_cfg_t;
@@ -351,8 +346,6 @@ package floo_pkg;
   /// The default configuration for the offload reduction unit
   localparam reduction_cfg_t ReductionDefaultCfg = '{
     RdPipelineDepth: 5,
-    RdSupportAxi: 1'b1,
-    RdSupportLoopback: 1'b1,
     CutOffloadIntf: 1'b1
   };
 
