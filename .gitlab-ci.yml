@@ -114,14 +114,6 @@ run-traffic:
     - make run-vsim-batch TB_DUT=tb_floo_${DUT} WORK=work_${DUT}_${ROUTE_ALGO} | tee vsim.log 2>&1
     - 'grep "Errors: 0," vsim.log'
 
-morty:
-  stage: build
-  needs:
-    - collect-bender-sources
-  script:
-    - $BENDER sources -f > source_list.txt
-    - morty -f source_list.txt
-
 ###################
 # Physical Design #
 ###################
