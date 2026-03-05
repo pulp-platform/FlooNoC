@@ -52,20 +52,18 @@ module floo_nw_router #(
   parameter type floo_rsp_t                         = logic,
   /// Floo `wide` link type
   parameter type floo_wide_t                        = logic,
-  /// Possible operation for offloading (must match type in header)
-  parameter type RdWideOperation_t                  = logic,
-  parameter type RdNarrowOperation_t                = logic,
-  /// Data type of the offload reduction
-  parameter type RdWideData_t                       = logic,
-  parameter type RdNarrowData_t                     = logic,
+  /// Offload reduction wide interface
+  parameter type red_wide_req_t                     = logic,
+  parameter type red_wide_rsp_t                     = logic,
+  /// Offload reduction narrow interface
+  parameter type red_narrow_req_t                   = logic,
+  parameter type red_narrow_rsp_t                   = logic,
   /// Parameter to define which type of collective operation support
   parameter floo_pkg::collect_op_fe_cfg_t CollectiveOpCfg = floo_pkg::CollectiveOpDefaultCfg,
   /// Parameter for the wide reduction configuration
   parameter floo_pkg::reduction_cfg_t RdWideCfg     = floo_pkg::ReductionDefaultCfg,
   /// Parameter for the narrow reduction configuration
-  parameter floo_pkg::reduction_cfg_t RdNarrowCfg   = floo_pkg::ReductionDefaultCfg,
-  /// Paramter for the response router
-  parameter floo_pkg::reduction_cfg_t RdRespCfg     = floo_pkg::ReductionDefaultCfg
+  parameter floo_pkg::reduction_cfg_t RdNarrowCfg   = floo_pkg::ReductionDefaultCfg
 ) (
   input  logic   clk_i,
   input  logic   rst_ni,
@@ -83,26 +81,12 @@ module floo_nw_router #(
   output  floo_rsp_t [NumInputs-1:0]    floo_rsp_o,
   input   floo_wide_t [NumRoutes-1:0]   floo_wide_i,
   output  floo_wide_t [NumRoutes-1:0]   floo_wide_o,
-  /// Wide IF towards the offload logic
-  output RdWideOperation_t              offload_wide_req_op_o,
-  output RdWideData_t                   offload_wide_req_operand1_o,
-  output RdWideData_t                   offload_wide_req_operand2_o,
-  output logic                          offload_wide_req_valid_o,
-  input logic                           offload_wide_req_ready_i,
-  /// Wide IF from external FPU
-  input RdWideData_t                    offload_wide_resp_result_i,
-  input logic                           offload_wide_resp_valid_i,
-  output logic                          offload_wide_resp_ready_o,
-  /// Narrow IF towards the offload logic
-  output RdNarrowOperation_t            offload_narrow_req_op_o,
-  output RdNarrowData_t                 offload_narrow_req_operand1_o,
-  output RdNarrowData_t                 offload_narrow_req_operand2_o,
-  output logic                          offload_narrow_req_valid_o,
-  input logic                           offload_narrow_req_ready_i,
-  /// Narrow IF from external FPU
-  input RdNarrowData_t                  offload_narrow_resp_result_i,
-  input logic                           offload_narrow_resp_valid_i,
-  output logic                          offload_narrow_resp_ready_o
+  /// Wide interface towards reduction offload unit
+  output  red_wide_req_t                 offload_wide_req_o,
+  input   red_wide_rsp_t                 offload_wide_rsp_i,
+  /// Narrow interface towards reduction offload unit
+  output  red_narrow_req_t               offload_narrow_req_o,
+  input   red_narrow_rsp_t               offload_narrow_rsp_i
 );
 
   localparam int unsigned NumWidePhysChannels = (WideRwDecouple == floo_pkg::Phys) ? 2 : 1;
@@ -207,8 +191,8 @@ module floo_nw_router #(
     .addr_rule_t          ( addr_rule_t               ),
     .flit_t               ( floo_req_generic_flit_t   ),
     .hdr_t                ( hdr_t                     ),
-    .RdOperation_t        ( RdNarrowOperation_t       ),
-    .RdData_t             ( RdNarrowData_t            ),
+    .red_req_t            ( red_narrow_req_t          ),
+    .red_rsp_t            ( red_narrow_rsp_t          ),
     .CollectiveCfg        ( CollectiveReqCfg          ),
     .RedCfg               ( RdNarrowCfg               ),
     .AxiCfgOffload        ( AxiCfgN                   ),
@@ -217,7 +201,7 @@ module floo_nw_router #(
     .clk_i,
     .rst_ni,
     .test_enable_i,
-    .xy_id_i                  ( id_i                            ),
+    .xy_id_i        ( id_i          ),
     .id_route_map_i,
     .valid_i        ( req_valid_in  ),
     .ready_o        ( req_ready_out ),
@@ -227,14 +211,8 @@ module floo_nw_router #(
     .ready_i        ( req_ready_in  ),
     .data_o         ( req_out       ),
     .credit_o       ( req_credit_out), /* unused */
-    .offload_req_op_o         ( offload_narrow_req_op_o         ),
-    .offload_req_operand1_o   ( offload_narrow_req_operand1_o   ),
-    .offload_req_operand2_o   ( offload_narrow_req_operand2_o   ),
-    .offload_req_valid_o      ( offload_narrow_req_valid_o      ),
-    .offload_req_ready_i      ( offload_narrow_req_ready_i      ),
-    .offload_resp_result_i    ( offload_narrow_resp_result_i    ),
-    .offload_resp_valid_i     ( offload_narrow_resp_valid_i     ),
-    .offload_resp_ready_o     ( offload_narrow_resp_ready_o     )
+    .offload_req_o  ( offload_narrow_req_o ),
+    .offload_rsp_i  ( offload_narrow_rsp_i )
   );
 
   floo_router #(
@@ -253,7 +231,6 @@ module floo_nw_router #(
     .flit_t               ( floo_rsp_generic_flit_t ),
     .hdr_t                ( hdr_t                   ),
     .CollectiveCfg        ( CollectiveRspCfg        ),
-    .RedCfg                ( RdRespCfg               ),
     .AxiCfgOffload        ( '0                      ),
     .AxiCfgParallel       ( AxiCfgN                 )
   ) i_rsp_floo_router (
@@ -270,14 +247,8 @@ module floo_nw_router #(
     .ready_i        ( rsp_ready_in  ),
     .data_o         ( rsp_out       ),
     .credit_o       ( rsp_credit_out), /* unused */
-    .offload_req_op_o         (               ),
-    .offload_req_operand1_o   (               ),
-    .offload_req_operand2_o   (               ),
-    .offload_req_valid_o      (               ),
-    .offload_req_ready_i      ( '0            ),
-    .offload_resp_result_i    ( '0            ),
-    .offload_resp_valid_i     ( '0            ),
-    .offload_resp_ready_o     (               )
+    .offload_req_o  ( /* unused */  ),
+    .offload_rsp_i  ( '0            )
   );
 
 
@@ -296,8 +267,8 @@ module floo_nw_router #(
     .addr_rule_t          ( addr_rule_t               ),
     .flit_t               ( floo_wide_generic_flit_t  ),
     .hdr_t                ( hdr_t                     ),
-    .RdOperation_t        ( RdWideOperation_t         ),
-    .RdData_t             ( RdWideData_t              ),
+    .red_req_t            ( red_wide_req_t          ),
+    .red_rsp_t            ( red_wide_rsp_t          ),
     .CollectiveCfg        ( CollectiveWideCfg         ),
     .RedCfg               ( RdWideCfg                 ),
     .AxiCfgOffload        ( AxiCfgW                   ),
@@ -316,14 +287,8 @@ module floo_nw_router #(
     .ready_i        ( wide_ready_in   ),
     .data_o         ( wide_out        ),
     .credit_o       ( wide_credit_out ),
-    .offload_req_op_o         ( offload_wide_req_op_o         ),
-    .offload_req_operand1_o   ( offload_wide_req_operand1_o   ),
-    .offload_req_operand2_o   ( offload_wide_req_operand2_o   ),
-    .offload_req_valid_o      ( offload_wide_req_valid_o      ),
-    .offload_req_ready_i      ( offload_wide_req_ready_i      ),
-    .offload_resp_result_i    ( offload_wide_resp_result_i    ),
-    .offload_resp_valid_i     ( offload_wide_resp_valid_i     ),
-    .offload_resp_ready_o     ( offload_wide_resp_ready_o     )
+    .offload_req_o  ( offload_wide_req_o ),
+    .offload_rsp_i  ( offload_wide_rsp_i )
   );
 
 endmodule

@@ -7,7 +7,7 @@
 //         Raphael Roth <raroth@student.ethz.ch>
 //
 // This module is responsible for synchronizing multiple input streams.
-// IMPORTANT: This logic works only when loopback is nebaled in the router,
+// IMPORTANT: This logic works only when loopback is enabled in the router,
 //            because the destination node will also be part of the collective.
 module floo_reduction_sync import floo_pkg::*;
 #(
