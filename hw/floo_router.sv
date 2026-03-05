@@ -45,11 +45,9 @@ module floo_router
   parameter type         addr_rule_t          = logic,
   parameter type         flit_t               = logic,
   parameter type         hdr_t                = logic,
-  /// Offload reduction parameter
-  /// Possible operation for offloading (must match type in header)
-  parameter type         RdOperation_t        = logic,
-  /// Data type of the offload reduction
-  parameter type         RdData_t             = logic,
+  /// Offload reduction  interface
+  parameter type red_req_t                     = logic,
+  parameter type red_rsp_t                     = logic,
   /// Parameter for the reduction configuration
   parameter collect_op_be_cfg_t CollectiveCfg    = CollectiveSupportDefaultCfg,
   parameter reduction_cfg_t     RedCfg           = '0,
@@ -74,16 +72,9 @@ module floo_router
   input  logic  [NumOutput-1:0][NumVirtChannels-1:0] ready_i,
   output flit_t [NumOutput-1:0][NumPhysChannels-1:0] data_o,
   input  logic  [NumOutput-1:0][NumVirtChannels-1:0] credit_i,
-  /// IF towards the offload logic
-  output RdOperation_t                               offload_req_op_o,
-  output RdData_t                                    offload_req_operand1_o,
-  output RdData_t                                    offload_req_operand2_o,
-  output logic                                       offload_req_valid_o,
-  input logic                                        offload_req_ready_i,
-  /// IF from external FPU
-  input RdData_t                                     offload_resp_result_i,
-  input logic                                        offload_resp_valid_i,
-  output logic                                       offload_resp_ready_o
+  /// Interface towards reduction offload unit
+  output  red_req_t                 offload_req_o,
+  input   red_rsp_t                 offload_rsp_i
 );
 
   // TODO MICHAERO: assert NumPhysChannels <= NumVirtChannels
@@ -279,6 +270,7 @@ module floo_router
       end
     end
 
+    typedef logic [AxiCfgOffload.DataWidth-1:0] RdData_t;
     floo_reduction_unit #(
       .NumInputs                  (NumInput),
       .NumOutputs                 (NumOutput),
@@ -300,14 +292,14 @@ module floo_router
       .valid_o                    (red_offload_valid_out),
       .ready_i                    (red_offload_ready_out),
       .data_o                     (red_offload_data_out),
-      .operation_o                (offload_req_op_o),
-      .operand1_o                 (offload_req_operand1_o),
-      .operand2_o                 (offload_req_operand2_o),
-      .operands_valid_o           (offload_req_valid_o),
-      .operands_ready_i           (offload_req_ready_i),
-      .result_i                   (offload_resp_result_i),
-      .result_valid_i             (offload_resp_valid_i),
-      .result_ready_o             (offload_resp_ready_o)
+      .operation_o                (offload_req_o.req.op),
+      .operand1_o                 (offload_req_o.req.operand1),
+      .operand2_o                 (offload_req_o.req.operand2),
+      .operands_valid_o           (offload_req_o.valid),
+      .operands_ready_i           (offload_rsp_i.ready),
+      .result_i                   (offload_rsp_i.rsp.result),
+      .result_valid_i             (offload_rsp_i.valid),
+      .result_ready_o             (offload_req_o.ready)
     );
 
     for (genvar out = 0; out < NumOutput; out++) begin : gen_output_virt_sel
