@@ -288,6 +288,8 @@ def main():
         gen_nw_chimney2chimney_traffic(**kwargs)
     elif args.tb == "dma_mesh":
         gen_mesh_traffic(**kwargs)
+    elif args.tb == "import_traffic_cfg":
+        gen_traffic_cfg(**kwargs)
     else:
         raise ValueError(f"Unknown testbench: {args.tb}")
 
