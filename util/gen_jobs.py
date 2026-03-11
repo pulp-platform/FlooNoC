@@ -377,6 +377,32 @@ def gen_mesh_traffic(
             emit_jobs(wide_jobs, out_dir, "mesh", x * NUM_Y + y)
             emit_jobs(narrow_jobs, out_dir, "mesh", x * NUM_Y + y + 100)
 
+def gen_traffic_cfg(
+    rw: str,
+    traffic_type: str,
+    traffic_cfg: str,
+    out_dir: str,
+    floonoc_cfg: str,
+    **_kwargs
+):
+    # pylint: disable=too-many-arguments, too-many-locals, too-many-branches, too-many-statements, too-many-positional-arguments
+    """Load FlooNoC configuration and create FlooNoC model using FlooGen."""
+    floonoc_model = None
+    if floonoc_cfg:
+        floonoc_model = create_floonoc_model(floonoc_cfg)
+    else:
+        raise ValueError(f"FlooNoC configuration file not provided")
+
+    """Load traffic stream configuration and create traffic model."""
+    traffic_model = None
+    if traffic_cfg:
+        traffic_model = create_traffic_model(traffic_cfg, floonoc_model)
+        if traffic_model is None:
+            raise RuntimeError("Failed to create traffic model")
+        print_traffic_model(traffic_model)
+    else:
+        raise ValueError(f"Traffic configuration file not provided")
+
 
 def main():
     """Main function."""
