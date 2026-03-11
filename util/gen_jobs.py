@@ -9,6 +9,18 @@ import random
 import argparse
 import os
 import math
+import yaml
+from pathlib import Path
+
+from typing import Dict, List, Optional, Tuple
+from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
+
+try:
+    from floogen.config_parser import parse_config
+    from floogen.model.network import Network
+    FLOOGEN_AVAILABLE = True
+except ImportError:
+    FLOOGEN_AVAILABLE = False
 
 MEM_SIZE = 2**16
 NUM_X = 4
