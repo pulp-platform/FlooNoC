@@ -31,6 +31,43 @@ data_widths = {"wide": 512, "narrow": 64}
 
 random.seed(42)
 
+class Burst(BaseModel):
+    """
+    Burst class.
+    """
+    number: int = 0
+    length: int = 0
+
+class TrafficStream(BaseModel):
+    """
+    A single traffic flow between an initiator and an endpoint.
+    """
+    # Defined in traffic configuration file
+    name: str
+    initiator: List[int]
+    endpoint: List[int]
+    narrow_burst: List[Burst] = []
+    wide_burst: List[Burst] = []
+
+    @field_validator("narrow_burst", "wide_burst", mode="before")
+    @classmethod
+    def wrap_single_burst(cls, v):
+        """Accept a single burst dict as well as a list."""
+        if isinstance(v, dict):
+            return [v]
+        return v
+
+    # Resolved using FlooNoC model
+    initiator_addr: Optional[int] = None
+    endpoint_addr: Optional[int] = None
+
+class Traffic(BaseModel):  # pylint: disable=too-many-public-methods
+    """
+    Traffic class to describe how different traffic streams interact in the FlooNoC system.
+    """
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
+    traffic_flows: List[TrafficStream]
+
 
 def clog2(x: int):
     """Compute the ceiling of the log2 of x."""
