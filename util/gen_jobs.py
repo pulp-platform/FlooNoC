@@ -35,8 +35,12 @@ class Burst(BaseModel):
     """
     Burst class.
     """
-    number: int = 0
-    length: int = 0
+    # Defined in traffic configuration file
+    number: int
+    length: int
+
+    # Resolved using FlooNoC model
+    data_width: Optional[int] = 512
 
 class TrafficStream(BaseModel):
     """
@@ -47,8 +51,8 @@ class TrafficStream(BaseModel):
     initiator: List[int]
     endpoint: List[int]
     rw: str
-    narrow_burst: List[Burst] = []
-    wide_burst: List[Burst] = []
+    narrow_burst: List[Burst]
+    wide_burst: List[Burst]
 
     @field_validator("narrow_burst", "wide_burst", mode="before")
     @classmethod
@@ -112,6 +116,17 @@ def create_traffic_model(traffic_cfg: str, floonoc_model: Optional[Network]):
     except ValidationError as e:
         print(f"Warning: Error while validating traffic configuration: {e}")
         return None
+    # Add burst data width from FlooNoC model
+    if floonoc_model:
+        proto_dw: Dict[str, int] = {}
+        for p in floonoc_model.protocols:
+            if p.type not in proto_dw:
+                proto_dw[p.type] = p.data_width
+        for flow in traffic_model.traffic_flows:
+            for burst in flow.narrow_burst:
+                burst.data_width = proto_dw.get("narrow")
+            for burst in flow.wide_burst:
+                burst.data_width = proto_dw.get("wide")
     # Build coordinate-to-address lookup from FlooNoC nodes
     coord_addr_map: Dict[Tuple[int, int], int] = {}
     if floonoc_model:
@@ -143,8 +158,8 @@ def print_traffic_model(traffic_model: Traffic):
         print(f"    Initiator : {flow.initiator}  addr={init_addr_str}")
         print(f"    Endpoint  : {flow.endpoint}  addr={ep_addr_str}")
         print(f"    R/W       : {flow.rw}")
-        narrow_str = ", ".join(f"(num={b.number}, len={b.length})" for b in flow.narrow_burst) or "none"
-        wide_str   = ", ".join(f"(num={b.number}, len={b.length})" for b in flow.wide_burst)   or "none"
+        narrow_str = ", ".join(f"(num={b.number}, len={b.length}, dw={b.data_width})" for b in flow.narrow_burst) or "none"
+        wide_str   = ", ".join(f"(num={b.number}, len={b.length}, dw={b.data_width})" for b in flow.wide_burst)   or "none"
         print(f"    Narrow bursts : {narrow_str}")
         print(f"    Wide bursts   : {wide_str}")
     print("====================\n")
@@ -415,12 +430,12 @@ def gen_traffic_cfg(
         src_addr = ext_addr  if flow.rw == "read"  else local_addr
         dst_addr = local_addr if flow.rw == "read" else ext_addr
         for burst in flow.wide_burst:
-            wide_length = burst.length * data_widths["wide"] / 8
+            wide_length = burst.length * burst.data_width / 8
             assert wide_length <= MEM_SIZE
             for _ in range(burst.number):
                 wide_jobs += gen_job_str(wide_length, src_addr, dst_addr)
         for burst in flow.narrow_burst:
-            narrow_length = burst.length * data_widths["narrow"] / 8
+            narrow_length = burst.length * burst.data_width / 8
             assert narrow_length <= MEM_SIZE
             for _ in range(burst.number):
                 narrow_jobs += gen_job_str(narrow_length, src_addr, dst_addr)
