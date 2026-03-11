@@ -403,6 +403,30 @@ def gen_traffic_cfg(
     else:
         raise ValueError(f"Traffic configuration file not provided")
 
+    """Generate traffic jobs."""
+    for flow in traffic_model.traffic_flows:
+        wide_jobs = ""
+        narrow_jobs = ""
+        local_addr = flow.initiator_addr
+        ext_addr = flow.endpoint_addr
+        if local_addr is None or ext_addr is None:
+            print(f"Warning: Skipping flow '{flow.name}' due to unresolved addresses")
+            continue
+        src_addr = ext_addr  if rw == "read"  else local_addr
+        dst_addr = local_addr if rw == "read" else ext_addr
+        for burst in flow.wide_burst:
+            wide_length = burst.length * data_widths["wide"] / 8
+            assert wide_length <= MEM_SIZE
+            for _ in range(burst.number):
+                wide_jobs += gen_job_str(wide_length, src_addr, dst_addr)
+        for burst in flow.narrow_burst:
+            narrow_length = burst.length * data_widths["narrow"] / 8
+            assert narrow_length <= MEM_SIZE
+            for _ in range(burst.number):
+                narrow_jobs += gen_job_str(narrow_length, src_addr, dst_addr)
+        idx = flow.initiator[0] * NUM_Y + flow.initiator[1]
+        emit_jobs(wide_jobs, out_dir, "traffic", idx)
+        emit_jobs(narrow_jobs, out_dir, "traffic", idx + 100)    
 
 def main():
     """Main function."""
