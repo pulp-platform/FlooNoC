@@ -105,6 +105,12 @@ def create_traffic_model(traffic_cfg: str, floonoc_model: Optional[Network]):
     except Exception as e:
         print(f"Warning: Error while loading traffic configuration: {e}")
         return None
+    # Create traffic model
+    try:
+        traffic_model = Traffic.model_validate(traffic_desc)
+    except ValidationError as e:
+        print(f"Warning: Error while validating traffic configuration: {e}")
+        return None
 
 def clog2(x: int):
     """Compute the ceiling of the log2 of x."""
