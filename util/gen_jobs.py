@@ -68,6 +68,30 @@ class Traffic(BaseModel):  # pylint: disable=too-many-public-methods
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
     traffic_flows: List[TrafficStream]
 
+def create_floonoc_model(floonoc_cfg: str):
+    """Parse FlooNoC configuration and create model using FlooGen."""
+    if not FLOOGEN_AVAILABLE:
+        print("Warning: floogen not available, skipping topology validation")
+        return None
+    cfg_path = Path(floonoc_cfg)
+    if not cfg_path.exists():
+        print(f"Warning: FlooNoC configuration file not found: {floonoc_cfg}")
+        return None
+    try:
+        # Parse FlooNoC configuration
+        floonoc_model = parse_config(Network, cfg_path)
+        if floonoc_model is None:
+            print("Warning: Failed to parse FlooNoC configuration")
+            return None
+        # Build FlooNoC model
+        floonoc_model.create_network()
+        floonoc_model.compile_network()
+        floonoc_model.gen_routing_info()
+        return floonoc_model
+    except Exception as e:
+        print(f"Warning: Error parsing FlooNoC configuration: {e}")
+        return None
+
 
 def clog2(x: int):
     """Compute the ceiling of the log2 of x."""
