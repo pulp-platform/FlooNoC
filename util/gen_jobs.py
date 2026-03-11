@@ -46,6 +46,7 @@ class TrafficStream(BaseModel):
     name: str
     initiator: List[int]
     endpoint: List[int]
+    rw: str
     narrow_burst: List[Burst] = []
     wide_burst: List[Burst] = []
 
@@ -141,6 +142,7 @@ def print_traffic_model(traffic_model: Traffic):
         print(f"\n  Flow [{i}]: '{flow.name}'")
         print(f"    Initiator : {flow.initiator}  addr={init_addr_str}")
         print(f"    Endpoint  : {flow.endpoint}  addr={ep_addr_str}")
+        print(f"    R/W       : {flow.rw}")
         narrow_str = ", ".join(f"(num={b.number}, len={b.length})" for b in flow.narrow_burst) or "none"
         wide_str   = ", ".join(f"(num={b.number}, len={b.length})" for b in flow.wide_burst)   or "none"
         print(f"    Narrow bursts : {narrow_str}")
@@ -378,11 +380,9 @@ def gen_mesh_traffic(
             emit_jobs(narrow_jobs, out_dir, "mesh", x * NUM_Y + y + 100)
 
 def gen_traffic_cfg(
-    rw: str,
-    traffic_type: str,
     traffic_cfg: str,
-    out_dir: str,
     floonoc_cfg: str,
+    out_dir: str,
     **_kwargs
 ):
     # pylint: disable=too-many-arguments, too-many-locals, too-many-branches, too-many-statements, too-many-positional-arguments
@@ -412,8 +412,8 @@ def gen_traffic_cfg(
         if local_addr is None or ext_addr is None:
             print(f"Warning: Skipping flow '{flow.name}' due to unresolved addresses")
             continue
-        src_addr = ext_addr  if rw == "read"  else local_addr
-        dst_addr = local_addr if rw == "read" else ext_addr
+        src_addr = ext_addr  if flow.rw == "read"  else local_addr
+        dst_addr = local_addr if flow.rw == "read" else ext_addr
         for burst in flow.wide_burst:
             wide_length = burst.length * data_widths["wide"] / 8
             assert wide_length <= MEM_SIZE
