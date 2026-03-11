@@ -132,6 +132,20 @@ def create_traffic_model(traffic_cfg: str, floonoc_model: Optional[Network]):
             print(f"Warning: No address found for endpoint {ep_xy} in flow '{flow.name}'")
     return traffic_model
 
+def print_traffic_model(traffic_model: Traffic):
+    """Print a summary of all traffic flows in the traffic model."""
+    print("\n=== Traffic Model ===")
+    for i, flow in enumerate(traffic_model.traffic_flows):
+        init_addr_str = hex(flow.initiator_addr) if flow.initiator_addr is not None else "N/A"
+        ep_addr_str   = hex(flow.endpoint_addr)  if flow.endpoint_addr  is not None else "N/A"
+        print(f"\n  Flow [{i}]: '{flow.name}'")
+        print(f"    Initiator : {flow.initiator}  addr={init_addr_str}")
+        print(f"    Endpoint  : {flow.endpoint}  addr={ep_addr_str}")
+        narrow_str = ", ".join(f"(num={b.number}, len={b.length})" for b in flow.narrow_burst) or "none"
+        wide_str   = ", ".join(f"(num={b.number}, len={b.length})" for b in flow.wide_burst)   or "none"
+        print(f"    Narrow bursts : {narrow_str}")
+        print(f"    Wide bursts   : {wide_str}")
+    print("====================\n")
 
 def clog2(x: int):
     """Compute the ceiling of the log2 of x."""
