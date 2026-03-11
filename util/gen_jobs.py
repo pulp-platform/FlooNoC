@@ -92,6 +92,19 @@ def create_floonoc_model(floonoc_cfg: str):
         print(f"Warning: Error parsing FlooNoC configuration: {e}")
         return None
 
+def create_traffic_model(traffic_cfg: str, floonoc_model: Optional[Network]):
+    """Parse traffic configuration and create traffic stream model."""
+    cfg_path = Path(traffic_cfg)
+    if not cfg_path.exists():
+        print(f"Warning: Traffic configuration file not found: {traffic_cfg}")
+        return None
+    # Load custom mapping from file descriptor
+    try:
+        with open(traffic_cfg, "r", encoding="utf-8") as f:
+            traffic_desc = yaml.safe_load(f)
+    except Exception as e:
+        print(f"Warning: Error while loading traffic configuration: {e}")
+        return None
 
 def clog2(x: int):
     """Compute the ceiling of the log2 of x."""
