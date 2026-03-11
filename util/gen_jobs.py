@@ -111,6 +111,27 @@ def create_traffic_model(traffic_cfg: str, floonoc_model: Optional[Network]):
     except ValidationError as e:
         print(f"Warning: Error while validating traffic configuration: {e}")
         return None
+    # Build coordinate-to-address lookup from FlooNoC nodes
+    coord_addr_map: Dict[Tuple[int, int], int] = {}
+    if floonoc_model:
+        for ni_name, ni in floonoc_model.graph.get_ni_nodes(with_name=True):
+            coord = floonoc_model.graph.get_node_id(node_name=ni_name)
+            if hasattr(ni, 'addr_range') and ni.addr_range:
+                coord_addr_map[(coord.x, coord.y)] = ni.addr_range[0].start
+    # Resolve initiator and endpoint addresses for each traffic flow
+    for flow in traffic_model.traffic_flows:
+        init_xy = (flow.initiator[0], flow.initiator[1])
+        ep_xy = (flow.endpoint[0], flow.endpoint[1])
+        if init_xy in coord_addr_map:
+            flow.initiator_addr = coord_addr_map[init_xy]
+        else:
+            print(f"Warning: No address found for initiator {init_xy} in flow '{flow.name}'")
+        if ep_xy in coord_addr_map:
+            flow.endpoint_addr = coord_addr_map[ep_xy]
+        else:
+            print(f"Warning: No address found for endpoint {ep_xy} in flow '{flow.name}'")
+    return traffic_model
+
 
 def clog2(x: int):
     """Compute the ceiling of the log2 of x."""
