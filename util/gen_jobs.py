@@ -275,7 +275,9 @@ def main():
     parser.add_argument("--bidir", action="store_true")
     parser.add_argument("--tb", type=str, default="dma_mesh")
     parser.add_argument("--traffic_type", type=str, default="random")
+    parser.add_argument("--traffic_cfg", type=str, default="traffic.yml")
     parser.add_argument("--rw", type=str, default="read")
+    parser.add_argument("--floonoc_cfg", type=str, default=None)
     args = parser.parse_args()
 
     kwargs = vars(args)
