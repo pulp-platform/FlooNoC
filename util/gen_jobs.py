@@ -439,7 +439,9 @@ def gen_traffic_cfg(
             assert narrow_length <= MEM_SIZE
             for _ in range(burst.number):
                 narrow_jobs += gen_job_str(narrow_length, src_addr, dst_addr)
-        idx = flow.initiator[0] * NUM_Y + flow.initiator[1]
+        floonoc_inst_num_x = floonoc_model.routers[0].array[0]
+        floonoc_inst_num_y = floonoc_model.routers[0].array[1]
+        idx = flow.initiator[0] * floonoc_inst_num_y + flow.initiator[1]
         emit_jobs(wide_jobs, out_dir, "traffic", idx)
         emit_jobs(narrow_jobs, out_dir, "traffic", idx + 100)    
 
