@@ -15,15 +15,6 @@ on:
 
 jobs:
 
-  #####################
-  # Bender up-to-date #
-  #####################
-  bender-up-to-date:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check Bender up-to-date
-        uses: pulp-platform/pulp-actions/bender-up-to-date@v2.4.4
-
   ################
   # Verible Lint #
   ################
@@ -57,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: lint license
-        uses: pulp-platform/pulp-actions/lint-license@v2.4.4
+        uses: pulp-platform/pulp-actions/lint-license@v2.4.5
         with:
           license: |
             Copyright (\d{4}(-\d{4})?\s)?(ETH Zurich and University of Bologna|lowRISC contributors).
