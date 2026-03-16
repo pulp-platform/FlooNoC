@@ -41,19 +41,19 @@ module floo_router
   parameter bit          NoLoopback           = 1'b1,
   /// Select VC implementation
   parameter floo_pkg::vc_impl_e VcImpl        = floo_pkg::VcNaive,
+  /// Parameter for the reduction configuration
+  parameter collect_op_be_cfg_t CollectiveCfg    = CollectiveSupportDefaultCfg,
+  parameter reduction_cfg_t     RedCfg           = '0,
+  /// AXI configurations
+  parameter axi_cfg_t    AxiCfgOffload        = '0,
+  parameter axi_cfg_t    AxiCfgParallel       = '0,
   /// Various types
   parameter type         addr_rule_t          = logic,
   parameter type         flit_t               = logic,
   parameter type         hdr_t                = logic,
   /// Offload reduction  interface
   parameter type red_req_t                     = logic,
-  parameter type red_rsp_t                     = logic,
-  /// Parameter for the reduction configuration
-  parameter collect_op_be_cfg_t CollectiveCfg    = CollectiveSupportDefaultCfg,
-  parameter reduction_cfg_t     RedCfg           = '0,
-  /// AXI configurations
-  parameter axi_cfg_t    AxiCfgOffload        = '0,
-  parameter axi_cfg_t    AxiCfgParallel       = '0
+  parameter type red_rsp_t                     = logic
 ) (
   input  logic                                       clk_i,
   input  logic                                       rst_ni,
@@ -91,7 +91,7 @@ module floo_router
   // a single flit instead. When finished the result will be merged as an extra port into
   // the output arbiter.
   // Generate local Number of routes
-  localparam int unsigned localNumInputs = (EnSequentialReduction == 1'b1) ? (NumInput + 1) : (NumInput);
+  localparam int unsigned LocalNumInputs = NumInput + EnSequentialReduction;
   localparam int unsigned NumParallelRedRoutes = (EnParallelReduction) ? NumInput : 0 ;
 
   // Generate the vars to handle the input of the router
@@ -196,7 +196,7 @@ module floo_router
   logic [NumInput-1:0][NumVirtChannels-1:0] red_single_member, offload_reduction;
 
   // If we support offload reduction and a reduction is dedected then we split the signal and forward it to the reduction
-  if(EnSequentialReduction == 1'b1) begin : gen_offload_reduction_demux
+  if(EnSequentialReduction) begin : gen_offload_reduction_demux
     for (genvar in = 0; in < NumInput; in++) begin : gen_input
       for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_input
         // Generate the mask for all inputs to determint if we have a reduction with only one member.
@@ -256,7 +256,7 @@ module floo_router
   // To have reduction support, VC0 must be used for the reduction traffic
 
   // Reduction logic
-  if(EnSequentialReduction == 1'b1) begin : gen_reduction_logic
+  if(EnSequentialReduction) begin : gen_reduction_logic
     for (genvar in = 0; in < NumInput; in++) begin: gen_vc_reduction
         assign red_offload_valid_in[in] = red_valid_in[in][0];
         assign red_ready_in[in][0]      = red_offload_ready_in[in];
@@ -395,16 +395,16 @@ module floo_router
   `FF(past_handshakes_q, past_handshakes_d, '0)
 
   // We merge the data from the reduction module as an additional input of our output arbiter.
-  logic [NumOutput-1:0][NumVirtChannels-1:0][localNumInputs-1:0] merged_valid, merged_ready;
-  flit_t [NumOutput-1:0][NumVirtChannels-1:0][localNumInputs-1:0] merged_data;
+  logic [NumOutput-1:0][NumVirtChannels-1:0][LocalNumInputs-1:0] merged_valid, merged_ready;
+  flit_t [NumOutput-1:0][NumVirtChannels-1:0][LocalNumInputs-1:0] merged_data;
 
-  if(EnSequentialReduction == 1'b1) begin : gen_assign_data_output
+  if(EnSequentialReduction) begin : gen_assign_data_output
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_con_virt
       for (genvar out = 0; out < NumOutput; out++) begin : gen_con_output
         assign merged_data[out][v] = {red_data_out[out][v], masked_data[out][v]};
         assign merged_valid[out][v] = {red_valid_out[out][v], masked_valid[out][v]};
-        assign masked_ready[out][v] = merged_ready[out][v][localNumInputs-2:0];
-        assign red_ready_out[out][v] = merged_ready[out][v][localNumInputs-1];
+        assign masked_ready[out][v] = merged_ready[out][v][LocalNumInputs-2:0];
+        assign red_ready_out[out][v] = merged_ready[out][v][LocalNumInputs-1];
       end
     end
   end else begin
@@ -424,7 +424,7 @@ module floo_router
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_output
       // Output arbiter
       floo_output_arbiter #(
-        .NumRoutes            ( localNumInputs            ),
+        .NumRoutes            ( LocalNumInputs            ),
         .NumParallelRedRoutes ( NumParallelRedRoutes      ),
         .CollectOpCfg         ( CollectiveCfg             ),
         .flit_t               ( flit_t                    ),

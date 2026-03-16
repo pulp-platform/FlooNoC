@@ -69,7 +69,7 @@ module floo_meta_buffer #(
   typedef logic [IdMinWidth-1:0] id_min_t;
 
   // Collective operations parameters
-  localparam bit EnCollective = floo_pkg::is_en_collective(RouteCfg.CollectiveCfg.OpCfg);
+  localparam bit EnCollective = floo_pkg::en_collective(RouteCfg.CollectiveCfg.OpCfg);
 
   logic ar_no_atop_buf_full, aw_no_atop_buf_full;
   logic ar_no_atop_push, aw_no_atop_push;

@@ -35,7 +35,7 @@ module floo_id_translation #(
   output mask_sel_t   mask_addr_y_o
 );
 
-  localparam bit EnCollective = floo_pkg::is_en_collective(RouteCfg.CollectiveCfg.OpCfg);
+  localparam bit EnCollective = floo_pkg::en_collective(RouteCfg.CollectiveCfg.OpCfg);
 
   if (RouteCfg.UseIdTable) begin : gen_addr_decoder
     logic dec_error;

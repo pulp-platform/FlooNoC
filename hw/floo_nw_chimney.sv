@@ -324,7 +324,7 @@ module floo_nw_chimney #(
     `AXI_ASSIGN_RESP_STRUCT(axi_narrow_in_rsp_o, axi_narrow_rsp_out)
 
     // Extract the collective mask and opcode bits from the narrow AXI user bits
-    if (is_en_narrow_collective(CollectOpCfg)) begin : gen_narrow_collective_info
+    if (en_narrow_collective(CollectOpCfg)) begin : gen_narrow_collective_info
       user_narrow_struct_t user;
       assign user = axi_narrow_in_req_i.aw.user;
       assign axi_narrow_req_in_mask = user.collective_mask;
@@ -361,7 +361,7 @@ module floo_nw_chimney #(
         .ready_i  ( axi_narrow_ar_queue_ready_in  )
       );
 
-      if (is_en_narrow_collective(CollectOpCfg)) begin : gen_collective_cuts
+      if (en_narrow_collective(CollectOpCfg)) begin : gen_collective_cuts
         spill_register #(
           .T (user_mask_t)
         ) i_narrow_usermask_queue (
@@ -430,7 +430,7 @@ module floo_nw_chimney #(
     `AXI_ASSIGN_RESP_STRUCT(axi_wide_in_rsp_o, axi_wide_rsp_out)
 
     // Extract the collective mask and opcode bits from the narrow AXI user bits
-    if (is_en_wide_collective(CollectOpCfg)) begin : gen_wide_collective_info
+    if (en_wide_collective(CollectOpCfg)) begin : gen_wide_collective_info
       user_wide_struct_t user;
       assign user = axi_wide_in_req_i.aw.user;
       assign axi_wide_req_in_mask = user.collective_mask;
@@ -467,7 +467,7 @@ module floo_nw_chimney #(
         .ready_i  ( axi_wide_ar_queue_ready_in  )
       );
 
-      if (is_en_wide_collective(CollectOpCfg)) begin : gen_collective_cuts
+      if (en_wide_collective(CollectOpCfg)) begin : gen_collective_cuts
         spill_register #(
           .T (user_mask_t)
         ) i_wide_usermask_queue (
@@ -642,7 +642,7 @@ module floo_nw_chimney #(
 
 
   // Tie off narrow collective fields at the endpoint
-  if (is_en_narrow_collective(CollectOpCfg)) begin: gen_narr_tieoff
+  if (en_narrow_collective(CollectOpCfg)) begin: gen_narr_tieoff
     user_narrow_struct_t user_aw;
     user_narrow_struct_t user_w;
 
@@ -675,7 +675,7 @@ module floo_nw_chimney #(
   end
 
   // Tie off wide collective fields at the endpoint
-  if (is_en_wide_collective(CollectOpCfg)) begin: gen_wide_tieoff
+  if (en_wide_collective(CollectOpCfg)) begin: gen_wide_tieoff
     user_wide_struct_t user_aw;
     user_wide_struct_t user_w;
     always_comb begin
@@ -1021,15 +1021,15 @@ module floo_nw_chimney #(
   `FFL(wide_aw_id_q, id_out[WideAw], axi_wide_aw_queue_valid_out &&
                                      axi_wide_aw_queue_ready_in, '0)
 
-  if (is_en_collective(CollectOpCfg)) begin : gen_mask_collective
+  if (en_collective(CollectOpCfg)) begin : gen_mask_collective
     localparam int unsigned AddrWidth = $bits(axi_addr_t);
     axi_addr_t [NumNWAxiChannels-1:0] x_addr_mask;
     axi_addr_t [NumNWAxiChannels-1:0] y_addr_mask;
 
     for (genvar ch = 0; ch < NumNWAxiChannels; ch++) begin : gen_id_mask
       localparam nw_ch_e Ch = nw_ch_e'(ch);
-      if ((is_en_narrow_collective(CollectOpCfg) && Ch == NarrowAw) ||
-          (is_en_wide_collective(CollectOpCfg) && Ch == WideAw)) begin : gen_req_id_mask
+      if ((en_narrow_collective(CollectOpCfg) && Ch == NarrowAw) ||
+          (en_wide_collective(CollectOpCfg) && Ch == WideAw)) begin : gen_req_id_mask
         // Evaluate the ID Mask according to the info read from the SAM through the flooo_id_translation module
         if (RouteCfg.UseIdTable &&
             RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin: gen_collecttive_idtable
@@ -1078,9 +1078,9 @@ module floo_nw_chimney #(
   // operation we want to apply to the data!
 
   // Currently any reduction have to either be on the AW/W channel
-  // If the chimney receives a Multicast / Reduction it will automatically update the resonse
+  // If the chimney receives a Multicast / Reduction it will automatically update the response
   // to the appropriate type:
-  //  - Multicast => Paralle Reduction with CollectB
+  //  - Multicast => Parallel Reduction with CollectB
   //  - Reduction => Multicast B Response
 
   // Assign all collective operation (if not supported, they are already tied to zero)
@@ -1121,11 +1121,10 @@ module floo_nw_chimney #(
     // Assign the collective_op and operation to the narrow AW flit
     floo_narrow_aw.hdr.collective_op = red_coll_operation[NarrowAw];
 
-    if (is_en_narrow_reduction(CollectOpCfg)) begin
-      if (is_reduction_op(red_coll_operation[NarrowAw])) begin
+    if (en_narrow_reduction(CollectOpCfg) &&
+        is_reduction_op(red_coll_operation[NarrowAw])) begin: gen_red_op
         floo_narrow_aw.hdr.collective_op = is_seq_reduction_op(red_coll_operation[NarrowAw]) ?
                                             SeqAW : SelectAW;
-      end
     end
   end
 
@@ -1174,10 +1173,10 @@ module floo_nw_chimney #(
     // Multicast --> Collect the B responses in a parallel reduction
     // Reduction --> Multicast the B response to all members
     floo_narrow_b.hdr.collective_op  = floo_pkg::collect_op_e'('0);
-    if(is_en_narrow_collective(CollectOpCfg)) begin
-      if(is_multicast_op(narrow_aw_buf_hdr_out.hdr.collective_op)) begin
+    if(en_narrow_collective(CollectOpCfg)) begin: gen_nar_b_coll
+      if(is_multicast_op(narrow_aw_buf_hdr_out.hdr.collective_op)) begin: gen_nar_red_rsp
         floo_narrow_b.hdr.collective_op = CollectB;
-      end else if(is_reduction_op(narrow_aw_buf_hdr_out.hdr.collective_op)) begin
+      end else if(is_reduction_op(narrow_aw_buf_hdr_out.hdr.collective_op)) begin: gen_nar_mcast
         floo_narrow_b.hdr.collective_op = Multicast;
       end
     end
@@ -1212,7 +1211,7 @@ module floo_nw_chimney #(
     // Assign the collective_op to the wide AW flit
     floo_wide_aw.hdr.collective_op = red_coll_operation[WideAw];
 
-    if (is_en_wide_reduction(CollectOpCfg)) begin
+    if (en_wide_reduction(CollectOpCfg)) begin
       if (is_reduction_op(red_coll_operation[WideAw])) begin
         floo_wide_aw.hdr.collective_op = is_seq_reduction_op(red_coll_operation[WideAw]) ?
                                           SeqAW : SelectAW;
@@ -1265,10 +1264,10 @@ module floo_nw_chimney #(
     // Multicast --> Collect the B responses in a parallel reduction
     // Reduction --> Multicast the B response to all members
     floo_wide_b.hdr.collective_op  = Unicast;
-    if(is_en_wide_collective(CollectOpCfg)) begin
-      if(is_multicast_op(wide_aw_buf_hdr_out.hdr.collective_op)) begin
+    if(en_wide_collective(CollectOpCfg)) begin: gen_wide_b_coll
+      if(is_multicast_op(wide_aw_buf_hdr_out.hdr.collective_op)) begin: gen_wide_red_rsp
         floo_wide_b.hdr.collective_op = CollectB;
-      end else if(is_reduction_op(wide_aw_buf_hdr_out.hdr.collective_op)) begin
+      end else if(is_reduction_op(wide_aw_buf_hdr_out.hdr.collective_op)) begin: gen_wide_mcast
         floo_wide_b.hdr.collective_op = Multicast;
       end
     end
@@ -1778,7 +1777,7 @@ module floo_nw_chimney #(
 
   // We do not support reduction with ROB Buffer
   `ASSERT_INIT(NoRobReduction,
-              !(is_en_wide_reduction(CollectOpCfg) | is_en_narrow_reduction(CollectOpCfg)) ||
+              !(en_wide_reduction(CollectOpCfg) | en_narrow_reduction(CollectOpCfg)) ||
               (ChimneyCfgN.BRoBType == NoRoB && ChimneyCfgN.RRoBType == NoRoB &&
                ChimneyCfgW.BRoBType == NoRoB && ChimneyCfgW.RRoBType == NoRoB),
                "Invalid Chimney Cfg with reduction support")

@@ -310,37 +310,12 @@ package floo_pkg;
 
   /// Default macro collective operations supported in the NoC - all disabled
   localparam collect_op_fe_cfg_t CollectiveOpDefaultCfg = '{
-    EnNarrowMulticast : 1'b0,
-    EnWideMulticast   : 1'b0,
-    EnLSBAnd          : 1'b0,
-    EnF_Add           : 1'b0,
-    EnF_Mul           : 1'b0,
-    EnF_Min           : 1'b0,
-    EnF_Max           : 1'b0,
-    EnA_Add           : 1'b0,
-    EnA_Mul           : 1'b0,
-    EnA_Min_S         : 1'b0,
-    EnA_Min_U         : 1'b0,
-    EnA_Max_S         : 1'b0,
-    EnA_Max_U         : 1'b0
+    default: '0
   };
 
   /// Default micro collective operations supported in the NoC - all disabled
   localparam collect_op_be_cfg_t CollectiveSupportDefaultCfg = '{
-    EnMulticast : 1'b0,
-    EnLSBAnd    : 1'b0,
-    EnF_Add     : 1'b0,
-    EnF_Mul     : 1'b0,
-    EnF_Min     : 1'b0,
-    EnF_Max     : 1'b0,
-    EnA_Add     : 1'b0,
-    EnA_Mul     : 1'b0,
-    EnA_Min_S   : 1'b0,
-    EnA_Min_U   : 1'b0,
-    EnA_Max_S   : 1'b0,
-    EnA_Max_U   : 1'b0,
-    EnSelectAW  : 1'b0,
-    EnCollectB  : 1'b0
+    default: '0
   };
 
   /// The default configuration for the offload reduction unit
@@ -519,61 +494,54 @@ package floo_pkg;
   /**********************************************************
    *         Collective Communication Support               *
    **********************************************************/
-  /* These functions help to abstract the complexity of the NoC and the
-  /  implementation schemes for collective communication.
-  /  The user is responsible to declare only which macro level collective
-  /  operations are supported in the NoC (collect_op_fe_cfg_t).
-  /  The NoC implementation will then derive which type of hardware support
-  /  is required (e.g. multicast, collectB, selectAW, etc...). This info
-  /  is implementation specific and must be transparent to the user.
-  */
-  ///---------------------------------------------------------
+  /// These functions help to abstract the complexity of the NoC and the
+  /// implementation schemes for collective communication.
+  /// The user is responsible to declare only which macro level collective
+  /// operations are supported in the NoC (collect_op_fe_cfg_t).
+  /// The NoC implementation will then derive which type of hardware support
+  /// is required (e.g. multicast, collectB, selectAW, etc...). This info
+  /// is implementation specific and must be transparent to the user.
+  ///
   /// Helper functions to calculate which macro operations are supported
   /// and which type of hardware support is required
 
-  /// Calculates if the NoC needs support for Narrow parallel reduction
-  function automatic bit is_en_parallel_reduction(collect_op_fe_cfg_t cfg);
-    return (cfg.EnLSBAnd);
-  endfunction
-
   /// Calculates if the NoC needs support for Narrow sequential reduction
-  function automatic bit is_en_narrow_seq_reduction(collect_op_fe_cfg_t cfg);
+  function automatic bit en_narrow_seq_reduction(collect_op_fe_cfg_t cfg);
     return (cfg.EnA_Add | cfg.EnA_Mul | cfg.EnA_Min_S |
             cfg.EnA_Min_U | cfg.EnA_Max_S | cfg.EnA_Max_U
             );
   endfunction
 
   /// Calculates if the NoC needs support for Narrow Sequential reduction
-  function automatic bit is_en_narrow_reduction(collect_op_fe_cfg_t cfg);
-    return (is_en_narrow_seq_reduction(cfg) | is_en_parallel_reduction(cfg)
+  function automatic bit en_narrow_reduction(collect_op_fe_cfg_t cfg);
+    return (en_narrow_seq_reduction(cfg) | cfg.EnLSBAnd
             );
   endfunction
 
   /// Calculates if the NoC needs support for Wide Sequential reduction
   /// there is no need to separate between parallel and sequential for the
   /// wide because only wide sequential is supported
-  function automatic bit is_en_wide_reduction(collect_op_fe_cfg_t cfg);
+  function automatic bit en_wide_reduction(collect_op_fe_cfg_t cfg);
     return (cfg.EnF_Add | cfg.EnF_Mul |
             cfg.EnF_Min | cfg.EnF_Max
             );
   endfunction
 
   /// Calculate if narrow collective support is enabled
-  function automatic bit is_en_narrow_collective(collect_op_fe_cfg_t cfg);
-    return (cfg.EnNarrowMulticast | is_en_narrow_reduction(cfg));
+  function automatic bit en_narrow_collective(collect_op_fe_cfg_t cfg);
+    return (cfg.EnNarrowMulticast | en_narrow_reduction(cfg));
   endfunction
 
   /// Calculate if wide collective support is enabled
-  function automatic bit is_en_wide_collective(collect_op_fe_cfg_t cfg);
-    return (cfg.EnWideMulticast | is_en_wide_reduction(cfg));
+  function automatic bit en_wide_collective(collect_op_fe_cfg_t cfg);
+    return (cfg.EnWideMulticast | en_wide_reduction(cfg));
   endfunction
 
   /// Calculate if there is need for collective support
-  function automatic bit is_en_collective(collect_op_fe_cfg_t cfg);
-    return (is_en_wide_collective(cfg) | is_en_narrow_collective(cfg));
+  function automatic bit en_collective(collect_op_fe_cfg_t cfg);
+    return (en_wide_collective(cfg) | en_narrow_collective(cfg));
   endfunction
 
-  ///---------------------------------------------------------
   /// Helper functions to calculate which micro transaction are supported
   /// and which type of hardware support is required
   function automatic bit en_sequential_support(collect_op_be_cfg_t cfg);
@@ -591,7 +559,6 @@ package floo_pkg;
     return (cfg.EnMulticast);
   endfunction
 
-  ///---------------------------------------------------------
   /// Helper functions to translate internal opcodes in macro transactions
   /// Evaluate if the incoming operation is a multicast operation
   function automatic bit is_multicast_op(collect_op_e op);
@@ -623,46 +590,44 @@ package floo_pkg;
     endcase
   endfunction
 
-  ///----------------------------------------------------------------
-  /// Helper functions to map micro to macro operations for NW routers
-  /// Frontend to backend mapping for narrow request router
-  /// - FP operations are not supported
-  /// - CollectB is not supported
-  function automatic collect_op_be_cfg_t req_coll_fe2be(collect_op_fe_cfg_t fe_ops);
+  /// Helper function to map frontend collective ops to backend config for NW routers.
+  /// The target router/link is identified by the AXI channel `ch` that traverses it
+  /// (via nw_chan_mapping): FlooReq carries narrow writes/reads and wide reads,
+  /// FlooRsp carries narrow responses, FlooWide carries wide writes/reads.
+  function automatic collect_op_be_cfg_t coll_fe2be(collect_op_fe_cfg_t fe_ops, nw_ch_e ch);
     collect_op_be_cfg_t be = '0;
-    be.EnMulticast = fe_ops.EnNarrowMulticast;
-    be.EnLSBAnd    = fe_ops.EnLSBAnd;
-    be.EnA_Add     = fe_ops.EnA_Add;
-    be.EnA_Mul     = fe_ops.EnA_Mul;
-    be.EnA_Min_S   = fe_ops.EnA_Min_S;
-    be.EnA_Min_U   = fe_ops.EnA_Min_U;
-    be.EnA_Max_S   = fe_ops.EnA_Max_S;
-    be.EnA_Max_U   = fe_ops.EnA_Max_U;
-    be.EnSelectAW  = fe_ops.EnLSBAnd;
-    return be;
-  endfunction
-
-  /// Frontend to backend mapping for narrow response router
-  /// - Arithemtic reductions are not supported
-  /// - Multicast necessary only to route reduction responses
-  /// - Reduction support (CollectB) necessary only to join multicast responses
-  function automatic collect_op_be_cfg_t rsp_coll_fe2be(collect_op_fe_cfg_t fe_ops);
-    collect_op_be_cfg_t be = '0;
-    be.EnMulticast = is_en_narrow_reduction(fe_ops) | is_en_wide_reduction(fe_ops);
-    be.EnCollectB  = fe_ops.EnNarrowMulticast | fe_ops.EnWideMulticast;
-    return be;
-  endfunction
-
-  /// Frontend to backend mapping for wide request router
-  /// - ALU operations are not supported
-  /// - CollectB is not supported
-  function automatic collect_op_be_cfg_t wide_coll_fe2be(collect_op_fe_cfg_t fe_ops);
-    collect_op_be_cfg_t be = '0;
-    be.EnMulticast = fe_ops.EnWideMulticast;
-    be.EnF_Add     = fe_ops.EnF_Add;
-    be.EnF_Mul     = fe_ops.EnF_Mul;
-    be.EnF_Min     = fe_ops.EnF_Min;
-    be.EnF_Max     = fe_ops.EnF_Max;
+    case (nw_chan_mapping(ch))
+      FlooReq: begin
+        /// - FP operations are not supported on the request link
+        /// - CollectB is not supported on the request link
+        be.EnMulticast = fe_ops.EnNarrowMulticast;
+        be.EnLSBAnd    = fe_ops.EnLSBAnd;
+        be.EnA_Add     = fe_ops.EnA_Add;
+        be.EnA_Mul     = fe_ops.EnA_Mul;
+        be.EnA_Min_S   = fe_ops.EnA_Min_S;
+        be.EnA_Min_U   = fe_ops.EnA_Min_U;
+        be.EnA_Max_S   = fe_ops.EnA_Max_S;
+        be.EnA_Max_U   = fe_ops.EnA_Max_U;
+        be.EnSelectAW  = fe_ops.EnLSBAnd;
+      end
+      /// - Arithmetic reductions are not supported on the response link
+      /// - Multicast necessary only to route reduction responses back
+      /// - CollectB necessary only to join multicast responses
+      FlooRsp: begin
+        be.EnMulticast = en_narrow_reduction(fe_ops) | en_wide_reduction(fe_ops);
+        be.EnCollectB  = fe_ops.EnNarrowMulticast | fe_ops.EnWideMulticast;
+      end
+      /// - ALU operations are not supported on the wide link
+      /// - CollectB is not supported on the wide link
+      FlooWide: begin
+        be.EnMulticast = fe_ops.EnWideMulticast;
+        be.EnF_Add     = fe_ops.EnF_Add;
+        be.EnF_Mul     = fe_ops.EnF_Mul;
+        be.EnF_Min     = fe_ops.EnF_Min;
+        be.EnF_Max     = fe_ops.EnF_Max;
+      end
+      default: be = '0;
+    endcase
     return be;
   endfunction
 
