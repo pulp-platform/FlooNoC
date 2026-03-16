@@ -10,13 +10,15 @@
 `include "common_cells/registers.svh"
 
 /// Wrapper of a multi-link router for narrow and wide links
-module floo_nw_router #(
-  /// Config of the narrow AXI interfaces (see floo_pkg::axi_cfg_t for details)
-  parameter floo_pkg::axi_cfg_t AxiCfgN             = '0,
-  /// Config of the wide AXI interfaces (see floo_pkg::axi_cfg_t for details)
-  parameter floo_pkg::axi_cfg_t AxiCfgW             = '0,
+module floo_nw_router
+  import floo_pkg::*;
+#(
+  /// Config of the narrow AXI interfaces (see axi_cfg_t for details)
+  parameter axi_cfg_t AxiCfgN                       = '0,
+  /// Config of the wide AXI interfaces (see axi_cfg_t for details)
+  parameter axi_cfg_t AxiCfgW                       = '0,
   /// Routing algorithm
-  parameter floo_pkg::route_algo_e RouteAlgo        = floo_pkg::XYRouting,
+  parameter route_algo_e RouteAlgo                  = XYRouting,
   /// Number of input/output ports
   parameter int unsigned NumRoutes                  = 0,
   /// Number of input ports
@@ -34,8 +36,14 @@ module floo_nw_router #(
   parameter bit          NoLoopback                 = 1'b1,
   /// Enable decoupling between Read and Write WIDE channels using virtual or
   /// physical channels: assumed that write transactions are alwasy on VC0.
-  parameter floo_pkg::wide_rw_decouple_e WideRwDecouple = floo_pkg::None,
-  parameter floo_pkg::vc_impl_e VcImpl              = floo_pkg::VcNaive,
+  parameter wide_rw_decouple_e WideRwDecouple       = None,
+  parameter vc_impl_e VcImpl                        = VcNaive,
+  /// Parameter to define which type of collective operation support
+  parameter collect_op_fe_cfg_t CollectiveOpCfg     = CollectiveOpDefaultCfg,
+  /// Parameter for the wide reduction configuration
+  parameter reduction_cfg_t RdWideCfg               = ReductionDefaultCfg,
+  /// Parameter for the narrow reduction configuration
+  parameter reduction_cfg_t RdNarrowCfg             = ReductionDefaultCfg,
   /// Node ID type
   parameter type id_t                               = logic,
   /// Header type
@@ -57,13 +65,7 @@ module floo_nw_router #(
   parameter type red_wide_rsp_t                     = logic,
   /// Offload reduction narrow interface
   parameter type red_narrow_req_t                   = logic,
-  parameter type red_narrow_rsp_t                   = logic,
-  /// Parameter to define which type of collective operation support
-  parameter floo_pkg::collect_op_fe_cfg_t CollectiveOpCfg = floo_pkg::CollectiveOpDefaultCfg,
-  /// Parameter for the wide reduction configuration
-  parameter floo_pkg::reduction_cfg_t RdWideCfg     = floo_pkg::ReductionDefaultCfg,
-  /// Parameter for the narrow reduction configuration
-  parameter floo_pkg::reduction_cfg_t RdNarrowCfg   = floo_pkg::ReductionDefaultCfg
+  parameter type red_narrow_rsp_t                   = logic
 ) (
   input  logic   clk_i,
   input  logic   rst_ni,
@@ -89,8 +91,8 @@ module floo_nw_router #(
   input   red_narrow_rsp_t               offload_narrow_rsp_i
 );
 
-  localparam int unsigned NumWidePhysChannels = (WideRwDecouple == floo_pkg::Phys) ? 2 : 1;
-  localparam int unsigned NumWideVirtChannels = (WideRwDecouple == floo_pkg::None) ? 1 : 2;
+  localparam int unsigned NumWidePhysChannels = (WideRwDecouple == Phys) ? 2 : 1;
+  localparam int unsigned NumWideVirtChannels = (WideRwDecouple == None) ? 1 : 2;
 
   typedef logic [AxiCfgN.AddrWidth-1:0] axi_addr_t;
   typedef logic [AxiCfgN.InIdWidth-1:0] axi_narrow_in_id_t;
@@ -110,14 +112,9 @@ module floo_nw_router #(
   `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow, axi_wide, AxiCfgN, AxiCfgW, hdr_t)
 
   // Convert user frontend ops into NoC backend
-  localparam floo_pkg::collect_op_be_cfg_t CollectiveReqCfg =
-             floo_pkg::req_coll_fe2be(CollectiveOpCfg);
-
-  localparam floo_pkg::collect_op_be_cfg_t CollectiveRspCfg =
-             floo_pkg::rsp_coll_fe2be(CollectiveOpCfg);
-
-  localparam floo_pkg::collect_op_be_cfg_t CollectiveWideCfg =
-             floo_pkg::wide_coll_fe2be(CollectiveOpCfg);
+  localparam collect_op_be_cfg_t CollectiveReqCfg  = coll_fe2be(CollectiveOpCfg, NarrowAw);
+  localparam collect_op_be_cfg_t CollectiveRspCfg  = coll_fe2be(CollectiveOpCfg, NarrowB);
+  localparam collect_op_be_cfg_t CollectiveWideCfg = coll_fe2be(CollectiveOpCfg, WideAw);
 
   floo_req_chan_t [NumInputs-1:0] req_in;
   floo_rsp_chan_t [NumInputs-1:0] rsp_out;
@@ -161,7 +158,7 @@ module floo_nw_router #(
   end
 
   // Generation of credit based conenctions only when necessary
-  if (VcImpl == floo_pkg::VcCredit) begin: gen_credit_connections
+  if (VcImpl == VcCredit) begin: gen_credit_connections
     // Narrow links credit connections
     for (genvar i = 0; i < NumInputs; i++) begin: gen_credit_req
       assign floo_req_o[i].credit = req_credit_out[i];
@@ -187,16 +184,16 @@ module floo_nw_router #(
     .XYRouteOpt           ( XYRouteOpt                ),
     .NumAddrRules         ( NumAddrRules              ),
     .NoLoopback           ( NoLoopback                ),
+    .CollectiveCfg        ( CollectiveReqCfg          ),
+    .RedCfg               ( RdNarrowCfg               ),
+    .AxiCfgOffload        ( AxiCfgN                   ),
+    .AxiCfgParallel       ( AxiCfgN                   ),
     .id_t                 ( id_t                      ),
     .addr_rule_t          ( addr_rule_t               ),
     .flit_t               ( floo_req_generic_flit_t   ),
     .hdr_t                ( hdr_t                     ),
     .red_req_t            ( red_narrow_req_t          ),
-    .red_rsp_t            ( red_narrow_rsp_t          ),
-    .CollectiveCfg        ( CollectiveReqCfg          ),
-    .RedCfg               ( RdNarrowCfg               ),
-    .AxiCfgOffload        ( AxiCfgN                   ),
-    .AxiCfgParallel       ( AxiCfgN                   )
+    .red_rsp_t            ( red_narrow_rsp_t          )
   ) i_req_floo_router (
     .clk_i,
     .rst_ni,
@@ -226,13 +223,13 @@ module floo_nw_router #(
     .XYRouteOpt           ( XYRouteOpt              ),
     .NumAddrRules         ( NumAddrRules            ),
     .NoLoopback           ( NoLoopback              ),
+    .CollectiveCfg        ( CollectiveRspCfg        ),
+    .AxiCfgOffload        ( '0                      ),
+    .AxiCfgParallel       ( AxiCfgN                 ),
     .id_t                 ( id_t                    ),
     .addr_rule_t          ( addr_rule_t             ),
     .flit_t               ( floo_rsp_generic_flit_t ),
-    .hdr_t                ( hdr_t                   ),
-    .CollectiveCfg        ( CollectiveRspCfg        ),
-    .AxiCfgOffload        ( '0                      ),
-    .AxiCfgParallel       ( AxiCfgN                 )
+    .hdr_t                ( hdr_t                   )
   ) i_rsp_floo_router (
     .clk_i,
     .rst_ni,
@@ -263,16 +260,16 @@ module floo_nw_router #(
     .NumAddrRules         ( NumAddrRules              ),
     .NoLoopback           ( NoLoopback                ),
     .VcImpl               ( VcImpl                    ),
+    .CollectiveCfg        ( CollectiveWideCfg         ),
+    .RedCfg               ( RdWideCfg                 ),
+    .AxiCfgOffload        ( AxiCfgW                   ),
+    .AxiCfgParallel       ( '0                        ),
     .id_t                 ( id_t                      ),
     .addr_rule_t          ( addr_rule_t               ),
     .flit_t               ( floo_wide_generic_flit_t  ),
     .hdr_t                ( hdr_t                     ),
     .red_req_t            ( red_wide_req_t          ),
-    .red_rsp_t            ( red_wide_rsp_t          ),
-    .CollectiveCfg        ( CollectiveWideCfg         ),
-    .RedCfg               ( RdWideCfg                 ),
-    .AxiCfgOffload        ( AxiCfgW                   ),
-    .AxiCfgParallel       ( '0                        )
+    .red_rsp_t            ( red_wide_rsp_t          )
   ) i_wide_req_floo_router (
     .clk_i,
     .rst_ni,

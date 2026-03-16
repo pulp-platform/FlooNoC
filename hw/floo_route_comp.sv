@@ -36,7 +36,7 @@ module floo_route_comp
   output id_t mask_o
 );
 
-  localparam bit EnCollective = floo_pkg::is_en_collective(RouteCfg.CollectiveCfg.OpCfg);
+  localparam bit EnCollective = floo_pkg::en_collective(RouteCfg.CollectiveCfg.OpCfg);
 
   // Use an address decoder to map the address to a destination ID.
   // The `rule_t` struct has to have the fields `idx`, `start_addr` and `end_addr`.

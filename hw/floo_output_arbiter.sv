@@ -48,7 +48,7 @@ module floo_output_arbiter import floo_pkg::*;
 
   logic [NumRoutes-1:0]   reduce_mask;
 
-  localparam bit EnParallelReduction = (NumParallelRedRoutes > 1) ? 1'b1 : 1'b0;
+  localparam bit EnParallelReduction = NumParallelRedRoutes > 1;
 
   // Determine which input ports are to be reduced in parallel
   // ignore the local ports
