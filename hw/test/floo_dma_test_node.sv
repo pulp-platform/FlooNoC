@@ -41,6 +41,7 @@ module floo_dma_test_node  #(
   output axi_in_rsp_t axi_in_rsp_o,
   output axi_out_req_t axi_out_req_o,
   input axi_out_rsp_t axi_out_rsp_i,
+  input logic start_of_sim_i,
   output logic end_of_sim_o
 );
 
@@ -125,7 +126,8 @@ module floo_dma_test_node  #(
   axi_xbar_req_t axi_mem_req;
   axi_xbar_resp_t axi_mem_rsp;
 
-  // busy signal
+  // DMA control signals
+  logic start, done, ready;
   idma_busy_t busy;
 
   typedef struct packed {
@@ -291,6 +293,30 @@ module floo_dma_test_node  #(
   assign xbar_out_rsp[1] = axi_out_rsp_i;
 
   //--------------------------------------
+  // DMA Controls
+  //--------------------------------------
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin : proc_start
+    if(!rst_ni) begin
+      start <= 1'b0;
+    end else begin
+      start <= start_of_sim_i;
+    end
+  end
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin : proc_ready
+    if(!rst_ni) begin
+      ready <= 1'b1;
+    end else if(done == 1'b1) begin
+      ready <= 1'b1;
+    end else if(start == 1'b1) begin
+      ready <= 1'b0;
+    end
+  end
+
+  assign end_of_sim_o = ready;
+
+  //--------------------------------------
   // DMA Driver
   //--------------------------------------
   // virtual interface definition
@@ -397,49 +423,58 @@ module floo_dma_test_node  #(
     // wait some additional time
     #2ns;
 
-    // run all requests in queue
-    while (req_jobs.size() != 0) begin
-      automatic tb_dma_job_t now;
-      // Inject delay based on injection ratio
-      // Compute whether to inject in the next cycle based on the injection ratio
-      if (!($urandom_range(0, 100) < (injection_ratio * 100))) begin
-        // Wait for the next cycle
-        if (EnableDebug && (JobId == 100)) $display("[DMA%0d] Delay", JobId + 1);
-        @(posedge clk_i);
-        continue;
+    while(1) begin
+      wait (start == 1'b1);
+
+      // run all requests in queue
+      for (int req_idx = 0; req_idx < req_jobs.size(); req_idx++) begin
+        automatic tb_dma_job_t now = req_jobs[req_idx];
+        // Inject delay based on injection ratio
+        // Compute whether to inject in the next cycle based on the injection ratio
+        while (!($urandom_range(0, 100) < (injection_ratio * 100))) begin
+          // Wait for the next cycle
+          if (EnableDebug && (JobId == 100)) $display("[DMA%0d] Delay", JobId + 1);
+          @(posedge clk_i);
+        end
+        // print job to terminal
+        if (EnableDebug) $display("[DMA%0d]%s", JobId, now.pprint());
+        // launch DUT
+        drv.launch_tf(
+                      now.length,
+                      now.src_addr,
+                      now.dst_addr,
+                      now.src_protocol,
+                      now.dst_protocol,
+                      now.aw_decoupled,
+                      now.rw_decoupled,
+                      $clog2(now.max_src_len),
+                      $clog2(now.max_dst_len),
+                      now.max_src_len != 'd256,
+                      now.max_dst_len != 'd256,
+                      now.id
+                    );
       end
-      // pop front to get a job
-      now = req_jobs.pop_front();
-      // print job to terminal
-      if (EnableDebug) $display("[DMA%0d]%s", JobId, now.pprint());
-      // launch DUT
-      drv.launch_tf(
-                    now.length,
-                    now.src_addr,
-                    now.dst_addr,
-                    now.src_protocol,
-                    now.dst_protocol,
-                    now.aw_decoupled,
-                    now.rw_decoupled,
-                    $clog2(now.max_src_len),
-                    $clog2(now.max_dst_len),
-                    now.max_src_len != 'd256,
-                    now.max_dst_len != 'd256,
-                    now.id
-                  );
+      // once done: launched all transfers
+      if (EnableDebug) $display("[DMA%0d] Launched all Transfers.", JobId + 1);
+      
+      // wait for last response
+      wait (done == 1'b1);
     end
-    // once done: launched all transfers
-    $display("[DMA%0d] Launched all Transfers.", JobId + 1);
   end
 
 initial begin
-  end_of_sim_o = 1'b0;
   // wait until reset has completed
+  done = 1'b0;
   wait (rst_ni);
-  // run all requests in queue
-  while (rsp_jobs.size() != 0) begin
+
+  while(1) begin
+    wait (start == 1'b1);
+    done = 1'b0;
+
+    // run all requests in queue
+    for (int rsp_idx = 0; rsp_idx < rsp_jobs.size(); rsp_idx++) begin
       // pop front to get a job
-      automatic tb_dma_job_t now = rsp_jobs.pop_front();
+      automatic tb_dma_job_t now = rsp_jobs[rsp_idx];
       // launch DUT
       drv.wait_tf(cause, err_type, burst_addr, error, last);
       if (error) begin
@@ -447,10 +482,11 @@ initial begin
         $display("[DMA%0d] Cause: %s", JobId + 1, axi_pkg::resp_t'(cause));
         $display("[DMA%0d] Burst Address: 0x%0h", JobId + 1, burst_addr);
       end
+    end
+    // stop simulation
+    done = 1'b1;
+    @(posedge clk_i);
   end
-  // stop simulation
-  end_of_sim_o = 1'b1;
 end
-
 
 endmodule
