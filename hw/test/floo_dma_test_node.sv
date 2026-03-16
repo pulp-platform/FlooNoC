@@ -362,7 +362,7 @@ module floo_dma_test_node  #(
     end else begin
       job_file = $sformatf("%s/%s.txt", job_dir, job_name);
     end
-    $display("[DMA%0d] Reading from %s", JobId + 1, job_file);
+    if (EnableDebug) $display("[DMA%0d] Reading from %s", JobId + 1, job_file);
     read_jobs(job_file, req_jobs);
     read_jobs(job_file, rsp_jobs);
   end
@@ -385,13 +385,13 @@ module floo_dma_test_node  #(
     // wait until reset has completed
     wait (rst_ni);
     // print a job summary
-    print_summary(req_jobs);
+    if (EnableDebug) print_summary(req_jobs);
     // wait some additional time
     if (!$value$plusargs("TRAFFIC_INJ_RATIO=%f", injection_ratio)) begin
       injection_ratio = 1.0;
-      $display("[DMA%0d] Using default injection ratio of 1.0", JobId + 1);
+      if (EnableDebug) $display("[DMA%0d] Using default injection ratio of 1.0", JobId + 1);
     end else begin
-      $display("[DMA%0d] Using injection ratio of %f", JobId + 1, injection_ratio);
+      if (EnableDebug) $display("[DMA%0d] Using injection ratio of %f", JobId + 1, injection_ratio);
     end
 
     // wait some additional time
