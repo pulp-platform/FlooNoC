@@ -80,6 +80,19 @@ floo_nw_router #(
   .NumAddrRules (${len(router.table.rules)}),
   .addr_rule_t (${router.name}_map_rule_t),
 % endif
+% if network.routing.decouple_rw.value != "None":
+  .WideRwDecouple(WideRwDecouple),
+  % if network.routing.decouple_rw.value == "Vc":
+  .VcImpl(VcImpl),
+  % endif
+% endif
+  .CollectiveOpCfg(RouteCfg.CollectiveCfg.OpCfg),
+% if network.routing.collective.en_narrow_reduction is not None:
+  .RdNarrowCfg(NarrowReductionCfg),
+% endif
+% if network.routing.collective.en_wide_reduction is not None:
+  .RdWideCfg(WideReductionCfg),
+% endif
   .floo_req_t(floo_req_t),
   .floo_rsp_t(floo_rsp_t),
   .floo_wide_t(floo_wide_t)
