@@ -13,7 +13,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from pydantic import BaseModel, ConfigDict, StringConstraints, field_validator, model_validator
 
-from floogen.model.routing import Routing, RouteAlgo, RouteMapRule, RouteRule, RouteMap, RouteTable, RouteMapRuleMcast
+from floogen.model.routing import Routing, RouteAlgo, RouteMapRule, RouteRule, RouteMap, RouteTable, RouteMapRuleCollective, WideRwDecouple
 from floogen.model.routing import Coord, SimpleId, AddrRange, XYDirections
 from floogen.model.graph import Graph
 from floogen.model.endpoint import EndpointDesc, Endpoint
@@ -92,7 +92,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             if len(set(prot.data_width for prot in self.protocols if prot.type == "wide")) != 1:
                 raise ValueError("All `wide` protocols must have the same data width")
             # Check that `narrow` and `wide` protocols have the same user width
-            if not self.routing.en_multicast:
+            if not self.routing.en_collective:
                 if len(set(prot.user_width for prot in self.protocols if prot.type == "narrow")) != 1:
                     raise ValueError("All `narrow` protocols must have the same user width")
                 if len(set(prot.user_width for prot in self.protocols if prot.type == "wide")) != 1:
@@ -575,8 +575,8 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     f"Routing algorithm {self.routing.route_algo} is not supported yet"
                 )
         self.routing.sam = self.gen_sam()
-        if self.routing.en_multicast:
-            self.routing.multicast_sam = self.gen_multicast_sam()
+        if self.routing.en_collective:
+            self.routing.collective_sam = self.gen_collective_sam()
         # Provide the routing info to the network interfaces
         for ni in self.graph.get_ni_nodes():
             ni.routing = self.routing
@@ -660,17 +660,17 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 rule_name = ni.endpoint.name
                 if addr_range.desc is not None:
                     rule_name += f"_{addr_range.desc}"
-                addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, en_multicast=addr_range.en_multicast, desc=rule_name)
+                addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, en_collective=addr_range.en_collective, desc=rule_name)
                 addr_table.append(addr_rule)
         return RouteMap(name="sam", rules=addr_table)
 
-    def gen_multicast_sam(self):
-        """Generate the multicast system address map, which contains additional mask
-        information."""
+    def gen_collective_sam(self):
+        """Generate the collective system address map, which contains additional mask
+        information for collective endpoints."""
         addr_table = []
         for addr_rule in self.routing.sam.rules:
             mask_fields = {}
-            if addr_rule.addr_range.en_multicast:
+            if addr_rule.addr_range.en_collective:
                 mask_offset_x = clog2(addr_rule.addr_range.size)
                 mask_fields = {
                     "mask_len": (self.routing.num_x_bits, self.routing.num_y_bits),
@@ -678,8 +678,8 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                     "base_id": (addr_rule.dest.x - addr_rule.addr_range.arr_idx[0],
                                 addr_rule.dest.y - addr_rule.addr_range.arr_idx[1]),
                 }
-            addr_table.append(RouteMapRuleMcast(**addr_rule.model_dump(), **mask_fields))
-        return RouteMap(name="mcast_sam", rules=addr_table)
+            addr_table.append(RouteMapRuleCollective(**addr_rule.model_dump(), **mask_fields))
+        return RouteMap(name="collective_sam", rules=addr_table)
 
     def render_ports(self, pkg_name=""):
         """Render the ports in the generated code."""
@@ -707,8 +707,13 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             string += AXI4.render_cfg("AxiCfgN", narrow_in_prot, narrow_out_prot)
             string += AXI4.render_cfg("AxiCfgW", wide_in_prot, wide_out_prot)
 
+            vc_num, phy_num = {
+                WideRwDecouple.PHYS: (2, 2),
+                WideRwDecouple.VC:   (2, 1),
+            }.get(self.routing.decouple_rw, (None, None))
             string += NarrowWideLink.render_typedefs(
-                narrow_in_prot.type_name(), wide_in_prot.type_name(), "AxiCfgN", "AxiCfgW"
+                narrow_in_prot.type_name(), wide_in_prot.type_name(), "AxiCfgN", "AxiCfgW",
+                vc_num, phy_num
             )
         else:
             in_prot = next((prot for prot in self.protocols if prot.direction == "input"), None)

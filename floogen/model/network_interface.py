@@ -47,9 +47,9 @@ class NetworkInterface(BaseModel):
         """Return true if the network interface is only a manager."""
         return self.endpoint.is_mgr() and not self.endpoint.is_sbr()
 
-    def is_multicast_ni(self) -> bool:
-        """Return true if the network interface supports multicast."""
-        return any([b for b in self.addr_range if b.en_multicast])
+    def is_collective_ni(self) -> bool:
+        """Return true if the network interface supports collective operations."""
+        return any([b for b in self.addr_range if b.en_collective])
 
     def render_enum_name(self) -> str:
         """Render the enum name."""
