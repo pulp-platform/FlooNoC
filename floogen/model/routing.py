@@ -5,6 +5,7 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
+import warnings
 from enum import Enum
 from typing import Optional, List, Tuple, Union
 
@@ -31,6 +32,217 @@ class RouteAlgo(Enum):
 
     def __str__(self):
         return f"{self.name}"
+
+
+class WideRwDecouple(Enum):
+    """Read/write decoupling mode for the wide link (mirrors wide_rw_decouple_e in floo_pkg).
+
+    NONE  — shared wide link, no decoupling (default)
+    VC    — decouple using virtual channels (requires vc_impl)
+    PHYS  — decouple using separate physical wide links
+    """
+
+    NONE = "None"
+    VC = "Vc"
+    PHYS = "Phys"
+
+    def __str__(self):
+        return self.value
+
+
+class VcImpl(Enum):
+    """Virtual channel implementation enum (mirrors vc_impl_e in floo_pkg).
+
+    Only relevant when ``decouple_rw == WideRwDecouple.VC``.
+    """
+
+    NAIVE = "VcNaive"
+    CREDIT = "VcCredit"
+    PREEMPT = "VcPreemptValid"
+
+    def __str__(self):
+        return self.value
+
+
+class NarrowReductionOp(Enum):
+    """Integer ALU reduction operations available on the narrow router."""
+    Add = "Add"
+    Mul = "Mul"
+    MinS = "MinS"
+    MinU = "MinU"
+    MaxS = "MaxS"
+    MaxU = "MaxU"
+
+
+class WideReductionOp(Enum):
+    """Floating-point reduction operations available on the wide router."""
+    Add = "Add"
+    Mul = "Mul"
+    Min = "Min"
+    Max = "Max"
+
+
+class ReductionCfg(BaseModel):
+    """Base reduction hardware configuration shared by narrow and wide channels."""
+    model_config = ConfigDict(extra="forbid")
+
+    rd_pipeline_depth: int = 0
+    cut_offload_intf:  bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_input(cls, v):
+        """Coerce bool / list → dict so Pydantic can build the model normally."""
+        if v is True:
+            return {}
+        if isinstance(v, list):
+            return {"ops": v}
+        return v
+
+    def render_cfg(self) -> dict:
+        """Return a dict representing ``reduction_cfg_t`` for sv_struct_render."""
+        return {
+            "RdPipelineDepth": self.rd_pipeline_depth,
+            "CutOffloadIntf":  bool_to_sv(self.cut_offload_intf),
+        }
+
+
+class NarrowReductionCfg(ReductionCfg):
+    """Reduction configuration for the narrow link."""
+    ops: List[NarrowReductionOp] = Field(
+        default_factory=lambda: list(NarrowReductionOp)
+    )
+
+    @field_validator("ops", mode="before")
+    @classmethod
+    def _parse_ops(cls, v):
+        if isinstance(v, list):
+            return [NarrowReductionOp[x] if isinstance(x, str) else x for x in v]
+        return v
+
+
+class WideReductionCfg(ReductionCfg):
+    """Reduction configuration for the wide link."""
+    ops: List[WideReductionOp] = Field(
+        default_factory=lambda: list(WideReductionOp)
+    )
+
+    @field_validator("ops", mode="before")
+    @classmethod
+    def _parse_ops(cls, v):
+        if isinstance(v, list):
+            return [WideReductionOp[x] if isinstance(x, str) else x for x in v]
+        return v
+
+
+class CollectiveCfg(BaseModel):
+    """User-facing collective operation configuration.
+
+    The five high-level knobs map to ``collective_cfg_t`` in floo_pkg:
+
+    +-----------------------+--------------------------------------------+
+    | YAML field            | floo_pkg bits set                          |
+    +=======================+============================================+
+    | en_narrow_multicast   | OpCfg.EnNarrowMulticast                    |
+    | en_wide_multicast     | OpCfg.EnWideMulticast                      |
+    | en_barrier            | OpCfg.EnLSBAnd                             |
+    | en_narrow_reduction   | OpCfg.EnA_{Add,Mul,MinS,MinU,MaxS,MaxU}   |
+    | en_wide_reduction     | OpCfg.EnF_{Add,Mul,Min,Max}                |
+    +-----------------------+--------------------------------------------+
+
+    For ``en_narrow_reduction`` / ``en_wide_reduction``:
+      - ``false`` / omitted   → disabled (default)
+      - ``true``              → all ops enabled, default hw config
+      - ``[Add, Mul, ...]``   → only the listed ops, default hw config
+      - ``{ops: [...], rd_pipeline_depth: N, cut_offload_intf: true}``
+                              → full per-channel control
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    en_narrow_multicast: bool = False
+    en_wide_multicast:   bool = False
+    en_barrier:          bool = False
+    en_narrow_reduction: Optional[NarrowReductionCfg] = None
+    en_wide_reduction:   Optional[WideReductionCfg] = None
+
+    @field_validator("en_narrow_reduction", "en_wide_reduction", mode="before")
+    @classmethod
+    def _parse_reduction(cls, v):
+        """Map false/null → None; everything else is handled by ReductionCfg's model_validator."""
+        if v is None or v is False:
+            return None
+        return v
+
+    def _narrow_ops(self) -> List[NarrowReductionOp]:
+        if self.en_narrow_reduction is None:
+            return []
+        return self.en_narrow_reduction.ops
+
+    def _wide_ops(self) -> List[WideReductionOp]:
+        if self.en_wide_reduction is None:
+            return []
+        return self.en_wide_reduction.ops
+
+    @property
+    def en_multicast(self) -> bool:
+        return self.en_narrow_multicast or self.en_wide_multicast
+
+    @property
+    def en_reduction(self) -> bool:
+        return self.en_narrow_reduction is not None or self.en_wide_reduction is not None
+
+    @property
+    def en_collective(self) -> bool:
+        """True when any collective feature is enabled (multicast, barrier, or reduction)."""
+        return self.en_multicast or self.en_reduction or self.en_barrier
+
+    def render_op_cfg(self) -> dict:
+        """Return a dict representing ``collect_op_fe_cfg_t`` for sv_struct_render."""
+        narrow = self._narrow_ops()
+        wide = self._wide_ops()
+        return {
+            "EnNarrowMulticast": bool_to_sv(self.en_narrow_multicast),
+            "EnWideMulticast":   bool_to_sv(self.en_wide_multicast),
+            "EnLSBAnd":          bool_to_sv(self.en_barrier),
+            "EnF_Add":           bool_to_sv(WideReductionOp.Add in wide),
+            "EnF_Mul":           bool_to_sv(WideReductionOp.Mul in wide),
+            "EnF_Min":           bool_to_sv(WideReductionOp.Min in wide),
+            "EnF_Max":           bool_to_sv(WideReductionOp.Max in wide),
+            "EnA_Add":           bool_to_sv(NarrowReductionOp.Add in narrow),
+            "EnA_Mul":           bool_to_sv(NarrowReductionOp.Mul in narrow),
+            "EnA_Min_S":         bool_to_sv(NarrowReductionOp.MinS in narrow),
+            "EnA_Min_U":         bool_to_sv(NarrowReductionOp.MinU in narrow),
+            "EnA_Max_S":         bool_to_sv(NarrowReductionOp.MaxS in narrow),
+            "EnA_Max_U":         bool_to_sv(NarrowReductionOp.MaxU in narrow),
+        }
+
+    def render(self) -> dict:
+        """Return a dict representing ``collective_cfg_t`` for sv_struct_render."""
+        return {
+            "OpCfg":  self.render_op_cfg(),
+            "RedCfg": {"RdPipelineDepth": 0, "CutOffloadIntf": "1'b0"},
+        }
+
+    def render_narrow_reduction_cfg(self) -> str:
+        """Render ``NarrowReductionCfg`` localparam; empty when reduction is disabled."""
+        if self.en_narrow_reduction is None:
+            return ""
+        return sv_param_decl(
+            "NarrowReductionCfg",
+            sv_struct_render(self.en_narrow_reduction.render_cfg()),
+            dtype="reduction_cfg_t",
+        )
+
+    def render_wide_reduction_cfg(self) -> str:
+        """Render ``WideReductionCfg`` localparam; empty when reduction is disabled."""
+        if self.en_wide_reduction is None:
+            return ""
+        return sv_param_decl(
+            "WideReductionCfg",
+            sv_struct_render(self.en_wide_reduction.render_cfg()),
+            dtype="reduction_cfg_t",
+        )
 
 
 class XYDirections(Enum):
@@ -609,11 +821,15 @@ class Routing(BaseModel):
     rob_idx_bits: int = 1
     port_id_bits: int = 1
     num_vc_id_bits: int = 0
-    en_multicast: bool = False
+    decouple_rw: WideRwDecouple = WideRwDecouple.NONE
+    vc_impl: VcImpl = VcImpl.NAIVE
     multicast_sam: Optional[RouteMap] = None
-    en_parallel_reduction: bool = False
-    en_narrow_offload_reduction: bool = False
-    en_wide_offload_reduction: bool = False
+    collective: CollectiveCfg = CollectiveCfg()
+
+    @property
+    def en_multicast(self) -> bool:
+        """Convenience alias used by validators and hdr typedef rendering."""
+        return self.collective.en_multicast
 
     @field_validator("route_algo", mode="before")
     @classmethod
@@ -623,16 +839,32 @@ class Routing(BaseModel):
             v = RouteAlgo[v]
         return v
 
+    @field_validator("decouple_rw", mode="before")
+    @classmethod
+    def validate_decouple_rw(cls, v):
+        """Accept bool (False→NONE) or string/enum name."""
+        if isinstance(v, bool):
+            return WideRwDecouple.NONE if not v else WideRwDecouple.PHYS
+        if isinstance(v, str):
+            return WideRwDecouple[v.upper()]
+        return v
+
+    @field_validator("vc_impl", mode="before")
+    @classmethod
+    def validate_vc_impl(cls, v):
+        """Accept both enum members and string names."""
+        if isinstance(v, str):
+            v = VcImpl[v.upper()]
+        return v
+
     @model_validator(mode="after")
-    def validate_collective(self):
-        """Reduction can be supported with multicast only."""
-        if not self.en_multicast and (
-            self.en_parallel_reduction or
-            self.en_narrow_offload_reduction or
-            self.en_wide_offload_reduction
-        ):
-            raise ValueError(
-                "Multicast must be enabled to use any reduction feature "
+    def validate_vc_cfg(self):
+        """Warn if vc_impl is set but decouple_rw is not Vc."""
+        if self.decouple_rw != WideRwDecouple.VC and self.vc_impl != VcImpl.NAIVE:
+            warnings.warn(
+                f"vc_impl={self.vc_impl} has no effect unless decouple_rw is set to 'Vc'",
+                UserWarning,
+                stacklevel=2,
             )
         return self
 
@@ -705,18 +937,10 @@ class Routing(BaseModel):
         ch_type = "axi_ch_e" if network_type == "axi" else "nw_ch_e"
 
         if self.num_vc_id_bits == 0:
-            if self.en_multicast:
-                if ( self.en_parallel_reduction
-                    or self.en_narrow_offload_reduction
-                    or self.en_wide_offload_reduction
-                ):
-                    return (
-                        f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t,"
-                        f"id_t, collect_comm_e, reduction_op_t)")
-
+            if self.collective.en_collective:
                 return (
                     f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t,"
-                    f"id_t, collect_comm_e)")
+                    f" id_t, collect_op_t)")
             return f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t)"
         return f"`FLOO_TYPEDEF_VC_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t, vc_id_t)"
 
@@ -732,9 +956,16 @@ class Routing(BaseModel):
                                 self.route_algo == RouteAlgo.ID and not self.use_id_table else 0,
             "NumSamRules": len(self.sam),
             "NumRoutes": self.num_endpoints if self.route_algo == RouteAlgo.SRC else 0,
-            "EnMultiCast": bool_to_sv(self.en_multicast),
-            "EnParallelReduction": bool_to_sv(self.en_parallel_reduction),
-            "EnNarrowOffloadReduction": bool_to_sv(self.en_narrow_offload_reduction),
-            "EnWideOffloadReduction": bool_to_sv(self.en_wide_offload_reduction)
+            "CollectiveCfg": self.collective.render(),
         }
         return sv_param_decl(name, sv_struct_render(fields), dtype="route_cfg_t")
+
+    def render_vc_impl(self) -> str:
+        """Render WideRwDecouple and (when Vc) VcImpl localparam declarations.
+        Nothing is emitted when decouple_rw is None (the default)."""
+        if self.decouple_rw == WideRwDecouple.NONE:
+            return ""
+        s = sv_param_decl("WideRwDecouple", str(self.decouple_rw), dtype="wide_rw_decouple_e") + "\n"
+        if self.decouple_rw == WideRwDecouple.VC:
+            s += sv_param_decl("VcImpl", str(self.vc_impl), dtype="vc_impl_e")
+        return s

@@ -40,6 +40,8 @@
 // - src_t: Type of the source ID (Usually `dst_t`)
 // - ch_t: Identifier type for the payload
 // - rob_idx_t: Type of the RoB index
+// - mask_t: Type of the mask for collective spport
+// - collect_op_t: Type of the collective opcode
 //
 // Usage Example:
 // `FLOO_TYPEDEF_XY_NODE_ID_T(id_t, ...)
