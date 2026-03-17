@@ -20,13 +20,13 @@ routing:
     en_wide_multicast: true
     en_barrier: true
     en_narrow_reduction:
-      rd_pipeline_depth: 1              # all integer ops, custom hw config
-    en_wide_reduction:                 # selective FP ops, default hw config
+      rd_pipeline_depth: 1   # all integer ops, custom hw config
+    en_wide_reduction:       # selective FP ops, default hw config
       ops: [Add, Max]
       rd_pipeline_depth: 5
       cut_offload_intf: true
-  decouple_rw: vc
-  vc_impl: preempt
+  decouple_rw: Phys
+  # vc_impl: preempt
 
 protocols:
   - name: "narrow_in"
@@ -36,7 +36,8 @@ protocols:
     addr_width: 48
     id_width: 5
     user_width:
-      mcast_mask: 48
+      collective_mask: 48
+      collective_op: 4
       user: 5
   - name: "narrow_out"
     type: "narrow"
@@ -45,7 +46,8 @@ protocols:
     addr_width: 48
     id_width: 2
     user_width:
-      mcast_mask: 48
+      collective_mask: 48
+      collective_op: 4
       user: 5
   - name: "wide_in"
     type: "wide"
@@ -54,7 +56,8 @@ protocols:
     addr_width: 48
     id_width: 3
     user_width:
-      mcast_mask: 48
+      collective_mask: 48
+      collective_op: 4
       user: 1
   - name: "wide_out"
     type: "wide"
@@ -63,7 +66,8 @@ protocols:
     addr_width: 48
     id_width: 1
     user_width:
-      mcast_mask: 48
+      collective_mask: 48
+      collective_op: 4
       user: 1
 
 endpoints:
@@ -72,7 +76,7 @@ endpoints:
     addr_range:
       base: 0x2000_0000
       size: 0x0004_0000
-      en_multicast: true
+      en_collective: true
     mgr_port_protocol:
       - "narrow_in"
       - "wide_in"

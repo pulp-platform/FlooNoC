@@ -23,7 +23,8 @@ protocols:
     addr_width: 48
     id_width: 5
     user_width:
-      mcast_mask: 48
+      collective_mask: 48
+      collective_op: 4
       user: 5
   - name: "narrow_out"
     type: "narrow"
@@ -32,7 +33,8 @@ protocols:
     addr_width: 48
     id_width: 2
     user_width:
-      mcast_mask: 48
+      collective_mask: 48
+      collective_op: 4
       user: 5
   - name: "wide_in"
     type: "wide"
@@ -41,7 +43,8 @@ protocols:
     addr_width: 48
     id_width: 3
     user_width:
-      mcast_mask: 48
+      collective_mask: 48
+      collective_op: 4
       user: 1
   - name: "wide_out"
     type: "wide"
@@ -50,7 +53,8 @@ protocols:
     addr_width: 48
     id_width: 1
     user_width:
-      mcast_mask: 48
+      collective_mask: 48
+      collective_op: 4
       user: 1
 
 endpoints:
@@ -59,7 +63,7 @@ endpoints:
     addr_range:
       base: 0x2000_0000
       size: 0x0004_0000
-      en_multicast: true
+      en_collective: true
     mgr_port_protocol:
       - "narrow_in"
       - "wide_in"

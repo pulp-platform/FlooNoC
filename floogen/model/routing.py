@@ -244,6 +244,17 @@ class CollectiveCfg(BaseModel):
             dtype="reduction_cfg_t",
         )
 
+    def render_reduction_typedefs(self, cfg_n: str, cfg_w: str) -> str:
+        """Render offload reduction channel/link typedefs for enabled channels."""
+        s = ""
+        if self.en_narrow_reduction is not None:
+            s += f"typedef logic [{cfg_n}.DataWidth-1:0] floo_narrow_red_data_t;\n"
+            s += "`FLOO_RED_TYPEDEF_REQ_RSP_LINK(narrow, floo_narrow_red_data_t, narrow_req, narrow_rsp)\n\n"
+        if self.en_wide_reduction is not None:
+            s += f"typedef logic [{cfg_w}.DataWidth-1:0] floo_wide_red_data_t;\n"
+            s += "`FLOO_RED_TYPEDEF_REQ_RSP_LINK(wide, floo_wide_red_data_t, wide_req, wide_rsp)\n"
+        return s
+
 
 class XYDirections(Enum):
     """XY directions enum."""
@@ -381,7 +392,7 @@ class AddrRange(BaseModel):
     arr_idx: Optional[Tuple[int, ...]] = None
     arr_dim: Optional[Tuple[int, ...]] = None
     rdl_name: Optional[str] = None
-    en_multicast: bool = False
+    en_collective: bool = False
     desc: Optional[str] = None
 
     def __str__(self):
@@ -512,8 +523,8 @@ class RouteMapRule(BaseModel):
             ]
         return []
 
-class RouteMapRuleMcast(RouteMapRule):
-    """Routing rule class for multicast information."""
+class RouteMapRuleCollective(RouteMapRule):
+    """Routing rule class for collective operations (multicast, reduction, barrier)."""
 
     mask_offset: Optional[Tuple[int, int]] = None
     mask_len: Optional[Tuple[int, int]] = None
@@ -522,9 +533,9 @@ class RouteMapRuleMcast(RouteMapRule):
     def render(self, aw=None):
         """Render the SystemVerilog routing rule."""
         if aw is None:
-            raise ValueError("Address width must be specified for multicast routing")
+            raise ValueError("Address width must be specified for collective routing")
 
-        # In multicast, the `idx` field becomes a nested structure
+        # In collective routing, the `idx` field becomes a nested structure
         # where the `id` is the original `idx`
         struct_fields = {
             "idx": {"id": self.dest.render()},
@@ -532,7 +543,7 @@ class RouteMapRuleMcast(RouteMapRule):
             "end_addr": f"{aw}'h{self.addr_range.end:0{cdiv(aw,4)}x}",
         }
 
-        # Non-multicast nodes, don't need any mask information
+        # Non-collective nodes don't need any mask information
         if self.mask_offset is None:
             struct_fields["idx"]["mask_x"] = {"default": "'0"}
             struct_fields["idx"]["mask_y"] = {"default": "'0"}
@@ -693,15 +704,15 @@ class RouteMap(BaseModel):
         string += sv_param_decl(f"{snake_to_camel(self.name)}NumRules", len(rules)) + "\n"
         addr_type = f"logic [{aw-1}:0]" if aw is not None else "id_t"
         rule_type_dict = {}
-        if not isinstance(rules[0], RouteMapRuleMcast):
+        if not isinstance(rules[0], RouteMapRuleCollective):
             rule_type_dict = {"idx": "id_t", "start_addr": addr_type, "end_addr": addr_type}
             string += sv_struct_typedef(self.rule_type(), rule_type_dict)
         else:
             rule_type_dict = {"offset": "int unsigned", "len": "int unsigned", "base_id": "int unsigned"}
-            string += sv_struct_typedef("mcast_mask_sel_t", rule_type_dict)
-            rule_type_dict = {"id": "id_t", "mask_x": "mcast_mask_sel_t", "mask_y": "mcast_mask_sel_t"}
-            string += sv_struct_typedef("mcast_idx_t", rule_type_dict)
-            rule_type_dict = {"idx": "mcast_idx_t", "start_addr": addr_type, "end_addr": addr_type}
+            string += sv_struct_typedef("collective_mask_sel_t", rule_type_dict)
+            rule_type_dict = {"id": "id_t", "mask_x": "collective_mask_sel_t", "mask_y": "collective_mask_sel_t"}
+            string += sv_struct_typedef("collective_idx_t", rule_type_dict)
+            rule_type_dict = {"idx": "collective_idx_t", "start_addr": addr_type, "end_addr": addr_type}
             string += sv_struct_typedef(self.rule_type(), rule_type_dict)
 
         rules_str = ""
@@ -797,11 +808,8 @@ class Routing(BaseModel):
         addr_width (int): The width of the address bus.
         rob_idx_bits (int): The number of bits to represent the reorder buffer index.
         port_id_bits (int): The number of bits to represent the local port ID.
-        en_multicast (bool): Whether to enable multicast support. Only supported with XY routing.
-        multicast_sam (RouteMap): The multicast system address map. Only used if `en_multicast` is True.
-        en_parallel_reduction (bool): Whether to enable parallel reduction support (Experimental)
-        en_narrow_offload_reduction (bool): Whether to enable narrow offload reduction support (Experimental)
-        en_wide_offload_reduction (bool): Whether to enable wide offload reduction support
+        collective (CollectiveCfg): Collective operation configuration (multicast, barrier, reduction).
+        collective_sam (RouteMap): The collective system address map. Only used if collective is enabled.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
@@ -823,13 +831,13 @@ class Routing(BaseModel):
     num_vc_id_bits: int = 0
     decouple_rw: WideRwDecouple = WideRwDecouple.NONE
     vc_impl: VcImpl = VcImpl.NAIVE
-    multicast_sam: Optional[RouteMap] = None
+    collective_sam: Optional[RouteMap] = None
     collective: CollectiveCfg = CollectiveCfg()
 
     @property
-    def en_multicast(self) -> bool:
-        """Convenience alias used by validators and hdr typedef rendering."""
-        return self.collective.en_multicast
+    def en_collective(self) -> bool:
+        """True when any collective feature is enabled (multicast, barrier, or reduction)."""
+        return self.collective.en_collective
 
     @field_validator("route_algo", mode="before")
     @classmethod
@@ -869,11 +877,11 @@ class Routing(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def validate_multicast_route_algo(self):
-        """Multicast is supported with XY routing only"""
-        if self.en_multicast and self.route_algo != RouteAlgo.XY:
+    def validate_collective_route_algo(self):
+        """Collective operations are supported with XY routing only."""
+        if self.en_collective and self.route_algo != RouteAlgo.XY:
             raise ValueError(
-                "Multicast is only supported with XY routing algorithm, "
+                "Collective operations are only supported with XY routing algorithm, "
                 f"but got {self.route_algo}"
             )
         return self

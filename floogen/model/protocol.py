@@ -80,7 +80,8 @@ class AXI4(ProtocolDesc):
             case int(v):
                 fields["UserWidth"] = v
             case dict(d):
-                fields["UserWidth"] = sum([v for k, v in d.items() if k != "mcast_mask"])
+                _collective_fields = {"collective_mask", "collective_op"}
+                fields["UserWidth"] = sum([v for k, v in d.items() if k not in _collective_fields])
 
         return sv_param_decl(name, sv_struct_render(fields), dtype="axi_cfg_t")
 
