@@ -201,17 +201,17 @@ module floo_reduction_unit
       .dtype            (flit_t),
       .DEPTH            (RedCfg.RdPipelineDepth+2)
   ) i_fifo_flit (
-      .clk_i            (clk_i),
-      .rst_ni           (rst_ni),
-      .flush_i          (1'b0),
-      .testmode_i       (1'b0),
-      .full_o           (),
-      .empty_o          (),
-      .usage_o          (),
-      .data_i           (operand1_flit),                     // store the flit of the first operand
-      .push_i           (operands_valid_out & (~already_pushed_q)),  // push when handshake on the input operands
-      .data_o           (metadata_flit_out),
-      .pop_i            (result_flit_valid_out & result_flit_ready_in) // pop mask when handshake on the result
+      .clk_i      (clk_i),
+      .rst_ni     (rst_ni),
+      .flush_i    (1'b0),
+      .testmode_i (1'b0),
+      .full_o     (),
+      .empty_o    (),
+      .usage_o    (),
+      .data_i     (operand1_flit),  // store the flit of the first operand
+      .push_i     (operands_valid_out & (~already_pushed_q)),  // pop on operands handshake
+      .data_o     (metadata_flit_out),
+      .pop_i      (result_flit_valid_out & result_flit_ready_in) // pop on result handshake
   );
   // Fifo to store the output direction of the element during the FPU reduction
   fifo_v3 #(
@@ -219,17 +219,17 @@ module floo_reduction_unit
       .DATA_WIDTH       (NumInputs),
       .DEPTH            (RedCfg.RdPipelineDepth+2)
   ) i_fifo_route_dir (
-      .clk_i            (clk_i),
-      .rst_ni           (rst_ni),
-      .flush_i          (1'b0),
-      .testmode_i       (1'b0),
-      .full_o           (),
-      .empty_o          (), // Not needed, this fifo is always sinc with the flit one
-      .usage_o          (),
-      .data_i           (routed_out_mask_i[operand1_sel]),         // store the route out of the first operand
-      .push_i           (operands_valid_out & (~already_pushed_q)),  // push when handshake on the input operands
-      .data_o           (metadata_route_out_dir),
-      .pop_i            (result_flit_valid_out & result_flit_ready_in) // pop mask when handshake on the result
+      .clk_i      (clk_i),
+      .rst_ni     (rst_ni),
+      .flush_i    (1'b0),
+      .testmode_i (1'b0),
+      .full_o     (),
+      .empty_o    (), // Not needed, this fifo is always sinc with the flit one
+      .usage_o    (),
+      .data_i     (routed_out_mask_i[operand1_sel]),  // store the route out of the first operand
+      .push_i     (operands_valid_out & (~already_pushed_q)),  // pop on operands handshake
+      .data_o     (metadata_route_out_dir),
+      .pop_i      (result_flit_valid_out & result_flit_ready_in) // pop on result handshake
   );
 
   // TODO (lleone): Create a REQ/RSP struct for the following interface
@@ -248,7 +248,8 @@ module floo_reduction_unit
         .ready_i  (operands_ready_i)
   );
 
-  // TODO(lleone): When uniforming the offload interface, get rid of this part, isnce the cur will be of the type of the interface
+  // TODO(lleone): When uniforming the offload interface, get rid of this part,
+  // since the cut will be of the type of the interface
   assign operation_o = instr_out_cut.op;
   assign operand1_o = instr_out_cut.operand1;
   assign operand2_o = instr_out_cut.operand2;

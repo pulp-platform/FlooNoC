@@ -226,7 +226,7 @@ module floo_router
         // Outoput 0: unicast
         // Output 1: reduction
         assign offload_reduction[in][v] = (~red_single_member[in][v]) &
-                                          (is_seq_reduction_op(in_routed_data[in][v].hdr.collective_op));
+                            (is_seq_reduction_op(in_routed_data[in][v].hdr.collective_op));
         stream_demux #(
           .N_OUP              (2)
         ) i_stream_demux (
@@ -241,7 +241,7 @@ module floo_router
         assign red_route_selected[in][v] = route_mask[in][v];
       end
     end
-  end else begin
+  end else begin: gen_no_red_offload
     assign cross_valid = in_valid;
     assign in_ready = cross_ready;
     assign red_valid_in = '0;
@@ -264,7 +264,7 @@ module floo_router
         assign red_offload_route_selected[in]   = red_route_selected[in][0];
         assign red_offload_expected_in_route_loopback[in] = red_expected_in_route[in][0];
     end
-    if (NumVirtChannels > 1) begin
+    if (NumVirtChannels > 1) begin: gen_vc_red_ready_tied
       for (genvar in = 0; in < NumInput; in++) begin: gen_vc1_tied
         assign red_ready_in[in][1]  = '0; // Tied to zero the ready from offload unit to VC1
       end
@@ -310,13 +310,13 @@ module floo_router
     end
 
     // Tie down all unused signals
-    if(NumVirtChannels > 1) begin
+    if(NumVirtChannels > 1) begin: gen_vc_red_val_tied
       for (genvar out = 0; out < NumOutput; out++) begin
         assign red_data_out[out][1] = '0;
         assign red_valid_out[out][1] = '0;
       end
     end
-  end else begin
+  end else begin: gen_red_tied
     assign red_offload_valid_in = '0;
     assign red_offload_ready_in = '0;
     assign red_offload_data_in = '0;
@@ -407,7 +407,7 @@ module floo_router
         assign red_ready_out[out][v] = merged_ready[out][v][LocalNumInputs-1];
       end
     end
-  end else begin
+  end else begin: gen_byp_mask
     assign merged_data = masked_data;
     assign merged_valid = masked_valid;
     assign masked_ready = merged_ready;
@@ -537,7 +537,7 @@ module floo_router
   // If you have offload reduction and more than one virtual channel,
   // the reduction traffic must arrive from Virtual Channel 0
   if (EnSequentialReduction && (NumVirtChannels > 1)) begin: gen_vc_red
-    for (genvar in = 0; in < NumInput; in++) begin
+    for (genvar in = 0; in < NumInput; in++) begin: gen_red_vc_idx_assert
         `ASSERT(CollOpReceivedOnWrongVirtChannel, !red_valid_in[in][1])
     end
   end
