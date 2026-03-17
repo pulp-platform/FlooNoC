@@ -395,7 +395,7 @@
 // Arguments:
 // - name:       Suffix/prefix used to build the type name
 // - data_t:     Operand data type
-`define RED_TYPEDEF_REQ_CHAN_T(name, data_t) \
+`define FLOO_RED_TYPEDEF_REQ_CHAN_T(name, data_t) \
   typedef struct packed {                          \
     floo_pkg::collect_op_e  op;                                     \
     data_t   operand1;                               \
@@ -408,7 +408,7 @@
 // Arguments:
 // - name:   Suffix/prefix used to build the type name
 // - data_t: Result data type
-`define RED_TYPEDEF_RSP_CHAN_T(name, data_t) \
+`define FLOO_RED_TYPEDEF_RSP_CHAN_T(name, data_t) \
   typedef struct packed {                   \
     data_t result;                          \
   } red_``name``_rsp_chan_t;
@@ -419,7 +419,7 @@
 // Arguments:
 // - name:      Link type base name (e.g. wide_req)
 // - chan_name: Channel base name used
-`define RED_TYPEDEF_REQ_LINK_T(name, chan_name) \
+`define FLOO_RED_TYPEDEF_REQ_LINK_T(name, chan_name) \
   typedef struct packed {                       \
     logic                    valid;             \
     logic                    ready;             \
@@ -432,7 +432,7 @@
 // Arguments:
 // - name:      Link type base name (e.g. wide_rsp)
 // - chan_name: Channel base name
-`define RED_TYPEDEF_RSP_LINK_T(name, chan_name) \
+`define FLOO_RED_TYPEDEF_RSP_LINK_T(name, chan_name) \
   typedef struct packed {                       \
     logic                    valid;             \
     logic                    ready;             \
@@ -445,9 +445,9 @@
 // Arguments:
 // - name:   Base name
 // - data_t: Data type (operands + result)
-`define RED_TYPEDEF_REQ_RSP_CHAN_ALL(name, data_t) \
-  `RED_TYPEDEF_REQ_CHAN_T(name, data_t)            \
-  `RED_TYPEDEF_RSP_CHAN_T(name, data_t)
+`define FLOO_RED_TYPEDEF_REQ_RSP_CHAN_ALL(name, data_t) \
+  `FLOO_RED_TYPEDEF_REQ_CHAN_T(name, data_t)            \
+  `FLOO_RED_TYPEDEF_RSP_CHAN_T(name, data_t)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Convenience macro: define payload types AND ready/valid links
@@ -459,10 +459,10 @@
 // - rsp_link: Base name for the response link type
 //
 // Example:
-// `RED_TYPEDEF_REQ_RSP_LINK_ALL(wide, data_t, wide_req, wide_rsp)
-`define RED_TYPEDEF_REQ_RSP_LINK(name, data_t, req_link, rsp_link) \
-  `RED_TYPEDEF_REQ_RSP_CHAN_ALL(name, data_t)                          \
-  `RED_TYPEDEF_REQ_LINK_T(req_link, name)                                    \
-  `RED_TYPEDEF_RSP_LINK_T(rsp_link, name)
+// `FLOO_RED_TYPEDEF_REQ_RSP_LINK_ALL(wide, data_t, wide_req, wide_rsp)
+`define FLOO_RED_TYPEDEF_REQ_RSP_LINK(name, data_t, req_link, rsp_link) \
+  `FLOO_RED_TYPEDEF_REQ_RSP_CHAN_ALL(name, data_t)                          \
+  `FLOO_RED_TYPEDEF_REQ_LINK_T(req_link, name)                                    \
+  `FLOO_RED_TYPEDEF_RSP_LINK_T(rsp_link, name)
 
-  `endif // FLOO_NOC_TYPEDEF_SVH_
+`endif // FLOO_NOC_TYPEDEF_SVH_

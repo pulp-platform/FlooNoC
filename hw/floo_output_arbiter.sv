@@ -97,7 +97,7 @@ module floo_output_arbiter import floo_pkg::*;
     assign parallel_red_data = data_i[NumParallelRedRoutes-1:0];
     assign parallel_red_valid = reduce_valid_in[NumParallelRedRoutes-1:0];
     assign reduce_ready_out[NumParallelRedRoutes-1:0] = parallel_red_ready;
-    if(NumRoutes > NumParallelRedRoutes) begin
+    if(NumRoutes > NumParallelRedRoutes) begin: gen_paral_route_tied
       assign reduce_ready_out[NumRoutes-1:NumParallelRedRoutes] = '0;
     end
 

@@ -152,9 +152,10 @@ module floo_route_select
     end
 
     // Depending on the flit header choose the correct route
-    if(EnMultiCast) begin
-      assign route_sel = (channel_i.hdr.collective_op == Multicast) ? route_sel_multicast : route_sel_unicast;
-    end else begin
+    if(EnMultiCast) begin: gen_mcast_out_sel
+      assign route_sel = (channel_i.hdr.collective_op == Multicast) ?
+                        route_sel_multicast : route_sel_unicast;
+    end else begin: gen_unicast_route_sel
       assign route_sel = route_sel_unicast;
     end
 
