@@ -103,7 +103,8 @@ package floo_synth_nw_pkg;
 
   localparam int unsigned NumVirtualChannels = (WideRwDecouple == floo_pkg::None) ? 1 : 2;
   localparam int unsigned NumWidePhysChannels = (WideRwDecouple == floo_pkg::Phys) ? 2 : 1;
-  `FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req, rsp, wide, NumVirtualChannels, NumWidePhysChannels)
+  `FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req, rsp, wide,
+                                      NumVirtualChannels, NumWidePhysChannels)
 
   typedef logic [AxiCfgW.DataWidth-1:0] floo_wide_red_data_t;
   typedef logic [AxiCfgN.DataWidth-1:0] floo_narrow_red_data_t;

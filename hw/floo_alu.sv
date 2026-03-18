@@ -9,7 +9,7 @@
 
 `include "common_cells/assertions.svh"
 
-package alu_pkg;
+package floo_alu_pkg;
   // STRONGLY Inspired by the fpnew from openhw group!
 
   // ---------
@@ -26,11 +26,11 @@ package alu_pkg;
   // | INT64      | 64 bit |
   // | UINT64     | 64 bit |
   // *NOTE:* Add new formats only at the end of the enumeration for backwards compatibilty!
-  localparam int unsigned NUM_INT_FORMATS = 8;
-  localparam int unsigned INT_FORMAT_BITS = $clog2(NUM_INT_FORMATS);
+  localparam int unsigned NumIntFormats = 8;
+  localparam int unsigned IntFormatBits = $clog2(NumIntFormats);
 
   // Int formats (Uint required for differentation between signed / unsigned min max)
-  typedef enum logic [INT_FORMAT_BITS-1:0] {
+  typedef enum logic [IntFormatBits-1:0] {
     INT8,
     UINT8,
     INT16,
@@ -67,11 +67,11 @@ package alu_pkg;
   // --------------
   // ALU OPERATIONS
   // --------------
-  localparam int unsigned NUM_INT_OPERATION = 4;
-  localparam int unsigned INT_OPERATION_BITS = $clog2(NUM_INT_OPERATION);
+  localparam int unsigned NumIntOperation = 4;
+  localparam int unsigned IntOperationBits = $clog2(NumIntOperation);
 
   // Int Operation
-  typedef enum logic [INT_OPERATION_BITS-1:0] {
+  typedef enum logic [IntOperationBits-1:0] {
     ADD,
     MUL,
     MIN,
@@ -111,8 +111,8 @@ module floo_reduction_alu import floo_pkg::*; #() (
   // Typedef for the input of the ALU
   typedef struct packed {
     logic [1:0][63:0]         operands;
-    alu_pkg::alu_operation_e  op;
-    alu_pkg::alu_int_format_e fmt;
+    floo_alu_pkg::alu_operation_e  op;
+    floo_alu_pkg::alu_int_format_e fmt;
     logic                     vectorial_op;
   } alu_in_t;
 
@@ -140,32 +140,32 @@ module floo_reduction_alu import floo_pkg::*; #() (
     // Define the operation we want to execute on the FPU
     unique casez (alu_req_type_i)
       (floo_pkg::IntAdd) : begin
-        alu_in.op = alu_pkg::ADD;
-        alu_in.fmt = alu_pkg::INT32;
+        alu_in.op = floo_alu_pkg::ADD;
+        alu_in.fmt = floo_alu_pkg::INT32;
       end
       (floo_pkg::IntMul) : begin
-        alu_in.op = alu_pkg::MUL;
-        alu_in.fmt = alu_pkg::INT32;
+        alu_in.op = floo_alu_pkg::MUL;
+        alu_in.fmt = floo_alu_pkg::INT32;
       end
       (floo_pkg::IntMinS) : begin
-        alu_in.op = alu_pkg::MIN;
-        alu_in.fmt = alu_pkg::INT32;
+        alu_in.op = floo_alu_pkg::MIN;
+        alu_in.fmt = floo_alu_pkg::INT32;
       end
       (floo_pkg::IntMinU) : begin
-        alu_in.op = alu_pkg::MIN;
-        alu_in.fmt = alu_pkg::UINT32;
+        alu_in.op = floo_alu_pkg::MIN;
+        alu_in.fmt = floo_alu_pkg::UINT32;
       end
       (floo_pkg::IntMaxS) : begin
-        alu_in.op = alu_pkg::MAX;
-        alu_in.fmt = alu_pkg::INT32;
+        alu_in.op = floo_alu_pkg::MAX;
+        alu_in.fmt = floo_alu_pkg::INT32;
       end
       (floo_pkg::IntMaxU) : begin
-        alu_in.op = alu_pkg::MAX;
-        alu_in.fmt = alu_pkg::UINT32;
+        alu_in.op = floo_alu_pkg::MAX;
+        alu_in.fmt = floo_alu_pkg::UINT32;
       end
       default : begin
-        alu_in.op = alu_pkg::ADD;
-        alu_in.fmt = alu_pkg::INT32;
+        alu_in.op = floo_alu_pkg::ADD;
+        alu_in.fmt = floo_alu_pkg::INT32;
       end
     endcase
   end
@@ -205,22 +205,22 @@ module floo_alu_top #(
   parameter bit           CutInput = 1'b1,
   // Do not change
   localparam int unsigned WIDTH = 64,
-  localparam int unsigned NUM_OPERANDS = 2
+  localparam int unsigned NumOperands = 2
 ) (
   input logic                                 clk_i,
   input logic                                 rst_ni,
   input logic                                 flush_i,
   /// Input Signal
-  input logic [NUM_OPERANDS-1:0][WIDTH-1:0]   operands_i,
-  input alu_pkg::alu_operation_e              op_i,
-  input alu_pkg::alu_int_format_e             fmt_i,
+  input logic [NumOperands-1:0][WIDTH-1:0]   operands_i,
+  input floo_alu_pkg::alu_operation_e              op_i,
+  input floo_alu_pkg::alu_int_format_e             fmt_i,
   input logic                                 vector_mode_i,
   input tag_t                                 tag_i,
   input logic                                 in_valid_i,
   output logic                                in_ready_o,
   /// Output Signal
   output logic [WIDTH-1:0]                    result_o,
-  output alu_pkg::alu_status_t                status_o,
+  output floo_alu_pkg::alu_status_t                status_o,
   output tag_t                                tag_o,
   output logic                                out_valid_o,
   input  logic                                out_ready_i
@@ -232,25 +232,25 @@ module floo_alu_top #(
 
 // Typedefs for the cut to avoid a cut for everything
 typedef struct packed {
-  logic [NUM_OPERANDS-1:0][WIDTH-1:0] operands;
-  alu_pkg::alu_operation_e op;
-  alu_pkg::alu_int_format_e fmt;
+  logic [NumOperands-1:0][WIDTH-1:0] operands;
+  floo_alu_pkg::alu_operation_e op;
+  floo_alu_pkg::alu_int_format_e fmt;
   logic vector_mode;
   tag_t tag;
 } cut_input_t;
 
 typedef struct packed {
   logic [WIDTH-1:0] result;
-  alu_pkg::alu_status_t status;
+  floo_alu_pkg::alu_status_t status;
   tag_t tag;
 } cut_output_t;
 
 /* Variable declaration */
 
 // Vars after the input cut
-logic [NUM_OPERANDS-1:0][WIDTH-1:0]   operands_q;
-alu_pkg::alu_operation_e op_q;
-alu_pkg::alu_int_format_e fmt_q;
+logic [NumOperands-1:0][WIDTH-1:0]   operands_q;
+floo_alu_pkg::alu_operation_e op_q;
+floo_alu_pkg::alu_int_format_e fmt_q;
 logic vector_mode_q;
 tag_t tag_q;
 logic in_valid_q;
@@ -258,13 +258,13 @@ logic in_ready_q;
 
 // Vars with the result infront of the output cut
 logic [WIDTH-1:0] result_d;
-alu_pkg::alu_status_t status_d;
+floo_alu_pkg::alu_status_t status_d;
 tag_t tag_d;
 logic out_valid_d;
 logic out_ready_d;
 
 // trunc'ed signal to support only 32 Bit signal
-logic [NUM_OPERANDS-1:0][31:0]        operands_32;
+logic [NumOperands-1:0][31:0]        operands_32;
 logic [31:0] res_32;
 logic [31:0] adder_res_32;
 logic [31:0] mul_res_32;
@@ -274,7 +274,7 @@ logic [31:0] max_res_32;
 /* Module Declaration */
 
 // Input Cut to split the ALU from the rest of the system
-if (CutInput == 1'b1) begin
+if (CutInput == 1'b1) begin : gen_input_cut
   spill_register_flushable #(
     .T                  (cut_input_t),
     .Bypass             (1'b0)
@@ -289,7 +289,7 @@ if (CutInput == 1'b1) begin
     .ready_i            (in_ready_q),
     .data_o             ({operands_q, op_q, fmt_q, vector_mode_q, tag_q})
   );
-end else begin
+end else begin : gen_no_input_cut
   assign operands_q = operands_i;
   assign op_q = op_i;
   assign fmt_q = fmt_i;
@@ -301,7 +301,7 @@ end
 
 // Implement ALU here
 // Parse both operands to 32 Bit
-for (genvar i = 0; i < NUM_OPERANDS;i++) begin
+for (genvar i = 0; i < NumOperands; i++) begin : gen_operands_32
   assign operands_32[i] = operands_q[i][31:0];
 end
 
@@ -326,12 +326,13 @@ always_comb begin : gen_minmax
 
   // Determint if we require sign > When we extend the signal by 1 bit then we can use the signed hw
   // for both the signed and unsigned case.
-  if(fmt_q == alu_pkg::INT32) begin
+  if(fmt_q == floo_alu_pkg::INT32) begin
     sign = 1'b1;
   end
 
   // Calc the min / max signal in the same case
-  if($signed({sign & operands_32[0][31], operands_32[0]}) > $signed({sign & operands_32[1][31], operands_32[1]})) begin
+  if ($signed({sign & operands_32[0][31], operands_32[0]}) >
+      $signed({sign & operands_32[1][31], operands_32[1]})) begin
     max_res_32 = operands_32[0];
     min_res_32 = operands_32[1];
   end else begin
@@ -344,10 +345,10 @@ end
 always_comb begin : result_mux
   res_32 = '0;
   unique case (op_i)
-    alu_pkg::ADD:   res_32 = adder_res_32;
-    alu_pkg::MUL:   res_32 = mul_res_32;
-    alu_pkg::MIN:   res_32 = min_res_32;
-    alu_pkg::MAX:   res_32 = max_res_32;
+    floo_alu_pkg::ADD:   res_32 = adder_res_32;
+    floo_alu_pkg::MUL:   res_32 = mul_res_32;
+    floo_alu_pkg::MIN:   res_32 = min_res_32;
+    floo_alu_pkg::MAX:   res_32 = max_res_32;
     default:        res_32 = '0;
   endcase
 end
@@ -359,10 +360,11 @@ assign result_d = {{32{res_32[31]}},res_32};
 assign tag_d = tag_q;
 assign out_valid_d = in_valid_q;
 assign in_ready_q = out_ready_d;
-assign status_d.is_zero = ~ (|res_32); // Or Connect all signal and invert to determin if we have a 0 signal
+// Or-reduce all result bits and invert to determine if result is zero
+assign status_d.is_zero = ~(|res_32);
 
 // introduce cut at output of ALU
-if (CutOutput == 1'b1) begin
+if (CutOutput == 1'b1) begin : gen_output_cut
   spill_register_flushable #(
     .T                  (cut_output_t),
     .Bypass             (1'b0)
@@ -377,7 +379,7 @@ if (CutOutput == 1'b1) begin
     .ready_i            (out_ready_i),
     .data_o             ({result_o, status_o, tag_o})
   );
-end else begin
+end else begin : gen_no_output_cut
   assign result_o = result_d;
   assign status_o = status_d;
   assign tag_o = tag_d;
@@ -388,7 +390,7 @@ end
 /* Assertions for the module */
 
 // Currently we only support 32Bit operations! Could be extended in the future
-`ASSERT(Invalid_Input, !((fmt_i != alu_pkg::INT32) && (fmt_i != alu_pkg::UINT32)))
+`ASSERT(Invalid_Input, !((fmt_i != floo_alu_pkg::INT32) && (fmt_i != floo_alu_pkg::UINT32)))
 `ASSERT(Invalid_Vector_Ops, !(vector_mode_i != 1'b0))
 
 endmodule
