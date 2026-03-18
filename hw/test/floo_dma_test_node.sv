@@ -307,9 +307,9 @@ module floo_dma_test_node  #(
   always_ff @(posedge clk_i or negedge rst_ni) begin : proc_ready
     if(!rst_ni) begin
       ready <= 1'b1;
-    end else if(done == 1'b1) begin
+    end else if(done == 1'b1) begin // job completion, floo dma is ready to accept new jobs
       ready <= 1'b1;
-    end else if(start == 1'b1) begin
+    end else if(start == 1'b1) begin // start, with jobs to run
       ready <= 1'b0;
     end
   end
@@ -483,6 +483,10 @@ initial begin
         $display("[DMA%0d] Burst Address: 0x%0h", JobId + 1, burst_addr);
       end
     end
+
+    // wait in case there are no jobs, but start is dispatched anyway
+    wait (start == 1'b0);
+
     // stop simulation
     done = 1'b1;
     @(posedge clk_i);
