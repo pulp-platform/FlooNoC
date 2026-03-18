@@ -241,7 +241,8 @@ package floo_pkg;
   /// Configuration to specify how extensive collective support is enabled
   typedef struct packed {
     collect_op_fe_cfg_t OpCfg;
-    reduction_cfg_t  RedCfg;
+    reduction_cfg_t  NarrRedCfg;
+    reduction_cfg_t  WideRedCfg;
   } collective_cfg_t;
 
   /// Configuration to pass routing information to the routers
@@ -318,8 +319,8 @@ package floo_pkg;
     default: '0
   };
 
-  /// The default configuration for the offload reduction unit
-  localparam reduction_cfg_t ReductionDefaultCfg = '{
+  /// The default configuration for the narrow offload reduction unit
+  localparam reduction_cfg_t RedDefaultCfg = '{
     RdPipelineDepth: 5,
     CutOffloadIntf: 1'b1
   };
@@ -327,7 +328,8 @@ package floo_pkg;
   /// The default configuration for collective operations
   localparam collective_cfg_t CollectiveDefaultCfg = '{
     OpCfg:  CollectiveOpDefaultCfg,
-    RedCfg: ReductionDefaultCfg
+    NarrRedCfg: RedDefaultCfg,
+    WideRedCfg: RedDefaultCfg
   };
 
   /// The default configuration for the network interface

@@ -41,8 +41,6 @@ package floo_${name}_noc_pkg;
 
   ${noc.routing.render_route_cfg(name="RouteCfg")}
   ${noc.routing.render_vc_impl()}
-  ${noc.routing.collective.render_narrow_reduction_cfg()}
-  ${noc.routing.collective.render_wide_reduction_cfg()}
 
 % for prot in noc.protocols:
   % if not noc.routing.en_collective:
