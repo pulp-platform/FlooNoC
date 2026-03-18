@@ -97,9 +97,18 @@ package floo_synth_nw_pkg;
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi_wide, AxiCfgW)
   `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow_in, axi_wide_in,
       AxiCfgN, AxiCfgW, hdr_t)
-  `FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, req, rsp, wide)
-  // Enable the following VC LINK when you want to experiment the use of virtual channels in collective
-  // `FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req, rsp, wide, 1, 2, 1)
+
+  localparam floo_pkg::wide_rw_decouple_e WideRwDecouple = floo_pkg::Phys;
+  localparam floo_pkg::vc_impl_e VcImpl = floo_pkg::VcNaive;
+
+  localparam int unsigned NumVirtualChannels = (WideRwDecouple == floo_pkg::None) ? 1 : 2;
+  localparam int unsigned NumWidePhysChannels = (WideRwDecouple == floo_pkg::Phys) ? 2 : 1;
+  `FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req, rsp, wide, NumVirtualChannels, NumWidePhysChannels)
+
+  typedef logic [AxiCfgW.DataWidth-1:0] floo_wide_red_data_t;
+  typedef logic [AxiCfgN.DataWidth-1:0] floo_narrow_red_data_t;
+  `FLOO_RED_TYPEDEF_REQ_RSP_LINK(wide, floo_wide_red_data_t, wide_req, wide_rsp)
+  `FLOO_RED_TYPEDEF_REQ_RSP_LINK(narrow, floo_narrow_red_data_t, narrow_req, narrow_rsp)
 
 endpackage
 
@@ -197,90 +206,16 @@ package floo_synth_collective_pkg;
 
   typedef logic [0:0] rob_idx_t;
 
-  // TODO (lleone): Script the following configurations with Python
-  // Offload unit configuration
-  localparam reduction_cfg_t WideGenReductionCfg = '{
-    RdControllConf: ControllerGeneric,
-    RdFifoFallThrough: 1'b1,
-    RdFifoDepth: 0,
-    RdPipelineDepth: 5,
-    RdPartialBufferSize: 6,
-    RdTagBits: 5,
-    RdSupportAxi: 1'b1,
-    RdEnableBypass: 1'b1,
-    RdSupportLoopback: 1'b1,
-    CutOffloadIntf: 1'b1
-  };
-
-  localparam reduction_cfg_t WideStallingReductionCfg = '{
-    RdControllConf: ControllerStalling,
-    RdFifoFallThrough: 1'b1,
-    RdFifoDepth: 0,
-    RdPipelineDepth: 5,
-    RdPartialBufferSize: 3,
-    RdTagBits: 5,
-    RdSupportAxi: 1'b1,
-    RdEnableBypass: 1'b1,
-    RdSupportLoopback: 1'b1,
-    CutOffloadIntf: 1'b1
-  };
-
-  localparam reduction_cfg_t WideSimpleReductionCfg = '{
-    RdControllConf: ControllerSimple,
-    RdFifoFallThrough: 1'b1,
-    RdFifoDepth: 0,
-    RdPipelineDepth: 5,
-    RdPartialBufferSize: 1,
-    RdTagBits: 5,
-    RdSupportAxi: 1'b1,
-    RdEnableBypass: 1'b1,
-    RdSupportLoopback: 1'b1,
-    CutOffloadIntf: 1'b1
-  };
-
-localparam reduction_cfg_t NarrowGenReductionCfg = '{
-    RdControllConf: ControllerGeneric,
-    RdFifoFallThrough: 1'b1,
-    RdFifoDepth: 0,
+  // Low-latency reduction config for narrow integer ops (short pipeline, cut offload interface)
+  localparam reduction_cfg_t NarrowReductionCfg = '{
     RdPipelineDepth: 1,
-    RdPartialBufferSize: 3,
-    RdTagBits: 5,
-    RdSupportAxi: 1'b1,
-    RdEnableBypass: 1'b1,
-    RdSupportLoopback: 1'b1,
     CutOffloadIntf: 1'b1
   };
 
-  localparam reduction_cfg_t NarrowStallingReductionCfg = '{
-    RdControllConf: ControllerStalling,
-    RdFifoFallThrough: 1'b1,
-    RdFifoDepth: 0,
-    RdPipelineDepth: 1,
-    RdPartialBufferSize: 3,
-    RdTagBits: 5,
-    RdSupportAxi: 1'b1,
-    RdEnableBypass: 1'b1,
-    RdSupportLoopback: 1'b1,
+  // High-throughput reduction config for wide FP ops (deep pipeline, cut offload interface)
+  localparam reduction_cfg_t WideReductionCfg = '{
+    RdPipelineDepth: 5,
     CutOffloadIntf: 1'b1
-  };
-
-  localparam reduction_cfg_t NarrowSimpleReductionCfg = '{
-    RdControllConf: ControllerSimple,
-    RdFifoFallThrough: 1'b1,
-    RdFifoDepth: 0,
-    RdPipelineDepth: 1,
-    RdPartialBufferSize: 3,
-    RdTagBits: 5,
-    RdSupportAxi: 1'b1,
-    RdEnableBypass: 1'b1,
-    RdSupportLoopback: 1'b1,
-    CutOffloadIntf: 1'b1
-  };
-
-  localparam reduction_cfg_t ResponseReductionCfg = '{
-    RdEnableBypass: 1'b1,
-    RdSupportLoopback: 1'b1,
-    default: '0
   };
 
   // Route config with collective support enabled
@@ -358,7 +293,7 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
     EnIntMaxU:          1'b1
   };
 
-  localparam floo_pkg::collect_op_fe_cfg_t CollectOpCfgList [0:5] = '{
+  localparam floo_pkg::collect_op_fe_cfg_t CollectOpCfgList [6] = '{
     0: '0,
     1: CollectiveOpCfg,
     2: MulticastOpCfg,
@@ -367,48 +302,41 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
     5: WideSequentialOpCfg
   };
 
-  localparam reduction_cfg_t NarrRedCfgList [0:3] = '{
-    0: '0,
-    1: NarrowSimpleReductionCfg,
-    2: NarrowStallingReductionCfg,
-    3: NarrowGenReductionCfg
-  };
-
-  localparam reduction_cfg_t WideRedCfgList [0:3] = '{
-    0: '0,
-    1: WideSimpleReductionCfg,
-    2: WideStallingReductionCfg,
-    3: WideGenReductionCfg
-  };
+  // Index enum matching CollectOpCfgList — use as CollectCfgIdx parameter in synth wrappers
+  typedef enum int unsigned {
+    CollectNone     = 0,  // No collective
+    CollectAll      = 1,  // All ops (multicast + barrier + narrow/wide reduction)
+    CollectMcast    = 2,  // Multicast only
+    CollectParallel = 3,  // Multicast + barrier (parallel reductions only)
+    CollectNarrSeq  = 4,  // Multicast + barrier + narrow integer reductions
+    CollectWideSeq  = 5   // All ops including wide FP reductions
+  } collective_cfg_idx_e;
 
   typedef logic[AxiCfgW.DataWidth-1:0] RdDataWide_t;
   typedef logic[AxiCfgN.DataWidth-1:0] RdDataNarrow_t;
 
   `FLOO_TYPEDEF_HDR_T(hdr_coll_t, id_t, id_t, nw_ch_e, rob_idx_t, id_t, collect_op_e)
-  // `FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req, rsp, wide, 1, 2)
 
-  // Typedef for the chimney
-  typedef bit [ 5:0] aw_bt;
+  // Collective SAM types — names and field types match the generated floo_*_noc_pkg
+  typedef struct packed {
+    int unsigned offset;
+    int unsigned len;
+    int unsigned base_id;
+  } collective_mask_sel_t;
 
   typedef struct packed {
-    logic [5:0] offset;
-    logic [2:0] len;
-    logic [2:0] grp_base_id;
-  } mask_sel_t;
+    id_t                  id;
+    collective_mask_sel_t mask_x;
+    collective_mask_sel_t mask_y;
+  } collective_idx_t;
 
   typedef struct packed {
-    id_t       id;
-    mask_sel_t mask_x;
-    mask_sel_t mask_y;
-  } sam_idx_t;
+    collective_idx_t              idx;
+    logic [AxiCfgN.AddrWidth-1:0] start_addr;
+    logic [AxiCfgN.AddrWidth-1:0] end_addr;
+  } collective_sam_rule_t;
 
-  typedef struct packed {
-    sam_idx_t                             idx;
-    logic [aw_bt'(AxiCfgN.AddrWidth)-1:0] start_addr;
-    logic [aw_bt'(AxiCfgN.AddrWidth)-1:0] end_addr;
-  } sam_multicast_rule_t;
-
-  typedef logic [aw_bt'(AxiCfgN.AddrWidth)-1:0] user_mask_t;
+  typedef logic [AxiCfgN.AddrWidth-1:0] user_mask_t;
 
   typedef struct packed {
     user_mask_t                 collective_mask;
@@ -427,10 +355,11 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
     XYAddrOffsetX: 16,
     XYAddrOffsetY: 20,
     CollectiveCfg: '{
-      OpCfg: CollectiveOpCfg,
-      RedCfg: WideSimpleReductionCfg
+      OpCfg:      CollectOpCfgList[CollectNone],
+      NarrRedCfg: NarrowReductionCfg,
+      WideRedCfg: WideReductionCfg
     },
-    default: '0 // Potentially enable Multicast features
+    default: '0
   };
 
 endpackage

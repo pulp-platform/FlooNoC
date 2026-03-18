@@ -311,7 +311,7 @@ module floo_router
 
     // Tie down all unused signals
     if(NumVirtChannels > 1) begin: gen_vc_red_val_tied
-      for (genvar out = 0; out < NumOutput; out++) begin
+      for (genvar out = 0; out < NumOutput; out++) begin: gen_out
         assign red_data_out[out][1] = '0;
         assign red_valid_out[out][1] = '0;
       end
