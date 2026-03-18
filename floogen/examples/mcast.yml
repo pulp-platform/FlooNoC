@@ -45,7 +45,6 @@ protocols:
     user_width:
       collective_mask: 48
       collective_op: 4
-      user: 1
   - name: "wide_out"
     type: "wide"
     protocol: "AXI4"
@@ -55,7 +54,6 @@ protocols:
     user_width:
       collective_mask: 48
       collective_op: 4
-      user: 1
 
 endpoints:
   - name: "cluster"
