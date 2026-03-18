@@ -13,12 +13,13 @@ remotes:
     pulp: https://github.com/pulp-platform
 
 dependencies:
-  axi: 0.39.7
   axi_riscv_atomics: 0.8.2
   common_cells: 1.39.0
   common_verification: 0.2.3
-  idma: {version: 0.6.2, upstream_name: iDMA}
-  floo_noc_pd: {path: ./pd, target: "floo_synth"}
+  idma:         {version: 0.6.2, upstream_name: iDMA}
+  axi:          { git: https://github.com/colluca/axi.git,                  rev:      multicast   }
+  FPnew:        { git: "https://github.com/pulp-platform/cvfpu.git",        rev:      pulp-v0.2.3 }
+  floo_noc_pd:  {path: ./pd, target: "floo_synth"}
 
 export_include_dirs:
   - hw/include
@@ -39,15 +40,18 @@ sources:
   - hw/floo_rob_wrapper.sv
   - hw/floo_reduction_sync.sv
   - hw/floo_route_xymask.sv
+  - hw/floo_alu.sv
   # Level 2
   - hw/floo_route_select.sv
   - hw/floo_route_comp.sv
   - hw/floo_meta_buffer.sv
   - hw/floo_reduction_arbiter.sv
+  - hw/floo_reduction_unit.sv
   # Level 3
   - hw/floo_output_arbiter.sv
   # Level 4
   - hw/floo_nw_join.sv
+    # TODO(lleone): Put back and fis axi_chimney
   - hw/floo_axi_chimney.sv
   - hw/floo_nw_chimney.sv
   - hw/floo_router.sv
@@ -70,6 +74,7 @@ sources:
       - hw/test/axi_reorder_remap_compare.sv
       - hw/test/axi_bw_monitor.sv
       - hw/test/floo_hbm_model.sv
+#      - hw/test/floo_reduction_offloads.sv
       - hw/test/axi_aw_w_sync.sv
       # Level 2
       - hw/tb/tb_floo_axi_chimney.sv
@@ -77,6 +82,7 @@ sources:
       - hw/tb/tb_floo_router.sv
       - hw/tb/tb_floo_rob.sv
       - hw/tb/tb_floo_rob_multicast.sv
+      #- hw/tb/tb_floo_rob_multicast.sv
 
   - target: all(any(floo_test, floo_synth), axi_mesh)
     files:
@@ -109,6 +115,7 @@ sources:
     - hw/synth/floo_synth_nw_chimney.sv
     - hw/synth/floo_synth_axi_router.sv
     - hw/synth/floo_synth_nw_router.sv
+    - hw/synth/floo_synth_nw_2tiles.sv
 
   - target: floo_deprecated_hw
     include_dirs:

@@ -94,11 +94,14 @@ class NarrowWideLink(Link):
         return f"{self.source}_to_{self.dest}_wide"
 
     @classmethod
-    def render_typedefs(cls, axi_narrow, axi_wide, cfg_n, cfg_w):
+    def render_typedefs(cls, axi_narrow, axi_wide, cfg_n, cfg_w, vc_num=None, phy_num=None):
         """Render the typedefs of the links."""
         string = f"`FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, \
             {axi_narrow}, {axi_wide}, {cfg_n}, {cfg_w}, hdr_t)\n\n"
-        string += "`FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, req, rsp, wide)\n"
+        if vc_num is not None and phy_num is not None:
+            string += f"`FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req, rsp, wide, {vc_num}, {phy_num})\n"
+        else:
+            string += "`FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, req, rsp, wide)\n"
         return string
 
     def declare(self):

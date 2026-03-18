@@ -90,9 +90,9 @@ class EndpointDesc(BaseModel):
         """Return true if the endpoint is only a manager."""
         return self.is_mgr() and not self.is_sbr()
 
-    def is_multicast_ep(self) -> bool:
-        """Return true if the endpoint supports multicast."""
-        return any([b for b in self.addr_range if b.en_multicast])
+    def is_collective_ep(self) -> bool:
+        """Return true if the endpoint supports collective operations."""
+        return any([b for b in self.addr_range if b.en_collective])
 
     def get_ni_name(self, name: str) -> str:
         """Return the name of the NI."""
@@ -118,9 +118,9 @@ class Endpoint(EndpointDesc):
     def render_ports(self, pkg_name=""):
         """Render the ports of the endpoint."""
         ports = []
-        mcast_prefix = "mcast" if self.is_multicast_ep() else ""
+        collective_prefix = "collective" if self.is_collective_ep() else ""
         for port in self.mgr_ports:
-            ports += port.render_port(pkg_name, prefix=mcast_prefix)
+            ports += port.render_port(pkg_name, prefix=collective_prefix)
         for port in self.sbr_ports:
-            ports += port.render_port(pkg_name, prefix=mcast_prefix)
+            ports += port.render_port(pkg_name, prefix=collective_prefix)
         return ports
