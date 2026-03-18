@@ -115,6 +115,7 @@ sources:
     - hw/synth/floo_synth_nw_chimney.sv
     - hw/synth/floo_synth_axi_router.sv
     - hw/synth/floo_synth_nw_router.sv
+    - hw/synth/floo_synth_nw_2tiles.sv
 
   - target: floo_deprecated_hw
     include_dirs:

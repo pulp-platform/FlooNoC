@@ -11,7 +11,7 @@ module floo_synth_nw_chimney
   import floo_synth_collective_pkg::*;
   import endpoint_axi_pkg::*;
   #(
-    parameter bit EnCollective = 1'b0
+    parameter collective_cfg_idx_e CollectCfgIdx = CollectNone
   ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -34,26 +34,37 @@ module floo_synth_nw_chimney
   input  floo_wide_t floo_wide_i
 );
 
-localparam floo_pkg::route_cfg_t RouteCfgColl = (EnCollective) ? CollectRouteCfg : RouteCfg;
+localparam floo_pkg::route_cfg_t ActiveRouteCfg = '{
+  RouteAlgo:     CollectRouteCfg.RouteAlgo,
+  UseIdTable:    CollectRouteCfg.UseIdTable,
+  XYAddrOffsetX: CollectRouteCfg.XYAddrOffsetX,
+  XYAddrOffsetY: CollectRouteCfg.XYAddrOffsetY,
+  CollectiveCfg: '{
+    OpCfg:      CollectOpCfgList[CollectCfgIdx],
+    NarrRedCfg: CollectRouteCfg.CollectiveCfg.NarrRedCfg,
+    WideRedCfg: CollectRouteCfg.CollectiveCfg.WideRedCfg
+  },
+  default: '0
+};
 
   floo_nw_chimney #(
     .AxiCfgN              ( AxiCfgN               ),
     .AxiCfgW              ( AxiCfgW               ),
     .ChimneyCfgN          ( ChimneyCfg            ),
     .ChimneyCfgW          ( ChimneyCfg            ),
-    .RouteCfg             ( RouteCfgColl          ), //TODO (lleone): change to enable multicast/collective
+    .RouteCfg             ( ActiveRouteCfg        ),
     .AtopSupport          ( AtopSupport           ),
-    .EnDecoupledRW        ( 1'b1                  ),
-    .NumWidePhysChannels  (1),
+    .WideRwDecouple       ( WideRwDecouple        ),
+    .VcImpl               ( VcImpl               ),
     .MaxAtomicTxns        ( MaxAtomicTxns         ),
-    // SAM?
     .id_t                 ( id_t                  ),
+    .rob_idx_t            ( rob_idx_t             ),
     .route_t              ( route_t               ),
     .dst_t                ( route_t               ),
     .hdr_t                ( hdr_t                 ),
-    .sam_rule_t           ( sam_multicast_rule_t  ), //TODO (lleone) handled unicast case
-    .sam_idx_t            ( sam_idx_t             ), //TODO (lleone) handled unicast case
-    .mask_sel_t           ( mask_sel_t            ), //TODO (lleone) handled unicast case
+    .sam_rule_t           ( collective_sam_rule_t ),
+    .sam_idx_t            ( collective_idx_t      ),
+    .mask_sel_t           ( collective_mask_sel_t ),
     .axi_narrow_in_req_t  ( endpoint_axi_pkg::narrow_out_req_t),
     .axi_narrow_in_rsp_t  ( endpoint_axi_pkg::narrow_out_resp_t),
     .axi_narrow_out_req_t ( endpoint_axi_pkg::narrow_in_req_t),
