@@ -867,8 +867,8 @@ class Routing(BaseModel):
 
     @model_validator(mode="after")
     def validate_vc_cfg(self):
-        """Warn if vc_impl is set but decouple_rw is not Vc."""
-        if self.decouple_rw != WideRwDecouple.VC and self.vc_impl != VcImpl.NAIVE:
+        """Warn if vc_impl is explicitly set but decouple_rw is not Vc."""
+        if self.decouple_rw != WideRwDecouple.VC and "vc_impl" in self.model_fields_set:
             warnings.warn(
                 f"vc_impl={self.vc_impl} has no effect unless decouple_rw is set to 'Vc'",
                 UserWarning,
@@ -969,11 +969,10 @@ class Routing(BaseModel):
         return sv_param_decl(name, sv_struct_render(fields), dtype="route_cfg_t")
 
     def render_vc_impl(self) -> str:
-        """Render WideRwDecouple and (when Vc) VcImpl localparam declarations.
-        Nothing is emitted when decouple_rw is None (the default)."""
-        if self.decouple_rw == WideRwDecouple.NONE:
-            return ""
-        s = sv_param_decl("WideRwDecouple", str(self.decouple_rw), dtype="wide_rw_decouple_e") + "\n"
-        if self.decouple_rw == WideRwDecouple.VC:
+        """Render WideRwDecouple and VcImpl localparam declarations."""
+        s = ""
+        if "decouple_rw" in self.model_fields_set:
+            s += sv_param_decl("WideRwDecouple", str(self.decouple_rw), dtype="wide_rw_decouple_e")
+        if "vc_impl" in self.model_fields_set:
             s += sv_param_decl("VcImpl", str(self.vc_impl), dtype="vc_impl_e")
         return s
