@@ -145,7 +145,7 @@ class CollectiveCfg(BaseModel):
     +=======================+============================================+
     | en_narrow_multicast   | OpCfg.EnNarrowMulticast                    |
     | en_wide_multicast     | OpCfg.EnWideMulticast                      |
-    | en_barrier            | OpCfg.EnLSBAnd                             |
+    | en_barrier            | OpCfg.EnLsbAnd                             |
     | en_narrow_reduction   | OpCfg.EnA_{Add,Mul,MinS,MinU,MaxS,MaxU}   |
     | en_wide_reduction     | OpCfg.EnF_{Add,Mul,Min,Max}                |
     +-----------------------+--------------------------------------------+
@@ -204,17 +204,17 @@ class CollectiveCfg(BaseModel):
         return {
             "EnNarrowMulticast": bool_to_sv(self.en_narrow_multicast),
             "EnWideMulticast":   bool_to_sv(self.en_wide_multicast),
-            "EnLSBAnd":          bool_to_sv(self.en_barrier),
-            "EnF_Add":           bool_to_sv(WideReductionOp.Add in wide),
-            "EnF_Mul":           bool_to_sv(WideReductionOp.Mul in wide),
-            "EnF_Min":           bool_to_sv(WideReductionOp.Min in wide),
-            "EnF_Max":           bool_to_sv(WideReductionOp.Max in wide),
-            "EnA_Add":           bool_to_sv(NarrowReductionOp.Add in narrow),
-            "EnA_Mul":           bool_to_sv(NarrowReductionOp.Mul in narrow),
-            "EnA_Min_S":         bool_to_sv(NarrowReductionOp.MinS in narrow),
-            "EnA_Min_U":         bool_to_sv(NarrowReductionOp.MinU in narrow),
-            "EnA_Max_S":         bool_to_sv(NarrowReductionOp.MaxS in narrow),
-            "EnA_Max_U":         bool_to_sv(NarrowReductionOp.MaxU in narrow),
+            "EnLsbAnd":          bool_to_sv(self.en_barrier),
+            "EnFpAdd":           bool_to_sv(WideReductionOp.Add in wide),
+            "EnFpMul":           bool_to_sv(WideReductionOp.Mul in wide),
+            "EnFpMin":           bool_to_sv(WideReductionOp.Min in wide),
+            "EnFpMax":           bool_to_sv(WideReductionOp.Max in wide),
+            "EnIntAdd":           bool_to_sv(NarrowReductionOp.Add in narrow),
+            "EnIntMul":           bool_to_sv(NarrowReductionOp.Mul in narrow),
+            "EnIntMinS":         bool_to_sv(NarrowReductionOp.MinS in narrow),
+            "EnIntMinU":         bool_to_sv(NarrowReductionOp.MinU in narrow),
+            "EnIntMaxS":         bool_to_sv(NarrowReductionOp.MaxS in narrow),
+            "EnIntMaxU":         bool_to_sv(NarrowReductionOp.MaxU in narrow),
         }
 
     def _render_reduction_cfg(self, cfg: Optional["ReductionCfg"]) -> dict:

@@ -139,27 +139,27 @@ module floo_reduction_alu import floo_pkg::*; #() (
 
     // Define the operation we want to execute on the FPU
     unique casez (alu_req_type_i)
-      (floo_pkg::A_Add) : begin
+      (floo_pkg::IntAdd) : begin
         alu_in.op = alu_pkg::ADD;
         alu_in.fmt = alu_pkg::INT32;
       end
-      (floo_pkg::A_Mul) : begin
+      (floo_pkg::IntMul) : begin
         alu_in.op = alu_pkg::MUL;
         alu_in.fmt = alu_pkg::INT32;
       end
-      (floo_pkg::A_Min_S) : begin
+      (floo_pkg::IntMinS) : begin
         alu_in.op = alu_pkg::MIN;
         alu_in.fmt = alu_pkg::INT32;
       end
-      (floo_pkg::A_Min_U) : begin
+      (floo_pkg::IntMinU) : begin
         alu_in.op = alu_pkg::MIN;
         alu_in.fmt = alu_pkg::UINT32;
       end
-      (floo_pkg::A_Max_S) : begin
+      (floo_pkg::IntMaxS) : begin
         alu_in.op = alu_pkg::MAX;
         alu_in.fmt = alu_pkg::INT32;
       end
-      (floo_pkg::A_Max_U) : begin
+      (floo_pkg::IntMaxU) : begin
         alu_in.op = alu_pkg::MAX;
         alu_in.fmt = alu_pkg::UINT32;
       end
