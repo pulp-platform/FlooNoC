@@ -291,71 +291,71 @@ localparam reduction_cfg_t NarrowGenReductionCfg = '{
   localparam floo_pkg::collect_op_fe_cfg_t CollectiveOpCfg = '{
     EnNarrowMulticast:  1'b1,
     EnWideMulticast:    1'b1,
-    EnLSBAnd:           1'b1,
-    EnF_Add:            1'b1,
-    EnF_Mul:            1'b1,
-    EnF_Min:            1'b1,
-    EnF_Max:            1'b1,
-    EnA_Add:            1'b1,
-    EnA_Mul:            1'b1,
-    EnA_Min_S:          1'b1,
-    EnA_Min_U:          1'b1,
-    EnA_Max_S:          1'b1,
-    EnA_Max_U:          1'b1
+    EnLsbAnd:           1'b1,
+    EnFpAdd:            1'b1,
+    EnFpMul:            1'b1,
+    EnFpMin:            1'b1,
+    EnFpMax:            1'b1,
+    EnIntAdd:            1'b1,
+    EnIntMul:            1'b1,
+    EnIntMinS:          1'b1,
+    EnIntMinU:          1'b1,
+    EnIntMaxS:          1'b1,
+    EnIntMaxU:          1'b1
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t MulticastOpCfg = '{
     EnNarrowMulticast:  1'b1,
     EnWideMulticast:    1'b1,
-    EnLSBAnd:           1'b0,
-    EnF_Add:            1'b0,
-    EnF_Mul:            1'b0,
-    EnF_Min:            1'b0,
-    EnF_Max:            1'b0,
+    EnLsbAnd:           1'b0,
+    EnFpAdd:            1'b0,
+    EnFpMul:            1'b0,
+    EnFpMin:            1'b0,
+    EnFpMax:            1'b0,
     default:            '0
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t ParallelOpCfg = '{
     EnNarrowMulticast:  1'b1,
     EnWideMulticast:    1'b1,
-    EnLSBAnd:           1'b1,
-    EnF_Add:            1'b0,
-    EnF_Mul:            1'b0,
-    EnF_Min:            1'b0,
-    EnF_Max:            1'b0,
+    EnLsbAnd:           1'b1,
+    EnFpAdd:            1'b0,
+    EnFpMul:            1'b0,
+    EnFpMin:            1'b0,
+    EnFpMax:            1'b0,
     default:            '0
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t NarrSequentialOpCfg = '{
     EnNarrowMulticast:  1'b1,
     EnWideMulticast:    1'b1,
-    EnLSBAnd:           1'b1,
-    EnF_Add:            1'b0,
-    EnF_Mul:            1'b0,
-    EnF_Min:            1'b0,
-    EnF_Max:            1'b0,
-    EnA_Add:            1'b1,
-    EnA_Mul:            1'b1,
-    EnA_Min_S:          1'b1,
-    EnA_Min_U:          1'b1,
-    EnA_Max_S:          1'b1,
-    EnA_Max_U:          1'b1
+    EnLsbAnd:           1'b1,
+    EnFpAdd:            1'b0,
+    EnFpMul:            1'b0,
+    EnFpMin:            1'b0,
+    EnFpMax:            1'b0,
+    EnIntAdd:            1'b1,
+    EnIntMul:            1'b1,
+    EnIntMinS:          1'b1,
+    EnIntMinU:          1'b1,
+    EnIntMaxS:          1'b1,
+    EnIntMaxU:          1'b1
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t WideSequentialOpCfg = '{
     EnNarrowMulticast:  1'b1,
     EnWideMulticast:    1'b1,
-    EnLSBAnd:           1'b1,
-    EnF_Add:            1'b1,
-    EnF_Mul:            1'b1,
-    EnF_Min:            1'b1,
-    EnF_Max:            1'b1,
-    EnA_Add:            1'b1,
-    EnA_Mul:            1'b1,
-    EnA_Min_S:          1'b1,
-    EnA_Min_U:          1'b1,
-    EnA_Max_S:          1'b1,
-    EnA_Max_U:          1'b1
+    EnLsbAnd:           1'b1,
+    EnFpAdd:            1'b1,
+    EnFpMul:            1'b1,
+    EnFpMin:            1'b1,
+    EnFpMax:            1'b1,
+    EnIntAdd:            1'b1,
+    EnIntMul:            1'b1,
+    EnIntMinS:          1'b1,
+    EnIntMinU:          1'b1,
+    EnIntMaxS:          1'b1,
+    EnIntMaxU:          1'b1
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t CollectOpCfgList [0:5] = '{

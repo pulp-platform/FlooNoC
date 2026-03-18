@@ -8,7 +8,7 @@
 //
 // This module performs parallel reduction operations:
 // - CollectB: Reduction of B responses required for multicast support
-// - LSBAnd: Reduction of the LSB of the data field, used for synchronization
+// - LsbAnd: Reduction of the LSB of the data field, used for synchronization
 // - SelectAW: Merging of incoming AW flits for the synchronization mechanism
 //
 // This module is not AXI-agnostic, as reduction requires extracting and
@@ -130,13 +130,13 @@ module floo_reduction_arbiter import floo_pkg::*;
   // Forward flits directly - Just choose to forward the selected one
   always_comb begin : gen_forward
     data_forward_flit = '0;
-    if (CollectOpCfg.EnLSBAnd) data_forward_flit = data_i[input_sel];
+    if (CollectOpCfg.EnLsbAnd) data_forward_flit = data_i[input_sel];
   end
 
   // And all the LSB
   always_comb begin : gen_and_lsb
     data_LSBAnd = '0;
-    if (CollectOpCfg.EnLSBAnd) begin
+    if (CollectOpCfg.EnLsbAnd) begin
       data_LSBAnd = data_i[input_sel];
       lsb = 1'b1;
 
@@ -160,8 +160,8 @@ module floo_reduction_arbiter import floo_pkg::*;
     // Assign inital value
     data_o = '0;
     case ({incoming_red_op, 1'b1})
-      {SelectAW, CollectOpCfg.EnLSBAnd}:  data_o = data_forward_flit;
-      {LSBAnd,   CollectOpCfg.EnLSBAnd}:  data_o = data_LSBAnd;
+      {SelectAW, CollectOpCfg.EnLsbAnd}:  data_o = data_forward_flit;
+      {LsbAnd,   CollectOpCfg.EnLsbAnd}:  data_o = data_LSBAnd;
       {CollectB, 1'b1}:                   data_o = data_collectB;
       default:;
     endcase
