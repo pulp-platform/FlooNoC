@@ -55,7 +55,10 @@ class AXI4(ProtocolDesc):
                 string += sv_typedef(name_t + "_user_t", array_size=v)
             case dict(d):
                 fields = {k: f"logic [{v-1}:0]" for k, v in d.items() if k not in ignored_user_fields}
-                string += sv_struct_typedef(name_t + "_user_t", fields)
+                if fields:
+                    string += sv_struct_typedef(name_t + "_user_t", fields)
+                else:
+                    string += sv_typedef(name_t + "_user_t", array_size=1)
 
         string += f"`AXI_TYPEDEF_ALL_CT({name_t}, \
             {name_t}_req_t, \
@@ -81,7 +84,8 @@ class AXI4(ProtocolDesc):
                 fields["UserWidth"] = v
             case dict(d):
                 _collective_fields = {"collective_mask", "collective_op"}
-                fields["UserWidth"] = sum([v for k, v in d.items() if k not in _collective_fields])
+                user_w = sum(v for k, v in d.items() if k not in _collective_fields)
+                fields["UserWidth"] = max(user_w, 1)
 
         return sv_param_decl(name, sv_struct_render(fields), dtype="axi_cfg_t")
 
