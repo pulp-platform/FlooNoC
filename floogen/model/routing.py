@@ -217,32 +217,19 @@ class CollectiveCfg(BaseModel):
             "EnA_Max_U":         bool_to_sv(NarrowReductionOp.MaxU in narrow),
         }
 
+    def _render_reduction_cfg(self, cfg: Optional["ReductionCfg"]) -> dict:
+        """Return a ``reduction_cfg_t`` dict, using HW defaults when cfg is None."""
+        if cfg is None:
+            return "RedDefaultCfg"
+        return cfg.render_cfg()
+
     def render(self) -> dict:
         """Return a dict representing ``collective_cfg_t`` for sv_struct_render."""
         return {
-            "OpCfg":  self.render_op_cfg(),
-            "RedCfg": {"RdPipelineDepth": 0, "CutOffloadIntf": "1'b0"},
+            "OpCfg":      self.render_op_cfg(),
+            "NarrRedCfg": self._render_reduction_cfg(self.en_narrow_reduction),
+            "WideRedCfg": self._render_reduction_cfg(self.en_wide_reduction),
         }
-
-    def render_narrow_reduction_cfg(self) -> str:
-        """Render ``NarrowReductionCfg`` localparam; empty when reduction is disabled."""
-        if self.en_narrow_reduction is None:
-            return ""
-        return sv_param_decl(
-            "NarrowReductionCfg",
-            sv_struct_render(self.en_narrow_reduction.render_cfg()),
-            dtype="reduction_cfg_t",
-        )
-
-    def render_wide_reduction_cfg(self) -> str:
-        """Render ``WideReductionCfg`` localparam; empty when reduction is disabled."""
-        if self.en_wide_reduction is None:
-            return ""
-        return sv_param_decl(
-            "WideReductionCfg",
-            sv_struct_render(self.en_wide_reduction.render_cfg()),
-            dtype="reduction_cfg_t",
-        )
 
     def render_reduction_typedefs(self, cfg_n: str, cfg_w: str) -> str:
         """Render offload reduction channel/link typedefs for enabled channels."""

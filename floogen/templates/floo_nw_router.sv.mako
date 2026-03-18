@@ -89,14 +89,12 @@ floo_nw_router #(
   .VcImpl(VcImpl),
   % endif
 % endif
-  .CollectiveOpCfg(RouteCfg.CollectiveCfg.OpCfg),
+  .CollectiveCfg(RouteCfg.CollectiveCfg),
 % if network.routing.collective.en_narrow_reduction is not None:
-  .RdNarrowCfg(NarrowReductionCfg),
   .red_narrow_req_t(red_narrow_req_t),
   .red_narrow_rsp_t(red_narrow_rsp_t),
 % endif
 % if network.routing.collective.en_wide_reduction is not None:
-  .RdWideCfg(WideReductionCfg),
   .red_wide_req_t(red_wide_req_t),
   .red_wide_rsp_t(red_wide_rsp_t),
 % endif

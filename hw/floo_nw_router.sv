@@ -39,11 +39,7 @@ module floo_nw_router
   parameter wide_rw_decouple_e WideRwDecouple       = None,
   parameter vc_impl_e VcImpl                        = VcNaive,
   /// Parameter to define which type of collective operation support
-  parameter collect_op_fe_cfg_t CollectiveOpCfg     = CollectiveOpDefaultCfg,
-  /// Parameter for the wide reduction configuration
-  parameter reduction_cfg_t RdWideCfg               = ReductionDefaultCfg,
-  /// Parameter for the narrow reduction configuration
-  parameter reduction_cfg_t RdNarrowCfg             = ReductionDefaultCfg,
+  parameter collective_cfg_t CollectiveCfg     = CollectiveDefaultCfg,
   /// Node ID type
   parameter type id_t                               = logic,
   /// Header type
@@ -112,9 +108,9 @@ module floo_nw_router
   `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow, axi_wide, AxiCfgN, AxiCfgW, hdr_t)
 
   // Convert user frontend ops into NoC backend
-  localparam collect_op_be_cfg_t CollectiveReqCfg  = coll_fe2be(CollectiveOpCfg, NarrowAw);
-  localparam collect_op_be_cfg_t CollectiveRspCfg  = coll_fe2be(CollectiveOpCfg, NarrowB);
-  localparam collect_op_be_cfg_t CollectiveWideCfg = coll_fe2be(CollectiveOpCfg, WideAw);
+  localparam collect_op_be_cfg_t CollectiveReqCfg  = coll_fe2be(CollectiveCfg.OpCfg, NarrowAw);
+  localparam collect_op_be_cfg_t CollectiveRspCfg  = coll_fe2be(CollectiveCfg.OpCfg, NarrowB);
+  localparam collect_op_be_cfg_t CollectiveWideCfg = coll_fe2be(CollectiveCfg.OpCfg, WideAw);
 
   floo_req_chan_t [NumInputs-1:0] req_in;
   floo_rsp_chan_t [NumInputs-1:0] rsp_out;
@@ -185,7 +181,7 @@ module floo_nw_router
     .NumAddrRules         ( NumAddrRules              ),
     .NoLoopback           ( NoLoopback                ),
     .CollectiveCfg        ( CollectiveReqCfg          ),
-    .RedCfg               ( RdNarrowCfg               ),
+    .RedCfg               ( CollectiveCfg.NarrRedCfg  ),
     .AxiCfgOffload        ( AxiCfgN                   ),
     .AxiCfgParallel       ( AxiCfgN                   ),
     .id_t                 ( id_t                      ),
@@ -261,7 +257,7 @@ module floo_nw_router
     .NoLoopback           ( NoLoopback                ),
     .VcImpl               ( VcImpl                    ),
     .CollectiveCfg        ( CollectiveWideCfg         ),
-    .RedCfg               ( RdWideCfg                 ),
+    .RedCfg               ( CollectiveCfg.WideRedCfg  ),
     .AxiCfgOffload        ( AxiCfgW                   ),
     .AxiCfgParallel       ( '0                        ),
     .id_t                 ( id_t                      ),
