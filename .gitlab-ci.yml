@@ -13,6 +13,8 @@ default:
     # TODO(fischeti): Use system-wide installation of `just`
     - export PATH=$PATH:/home/fischeti/.cargo/bin
     - ln -sf .iis_env .env
+    # Make the environment variables available to this CI script too.
+    - set -a && source .env && set +a
 
 stages:
   - init
