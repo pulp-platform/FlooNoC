@@ -26,6 +26,8 @@ default:
 
 # Generate traffic jobs for simulation
 [group("traffic")]
+[arg('type', long)]
+[arg('rw', long)]
 jobs tb="dma_mesh" type="random" rw="read":
     mkdir -p hw/test/jobs
     util/gen_jobs.py --out_dir hw/test/jobs --tb {{ tb }} --traffic_type {{ type }} --rw {{ rw }}
@@ -42,6 +44,8 @@ clean-jobs:
 # Compile design (sim: vsim [default], vcs)
 [group("sim")]
 [arg('sim', pattern='vsim|vcs')]
+[arg('tb', long)]
+[arg('work', long)]
 compile sim="vsim" tb="" work="work":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -68,6 +72,8 @@ compile sim="vsim" tb="" work="work":
 # Run simulation GUI (sim: vsim [default], vcs)
 [group("sim")]
 [arg('sim', pattern='vsim|vcs')]
+[arg('tb', long)]
+[arg('work', long)]
 run sim="vsim" tb="" work="work":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -88,6 +94,8 @@ run sim="vsim" tb="" work="work":
 # Run simulation in batch mode (sim: vsim [default], vcs)
 [group("sim")]
 [arg('sim', pattern='vsim|vcs')]
+[arg('tb', long)]
+[arg('work', long)]
 run-batch sim="vsim" tb="" work="work":
     #!/usr/bin/env bash
     set -euo pipefail
