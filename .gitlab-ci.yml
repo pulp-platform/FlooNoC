@@ -19,19 +19,8 @@ stages:
   - build
   - run
 
-collect-bender-sources:
-  stage: init
-  script:
-    - $BENDER checkout
-  artifacts:
-    paths:
-      - .bender/
-      - Bender.lock
-
 compile-vsim:
   stage: build
-  needs:
-    - collect-bender-sources
   script:
     - just compile vsim | tee compile.log 2>&1
     - '! grep "\*\* Error" compile.log'
@@ -43,8 +32,6 @@ compile-vsim:
 
 compile-vcs:
   stage: build
-  needs:
-    - collect-bender-sources
   parallel:
     matrix:
       - TB_DUT:
@@ -60,8 +47,6 @@ compile-vcs:
 
 compile-meshes:
   stage: build
-  needs:
-    - collect-bender-sources
   parallel:
     matrix:
       - DUT: [axi_mesh, nw_mesh]
@@ -78,7 +63,6 @@ compile-meshes:
 run-sim:
   stage: run
   needs:
-    - collect-bender-sources
     - compile-vsim
     - compile-vcs
   parallel:
@@ -101,7 +85,6 @@ run-sim:
 run-traffic:
   stage: run
   needs:
-    - collect-bender-sources
     - compile-meshes
   variables:
     JOB_NAME: mesh
