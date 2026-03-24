@@ -1,3 +1,6 @@
+## Copyright 2023 ETH Zurich and University of Bologna.
+## Licensed under the Apache License, Version 2.0, see LICENSE for details.
+## SPDX-License-Identifier: Apache-2.0
 <%! from floogen.utils import snake_to_camel, bool_to_sv %>\
 <% actual_xy_id = ni.id - ni.routing.xy_id_offset if ni.routing.xy_id_offset is not None else ni.id %>\
 <% narrow_in_prot = next((prot for prot in noc.protocols if prot.type == "narrow" and prot.direction == "input"), None) %>\

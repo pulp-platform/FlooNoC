@@ -1,0 +1,38 @@
+version = 1
+
+# Root license files
+[[annotations]]
+path = ["LICENSE-APACHE", "LICENSE-SHL"]
+SPDX-FileCopyrightText = "2023 ETH Zurich and University of Bologna"
+SPDX-License-Identifier = "Apache-2.0"
+
+# Documentation (Markdown)
+[[annotations]]
+path = ["**.md"]
+SPDX-FileCopyrightText = "2023 ETH Zurich and University of Bologna"
+SPDX-License-Identifier = "Apache-2.0"
+
+# Documentation images
+[[annotations]]
+path = ["docs/img/**"]
+SPDX-FileCopyrightText = "2023 ETH Zurich and University of Bologna"
+SPDX-License-Identifier = "Apache-2.0"
+
+# Traffic visualization images
+[[annotations]]
+path = ["util/traffic_visualizations/**"]
+SPDX-FileCopyrightText = "2023 ETH Zurich and University of Bologna"
+SPDX-License-Identifier = "Apache-2.0"
+
+# Auto-generated lock and config files
+[[annotations]]
+path = ["Bender.lock", "uv.lock", ".python-version", ".gitignore"]
+SPDX-FileCopyrightText = "2023 ETH Zurich and University of Bologna"
+SPDX-License-Identifier = "Apache-2.0"
+
+# Jupyter notebooks
+[[annotations]]
+path = ["**.ipynb"]
+SPDX-FileCopyrightText = "2023 ETH Zurich and University of Bologna"
+SPDX-License-Identifier = "Apache-2.0"
+
