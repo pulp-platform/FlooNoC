@@ -10,6 +10,8 @@ variables:
 
 default:
   before_script:
+    # TODO(fischeti): Use system-wide installation of `just`
+    - export PATH=$PATH:/home/fischeti/.cargo/bin
     - ln -sf .iis_env .env
 
 stages:
