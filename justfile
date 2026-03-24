@@ -74,7 +74,7 @@ compile sim="vsim" tb="" work="work":
 [arg('sim', pattern='vsim|vcs')]
 [arg('tb', long)]
 [arg('work', long)]
-run sim="vsim" tb="" work="work":
+run sim="vsim" tb="" work="work" *sim_args="":
     #!/usr/bin/env bash
     set -euo pipefail
     [ -n "{{ tb }}" ] || { echo "Error: tb is required"; exit 1; }
@@ -84,10 +84,10 @@ run sim="vsim" tb="" work="work":
             if [ -f "hw/tb/wave/{{ tb }}.wave.tcl" ]; then
                 wave_args="-do 'source hw/tb/wave/{{ tb }}.wave.tcl'"
             fi
-            {{ vsim }} -64 -t 1ps -sv_seed 0 -quiet -work {{ work }} -voptargs=+acc -do "log -r /*" $wave_args {{ tb }}
+            {{ vsim }} -64 -t 1ps -sv_seed 0 -quiet -work {{ work }} -voptargs=+acc -do "log -r /*" $wave_args {{ sim_args }} {{ tb }}
             ;;
         vcs)
-            bin/{{ tb }}.vcs +permissive -exitstatus +permissive-off
+            bin/{{ tb }}.vcs +permissive -exitstatus +permissive-off {{ sim_args }}
             ;;
     esac
 
@@ -96,13 +96,13 @@ run sim="vsim" tb="" work="work":
 [arg('sim', pattern='vsim|vcs')]
 [arg('tb', long)]
 [arg('work', long)]
-run-batch sim="vsim" tb="" work="work":
+run-batch sim="vsim" tb="" work="work" *sim_args="":
     #!/usr/bin/env bash
     set -euo pipefail
     [ -n "{{ tb }}" ] || { echo "Error: tb is required"; exit 1; }
     case "{{ sim }}" in
-        vsim) {{ vsim }} -c -64 -t 1ps -sv_seed 0 -quiet -work {{ work }} {{ tb }} -do "run -all; quit" ;;
-        vcs)  bin/{{ tb }}.vcs +permissive -exitstatus +permissive-off ;;
+        vsim) {{ vsim }} -c -64 -t 1ps -sv_seed 0 -quiet -work {{ work }} {{ sim_args }} {{ tb }} -do "run -all; quit" ;;
+        vcs)  bin/{{ tb }}.vcs +permissive -exitstatus +permissive-off {{ sim_args }} ;;
     esac
 
 # Remove build artefacts (sim: vsim, vcs; default: all)
