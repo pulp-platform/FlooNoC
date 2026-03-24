@@ -1,0 +1,13 @@
+# Copyright 2022 ETH Zurich and University of Bologna.
+# Solderpad Hardware License, Version 0.51, see LICENSE for details.
+# SPDX-License-Identifier: SHL-0.51
+#
+# IIS-internal tool versions for use with just.
+# Symlink or copy to .env (gitignored) to activate:
+#   ln -s .iis_env .env
+
+VSIM="questa-2025.1 vsim"
+VCS="vcs-2025.06 vcs"
+VLOGAN="vcs-2025.06 vlogan"
+BENDER="bender-0.31.0"
+UV="/usr/local/uv/uv"
