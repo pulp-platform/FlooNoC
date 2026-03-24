@@ -6,6 +6,8 @@
 set dotenv-load := true
 set shell := ["bash", "-cu"]
 
+mod? pd
+
 bender        := env_var_or_default("BENDER", "bender")
 vsim          := env_var_or_default("VSIM", "vsim")
 vlogan        := env_var_or_default("VLOGAN", "vlogan")
@@ -148,7 +150,7 @@ clean-spyglass:
 ###################
 
 pd_remote := "git@iis-git.ee.ethz.ch:axi-noc/floo_noc_pd.git"
-pd_branch  := "master"
+pd_branch  := "just"
 
 # Clone physical design repository
 [group("pd")]
