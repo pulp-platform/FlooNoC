@@ -6,32 +6,25 @@
 # Author: Michael Rogenmoser <michaero@iis.ee.ethz.ch>
 
 variables:
-  QUESTA_SEPP: questa-2025.1
-  VCS_SEPP: vcs-2025.06
-  BENDER: bender
-  UV: /home/fischeti/.local/bin/uv
   UV_LINK_MODE: hardlink
+
+default:
+  before_script:
+    # TODO(fischeti): Use system-wide installation of `just`
+    - export PATH=$PATH:/home/fischeti/.cargo/bin
+    - ln -sf .iis_env .env
+    # Make the environment variables available to this CI script too.
+    - set -a && source .env && set +a
 
 stages:
   - init
   - build
   - run
 
-collect-bender-sources:
-  stage: init
-  script:
-    - $BENDER checkout
-  artifacts:
-    paths:
-      - .bender/
-      - Bender.lock
-
 compile-vsim:
   stage: build
-  needs:
-    - collect-bender-sources
   script:
-    - make compile-vsim | tee compile.log 2>&1
+    - just compile vsim | tee compile.log 2>&1
     - '! grep "\*\* Error" compile.log'
   artifacts:
     paths:
@@ -41,8 +34,6 @@ compile-vsim:
 
 compile-vcs:
   stage: build
-  needs:
-    - collect-bender-sources
   parallel:
     matrix:
       - TB_DUT:
@@ -51,15 +42,13 @@ compile-vcs:
         - tb_floo_nw_chimney
         - tb_floo_rob
   script:
-    - make compile-vcs | tee compile.log 2>&1
+    - just compile vcs --tb $TB_DUT | tee compile.log 2>&1
   artifacts:
     paths:
       - bin/
 
 compile-meshes:
   stage: build
-  needs:
-    - collect-bender-sources
   parallel:
     matrix:
       - DUT: [axi_mesh, nw_mesh]
@@ -67,7 +56,7 @@ compile-meshes:
   script:
     - $UV run --cache-dir $CI_BUILDS_DIR/../cache/uv floogen rtl -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
     # Compile the network
-    - make compile-vsim EXTRA_BENDER_FLAGS="-t ${DUT}" WORK="work_${DUT}_${ROUTE_ALGO}" | tee compile.log 2>&1
+    - EXTRA_BENDER_FLAGS="-t ${DUT}" just compile vsim --work work_${DUT}_${ROUTE_ALGO} | tee compile.log 2>&1
     - '! grep "\*\* Error" compile.log'
   artifacts:
     paths:
@@ -76,7 +65,6 @@ compile-meshes:
 run-sim:
   stage: run
   needs:
-    - collect-bender-sources
     - compile-vsim
     - compile-vcs
   parallel:
@@ -90,16 +78,15 @@ run-sim:
   script:
     - |
       if [ "${SIMULATOR}" = "vsim" ]; then
-        make run-${SIMULATOR}-batch | tee ${SIMULATOR}.log 2>&1
+        just run-batch ${SIMULATOR} --tb ${TB_DUT} | tee ${SIMULATOR}.log 2>&1
         grep "Errors: 0," ${SIMULATOR}.log
       else
-        make run-${SIMULATOR}-batch
+        just run-batch ${SIMULATOR} --tb ${TB_DUT}
       fi
 
 run-traffic:
   stage: run
   needs:
-    - collect-bender-sources
     - compile-meshes
   variables:
     JOB_NAME: mesh
@@ -110,8 +97,8 @@ run-traffic:
         TRAFFIC_TYPE: [uniform, hbm, shuffle, hotspot]
         TRAFFIC_RW: [read, write]
   script:
-    - make jobs
-    - make run-vsim-batch TB_DUT=tb_floo_${DUT} WORK=work_${DUT}_${ROUTE_ALGO} | tee vsim.log 2>&1
+    - just jobs --type $TRAFFIC_TYPE --rw $TRAFFIC_RW
+    - just run-batch vsim --tb tb_floo_${DUT} --work work_${DUT}_${ROUTE_ALGO} +JOB_NAME=$JOB_NAME | tee vsim.log 2>&1
     - 'grep "Errors: 0," vsim.log'
 
 ###################
@@ -121,7 +108,7 @@ run-traffic:
 init-pd:
   stage: init
   script:
-    - make init-pd
+    - just init-pd
   artifacts:
     paths:
       - pd/ci.yml
