@@ -6,8 +6,6 @@
 set dotenv-load := true
 set shell := ["bash", "-cu"]
 
-mod? pd
-
 bender        := env_var_or_default("BENDER", "bender")
 vsim          := env_var_or_default("VSIM", "vsim")
 vlogan        := env_var_or_default("VLOGAN", "vlogan")
@@ -157,3 +155,5 @@ pd_branch  := "just"
 init-pd:
     rm -rf pd
     git clone {{ pd_remote }} pd -b {{ pd_branch }}
+
+import? 'pd/justfile'
