@@ -5,7 +5,6 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-import warnings
 from enum import Enum
 from typing import Optional, List, Tuple, Union
 
@@ -99,7 +98,7 @@ class ReductionCfg(BaseModel):
             return {"ops": v}
         return v
 
-    def render_cfg(self) -> dict:
+    def get_reduction_cfg(self) -> dict:
         """Return a dict representing ``reduction_cfg_t`` for sv_struct_render."""
         return {
             "RdPipelineDepth": self.rd_pipeline_depth,
@@ -197,7 +196,7 @@ class CollectiveCfg(BaseModel):
         """True when any collective feature is enabled (multicast, barrier, or reduction)."""
         return self.en_multicast or self.en_reduction or self.en_barrier
 
-    def render_op_cfg(self) -> dict:
+    def _get_collective_op(self) -> dict:
         """Return a dict representing ``collect_op_fe_cfg_t`` for sv_struct_render."""
         narrow = self._narrow_ops()
         wide = self._wide_ops()
@@ -217,28 +216,23 @@ class CollectiveCfg(BaseModel):
             "EnIntMaxU":         bool_to_sv(NarrowReductionOp.MaxU in narrow),
         }
 
-    def _render_reduction_cfg(self, cfg: Optional["ReductionCfg"]) -> dict:
-        """Return a ``reduction_cfg_t`` dict, using HW defaults when cfg is None."""
-        if cfg is None:
-            return "RedDefaultCfg"
-        return cfg.render_cfg()
-
-    def render(self) -> dict:
+    @property
+    def get_collective_cfg(self) -> dict:
         """Return a dict representing ``collective_cfg_t`` for sv_struct_render."""
         return {
-            "OpCfg":      self.render_op_cfg(),
-            "NarrRedCfg": self._render_reduction_cfg(self.en_narrow_reduction),
-            "WideRedCfg": self._render_reduction_cfg(self.en_wide_reduction),
+            "OpCfg":      self._get_collective_op(),
+            "NarrRedCfg": self.en_narrow_reduction.get_reduction_cfg() if self.en_narrow_reduction else "RedDefaultCfg",
+            "WideRedCfg": self.en_wide_reduction.get_reduction_cfg() if self.en_wide_reduction else "RedDefaultCfg",
         }
 
     def render_reduction_typedefs(self, cfg_n: str, cfg_w: str) -> str:
         """Render offload reduction channel/link typedefs for enabled channels."""
         s = ""
         if self.en_narrow_reduction is not None:
-            s += f"typedef logic [{cfg_n}.DataWidth-1:0] floo_narrow_red_data_t;\n"
+            s += sv_typedef("floo_narrow_red_data_t", dtype=f"logic [{cfg_n}.DataWidth-1:0]")
             s += "`FLOO_RED_TYPEDEF_REQ_RSP_LINK(narrow, floo_narrow_red_data_t, narrow_req, narrow_rsp)\n\n"
         if self.en_wide_reduction is not None:
-            s += f"typedef logic [{cfg_w}.DataWidth-1:0] floo_wide_red_data_t;\n"
+            s += sv_typedef("floo_wide_red_data_t", dtype=f"logic [{cfg_w}.DataWidth-1:0]")
             s += "`FLOO_RED_TYPEDEF_REQ_RSP_LINK(wide, floo_wide_red_data_t, wide_req, wide_rsp)\n"
         return s
 
@@ -853,17 +847,6 @@ class Routing(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def validate_vc_cfg(self):
-        """Warn if vc_impl is explicitly set but decouple_rw is not Vc."""
-        if self.decouple_rw != WideRwDecouple.VC and "vc_impl" in self.model_fields_set:
-            warnings.warn(
-                f"vc_impl={self.vc_impl} has no effect unless decouple_rw is set to 'Vc'",
-                UserWarning,
-                stacklevel=2,
-            )
-        return self
-
-    @model_validator(mode="after")
     def validate_collective_route_algo(self):
         """Collective operations are supported with XY routing only."""
         if self.en_collective and self.route_algo != RouteAlgo.XY:
@@ -951,7 +934,7 @@ class Routing(BaseModel):
                                 self.route_algo == RouteAlgo.ID and not self.use_id_table else 0,
             "NumSamRules": len(self.sam),
             "NumRoutes": self.num_endpoints if self.route_algo == RouteAlgo.SRC else 0,
-            "CollectiveCfg": self.collective.render(),
+            "CollectiveCfg": self.collective.get_collective_cfg,
         }
         return sv_param_decl(name, sv_struct_render(fields), dtype="route_cfg_t")
 
