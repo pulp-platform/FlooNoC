@@ -1,0 +1,99 @@
+# Copyright 2025 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Example: full collective support
+#   - narrow + wide multicast
+#   - barrier (LSB-AND)
+#   - narrow reduction: all integer ops (Add, Mul, MinS, MinU, MaxS, MaxU)
+#   - wide reduction: only Add and Max (selective ops example)
+
+name: nw_mesh_collective
+description: "4x4 NW mesh with full collective operation support"
+network_type: "narrow-wide"
+
+routing:
+  route_algo: "XY"
+  use_id_table: true
+  collective:
+    en_narrow_multicast: true
+    en_wide_multicast: true
+    en_barrier: true
+    en_narrow_reduction:
+      rd_pipeline_depth: 1   # all integer ops, custom hw config
+    en_wide_reduction:       # selective FP ops, default hw config
+      ops: [Add, Max]
+      rd_pipeline_depth: 5
+      cut_offload_intf: true
+  # decouple_rw: Phys
+  vc_impl: preempt
+
+protocols:
+  - name: "narrow_in"
+    type: "narrow"
+    protocol: "AXI4"
+    data_width: 64
+    addr_width: 48
+    id_width: 5
+    user_width:
+      collective_mask: 48
+      collective_op: 4
+      user: 5
+  - name: "narrow_out"
+    type: "narrow"
+    protocol: "AXI4"
+    data_width: 64
+    addr_width: 48
+    id_width: 2
+    user_width:
+      collective_mask: 48
+      collective_op: 4
+      user: 5
+  - name: "wide_in"
+    type: "wide"
+    protocol: "AXI4"
+    data_width: 512
+    addr_width: 48
+    id_width: 3
+    user_width:
+      collective_mask: 48
+      collective_op: 4
+  - name: "wide_out"
+    type: "wide"
+    protocol: "AXI4"
+    data_width: 512
+    addr_width: 48
+    id_width: 1
+    user_width:
+      collective_mask: 48
+      collective_op: 4
+
+endpoints:
+  - name: "cluster"
+    array: [4, 4]
+    addr_range:
+      base: 0x2000_0000
+      size: 0x0004_0000
+      en_collective: true
+    mgr_port_protocol:
+      - "narrow_in"
+      - "wide_in"
+    sbr_port_protocol:
+      - "narrow_out"
+      - "wide_out"
+
+routers:
+  - name: "router"
+    array: [4, 4]
+    degree: 5
+
+connections:
+  - src: "cluster"
+    dst: "router"
+    src_range:
+    - [0, 3]
+    - [0, 3]
+    dst_range:
+    - [0, 3]
+    - [0, 3]
+    dst_dir: "Eject"

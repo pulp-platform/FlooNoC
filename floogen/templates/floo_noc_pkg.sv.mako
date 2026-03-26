@@ -29,8 +29,8 @@ package floo_${name}_noc_pkg;
 
 % if noc.routing.use_id_table:
   ${noc.routing.sam.render(aw=noc.routing.addr_width)}
-  % if noc.routing.en_multicast:
-    ${noc.routing.multicast_sam.render(aw=noc.routing.addr_width)}
+  % if noc.routing.en_collective:
+    ${noc.routing.collective_sam.render(aw=noc.routing.addr_width)}
   %endif
 % else:
   localparam int unsigned NumSamRules = 1;
@@ -43,17 +43,21 @@ package floo_${name}_noc_pkg;
 % endif
 
   ${noc.routing.render_route_cfg(name="RouteCfg")}
+  ${noc.routing.render_vc_impl()}
 
 % for prot in noc.protocols:
-  % if not noc.routing.en_multicast:
+  % if not noc.routing.en_collective:
     ${prot.render_typedefs()}
   % else:
-    ${prot.render_typedefs(prefix="mcast")}
-    ${prot.render_typedefs(ignored_user_fields=["mcast_mask"])}
+    ${prot.render_typedefs(prefix="collective")}
+    ${prot.render_typedefs(ignored_user_fields=["collective_mask", "collective_op"])}
   % endif
 % endfor
 
   ${noc.routing.render_hdr_typedef(network_type=noc.network_type)}
   ${noc.render_link_typedefs()}
+% if noc.routing.collective.en_reduction:
+  ${noc.routing.collective.render_reduction_typedefs("AxiCfgN", "AxiCfgW")}
+% endif
 
 endpackage

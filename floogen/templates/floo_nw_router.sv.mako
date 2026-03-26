@@ -83,6 +83,21 @@ floo_nw_router #(
   .NumAddrRules (${len(router.table.rules)}),
   .addr_rule_t (${router.name}_map_rule_t),
 % endif
+% if "decouple_rw" in network.routing.model_fields_set:
+  .WideRwDecouple(WideRwDecouple),
+% endif
+% if "vc_impl" in network.routing.model_fields_set:
+  .VcImpl(VcImpl),
+% endif
+  .CollectiveCfg(RouteCfg.CollectiveCfg),
+% if network.routing.collective.en_narrow_reduction is not None:
+  .red_narrow_req_t(red_narrow_req_t),
+  .red_narrow_rsp_t(red_narrow_rsp_t),
+% endif
+% if network.routing.collective.en_wide_reduction is not None:
+  .red_wide_req_t(red_wide_req_t),
+  .red_wide_rsp_t(red_wide_rsp_t),
+% endif
   .floo_req_t(floo_req_t),
   .floo_rsp_t(floo_rsp_t),
   .floo_wide_t(floo_wide_t)
