@@ -327,11 +327,7 @@ module floo_router
     assign red_offload_data_out = '0;
     assign red_data_out = '0;
     assign red_valid_out = '0;
-    assign offload_req_op_o = '0;
-    assign offload_req_operand1_o = '0;
-    assign offload_req_operand2_o = '0;
-    assign offload_req_valid_o = '0;
-    assign offload_resp_ready_o = '0;
+    assign offload_req_o = '0;
   end
 
   // Normal crossbar between all in / out routes
