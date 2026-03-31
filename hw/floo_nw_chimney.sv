@@ -1374,7 +1374,7 @@ module floo_nw_chimney #(
 
   spill_register #(
     .T     ( floo_req_generic_flit_t ),
-    .Bypass( 1'b0                    )
+    .Bypass( !ChimneyCfgN.CutOup    )
   ) i_req_out_cut (
     .clk_i,
     .rst_ni,
@@ -1405,7 +1405,7 @@ module floo_nw_chimney #(
 
   spill_register #(
     .T     ( floo_rsp_generic_flit_t ),
-    .Bypass( 1'b0                    )
+    .Bypass( !ChimneyCfgN.CutOup    )
   ) i_rsp_out_cut (
     .clk_i,
     .rst_ni,
@@ -1442,7 +1442,7 @@ module floo_nw_chimney #(
 
     spill_register #(
       .T     ( floo_wide_generic_flit_t ),
-      .Bypass( 1'b0                     )
+      .Bypass( !ChimneyCfgW.CutOup     )
     ) i_wide_out_cut (
       .clk_i,
       .rst_ni,
