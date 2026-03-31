@@ -41,11 +41,11 @@ module floo_cut #(
       // Assign input to first element
       assign data[n][0] = data_i[n];
       assign valid[n][0] = valid_i[n];
-      assign ready[n][0] = ready_i[n];
+      assign ready[n][NumCuts] = ready_i[n];
       // Assign output to last element
       assign data_o[n] = data[n][NumCuts];
       assign valid_o[n] = valid[n][NumCuts];
-      assign ready_o[n] = ready[n][NumCuts];
+      assign ready_o[n] = ready[n][0];
 
       for (genvar c = 0; c < NumCuts; c++) begin : gen_cut
 
@@ -57,7 +57,7 @@ module floo_cut #(
             .clk_i   ( clk_i                ),
             .rst_ni  ( rst_ni               ),
             .valid_i ( valid[n][c][v]       ),
-            .ready_o ( ready[n][c+1][v]     ),
+            .ready_o ( ready[n][c][v]       ),
             .data_i  ( data[n][c]           ),
             .valid_o ( valid_virt[n][c][v]  ),
             .ready_i ( ready_virt[n][c][v]  ),
@@ -78,7 +78,7 @@ module floo_cut #(
           .data_i     ( data_virt[n][c]   ),
           .data_o     ( data[n][c+1]      ),
           .valid_o    ( valid[n][c+1]     ),
-          .ready_i    ( ready[n][c]       )
+          .ready_i    ( ready[n][c+1]     )
         );
       end
 

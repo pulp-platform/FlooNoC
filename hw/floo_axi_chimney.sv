@@ -664,6 +664,9 @@ module floo_axi_chimney #(
   // FLIT ARBITRATION  //
   ///////////////////////
 
+  floo_req_generic_flit_t floo_req_arb_data;
+  logic floo_req_arb_valid, floo_req_arb_ready;
+
   floo_wormhole_arbiter #(
     .NumRoutes  ( 2                       ),
     .flit_t     ( floo_req_generic_flit_t )
@@ -673,10 +676,27 @@ module floo_axi_chimney #(
     .valid_i  ( floo_req_arb_req_in   ),
     .data_i   ( floo_req_arb_in       ),
     .ready_o  ( floo_req_arb_gnt_out  ),
-    .data_o   ( floo_req_o.req        ),
-    .ready_i  ( floo_req_i.ready      ),
-    .valid_o  ( floo_req_o.valid      )
+    .data_o   ( floo_req_arb_data     ),
+    .ready_i  ( floo_req_arb_ready    ),
+    .valid_o  ( floo_req_arb_valid    )
   );
+
+  spill_register #(
+    .T     ( floo_req_generic_flit_t ),
+    .Bypass( 1'b0                    )
+  ) i_req_out_cut (
+    .clk_i,
+    .rst_ni,
+    .valid_i ( floo_req_arb_valid ),
+    .ready_o ( floo_req_arb_ready ),
+    .data_i  ( floo_req_arb_data  ),
+    .valid_o ( floo_req_o.valid   ),
+    .ready_i ( floo_req_i.ready   ),
+    .data_o  ( floo_req_o.req     )
+  );
+
+  floo_rsp_generic_flit_t floo_rsp_arb_data;
+  logic floo_rsp_arb_valid, floo_rsp_arb_ready;
 
   floo_wormhole_arbiter #(
     .NumRoutes  ( 2                       ),
@@ -687,9 +707,23 @@ module floo_axi_chimney #(
     .valid_i  ( floo_rsp_arb_req_in   ),
     .data_i   ( floo_rsp_arb_in       ),
     .ready_o  ( floo_rsp_arb_gnt_out  ),
-    .data_o   ( floo_rsp_o.rsp        ),
-    .ready_i  ( floo_rsp_i.ready      ),
-    .valid_o  ( floo_rsp_o.valid      )
+    .data_o   ( floo_rsp_arb_data     ),
+    .ready_i  ( floo_rsp_arb_ready    ),
+    .valid_o  ( floo_rsp_arb_valid    )
+  );
+
+  spill_register #(
+    .T     ( floo_rsp_generic_flit_t ),
+    .Bypass( 1'b0                    )
+  ) i_rsp_out_cut (
+    .clk_i,
+    .rst_ni,
+    .valid_i ( floo_rsp_arb_valid ),
+    .ready_o ( floo_rsp_arb_ready ),
+    .data_i  ( floo_rsp_arb_data  ),
+    .valid_o ( floo_rsp_o.valid   ),
+    .ready_i ( floo_rsp_i.ready   ),
+    .data_o  ( floo_rsp_o.rsp     )
   );
 
   ////////////////////
