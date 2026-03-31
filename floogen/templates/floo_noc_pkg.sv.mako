@@ -28,6 +28,12 @@ package floo_${name}_noc_pkg;
   ${noc.routing.render_typedefs()}
 
 % if noc.routing.use_id_table:
+  typedef struct packed {
+    id_t idx;
+    id_t start_addr;
+    id_t end_addr;
+  } route_map_rule_t;
+
   ${noc.routing.sam.render(aw=noc.routing.addr_width)}
   % if noc.routing.en_collective:
     ${noc.routing.collective_sam.render(aw=noc.routing.addr_width)}
