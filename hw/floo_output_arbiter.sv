@@ -135,7 +135,9 @@ module floo_output_arbiter import floo_pkg::*;
       .oup_ready_i(ready_i)
     );
 
-    assign ready_o = (reduce_valid_out)? reduce_ready_out : unicast_ready_out;
+    // Use reduce_mask (derived from data opcode) instead of reduce_valid_out
+    // (derived from valid_i) to avoid valid-to-ready combinational dependency
+    assign ready_o = (reduce_mask & reduce_ready_out) | (~reduce_mask & unicast_ready_out);
 
   end else begin : gen_no_parallel_reduction
     assign data_o  = unicast_data_out;

@@ -579,7 +579,7 @@ package floo_pkg;
 
   /// Evaluate if the incoming operation is a parallel reduction
   function automatic bit is_parallel_reduction_op(collect_op_e op);
-    return (op == LsbAnd | op == CollectB | op == SelectAW);
+    return (op == LsbAnd || op == CollectB || op == SelectAW);
   endfunction
 
   /// Evaluate if the incoming operation is a sequential reduction

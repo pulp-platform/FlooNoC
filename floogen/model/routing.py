@@ -920,6 +920,10 @@ class Routing(BaseModel):
                     f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t,"
                     f" id_t, collect_op_t)")
             return f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t)"
+        if self.collective.en_collective:
+            return (
+                f"`FLOO_TYPEDEF_VC_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t,"
+                f" vc_id_t, id_t, collect_op_t)")
         return f"`FLOO_TYPEDEF_VC_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t, vc_id_t)"
 
     def render_route_cfg(self, name) -> str:
