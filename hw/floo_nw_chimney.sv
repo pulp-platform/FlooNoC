@@ -110,7 +110,7 @@ module floo_nw_chimney #(
   /// Coordinates/ID of the current tile
   input  id_t id_i,
   /// Routing table for the current tile
-  input  route_t [RouteCfg.NumRoutes-1:0] route_table_i,
+  input  route_t [(RouteCfg.NumRoutes > 0 ? RouteCfg.NumRoutes-1 : 0):0] route_table_i,
   /// Output links to NoC
   output floo_req_t   floo_req_o,
   output floo_rsp_t   floo_rsp_o,
