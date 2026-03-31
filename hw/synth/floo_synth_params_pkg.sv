@@ -39,6 +39,7 @@ package floo_synth_params_pkg;
     RRoBType: floo_pkg::NoRoB,
     RRoBSize: 0,
     CutAx: 1'b0,
+    CutOup: 1'b0,
     CutRsp: 1'b0
   };
 

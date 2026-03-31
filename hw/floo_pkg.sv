@@ -307,6 +307,9 @@ package floo_pkg;
     bit CutAx;
     /// Whether to buffer incoming links at the network interface,
     bit CutRsp;
+    /// Whether to buffer outgoing links at the network interface,
+    /// to break timing paths from arbiter grant logic to output ports.
+    bit CutOup;
   } chimney_cfg_t;
 
   /// Default macro collective operations supported in the NoC - all disabled
@@ -344,6 +347,7 @@ package floo_pkg;
     RRoBType: NoRoB,
     RRoBSize: 0,
     CutAx: 1'b0,
+    CutOup: 1'b0,
     CutRsp: 1'b0
   };
 
