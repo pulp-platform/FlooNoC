@@ -7,12 +7,11 @@
 
 import pathlib
 from typing import Optional, List
-from typing_extensions import Annotated
 from enum import Enum
 
 import networkx as nx
 import matplotlib.pyplot as plt
-from pydantic import BaseModel, ConfigDict, StringConstraints, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from floogen.model.routing import Routing, RouteAlgo, RouteMapRule, RouteRule, RouteMap, RouteTable, RouteMapRuleCollective, WideRwDecouple
 from floogen.model.routing import Coord, SimpleId, AddrRange, XYDirections
