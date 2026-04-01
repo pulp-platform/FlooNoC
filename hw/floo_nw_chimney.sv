@@ -13,7 +13,9 @@
 `include "floo_noc/typedef.svh"
 
 /// A bidirectional network interface for connecting narrow & wide AXI Buses to the multi-link NoC
-module floo_nw_chimney #(
+module floo_nw_chimney
+  import floo_pkg::*;
+#(
   /// Config of the narrow AXI interfaces (see floo_pkg::axi_cfg_t for details)
   parameter floo_pkg::axi_cfg_t AxiCfgN = '0,
   /// Config of the wide AXI interfaces (see floo_pkg::axi_cfg_t for details)
@@ -110,7 +112,7 @@ module floo_nw_chimney #(
   /// Coordinates/ID of the current tile
   input  id_t id_i,
   /// Routing table for the current tile
-  input  route_t [RouteCfg.NumRoutes-1:0] route_table_i,
+  input  route_t [floo_iomsb(RouteCfg.NumRoutes):0] route_table_i,
   /// Output links to NoC
   output floo_req_t   floo_req_o,
   output floo_rsp_t   floo_rsp_o,
@@ -1355,6 +1357,9 @@ module floo_nw_chimney #(
   // FLIT ARBITRATION  //
   ///////////////////////
 
+  floo_req_generic_flit_t floo_req_arb_data;
+  logic floo_req_arb_valid, floo_req_arb_ready;
+
   floo_wormhole_arbiter #(
     .NumRoutes  ( 4                       ),
     .flit_t     ( floo_req_generic_flit_t )
@@ -1364,10 +1369,27 @@ module floo_nw_chimney #(
     .valid_i  ( floo_req_arb_req_in   ),
     .data_i   ( floo_req_arb_in       ),
     .ready_o  ( floo_req_arb_gnt_out  ),
-    .data_o   ( floo_req_o.req        ),
-    .ready_i  ( floo_req_i.ready      ),
-    .valid_o  ( floo_req_o.valid      )
+    .data_o   ( floo_req_arb_data     ),
+    .ready_i  ( floo_req_arb_ready    ),
+    .valid_o  ( floo_req_arb_valid    )
   );
+
+  spill_register #(
+    .T     ( floo_req_generic_flit_t ),
+    .Bypass( !ChimneyCfgN.CutOup    )
+  ) i_req_out_cut (
+    .clk_i,
+    .rst_ni,
+    .valid_i ( floo_req_arb_valid ),
+    .ready_o ( floo_req_arb_ready ),
+    .data_i  ( floo_req_arb_data  ),
+    .valid_o ( floo_req_o.valid   ),
+    .ready_i ( floo_req_i.ready   ),
+    .data_o  ( floo_req_o.req     )
+  );
+
+  floo_rsp_generic_flit_t floo_rsp_arb_data;
+  logic floo_rsp_arb_valid, floo_rsp_arb_ready;
 
   floo_wormhole_arbiter #(
     .NumRoutes  ( 3                       ),
@@ -1378,9 +1400,23 @@ module floo_nw_chimney #(
     .valid_i  ( floo_rsp_arb_req_in   ),
     .data_i   ( floo_rsp_arb_in       ),
     .ready_o  ( floo_rsp_arb_gnt_out  ),
-    .data_o   ( floo_rsp_o.rsp        ),
-    .ready_i  ( floo_rsp_i.ready      ),
-    .valid_o  ( floo_rsp_o.valid      )
+    .data_o   ( floo_rsp_arb_data     ),
+    .ready_i  ( floo_rsp_arb_ready    ),
+    .valid_o  ( floo_rsp_arb_valid    )
+  );
+
+  spill_register #(
+    .T     ( floo_rsp_generic_flit_t ),
+    .Bypass( !ChimneyCfgN.CutOup    )
+  ) i_rsp_out_cut (
+    .clk_i,
+    .rst_ni,
+    .valid_i ( floo_rsp_arb_valid ),
+    .ready_o ( floo_rsp_arb_ready ),
+    .data_i  ( floo_rsp_arb_data  ),
+    .valid_o ( floo_rsp_o.valid   ),
+    .ready_i ( floo_rsp_i.ready   ),
+    .data_o  ( floo_rsp_o.rsp     )
   );
   // Credit is never used for narrow req/rsp
   if (VcImpl == floo_pkg::VcCredit) begin : gen_credit_tie
@@ -1389,18 +1425,35 @@ module floo_nw_chimney #(
   end
 
   if (NumWidePhysChannels == 1) begin: gen_wide_out_wrmh
+    floo_wide_generic_flit_t floo_wide_arb_data;
+    logic floo_wide_arb_valid, floo_wide_arb_ready;
+
     floo_wormhole_arbiter #(
       .NumRoutes  ( 3                         ),
       .flit_t     ( floo_wide_generic_flit_t  )
     ) i_wide_wormhole_arbiter (
       .clk_i,
       .rst_ni,
-      .valid_i  ( floo_wide_arb_req_in         ),
-      .data_i   ( floo_wide_arb_in             ),
-      .ready_o  ( floo_wide_arb_gnt_out        ),
-      .data_o   ( floo_wide_o.wide             ),
-      .ready_i  ( floo_wide_req_arb_gnt_in     ),
-      .valid_o  ( floo_wide_req_arb_valid_out  )
+      .valid_i  ( floo_wide_arb_req_in   ),
+      .data_i   ( floo_wide_arb_in       ),
+      .ready_o  ( floo_wide_arb_gnt_out  ),
+      .data_o   ( floo_wide_arb_data     ),
+      .ready_i  ( floo_wide_arb_ready    ),
+      .valid_o  ( floo_wide_arb_valid    )
+    );
+
+    spill_register #(
+      .T     ( floo_wide_generic_flit_t ),
+      .Bypass( !ChimneyCfgW.CutOup     )
+    ) i_wide_out_cut (
+      .clk_i,
+      .rst_ni,
+      .valid_i ( floo_wide_arb_valid          ),
+      .ready_o ( floo_wide_arb_ready          ),
+      .data_i  ( floo_wide_arb_data           ),
+      .valid_o ( floo_wide_req_arb_valid_out  ),
+      .ready_i ( floo_wide_req_arb_gnt_in     ),
+      .data_o  ( floo_wide_o.wide             )
     );
 
     // Mux the ready of the read and write channels to the ACK/NACK protocol

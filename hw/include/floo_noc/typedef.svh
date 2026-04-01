@@ -64,36 +64,6 @@
   } hdr_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// Header definition for virtual channel and lookahead routing
-//
-// Arguments:
-// - hdr_t: Name of the header struct type
-// - dst_t: Type of the destination ID
-// - src_t: Type of the source ID (Usually `dst_t`)
-// - ch_t: Identifier type for the payload
-// - rob_idx_t: Type of the RoB index
-// - vc_id_t: Type of the virtual channel ID
-//
-// Usage Example:
-// `FLOO_TYPEDEF_XY_NODE_ID_T(id_t, ...)
-// `FLOO_TYPEDEF_HDR_T(hdr_t, id_t, id_t, floo_pkg::axi_ch_e, logic)
-//
-// For `SourceRouting`:
-// `FLOO_TYPEDEF_HDR_T(hdr_t, route_t, id_t, floo_pkg::axi_ch_e, logic)
-`define FLOO_TYPEDEF_VC_HDR_T(hdr_t, dst_t, src_t, ch_t, rob_idx_t, vc_id_t)  \
-  typedef struct packed {                                                     \
-    logic rob_req;                                                            \
-    rob_idx_t rob_idx;                                                        \
-    dst_t dst_id;                                                             \
-    src_t src_id;                                                             \
-    logic last;                                                               \
-    logic atop;                                                               \
-    ch_t axi_ch;                                                              \
-    vc_id_t vc_id;                                                            \
-    floo_pkg::route_direction_e lookahead;                                    \
-  } hdr_t;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 // Flit definition of a specific AXI Channel.
 //
 // Arguments:

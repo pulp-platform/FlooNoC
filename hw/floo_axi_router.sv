@@ -117,9 +117,13 @@ module floo_axi_router #(
     .valid_i        ( req_valid_in  ),
     .ready_o        ( req_ready_out ),
     .data_i         ( req_in        ),
+    .credit_o       (               ),
     .valid_o        ( req_valid_out ),
     .ready_i        ( req_ready_in  ),
-    .data_o         ( req_out       )
+    .data_o         ( req_out       ),
+    .credit_i       ( '0            ),
+    .offload_req_o  (               ),
+    .offload_rsp_i  ( '0            )
   );
 
 
@@ -145,9 +149,13 @@ module floo_axi_router #(
     .valid_i        ( rsp_valid_in  ),
     .ready_o        ( rsp_ready_out ),
     .data_i         ( rsp_in        ),
+    .credit_o       (               ),
     .valid_o        ( rsp_valid_out ),
     .ready_i        ( rsp_ready_in  ),
-    .data_o         ( rsp_out       )
+    .data_o         ( rsp_out       ),
+    .credit_i       ( '0            ),
+    .offload_req_o  (               ),
+    .offload_rsp_i  ( '0            )
   );
 
 endmodule

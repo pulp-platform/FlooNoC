@@ -221,7 +221,8 @@ module tb_floo_router;
 
       .valid_o ( valid_in[port] ),
       .ready_i ( ready_in[port] ),
-      .data_o  ( data_in [port] )
+      .data_o  ( data_in [port] ),
+      .credit_i( '0             )
     );
   end
 
@@ -244,10 +245,14 @@ module tb_floo_router;
     .valid_i       ( valid_in  ),
     .ready_o       ( ready_in  ),
     .data_i        ( data_in   ),
+    .credit_o      (           ),
 
     .valid_o       ( valid_out ),
     .ready_i       ( ready_out ),
-    .data_o        ( data_out  )
+    .data_o        ( data_out  ),
+    .credit_i      ( '0        ),
+    .offload_req_o (           ),
+    .offload_rsp_i ( '0        )
   );
 
   logic       [NumPorts-1:0][NumVirtChannels-1:0] fall_valid_out;

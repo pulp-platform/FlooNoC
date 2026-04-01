@@ -63,7 +63,7 @@ floo_axi_router #(
   .hdr_t(hdr_t),
 % if router.route_algo == RouteAlgo.ID:
   .NumAddrRules (${len(router.table.rules)}),
-  .addr_rule_t (${router.name}_map_rule_t),
+  .addr_rule_t (route_map_rule_t),
 % endif
   .floo_req_t(floo_req_t),
   .floo_rsp_t(floo_rsp_t)

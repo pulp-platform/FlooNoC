@@ -37,8 +37,8 @@ module floo_reduction_sync import floo_pkg::*;
 
   // Filter valids from the expected input sources.
   for (genvar in = 0; in < NumRoutes; in++) begin : gen_valid
-    // Only valid form same reduction streams are propagated
-    assign filtered_valid_in[in] =  valid_i[in] &&
+    // Only valid from same reduction streams are propagated
+    assign filtered_valid_in[in] =  valid_i[in] && valid_i[sel_i] &&
                           (data_i[in].hdr.dst_id == data_i[sel_i].hdr.dst_id) &&
                           (data_i[in].hdr.collective_mask == data_i[sel_i].hdr.collective_mask);
 

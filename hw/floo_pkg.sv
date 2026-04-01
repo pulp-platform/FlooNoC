@@ -307,6 +307,9 @@ package floo_pkg;
     bit CutAx;
     /// Whether to buffer incoming links at the network interface,
     bit CutRsp;
+    /// Whether to buffer outgoing links at the network interface,
+    /// to break timing paths from arbiter grant logic to output ports.
+    bit CutOup;
   } chimney_cfg_t;
 
   /// Default macro collective operations supported in the NoC - all disabled
@@ -344,6 +347,7 @@ package floo_pkg;
     RRoBType: NoRoB,
     RRoBSize: 0,
     CutAx: 1'b0,
+    CutOup: 1'b0,
     CutRsp: 1'b0
   };
 
@@ -358,6 +362,11 @@ package floo_pkg;
     NumRoutes: 0,
     CollectiveCfg: CollectiveDefaultCfg
   };
+
+  // Return either the argument minus 1 or 0 if 0; useful for IO vector width declaration
+  function automatic integer unsigned floo_iomsb (input integer unsigned width);
+      return (width != 32'd0) ? unsigned'(width-1) : 32'd0;
+  endfunction
 
   /// The AXI channel to link mapping in a single-AXI network interface
   function automatic floo_chan_e axi_chan_mapping(axi_ch_e ch);
@@ -579,7 +588,7 @@ package floo_pkg;
 
   /// Evaluate if the incoming operation is a parallel reduction
   function automatic bit is_parallel_reduction_op(collect_op_e op);
-    return (op == LsbAnd | op == CollectB | op == SelectAW);
+    return (op == LsbAnd || op == CollectB || op == SelectAW);
   endfunction
 
   /// Evaluate if the incoming operation is a sequential reduction

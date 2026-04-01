@@ -344,7 +344,7 @@ end
 // Mux the result together
 always_comb begin : result_mux
   res_32 = '0;
-  unique case (op_i)
+  unique case (op_q)
     floo_alu_pkg::ADD:   res_32 = adder_res_32;
     floo_alu_pkg::MUL:   res_32 = mul_res_32;
     floo_alu_pkg::MIN:   res_32 = min_res_32;

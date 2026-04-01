@@ -12,7 +12,9 @@
 `include "floo_noc/typedef.svh"
 
 /// A bidirectional network interface for connecting AXI4 Buses to the NoC
-module floo_axi_chimney #(
+module floo_axi_chimney
+  import floo_pkg::*;
+#(
   /// Config of the AXI interfaces (see floo_pkg::axi_cfg_t for details)
   parameter floo_pkg::axi_cfg_t AxiCfg = '0,
   /// Config of the data path in the chimney (see floo_pkg::chimney_cfg_t for details)
@@ -88,7 +90,7 @@ module floo_axi_chimney #(
   /// Coordinates/ID of the current tile
   input  id_t id_i,
   /// Routing table for the current tile
-  input  route_t [RouteCfg.NumRoutes-1:0] route_table_i,
+  input  route_t [floo_iomsb(RouteCfg.NumRoutes):0] route_table_i,
   /// Output links to NoC
   output floo_req_t floo_req_o,
   output floo_rsp_t floo_rsp_o,
@@ -664,6 +666,9 @@ module floo_axi_chimney #(
   // FLIT ARBITRATION  //
   ///////////////////////
 
+  floo_req_generic_flit_t floo_req_arb_data;
+  logic floo_req_arb_valid, floo_req_arb_ready;
+
   floo_wormhole_arbiter #(
     .NumRoutes  ( 2                       ),
     .flit_t     ( floo_req_generic_flit_t )
@@ -673,10 +678,27 @@ module floo_axi_chimney #(
     .valid_i  ( floo_req_arb_req_in   ),
     .data_i   ( floo_req_arb_in       ),
     .ready_o  ( floo_req_arb_gnt_out  ),
-    .data_o   ( floo_req_o.req        ),
-    .ready_i  ( floo_req_i.ready      ),
-    .valid_o  ( floo_req_o.valid      )
+    .data_o   ( floo_req_arb_data     ),
+    .ready_i  ( floo_req_arb_ready    ),
+    .valid_o  ( floo_req_arb_valid    )
   );
+
+  spill_register #(
+    .T     ( floo_req_generic_flit_t ),
+    .Bypass( !ChimneyCfg.CutOup      )
+  ) i_req_out_cut (
+    .clk_i,
+    .rst_ni,
+    .valid_i ( floo_req_arb_valid ),
+    .ready_o ( floo_req_arb_ready ),
+    .data_i  ( floo_req_arb_data  ),
+    .valid_o ( floo_req_o.valid   ),
+    .ready_i ( floo_req_i.ready   ),
+    .data_o  ( floo_req_o.req     )
+  );
+
+  floo_rsp_generic_flit_t floo_rsp_arb_data;
+  logic floo_rsp_arb_valid, floo_rsp_arb_ready;
 
   floo_wormhole_arbiter #(
     .NumRoutes  ( 2                       ),
@@ -687,9 +709,23 @@ module floo_axi_chimney #(
     .valid_i  ( floo_rsp_arb_req_in   ),
     .data_i   ( floo_rsp_arb_in       ),
     .ready_o  ( floo_rsp_arb_gnt_out  ),
-    .data_o   ( floo_rsp_o.rsp        ),
-    .ready_i  ( floo_rsp_i.ready      ),
-    .valid_o  ( floo_rsp_o.valid      )
+    .data_o   ( floo_rsp_arb_data     ),
+    .ready_i  ( floo_rsp_arb_ready    ),
+    .valid_o  ( floo_rsp_arb_valid    )
+  );
+
+  spill_register #(
+    .T     ( floo_rsp_generic_flit_t ),
+    .Bypass( !ChimneyCfg.CutOup      )
+  ) i_rsp_out_cut (
+    .clk_i,
+    .rst_ni,
+    .valid_i ( floo_rsp_arb_valid ),
+    .ready_o ( floo_rsp_arb_ready ),
+    .data_i  ( floo_rsp_arb_data  ),
+    .valid_o ( floo_rsp_o.valid   ),
+    .ready_i ( floo_rsp_i.ready   ),
+    .data_o  ( floo_rsp_o.rsp     )
   );
 
   ////////////////////

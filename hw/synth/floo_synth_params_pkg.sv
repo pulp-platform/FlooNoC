@@ -39,6 +39,7 @@ package floo_synth_params_pkg;
     RRoBType: floo_pkg::NoRoB,
     RRoBSize: 0,
     CutAx: 1'b0,
+    CutOup: 1'b0,
     CutRsp: 1'b0
   };
 
@@ -113,39 +114,6 @@ package floo_synth_nw_pkg;
 
 endpackage
 
-
-package floo_synth_nw_vc_pkg;
-
-  import floo_synth_params_pkg::*;
-
-  localparam floo_pkg::axi_cfg_t AxiCfgN = '{
-    AddrWidth: 48,
-    DataWidth: 64,
-    UserWidth: 5,
-    InIdWidth: 4,
-    OutIdWidth: 2
-  };
-
-  // AXI nw_chimney parameters
-  localparam floo_pkg::axi_cfg_t AxiCfgW = '{
-    AddrWidth: 48,
-    DataWidth: 512,
-    UserWidth: 1,
-    InIdWidth: 3,
-    OutIdWidth: 1
-  };
-
-  localparam int NumVCWidth = 2;
-  localparam type vc_id_t = logic[NumVCWidth:0];
-
-  `FLOO_TYPEDEF_VC_HDR_T(vc_hdr_t, id_t, id_t, floo_pkg::nw_ch_e, logic, vc_id_t)
-  `FLOO_TYPEDEF_AXI_FROM_CFG(axi_narrow, AxiCfgN)
-  `FLOO_TYPEDEF_AXI_FROM_CFG(axi_wide, AxiCfgW)
-  `FLOO_TYPEDEF_NW_CHAN_ALL(vc_axi, vc_req, vc_rsp, vc_wide, axi_narrow_in, axi_wide_in,
-      AxiCfgN, AxiCfgW, vc_hdr_t)
-  `FLOO_TYPEDEF_NW_LINK_ALL(vc_req, vc_rsp, vc_wide, vc_req, vc_rsp, vc_wide)
-
-endpackage
 
 // Package to define the AXI interface at the NI for chimney synthesis
 // It's taken for the standard snitch pkg interface used in Picobello
