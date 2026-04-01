@@ -363,6 +363,11 @@ package floo_pkg;
     CollectiveCfg: CollectiveDefaultCfg
   };
 
+  // Return either the argument minus 1 or 0 if 0; useful for IO vector width declaration
+  function automatic integer unsigned floo_iomsb (input integer unsigned width);
+      return (width != 32'd0) ? unsigned'(width-1) : 32'd0;
+  endfunction
+
   /// The AXI channel to link mapping in a single-AXI network interface
   function automatic floo_chan_e axi_chan_mapping(axi_ch_e ch);
     if (ch == AxiAw || ch == AxiW || ch == AxiAr) begin
