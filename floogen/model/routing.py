@@ -684,10 +684,16 @@ class RouteMap(BaseModel):
         # typedef of the address rule
         string += sv_param_decl(f"{snake_to_camel(self.name)}NumRules", len(rules)) + "\n"
         addr_type = f"logic [{aw-1}:0]" if aw is not None else "id_t"
+        effective_rule_type = self.rule_type()
         rule_type_dict = {}
         if not isinstance(rules[0], RouteMapRuleCollective):
-            rule_type_dict = {"idx": "id_t", "start_addr": addr_type, "end_addr": addr_type}
-            string += sv_struct_typedef(self.rule_type(), rule_type_dict)
+            if aw is not None:
+                # SAM: address fields use a different bit width, needs its own typedef
+                rule_type_dict = {"idx": "id_t", "start_addr": addr_type, "end_addr": addr_type}
+                string += sv_struct_typedef(self.rule_type(), rule_type_dict)
+            else:
+                # Router table: reuse the shared route_map_rule_t from the package
+                effective_rule_type = "route_map_rule_t"
         else:
             rule_type_dict = {"offset": "int unsigned", "len": "int unsigned", "base_id": "int unsigned"}
             string += sv_struct_typedef("collective_mask_sel_t", rule_type_dict)
@@ -701,7 +707,7 @@ class RouteMap(BaseModel):
             string += sv_param_decl(
                 f"{snake_to_camel(self.name)}",
                 value="'{default: 0}",
-                dtype=self.rule_type(),
+                dtype=effective_rule_type,
             )
             return string
         for i, rule in enumerate(rules):
@@ -712,7 +718,7 @@ class RouteMap(BaseModel):
         string += sv_param_decl(
             f"{snake_to_camel(self.name)}",
             value="'{\n" + rules_str + "\n}",
-            dtype=self.rule_type(),
+            dtype=effective_rule_type,
             array_size=f"{snake_to_camel(self.name)}NumRules-1"
         )
         return string
