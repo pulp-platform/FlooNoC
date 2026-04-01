@@ -44,7 +44,6 @@ module floo_id_translation #(
     addr_t x_addr_mask, y_addr_mask;
 
     addr_decode #(
-      .NoIndices  ( 2**$bits(sam_idx_t)  ),
       .NoRules    ( RouteCfg.NumSamRules ),
       .addr_t     ( addr_t               ),
       .rule_t     ( addr_rule_t          ),

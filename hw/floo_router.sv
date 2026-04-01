@@ -501,8 +501,6 @@ module floo_router
   if (VcImpl != VcPreemptValid) begin: gen_stbl_valout_assert
     for (genvar o = 0; o < NumOutput; o++) begin : gen_output_assert
       for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_assert
-        // Assert that the input data is stable when valid is asserted
-        // `ASSERT(StableDataOut, valid_o[o][v] && !ready_i[o][v] |=> $stable(data_o[o][v]))
         // Assert that valid is stable when ready is not asserted
         `ASSERT(StableValidOut, valid_o[o][v] && !ready_i[o][v] |=> $stable(valid_o[o][v]))
       end

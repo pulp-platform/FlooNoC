@@ -71,7 +71,8 @@ module floo_fifo #(
           .data_i     ( data_out[n]   ),
           .data_o     ( data_o[n]     ),
           .valid_o    ( valid_o[n]    ),
-          .ready_i    ( ready_i[n]    )
+          .ready_i    ( ready_i[n]    ),
+          .credit_i   ( '0            )
         );
       end
     end else if (NumVirtChannels == NumPhysChannels) begin : gen_phys_channels

@@ -202,9 +202,13 @@ module tb_floo_rob;
     .valid_i        ( chimney_req_out_valid   ),
     .ready_o        ( chimney_req_in_ready    ),
     .data_i         ( chimney_req_out_chan    ),
+    .credit_o       (                         ),
     .valid_o        ( chimney_req_in_valid    ),
     .ready_i        ( chimney_req_out_ready   ),
-    .data_o         ( chimney_req_in_chan     )
+    .data_o         ( chimney_req_in_chan     ),
+    .credit_i       ( '0                     ),
+    .offload_req_o  (                         ),
+    .offload_rsp_i  ( '0                     )
   );
 
   floo_router #(
@@ -223,9 +227,13 @@ module tb_floo_rob;
     .valid_i        ( chimney_rsp_out_valid   ),
     .ready_o        ( chimney_rsp_in_ready    ),
     .data_i         ( chimney_rsp_out_chan    ),
+    .credit_o       (                         ),
     .valid_o        ( chimney_rsp_in_valid    ),
     .ready_i        ( chimney_rsp_out_ready   ),
-    .data_o         ( chimney_rsp_in_chan     )
+    .data_o         ( chimney_rsp_in_chan     ),
+    .credit_i       ( '0                     ),
+    .offload_req_o  (                         ),
+    .offload_rsp_i  ( '0                     )
   );
 
   localparam floo_test_pkg::slave_type_e SlaveType[floo_pkg::NumDirections-1] = '{

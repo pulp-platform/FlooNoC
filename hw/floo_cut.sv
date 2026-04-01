@@ -78,7 +78,8 @@ module floo_cut #(
           .data_i     ( data_virt[n][c]   ),
           .data_o     ( data[n][c+1]      ),
           .valid_o    ( valid[n][c+1]     ),
-          .ready_i    ( ready[n][c+1]     )
+          .ready_i    ( ready[n][c+1]     ),
+          .credit_i   ( '0                )
         );
       end
 
