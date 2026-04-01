@@ -1,0 +1,51 @@
+# Copyright 2026 ETH Zurich and University of Bologna.
+# Solderpad Hardware License, Version 0.51, see LICENSE for details.
+# SPDX-License-Identifier: SHL-0.51
+
+# Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
+
+name: slang
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  #########
+  # Slang #
+  #########
+  slang:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        DUT: [axi_mesh, nw_mesh]
+        ROUTE_ALGO: [xy, src, id]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bender
+        uses: pulp-platform/pulp-actions/bender-install@v2.5.0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Generate RTL
+        run: uv run floogen rtl -c floogen/examples/${{ matrix.DUT }}_${{ matrix.ROUTE_ALGO }}.yml -o generated --no-format
+
+      - name: Generate bender file list
+        run: bender script flist-plus -t floo_synth -t ${{ matrix.DUT }} > sources.f
+
+      - name: Slang lint
+        uses: pulp-platform/pulp-actions/slang@v2.5.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          slang-flags: -f sources.f --top floo_${{ matrix.DUT }}_noc
