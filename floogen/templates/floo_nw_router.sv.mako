@@ -81,7 +81,7 @@ floo_nw_router #(
   .hdr_t(hdr_t),
 % if router.route_algo == RouteAlgo.ID:
   .NumAddrRules (${len(router.table.rules)}),
-  .addr_rule_t (${router.name}_map_rule_t),
+  .addr_rule_t (route_map_rule_t),
 % endif
 % if "decouple_rw" in network.routing.model_fields_set:
   .WideRwDecouple(WideRwDecouple),
