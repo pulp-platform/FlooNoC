@@ -8,6 +8,7 @@
 import pathlib
 from typing import Optional, List
 from typing_extensions import Annotated
+from enum import Enum
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -25,16 +26,36 @@ from floogen.model.protocol import AXI4, AXI4Bus
 from floogen.utils import clog2, sv_enum_typedef, sv_param_decl
 
 
+class NetworkType(str, Enum):
+    """Network type enum.
+
+    Attributes:
+        AXI: Endpoints expose a single AXI interface, mapped to `req` and `rsp` physical links.
+        NARROW_WIDE: Endpoints expose both a narrow and a wide AXI interface, mapped to `req`, `rsp`, and `wide` physical links.
+    """
+
+    AXI = "axi"
+    NARROW_WIDE = "narrow-wide"
+
+    def __str__(self):
+        return self.value
+
+
 class Network(BaseModel):  # pylint: disable=too-many-public-methods
     """
     Network class to describe a network with routers and endpoints.
+
+    Attributes:
+        name (str): Specifies the name of the network, which will be used to name the generated files (e.g. `floo_<name>_pkg.sv` and `floo_<name>_top.sv`).
+        description (Optional[str]): A short description of the network. It is currently not used by _FlooGen_, and it is currently only for user reference.
+        network_type (NetworkType): Specifies the type of network that is being generated. See the [`NetworkType`][floogen.model.network.NetworkType] enum for supported options.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
     name: str
     description: Optional[str]
-    network_type: Annotated[str, StringConstraints(pattern=r"axi|narrow-wide")]
+    network_type: NetworkType
     protocols: List[AXI4]
     endpoints: List[EndpointDesc]
     routers: List[RouterDesc]

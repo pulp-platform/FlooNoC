@@ -6,16 +6,15 @@ Routers are the central switching elements in the Network-on-Chip. They route pa
 
 Routers are defined under the `routers` list in the configuration file.
 
-### Parameters
-
-| Parameter | Type | Description | Required | Default |
-| :--- | :--- | :--- | :---: | :--- |
-| `name` | String | Unique identifier for the router. Used in connection definitions. | Yes | - |
-| `array` | List[Int] | Defines a grid of routers (1D or 2D). E.g., `[4, 4]` creates a 4x4 mesh of routers. | No | `None` |
-| `tree` | List[Int] | Defines a tree topology structure. The list specifies the branching factor at each level. | No | `None` |
-| `degree` | Integer | Override the number of input/output ports on the router. | No | `None` |
-| `auto_connect` | Boolean | If true and `array` is specified, FlooGen automatically generates mesh connections (North, East, South, West) between the routers. | No | `True` |
-| `xy_id_offset` | Map/Int | Offsets for XY coordinates or IDs, used to manually adjust the logical position of the routers in the network. | No | `None` |
+::: floogen.model.router.RouterDesc
+    options:
+      show_root_heading: true
+      show_root_toc_entry: true
+      show_root_full_path: false
+      show_bases: false
+      members: []
+      show_source: false
+      show_signature: false
 
 ## Examples
 

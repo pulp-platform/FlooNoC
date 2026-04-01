@@ -6,20 +6,15 @@ Connections define the physical links between the components of the network (End
 
 Connections are defined under the `connections` list in the configuration file.
 
-### Parameters
-
-| Parameter | Type | Description | Required | Default |
-| :--- | :--- | :--- | :---: | :--- |
-| `src` | String | Name of the source component (Endpoint or Router). | Yes | - |
-| `dst` | String | Name of the destination component (Endpoint or Router). | Yes | - |
-| `bidirectional` | Boolean | If true, creates a full-duplex link (Request and Response channels). Currently, only bidirectional links are supported. | No | `true` |
-| `dst_dir` | String | Specifies the port direction on the destination router (e.g., `"North"`, `"Local"`, `"Eject"`). | No | `None` |
-| `src_range` | List[Tuple] | Selects a range of indices from the source array to connect. Format: `[(start, end)]` or `[(start_x, end_x), (start_y, end_y)]`. | No | `None` |
-| `dst_range` | List[Tuple] | Selects a range of indices from the destination array to connect. | No | `None` |
-| `src_idx` | List[Int] | Selects specific indices from the source array. | No | `None` |
-| `dst_idx` | List[Int] | Selects specific indices from the destination array. | No | `None` |
-| `allow_multi` | Boolean | Allows multiple connections to/from the same port (useful for complex topologies). | No | `false` |
-| `description` | String | Optional description of the connection. | No | `""` |
+::: floogen.model.connection.ConnectionDesc
+    options:
+      show_root_heading: true
+      show_root_toc_entry: true
+      show_root_full_path: false
+      show_bases: false
+      members: []
+      show_source: false
+      show_signature: false
 
 ## Examples
 

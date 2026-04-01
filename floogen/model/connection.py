@@ -12,7 +12,20 @@ from floogen.model.routing import XYDirections
 
 
 class ConnectionDesc(BaseModel):
-    """Connection class to describe a connection between routers and endpoints."""
+    """Connection class to describe a connection between routers and endpoints.
+
+    Attributes:
+        src (str): Name of the source component (Endpoint or Router).
+        dst (str): Name of the destination component (Endpoint or Router).
+        bidirectional (Optional[bool]): If true, creates a full-duplex link (Request and Response channels). Currently, only bidirectional links are supported.
+        dst_dir (Optional[int]): Specifies the port direction on the destination router (e.g., `"North"`, `"Local"`, `"Eject"`).
+        src_range (Optional[List[Tuple[int, int]]]): Selects a range of indices from the source array to connect. Format: `[(start, end)]` or `[(start_x, end_x), (start_y, end_y)]`.
+        dst_range (Optional[List[Tuple[int, int]]]): Selects a range of indices from the destination array to connect.
+        src_idx (Optional[List[int]]): Selects specific indices from the source array.
+        dst_idx (Optional[List[int]]): Selects specific indices from the destination array.
+        allow_multi (Optional[bool]): Allows multiple connections to/from the same port (useful for complex topologies).
+        description (Optional[str]): Optional description of the connection.
+    """
 
     model_config = ConfigDict(extra="forbid")
 

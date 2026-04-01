@@ -12,7 +12,15 @@ from pydantic import BaseModel, StringConstraints
 from floogen.utils import snake_to_camel, sv_param_decl, sv_typedef, sv_struct_render, sv_struct_typedef
 
 class ProtocolDesc(BaseModel):
-    """Protocol class to describe a protocol."""
+    """Protocol class to describe a protocol.
+
+    Attributes:
+        name (str): Unique identifier for the protocol. Used to reference it in endpoint configurations.
+        protocol (str): The protocol standard. Must be set to `"AXI4"`.
+        description (Optional[str]): Optional description of the protocol.
+        type (Optional[str]): Sub-type classification, useful for heterogeneous networks (e.g., `"narrow"`, `"wide"`).
+        direction (Optional[str]): The direction of the protocol interface.
+    """
 
     name: str
     description: Optional[str] = ""
@@ -20,8 +28,17 @@ class ProtocolDesc(BaseModel):
     type: Optional[Annotated[str, StringConstraints(pattern=r"narrow|wide")]] = None
     direction: Optional[str] = None
 
+
 class AXI4(ProtocolDesc):
-    """AXI4 protocol class."""
+    """AXI4 protocol class.
+
+    Attributes:
+        data_width (int): Width of the data bus in bits.
+        addr_width (int): Width of the address bus in bits.
+        id_width (int): Width of the ID signals in bits.
+        user_width (Union[int, Dict[str, int]]): Configuration for the AXI User signal. Can be a single integer (total width) or a dictionary mapping field names to bit widths.
+        type_prefix (Optional[str]): Prefix for generated SystemVerilog types. Set to `None` or an empty string to remove the default `"axi"` prefix.
+    """
 
     data_width: int
     addr_width: int
