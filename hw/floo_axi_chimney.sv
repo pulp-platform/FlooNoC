@@ -684,17 +684,17 @@ module floo_axi_chimney
   );
 
   spill_register #(
-    .T     ( floo_req_generic_flit_t ),
-    .Bypass( !ChimneyCfg.CutOup      )
+    .T     ( floo_req_chan_t    ),
+    .Bypass( !ChimneyCfg.CutOup )
   ) i_req_out_cut (
     .clk_i,
     .rst_ni,
     .valid_i ( floo_req_arb_valid ),
     .ready_o ( floo_req_arb_ready ),
-    .data_i  ( floo_req_arb_data  ),
-    .valid_o ( floo_req_o.valid   ),
-    .ready_i ( floo_req_i.ready   ),
-    .data_o  ( floo_req_o.req     )
+    .data_i  ( floo_req_chan_t'(floo_req_arb_data) ),
+    .valid_o ( floo_req_o.valid ),
+    .ready_i ( floo_req_i.ready ),
+    .data_o  ( floo_req_o.req   )
   );
 
   floo_rsp_generic_flit_t floo_rsp_arb_data;
@@ -715,17 +715,17 @@ module floo_axi_chimney
   );
 
   spill_register #(
-    .T     ( floo_rsp_generic_flit_t ),
-    .Bypass( !ChimneyCfg.CutOup      )
+    .T     ( floo_rsp_chan_t    ),
+    .Bypass( !ChimneyCfg.CutOup )
   ) i_rsp_out_cut (
     .clk_i,
     .rst_ni,
     .valid_i ( floo_rsp_arb_valid ),
     .ready_o ( floo_rsp_arb_ready ),
-    .data_i  ( floo_rsp_arb_data  ),
-    .valid_o ( floo_rsp_o.valid   ),
-    .ready_i ( floo_rsp_i.ready   ),
-    .data_o  ( floo_rsp_o.rsp     )
+    .data_i  ( floo_rsp_chan_t'(floo_rsp_arb_data) ),
+    .valid_o ( floo_rsp_o.valid ),
+    .ready_i ( floo_rsp_i.ready ),
+    .data_o  ( floo_rsp_o.rsp   )
   );
 
   ////////////////////
