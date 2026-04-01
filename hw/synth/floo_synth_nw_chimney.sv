@@ -25,7 +25,7 @@ module floo_synth_nw_chimney
   output endpoint_axi_pkg::wide_in_req_t   axi_wide_out_req_o,
   input  endpoint_axi_pkg::wide_in_resp_t   axi_wide_out_rsp_i,
   input  id_t id_i,
-  input  route_t [RouteCfg.NumRoutes-1:0] route_table_i,
+  input  route_t [floo_iomsb(RouteCfg.NumRoutes):0] route_table_i,
   output floo_req_t  floo_req_o,
   output floo_rsp_t  floo_rsp_o,
   input  floo_req_t  floo_req_i,

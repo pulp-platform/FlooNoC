@@ -17,7 +17,7 @@ module floo_synth_axi_chimney
   output axi_out_req_t axi_out_req_o,
   input  axi_out_rsp_t axi_out_rsp_i,
   input  id_t id_i,
-  input  route_t [RouteCfg.NumRoutes-1:0] route_table_i,
+  input  route_t [floo_iomsb(RouteCfg.NumRoutes):0] route_table_i,
   output floo_req_t floo_req_o,
   output floo_rsp_t floo_rsp_o,
   input  floo_req_t floo_req_i,
