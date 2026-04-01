@@ -4,7 +4,7 @@
 
 [project]
 name = "floogen"
-version = "0.7.0"
+version = "0.8.0"
 description = "A Network Generator for FlooNoC"
 readme = "docs/floogen/overview.md"
 license = "Apache-2.0"

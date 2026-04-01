@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-03-26
+
+### Added
+
+#### Hardware
+
+- Extend and deploy documentation (https://github.com/pulp-platform/FlooNoC/pull/156)
+- Add reduction support (sequential and parallel) with `floo_reduction_unit` and `floo_alu`; router exposes offload ports for functional units (DCA-compatible) (https://github.com/pulp-platform/FlooNoC/pull/163)
+- Add multiplane support in `floo_vc_arbiter` to decouple AXI read and write wide channels into separate routers; add credit-based VC and preempt-valid arbitration modes (https://github.com/pulp-platform/FlooNoC/pull/153)
+- Extend `floo_nw_chimney` to support 2 input/output wide links for read/write stream decoupling (https://github.com/pulp-platform/FlooNoC/pull/153)
+
+#### FlooGen
+
+- Added support for custom/external templates (https://github.com/pulp-platform/FlooNoC/pull/155)
+- Extend and deploy documentation (https://github.com/pulp-platform/FlooNoC/pull/156)
+- Publish _FlooGen_ on PyPI (https://github.com/pulp-platform/FlooNoC/pull/160)
+- Add reduction configuration generation (https://github.com/pulp-platform/FlooNoC/pull/163)
+
+### Changed
+
+#### Hardware
+
+- Unified collective operation configuration (multicast, synchronization, reduction) into a single `CollectiveCfg` structure; individual enable parameters replaced by frontend macro-operation selection (`collect_op_fe_cfg_t`) (https://github.com/pulp-platform/FlooNoC/pull/163)
+- Use default remotes in Bender.yml manifest (https://github.com/pulp-platform/FlooNoC/pull/161)
+- Bump dependencies (https://github.com/pulp-platform/FlooNoC/pull/161)
+
+#### FlooGen
+
+- Refactored CLI to use subcommands instead of flags (https://github.com/pulp-platform/FlooNoC/pull/155)
+
 ## [0.7.0] - 2025-11-24
 
 ### Added
