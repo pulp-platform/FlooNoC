@@ -19,7 +19,16 @@ import floogen.templates
 
 
 class RouterDesc(BaseModel):
-    """Router class to describe (arrays of) a router"""
+    """Router class to describe (arrays of) a router
+
+    Attributes:
+        name (str): Unique identifier for the router. Used in connection definitions.
+        array (Optional[Union[Tuple[int], Tuple[int, int]]]): Defines a grid of routers (1D or 2D). E.g., `[4, 4]` creates a 4x4 mesh of routers.
+        tree (Optional[List[int]]): Defines a tree topology structure. The list specifies the branching factor at each level.
+        degree (Optional[int]): Override the number of input/output ports on the router.
+        auto_connect (Optional[bool]): If true and `array` is specified, FlooGen automatically generates mesh connections (North, East, South, West) between the routers.
+        xy_id_offset (Optional[Union[SimpleId, Coord]]): Offsets for XY coordinates or IDs, used to manually adjust the logical position of the routers in the network.
+    """
 
     model_config = ConfigDict(extra="forbid")
 

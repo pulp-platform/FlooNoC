@@ -1,5 +1,3 @@
-Here is the draft for the `floogen/endpoints.md` section, following the style of the previous `protocols.md` page.
-
 # Endpoints
 
 Endpoints represent the interfaces where external IP blocks (like processors, memories, or peripherals) connect to the NoC. They define the role of the connected IP (Manager, Subordinate, or both), the protocols used for communication, and the address ranges they serve.
@@ -8,29 +6,28 @@ Endpoints represent the interfaces where external IP blocks (like processors, me
 
 Endpoints are defined under the `endpoints` list in the configuration file.
 
-### Parameters
-
-| Parameter | Type | Description | Required | Default |
-| :--- | :--- | :--- | :---: | :--- |
-| `name` | String | Unique identifier for the endpoint. Used in connection definitions. | Yes | - |
-| `description` | String | Optional description of the endpoint. | No | `""` |
-| `array` | List[Int] | Defines the endpoint as an array (1D or 2D). E.g., `[4]` for a 1D array of size 4, or `[4, 4]` for a 4x4 grid. | No | `None` |
-| `addr_range` | List/Map | Defines the address regions served by this endpoint (required if it acts as a Subordinate). | Cond. | `[]` |
-| `mgr_port_protocol`| List[String]| List of protocol names (defined in `protocols`) that this endpoint uses to send requests (Manager role). | No | `None` |
-| `sbr_port_protocol`| List[String]| List of protocol names (defined in `protocols`) that this endpoint uses to receive requests (Subordinate role). | No | `None` |
-| `xy_id_offset` | Map/Int | Offsets for XY coordinates or IDs, used to manually adjust the logical position of the endpoint in the network. | No | `None` |
+::: floogen.model.endpoint.EndpointDesc
+    options:
+      show_root_heading: true
+      show_root_toc_entry: true
+      show_root_full_path: false
+      show_bases: false
+      members: []
+      show_source: false
+      show_signature: false
 
 ### Address Ranges
 
 If an endpoint acts as a Subordinate (i.e., it receives requests), it must define at least one address range. This is used to generate the system address map and routing tables. Address ranges can be defined explicitly or relative to a base address for arrays.
 
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `start` | Integer | Absolute start address of the range. |
-| `end` | Integer | Absolute end address of the range. |
-| `size` | Integer | Size of the address range. |
-| `base` | Integer | Base address used for calculating ranges in endpoint arrays. |
-| `en_multicast` | Boolean | If true, marks this range as a multicast destination. |
+::: floogen.model.routing.AddrRange
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      show_bases: false
+      members: []
+      show_source: false
+      show_signature: false
 
 ## Examples
 

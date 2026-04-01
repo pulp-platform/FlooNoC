@@ -22,7 +22,14 @@ from floogen.utils import (
 
 
 class RouteAlgo(Enum):
-    """Routing algorithm enum."""
+    """Routing algorithm enum.
+
+    Attributes:
+        XY: Dimension-ordered XY routing algorithm.
+        YX: Dimension-ordered YX routing algorithm.
+        ID: Routing algorithm based on router ID tables.
+        SRC: Source-based routing algorithm.
+    """
 
     XY = "XYRouting"
     YX = "YXRouting"
@@ -137,24 +144,22 @@ class WideReductionCfg(ReductionCfg):
 class CollectiveCfg(BaseModel):
     """User-facing collective operation configuration.
 
-    The five high-level knobs map to ``collective_cfg_t`` in floo_pkg:
+    The five high-level knobs map to ``collective_cfg_t`` in `floo_pkg`.
 
-    +-----------------------+--------------------------------------------+
-    | YAML field            | floo_pkg bits set                          |
-    +=======================+============================================+
-    | en_narrow_multicast   | OpCfg.EnNarrowMulticast                    |
-    | en_wide_multicast     | OpCfg.EnWideMulticast                      |
-    | en_barrier            | OpCfg.EnLsbAnd                             |
-    | en_narrow_reduction   | OpCfg.EnA_{Add,Mul,MinS,MinU,MaxS,MaxU}   |
-    | en_wide_reduction     | OpCfg.EnF_{Add,Mul,Min,Max}                |
-    +-----------------------+--------------------------------------------+
+    Attributes:
+        en_narrow_multicast (bool): Enables multicast on the narrow link (`OpCfg.EnNarrowMulticast`).
+        en_wide_multicast (bool): Enables multicast on the wide link (`OpCfg.EnWideMulticast`).
+        en_barrier (bool): Enables barrier synchronization (`OpCfg.EnLsbAnd`).
+        en_narrow_reduction (Optional[NarrowReductionCfg]): Configuration for integer ALU reduction operations available on the narrow router (`OpCfg.EnA_{Add,Mul,MinS,MinU,MaxS,MaxU}`).
+        en_wide_reduction (Optional[WideReductionCfg]): Configuration for floating-point reduction operations available on the wide router (`OpCfg.EnF_{Add,Mul,Min,Max}`).
 
-    For ``en_narrow_reduction`` / ``en_wide_reduction``:
-      - ``false`` / omitted   → disabled (default)
-      - ``true``              → all ops enabled, default hw config
-      - ``[Add, Mul, ...]``   → only the listed ops, default hw config
-      - ``{ops: [...], rd_pipeline_depth: N, cut_offload_intf: true}``
-                              → full per-channel control
+    !!! tip "Reduction Configuration Options"
+        For ``en_narrow_reduction`` and ``en_wide_reduction``, the following YAML values are supported:
+
+        - **`false` / omitted**: Disabled (default)
+        - **`true`**: All operations enabled, default hardware configuration
+        - **`[Add, Mul, ...]`**: Only the listed operations enabled, default hardware configuration
+        - **`{ops: [...], rd_pipeline_depth: N, cut_offload_intf: true}`**: Full per-channel control
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -362,7 +367,15 @@ class Coord(BaseModel):
 
 
 class AddrRange(BaseModel):
-    """Address range class."""
+    """Address range class.
+
+    Attributes:
+        start (int): Absolute start address of the range.
+        end (int): Absolute end address of the range.
+        size (int): Size of the address range.
+        base (Optional[int]): Base address used for calculating ranges in endpoint arrays.
+        en_collective (bool): If true, marks this range as a multicast/collective destination.
+    """
 
     model_config = ConfigDict(extra="forbid", validate_assignement=True)
 
@@ -781,22 +794,10 @@ class Routing(BaseModel):
     The class that holds essentially all the routing information needed.
 
     Attributes:
-        route_algo (RouteAlgo): The routing algorithm to use. See RouteAlgo enum for the options.
-        use_id_table (bool): Whether to use a table to decode the destination ID.
-        sam (RouteMap): The system address map.
-        table (RouteMap): The routing table of the router.
-        addr_offset_bits (int): The number of bits to decode the X and Y coordinates from the address. Only used if `use_id_table` is False and `route_algo` is XY.
-        xy_id_offset (Union[SimpleId, Coord]): A constant offset to add to the X and Y coordinates. Only used if `route_algo` is XY.
-        num_endpoints (int): The number of endpoints in the network.
-        num_id_bits (int): The number of bits to represent the ID. Only used if `route_algo` is ID or SRC.
-        num_x_bits (int): The number of bits to represent the X coordinate. Only used if `route_algo` is XY.
-        num_y_bits (int): The number of bits to represent the Y coordinate. Only used if `route_algo` is XY.
-        num_route_bits (int): The number of bits to represent the route. Only used if `route_algo` is SRC.
-        addr_width (int): The width of the address bus.
-        rob_idx_bits (int): The number of bits to represent the reorder buffer index.
-        port_id_bits (int): The number of bits to represent the local port ID.
+        route_algo (RouteAlgo): This determines the routing algorithm to use. You can find more information about the different routing algorithms in the [routing algorithms documentation](../../floonoc/route_algos.md).
+        use_id_table (bool): A boolean flag indicating that if set to `true`, a system address table will be generated in the package which is used to translate system addresses to endpoint IDs or coordinates. This is always used in table-based routing and can be used in `XYRouting` to translate system addresses to XY-coordinates. If `XYRouting` is used and this field is set to `false`, the XY coordinates are automatically derived as address offsets. This is much simpler but requires that all endpoint addresses are contiguous and of the same size.
+        rob_idx_bits (int): The number of bits to allocate for the `rob_idx` field in the packet header. This is only relevant if reordering buffers are used in the network.
         collective (CollectiveCfg): Collective operation configuration (multicast, barrier, reduction).
-        collective_sam (RouteMap): The collective system address map. Only used if collective is enabled.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
@@ -804,21 +805,33 @@ class Routing(BaseModel):
     route_algo: RouteAlgo
     use_id_table: bool = True
     sam: Optional[RouteMap] = None
+    """The system address map."""
     table: Optional[RouteMap] = None
+    """The routing table of the router."""
     addr_offset_bits: Optional[int] = None
+    """The number of bits to decode the X and Y coordinates from the address. Only used if `use_id_table` is False and `route_algo` is XY."""
     xy_id_offset: Optional[Union[SimpleId, Coord]] = None
+    """A constant offset to add to the X and Y coordinates. Only used if `route_algo` is XY."""
     num_endpoints: Optional[int] = None
+    """The number of endpoints in the network."""
     num_id_bits: Optional[int] = None
+    """The number of bits to represent the ID. Only used if `route_algo` is ID or SRC."""
     num_x_bits: Optional[int] = None
+    """The number of bits to represent the X coordinate. Only used if `route_algo` is XY."""
     num_y_bits: Optional[int] = None
+    """The number of bits to represent the Y coordinate. Only used if `route_algo` is XY."""
     num_route_bits: Optional[int] = None
+    """The number of bits to represent the route. Only used if `route_algo` is SRC."""
     addr_width: Optional[int] = None
+    """The width of the address bus."""
     rob_idx_bits: int = 1
     port_id_bits: int = 1
+    """The number of bits to represent the local port ID."""
     num_vc_id_bits: int = 0
     decouple_rw: WideRwDecouple = WideRwDecouple.NONE
     vc_impl: VcImpl = VcImpl.NAIVE
     collective_sam: Optional[RouteMap] = None
+    """The collective system address map. Only used if collective is enabled."""
     collective: CollectiveCfg = CollectiveCfg()
 
     @property

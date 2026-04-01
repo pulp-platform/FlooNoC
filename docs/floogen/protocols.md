@@ -1,26 +1,30 @@
 # Protocols
 
 Protocols in FlooGen define the communication interfaces used by endpoints and routers within the network. Currently, FlooGen primarily supports the **AXI4** protocol. These definitions determine the properties of the interface, such as data width, address width, and ID width, which are then used to generate the corresponding SystemVerilog typedefs and structs.
-
 ## Configuration
 
 Protocols are defined under the `protocols` list in the configuration file. Each entry specifies a configuration that can be referenced by endpoints and routers.
 
-### Parameters
+::: floogen.model.protocol.ProtocolDesc
+    options:
+      show_root_heading: true
+      show_root_toc_entry: true
+      show_root_full_path: false
+      show_bases: false
+      members: []
+      show_source: false
+      show_signature: false
 
-| Parameter | Type | Description | Required | Default |
-| :--- | :--- | :--- | :---: | :--- |
-| `name` | String | Unique identifier for the protocol. Used to reference it in endpoint configurations. | Yes | - |
-| `protocol` | String | The protocol standard. Must be set to `"AXI4"`. | Yes | - |
-| `data_width` | Integer | Width of the data bus in bits. | Yes | - |
-| `addr_width` | Integer | Width of the address bus in bits. | Yes | - |
-| `id_width` | Integer | Width of the ID signals in bits. | Yes | - |
-| `user_width` | Int / Map | Configuration for the AXI User signal. Can be a single integer (total width) or a map defining fields. | No | `1` |
-| `type` | String | Sub-type classification, useful for heterogeneous networks (e.g., `"narrow"`, `"wide"`). | No | `None` |
-| `type_prefix` | String | Prefix for generated SystemVerilog types. Set to `null` or empty to remove default. | No | `"axi"` |
-| `description` | String | Optional description of the protocol. | No | `""` |
-
-## Examples
+::: floogen.model.protocol.AXI4
+    options:
+      show_root_heading: true
+      show_root_toc_entry: true
+      show_root_full_path: false
+      show_bases: false
+      inherited_members: false
+      members: []
+      show_source: false
+      show_signature: false
 
 ### Basic AXI4 Configuration
 

@@ -86,6 +86,7 @@ extra_css = ["stylesheets/extra.css"]
 
 [project.plugins.mkdocstrings.handlers.python]
 inventories = ["https://docs.python.org/3/objects.inv"]
+paths = ["floogen"]
 
 [project.plugins.mkdocstrings.handlers.python.options]
 docstring_style = "google"

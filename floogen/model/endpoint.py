@@ -14,6 +14,15 @@ from floogen.model.protocol import Protocols
 class EndpointDesc(BaseModel):
     """
     Endpoint class to describe an endpoint with adress ranges and configuration parameters.
+
+    Attributes:
+        name (str): Unique identifier for the endpoint. Used in connection definitions.
+        description (Optional[str]): Optional description of the endpoint.
+        array (Optional[Union[Tuple[int], Tuple[int, int]]]): Defines the endpoint as an array (1D or 2D). E.g., `[4]` for a 1D array of size 4, or `[4, 4]` for a 4x4 grid.
+        addr_range (List[AddrRange]): Defines the address regions served by this endpoint (required if it acts as a Subordinate).
+        xy_id_offset (Optional[Union[SimpleId, Coord]]): Offsets for XY coordinates or IDs, used to manually adjust the logical position of the endpoint in the network.
+        mgr_port_protocol (Optional[List[str]]): List of protocol names (defined in `protocols`) that this endpoint uses to send requests (Manager role).
+        sbr_port_protocol (Optional[List[str]]): List of protocol names (defined in `protocols`) that this endpoint uses to receive requests (Subordinate role).
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -22,6 +31,7 @@ class EndpointDesc(BaseModel):
     description: Optional[str] = ""
     array: Optional[Union[Tuple[int], Tuple[int, int]]] = None
     num: Optional[int] = None
+    """The total number of endpoints based on the `array` configuration."""
     addr_range: List[AddrRange] = []
     xy_id_offset: Optional[Union[SimpleId, Coord]] = None
     mgr_port_protocol: Optional[List[str]] = None
