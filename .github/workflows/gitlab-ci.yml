@@ -7,7 +7,9 @@
 name: gitlab-ci
 
 on:
-  pull_request:
+  # pull_request_target runs in the base repo context (has access to secrets)
+  # even for PRs from forks, unlike pull_request.
+  pull_request_target:
   push:
     branches:
       - main
@@ -15,16 +17,17 @@ on:
 
 jobs:
   check:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Mirror and check
-          uses: pulp-platform/pulp-actions/gitlab-ci@v2.4.5
-          # Skip on forks or pull requests from forks due to missing secrets.
-          if: >
-            github.repository == 'pulp-platform/FlooNoC' &&
-            (github.event_name != 'pull_request' ||
-            github.event.pull_request.head.repo.full_name == github.repository)
-          with:
-            domain: iis-git.ee.ethz.ch
-            repo: github-mirror/FlooNoC
-            token: ${{ secrets.GITLAB_TOKEN }}
+    runs-on: ubuntu-latest
+    # For fork PRs, the 'internal-ci' environment requires manual approval
+    # from a maintainer before GITLAB_TOKEN is exposed. Internal PRs pass
+    # through immediately since the environment protection rules can be
+    # scoped to fork actors only, or set to always require approval.
+    environment: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository && 'gitlab-ci' || '' }}
+    if: github.repository == 'pulp-platform/FlooNoC'
+    steps:
+      - name: Mirror and check
+        uses: pulp-platform/pulp-actions/gitlab-ci@v2.4.5
+        with:
+          domain: iis-git.ee.ethz.ch
+          repo: github-mirror/FlooNoC
+          token: ${{ secrets.GITLAB_TOKEN }}
