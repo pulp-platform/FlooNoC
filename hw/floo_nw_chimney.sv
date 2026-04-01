@@ -1375,17 +1375,17 @@ module floo_nw_chimney
   );
 
   spill_register #(
-    .T     ( floo_req_generic_flit_t ),
-    .Bypass( !ChimneyCfgN.CutOup    )
+    .T     ( floo_req_chan_t     ),
+    .Bypass( !ChimneyCfgN.CutOup )
   ) i_req_out_cut (
     .clk_i,
     .rst_ni,
-    .valid_i ( floo_req_arb_valid ),
-    .ready_o ( floo_req_arb_ready ),
-    .data_i  ( floo_req_arb_data  ),
-    .valid_o ( floo_req_o.valid   ),
-    .ready_i ( floo_req_i.ready   ),
-    .data_o  ( floo_req_o.req     )
+    .valid_i ( floo_req_arb_valid                  ),
+    .ready_o ( floo_req_arb_ready                  ),
+    .data_i  ( floo_req_chan_t'(floo_req_arb_data) ),
+    .valid_o ( floo_req_o.valid                    ),
+    .ready_i ( floo_req_i.ready                    ),
+    .data_o  ( floo_req_o.req                      )
   );
 
   floo_rsp_generic_flit_t floo_rsp_arb_data;
@@ -1406,17 +1406,17 @@ module floo_nw_chimney
   );
 
   spill_register #(
-    .T     ( floo_rsp_generic_flit_t ),
-    .Bypass( !ChimneyCfgN.CutOup    )
+    .T     ( floo_rsp_chan_t     ),
+    .Bypass( !ChimneyCfgN.CutOup )
   ) i_rsp_out_cut (
     .clk_i,
     .rst_ni,
-    .valid_i ( floo_rsp_arb_valid ),
-    .ready_o ( floo_rsp_arb_ready ),
-    .data_i  ( floo_rsp_arb_data  ),
-    .valid_o ( floo_rsp_o.valid   ),
-    .ready_i ( floo_rsp_i.ready   ),
-    .data_o  ( floo_rsp_o.rsp     )
+    .valid_i ( floo_rsp_arb_valid                  ),
+    .ready_o ( floo_rsp_arb_ready                  ),
+    .data_i  ( floo_rsp_chan_t'(floo_rsp_arb_data) ),
+    .valid_o ( floo_rsp_o.valid                    ),
+    .ready_i ( floo_rsp_i.ready                    ),
+    .data_o  ( floo_rsp_o.rsp                      )
   );
   // Credit is never used for narrow req/rsp
   if (VcImpl == floo_pkg::VcCredit) begin : gen_credit_tie
@@ -1443,17 +1443,17 @@ module floo_nw_chimney
     );
 
     spill_register #(
-      .T     ( floo_wide_generic_flit_t ),
-      .Bypass( !ChimneyCfgW.CutOup     )
+      .T     ( floo_wide_chan_t    ),
+      .Bypass( !ChimneyCfgW.CutOup )
     ) i_wide_out_cut (
       .clk_i,
       .rst_ni,
-      .valid_i ( floo_wide_arb_valid          ),
-      .ready_o ( floo_wide_arb_ready          ),
-      .data_i  ( floo_wide_arb_data           ),
-      .valid_o ( floo_wide_req_arb_valid_out  ),
-      .ready_i ( floo_wide_req_arb_gnt_in     ),
-      .data_o  ( floo_wide_o.wide             )
+      .valid_i ( floo_wide_arb_valid                   ),
+      .ready_o ( floo_wide_arb_ready                   ),
+      .data_i  ( floo_wide_chan_t'(floo_wide_arb_data) ),
+      .valid_o ( floo_wide_req_arb_valid_out           ),
+      .ready_i ( floo_wide_req_arb_gnt_in              ),
+      .data_o  ( floo_wide_o.wide                      )
     );
 
     // Mux the ready of the read and write channels to the ACK/NACK protocol
