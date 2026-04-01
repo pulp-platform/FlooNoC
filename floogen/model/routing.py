@@ -139,15 +139,13 @@ class CollectiveCfg(BaseModel):
 
     The five high-level knobs map to ``collective_cfg_t`` in floo_pkg:
 
-    +-----------------------+--------------------------------------------+
     | YAML field            | floo_pkg bits set                          |
-    +=======================+============================================+
+    | --------------------- | ------------------------------------------ |
     | en_narrow_multicast   | OpCfg.EnNarrowMulticast                    |
     | en_wide_multicast     | OpCfg.EnWideMulticast                      |
     | en_barrier            | OpCfg.EnLsbAnd                             |
-    | en_narrow_reduction   | OpCfg.EnA_{Add,Mul,MinS,MinU,MaxS,MaxU}   |
+    | en_narrow_reduction   | OpCfg.EnA_{Add,Mul,MinS,MinU,MaxS,MaxU}    |
     | en_wide_reduction     | OpCfg.EnF_{Add,Mul,Min,Max}                |
-    +-----------------------+--------------------------------------------+
 
     For ``en_narrow_reduction`` / ``en_wide_reduction``:
       - ``false`` / omitted   → disabled (default)
