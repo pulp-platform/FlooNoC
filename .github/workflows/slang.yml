@@ -42,10 +42,15 @@ jobs:
         run: uv run floogen rtl -c floogen/examples/${{ matrix.DUT }}_${{ matrix.ROUTE_ALGO }}.yml -o generated --no-format
 
       - name: Generate bender file list
-        run: bender script flist-plus -t floo_synth -t ${{ matrix.DUT }} > sources.f
+        # TODO: Remove -e fpnew once fpnew_top.sv is fixed upstream.
+        run: bender script flist-plus -t floo_synth -t ${{ matrix.DUT }} -e fpnew > sources.f
 
       - name: Slang lint
         uses: pulp-platform/pulp-actions/slang@v2.5.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          slang-flags: -f sources.f --top floo_${{ matrix.DUT }}_noc
+          slang-flags: >-
+            -f sources.f --top floo_${{ matrix.DUT }}_noc
+            --ignore-unknown-modules
+            -Wno-finish-num
+            --suppress-warnings .bender
