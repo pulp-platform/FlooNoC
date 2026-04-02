@@ -30,7 +30,7 @@ jobs:
         DUT: [axi_mesh, nw_mesh]
         ROUTE_ALGO: [xy, src, id]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install bender
         uses: pulp-platform/pulp-actions/bender-install@v2.5.0
