@@ -120,5 +120,9 @@ floo_nw_router #(
   .floo_req_o (${router.name}_req_out),
   .floo_rsp_i (${router.name}_rsp_in),
   .floo_wide_i (${router.name}_wide_in),
-  .floo_wide_o (${router.name}_wide_out)
+  .floo_wide_o (${router.name}_wide_out),
+  .offload_narrow_req_o (),
+  .offload_narrow_rsp_i ('0),
+  .offload_wide_req_o (),
+  .offload_wide_rsp_i ('0)
 );
