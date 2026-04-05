@@ -93,6 +93,9 @@ scripts/spyglass/*
 util/output/*
 measurements
 
+# just dotenv
+.env
+
 # Misc
 *.csv
 **/*.log
