@@ -135,7 +135,7 @@ VCS_ARGS    += -j 8
 
 scripts/compile_vcs.sh: Bender.yml Bender.lock
 	@mkdir -p scripts
-	$(BENDER) script vcs --vlog-arg "\$(VLOGAN_ARGS)" $(BENDER_FLAGS) --vlogan-bin "$(VLOGAN)" > $@
+	$(BENDER) script vcs --top $(TB_DUT) --vlog-arg "\$(VLOGAN_ARGS)" $(BENDER_FLAGS) --vlogan-bin "$(VLOGAN)" > $@
 	chmod +x $@
 
 bin/%.vcs: scripts/compile_vcs.sh
@@ -187,7 +187,7 @@ clean-spyglass:
 ###################
 
 PD_REMOTE ?= git@iis-git.ee.ethz.ch:axi-noc/floo_noc_pd.git
-PD_BRANCH ?= master
+PD_BRANCH ?= bender-slang-flist-filter
 PD_DIR = $(FLOO_ROOT)/pd
 
 .PHONY: init-pd

@@ -8,7 +8,7 @@
 variables:
   QUESTA_SEPP: questa-2025.1
   VCS_SEPP: vcs-2025.06
-  BENDER: bender
+  BENDER: /home/fischeti/.cargo/bin/bender
   UV: /home/fischeti/.local/bin/uv
   UV_LINK_MODE: hardlink
 
