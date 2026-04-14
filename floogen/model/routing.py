@@ -386,6 +386,7 @@ class AddrRange(BaseModel):
     arr_idx: Optional[Tuple[int, ...]] = None
     arr_dim: Optional[Tuple[int, ...]] = None
     rdl_name: Optional[str] = None
+    rdl_as_mem: Optional[bool] = None
     en_collective: bool = False
     desc: Optional[str] = None
 
@@ -430,6 +431,10 @@ class AddrRange(BaseModel):
         """Validate the address range."""
         if self.start >= self.end:
             raise ValueError("Address range start must be less than end")
+        if self.rdl_name is not None and self.rdl_as_mem is True:
+            raise ValueError(
+                "AddrRange: 'rdl_name' and 'rdl_as_mem' are mutually exclusive"
+            )
         return self
 
     def set_arr(self, arr_idx, arr_dim):
@@ -501,7 +506,8 @@ class RouteMapRule(BaseModel):
                     "arr_dim": self.addr_range.arr_dim,
                 }
             ]
-        if rdl_as_mem:
+        effective_as_mem = rdl_as_mem if self.addr_range.rdl_as_mem is None else self.addr_range.rdl_as_mem
+        if effective_as_mem:
             mementries = (self.addr_range.end - self.addr_range.start) // rdl_memwidth * 8
             mem_string = (
                 f"external mem {{ mementries = 0x{mementries:X}; memwidth = {rdl_memwidth}; }}"
