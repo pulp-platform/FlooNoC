@@ -76,6 +76,54 @@ def test_invalid_addr_range():
         addr_range = AddrRange(start=0, end=100, size=100)
         addr_range.set_arr(2, 5)
 
+
+def test_rdl_name_and_rdl_as_mem_mutually_exclusive():
+    """Test that setting both rdl_name and rdl_as_mem raises a validation error."""
+    with pytest.raises(ValueError):
+        AddrRange(start=0, end=0x1000, rdl_name="foo", rdl_as_mem=True)
+
+
+def test_get_rdl_per_endpoint_as_mem():
+    """Test that rdl_as_mem=True in AddrRange enables memory block regardless of global flag."""
+    rule = RouteMapRule(
+        addr_range=AddrRange(start=0, end=0x1000, rdl_as_mem=True),
+        dest=SimpleId(id=1),
+    )
+    result = rule.get_rdl("inst", rdl_as_mem=False, rdl_memwidth=8)
+    assert len(result) == 1
+    assert "external mem" in result[0]["rdl_name"]
+
+
+def test_get_rdl_per_endpoint_opt_out():
+    """Test that rdl_as_mem=False excludes the endpoint even when --as-mem is passed."""
+    rule = RouteMapRule(
+        addr_range=AddrRange(start=0, end=0x1000, rdl_as_mem=False),
+        dest=SimpleId(id=1),
+    )
+    assert rule.get_rdl("inst", rdl_as_mem=True, rdl_memwidth=8) == []
+
+
+def test_get_rdl_global_fallback():
+    """Test that the global --as-mem CLI flag still works when rdl_as_mem is not set."""
+    rule = RouteMapRule(
+        addr_range=AddrRange(start=0, end=0x1000),
+        dest=SimpleId(id=1),
+    )
+    assert rule.get_rdl("inst", rdl_as_mem=False) == []
+    result = rule.get_rdl("inst", rdl_as_mem=True, rdl_memwidth=32)
+    assert len(result) == 1
+    assert "memwidth = 32" in result[0]["rdl_name"]
+
+
+def test_get_rdl_rdl_name_takes_priority():
+    """Test that rdl_name still takes priority over rdl_as_mem."""
+    rule = RouteMapRule(
+        addr_range=AddrRange(start=0, end=0x1000, rdl_name="my_block"),
+        dest=SimpleId(id=1),
+    )
+    result = rule.get_rdl("inst", rdl_as_mem=True)
+    assert result[0]["rdl_name"] == "my_block"
+
 def test_routing_table_len():
     """Test the length of a RoutingTable object."""
     rule1 = RouteMapRule(addr_range=AddrRange(start=0, end=10), dest=SimpleId(id=1))
