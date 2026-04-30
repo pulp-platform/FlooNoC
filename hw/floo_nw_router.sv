@@ -71,7 +71,7 @@ module floo_nw_router
   input  id_t id_i,
   /// Routing table
   /// (only used for `RouteAlgo == IdTable`)
-  input  addr_rule_t [NumAddrRules-1:0] id_route_map_i,
+  input  addr_rule_t [floo_iomsb(NumAddrRules):0] id_route_map_i,
   /// Input and output links
   input   floo_req_t [NumInputs-1:0]    floo_req_i,
   input   floo_rsp_t [NumOutputs-1:0]   floo_rsp_i,

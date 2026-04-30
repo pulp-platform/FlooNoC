@@ -120,9 +120,9 @@
 // `FLOO_TYPEDEF_AXI_FROM_CFG(axi, AxiCfg)
 `define FLOO_TYPEDEF_AXI_FROM_CFG(name, cfg)                                                                                                                        \
   typedef logic [cfg.AddrWidth-1:0] ``name``_addr_t;                                                                                                                \
-  typedef logic [cfg.InIdWidth-1:0] ``name``_in_id_t;                                                                                                               \
-  typedef logic [cfg.OutIdWidth-1:0] ``name``_out_id_t;                                                                                                             \
-  typedef logic [cfg.UserWidth-1:0] ``name``_user_t;                                                                                                                \
+  typedef logic [floo_iomsb(cfg.InIdWidth):0] ``name``_in_id_t;                                                                                                               \
+  typedef logic [floo_iomsb(cfg.OutIdWidth):0] ``name``_out_id_t;                                                                                                             \
+  typedef logic [floo_iomsb(cfg.UserWidth):0] ``name``_user_t;                                                                                                                \
   typedef logic [cfg.DataWidth-1:0] ``name``_data_t;                                                                                                                \
   typedef logic [cfg.DataWidth/8-1:0] ``name``_strb_t;                                                                                                              \
   `AXI_TYPEDEF_ALL_CT(``name``_in, ``name``_in_req_t, ``name``_in_rsp_t, ``name``_addr_t, ``name``_in_id_t, ``name``_data_t, ``name``_strb_t, ``name``_user_t)      \
