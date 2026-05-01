@@ -12,6 +12,9 @@ variables:
   UV: /home/fischeti/.local/bin/uv
   UV_LINK_MODE: hardlink
 
+default:
+  interruptible: true
+
 stages:
   - init
   - build
