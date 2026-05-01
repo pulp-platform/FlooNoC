@@ -7,8 +7,9 @@
 `include "axi/typedef.svh"
 `include "floo_noc/typedef.svh"
 
+import floo_pkg::*;
+
 package floo_synth_params_pkg;
-  import floo_pkg::*;
 
   // Router parameters
   localparam int unsigned InFifoDepth = 2;
