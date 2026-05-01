@@ -9,6 +9,7 @@
 `include "floo_noc/typedef.svh"
 
 module tb_floo_axi_chimney;
+  import floo_pkg::*;
 
   localparam time CyclTime = 10ns;
   localparam time ApplTime = 2ns;

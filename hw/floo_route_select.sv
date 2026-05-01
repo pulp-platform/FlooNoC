@@ -37,7 +37,7 @@ module floo_route_select
   input  logic                          test_enable_i,
 
   input  id_t                           xy_id_i,
-  input  addr_rule_t [NumAddrRules-1:0] id_route_map_i,
+  input  addr_rule_t [floo_iomsb(NumAddrRules):0] id_route_map_i,
 
   input  flit_t                         channel_i,
   input  logic                          valid_i,
