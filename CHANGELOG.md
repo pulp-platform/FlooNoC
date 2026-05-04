@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-05-04
+
+### Fixed
+
+#### Hardware
+
+- Various VCS elaboration fixes (https://github.com/pulp-platform/FlooNoC/pull/169 and https://github.com/pulp-platform/FlooNoC/pull/179)
+- Remove stale signals in `floo_router` and add missing signals in `floo_axi_router` (https://github.com/pulp-platform/FlooNoC/pull/169)
+- Fix inverted ready wiring in `floo_cut` pipeline stages to obviously flow in the opposite direction as valid (https://github.com/pulp-platform/FlooNoC/pull/169)
+
+### Added
+
+#### Hardware
+
+- Add output spill registers after wormhole arbiters in both chimneys (`req`, `rsp`, and `wide`
+channels) (https://github.com/pulp-platform/FlooNoC/pull/169)
+
+#### FlooGen
+
+- Add possibility to specify `rdl_as_mem` in the endpoint configuration itself more selectively (https://github.com/pulp-platform/FlooNoC/pull/178)
+
 ## [0.8.0] - 2026-03-26
 
 ### Added
