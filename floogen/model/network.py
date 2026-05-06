@@ -136,6 +136,23 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         self.routing.addr_width = self.protocols[0].addr_width
         return self
 
+    @model_validator(mode="after")
+    def validate_collective_endpoints(self):
+        """Check that collective endpoints and collective routing are consistent."""
+        has_collective_eps = any(ep.is_collective_ep() for ep in self.endpoints)
+
+        if has_collective_eps and not self.routing.en_collective:
+            raise ValueError(
+                "Collective endpoints found but collective is not enabled in routing"
+            )
+
+        if self.routing.en_collective and not has_collective_eps:
+            raise ValueError(
+                "Collective routing is enabled but no endpoint is collective-capable"
+            )
+
+        return self
+
     def create_routers(self):
         """Create the routers in the network."""
 
