@@ -135,6 +135,21 @@ def create_traffic_model(traffic_cfg: str, floonoc_model: Optional[Network]):
             if hasattr(ni, 'addr_range') and ni.addr_range:
                 xy_addr_map[(coord.x, coord.y)] = ni.addr_range[0].start
     # Build XY-to-SAM-index lookup from FlooNoC routing rules
+    xy_to_sam_idx: Dict[Tuple[int, int], int] = {}
+    if floonoc_model and floonoc_model.routing.sam:
+        xy_offset = floonoc_model.routing.xy_id_offset
+        for sam_idx, rule in enumerate(reversed(floonoc_model.routing.sam.rules)):
+            dest = rule.dest
+            if hasattr(dest, 'x') and hasattr(dest, 'y'):
+                if xy_offset is not None:
+                    mesh_x = dest.x + xy_offset.x
+                    mesh_y = dest.y + xy_offset.y
+                else:
+                    mesh_x = dest.x
+                    mesh_y = dest.y
+                key = (mesh_x, mesh_y)
+                if key not in xy_to_sam_idx:
+                    xy_to_sam_idx[key] = sam_idx
     # Resolve initiator and endpoint addresses for each traffic flow
     for flow in traffic_model.traffic_flows:
         init_xy = (flow.initiator[0], flow.initiator[1])
