@@ -24,6 +24,7 @@ SPYGLASS   	?= sg_shell
 VERIBLE_FMT	?= verible-verilog-format
 VCS		      ?= $(VCS_SEPP) vcs
 VLOGAN  	  ?= $(VCS_SEPP) vlogan
+PYTHON	  	?= python
 
 #####################
 # Compilation Flags #
@@ -52,7 +53,7 @@ TRAFFIC_OUTDIR ?= hw/test/jobs
 .PHONY: jobs clean-jobs
 jobs: $(TRAFFIC_GEN)
 	mkdir -p $(TRAFFIC_OUTDIR)
-	$(TRAFFIC_GEN) --out_dir $(TRAFFIC_OUTDIR) --tb $(TRAFFIC_TB) --traffic_type $(TRAFFIC_TYPE) --rw $(TRAFFIC_RW)
+	$(PYTHON) $(TRAFFIC_GEN) --out_dir $(TRAFFIC_OUTDIR) --tb $(TRAFFIC_TB) --traffic_type $(TRAFFIC_TYPE) --rw $(TRAFFIC_RW)
 
 clean-jobs:
 	rm -rf $(TRAFFIC_OUTDIR)
