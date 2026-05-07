@@ -33,27 +33,52 @@ PYTHON	  	?= python
 BENDER_FLAGS += -t rtl
 BENDER_FLAGS += -t test
 BENDER_FLAGS += -t floo_test
+BENDER_FLAGS += -t nw_mesh
 BENDER_FLAGS += -t snitch_cluster
 BENDER_FLAGS += -t idma_test
 BENDER_FLAGS := $(BENDER_FLAGS) $(EXTRA_BENDER_FLAGS)
 
 WORK 	 		?= work
-TB_DUT 		?= floo_noc_router_test
+TB_DUT 			?= tb_floo_nw_mesh
+FLOO_CFG  		?= $(FLOO_ROOT)/floogen/examples/nw_mesh_xy.yml
+
+###########
+# FlooGen #
+###########
+
+run-floogen:
+	floogen rtl -c $(FLOO_CFG) -o $(FLOO_ROOT)/generated 
 
 ######################
 # Traffic Generation #
 ######################
 
-TRAFFIC_GEN ?= util/gen_jobs.py
-TRAFFIC_TB ?= dma_mesh
-TRAFFIC_TYPE ?= random
-TRAFFIC_RW ?= read
-TRAFFIC_OUTDIR ?= hw/test/jobs
+TRAFFIC_GEN 	?= util/gen_jobs.py
+TRAFFIC_TB 		?= dma_mesh
+TRAFFIC_TYPE 	?= hbm
+TRAFFIC_RW 		?= write
+TRAFFIC_OUTDIR 	?= hw/test/jobs
+
+NARROW_BURST_NUM 	?= 4
+WIDE_BURST_NUM 		?= 4
+NARROW_BURST_LENGTH ?= 256
+WIDE_BURST_LENGTH 	?= 256
+
+JOB_NAME ?= mesh
+JOB_DIR	 ?= $(FLOO_ROOT)/hw/test/jobs
 
 .PHONY: jobs clean-jobs
 jobs: $(TRAFFIC_GEN)
 	mkdir -p $(TRAFFIC_OUTDIR)
-	$(PYTHON) $(TRAFFIC_GEN) --out_dir $(TRAFFIC_OUTDIR) --tb $(TRAFFIC_TB) --traffic_type $(TRAFFIC_TYPE) --rw $(TRAFFIC_RW)
+	$(PYTHON) $(TRAFFIC_GEN) \
+		--out_dir $(TRAFFIC_OUTDIR) \
+		--num_narrow_bursts=$(NARROW_BURST_NUM) \
+		--num_wide_bursts=$(WIDE_BURST_NUM) \
+		--narrow_burst_length=$(NARROW_BURST_LENGTH) \
+		--wide_burst_length=$(WIDE_BURST_LENGTH) \
+		--tb $(TRAFFIC_TB) \
+		--traffic_type $(TRAFFIC_TYPE) \
+		--rw $(TRAFFIC_RW)
 
 clean-jobs:
 	rm -rf $(TRAFFIC_OUTDIR)
@@ -101,9 +126,9 @@ endif
 
 scripts/compile_vsim.tcl: Bender.yml
 	mkdir -p scripts
-	echo 'set ROOT [file normalize [file dirname [info script]]/..]' > scripts/compile_vsim.tcl
-	$(BENDER) script vsim --vlog-arg="$(VLOG_ARGS)" $(BENDER_FLAGS) | grep -v "set ROOT" >> scripts/compile_vsim.tcl
-	echo >> scripts/compile_vsim.tcl
+	echo 'set ROOT [file normalize [file dirname [info script]]/..]' > $@
+	$(BENDER) script vsim --vlog-arg="$(VLOG_ARGS)" $(BENDER_FLAGS) | grep -v "set ROOT" >> $@
+	echo >> $@
 
 compile-vsim: scripts/compile_vsim.tcl
 	$(VSIM) -64 -c -do "source scripts/compile_vsim.tcl; quit"
