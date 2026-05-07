@@ -127,23 +127,24 @@ def create_traffic_model(traffic_cfg: str, floonoc_model: Optional[Network]):
                 burst.data_width = proto_dw.get("narrow")
             for burst in flow.wide_burst:
                 burst.data_width = proto_dw.get("wide")
-    # Build coordinate-to-address lookup from FlooNoC nodes
-    coord_addr_map: Dict[Tuple[int, int], int] = {}
+    # Build XY-to-address lookup from FlooNoC nodes
+    xy_addr_map: Dict[Tuple[int, int], int] = {}
     if floonoc_model:
         for ni_name, ni in floonoc_model.graph.get_ni_nodes(with_name=True):
             coord = floonoc_model.graph.get_node_id(node_name=ni_name)
             if hasattr(ni, 'addr_range') and ni.addr_range:
-                coord_addr_map[(coord.x, coord.y)] = ni.addr_range[0].start
+                xy_addr_map[(coord.x, coord.y)] = ni.addr_range[0].start
+    # Build XY-to-SAM-index lookup from FlooNoC routing rules
     # Resolve initiator and endpoint addresses for each traffic flow
     for flow in traffic_model.traffic_flows:
         init_xy = (flow.initiator[0], flow.initiator[1])
         ep_xy = (flow.endpoint[0], flow.endpoint[1])
-        if init_xy in coord_addr_map:
-            flow.initiator_addr = coord_addr_map[init_xy]
+        if init_xy in xy_addr_map:
+            flow.initiator_addr = xy_addr_map[init_xy]
         else:
             print(f"Warning: No address found for initiator {init_xy} in flow '{flow.name}'")
-        if ep_xy in coord_addr_map:
-            flow.endpoint_addr = coord_addr_map[ep_xy]
+        if ep_xy in xy_addr_map:
+            flow.endpoint_addr = xy_addr_map[ep_xy]
         else:
             print(f"Warning: No address found for endpoint {ep_xy} in flow '{flow.name}'")
     return traffic_model
@@ -212,10 +213,10 @@ def emit_jobs(jobs, out_dir, name, idx):
     # Generate directory if it does not exist
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
-    with open(f"{out_dir}/{name}_{idx}.txt", "w", encoding="utf-8") as job_file:
+    file_path = f"{out_dir}/{name}_{idx}.txt"
+    with open(file_path, "w", encoding="utf-8") as job_file:
         job_file.write(jobs)
         job_file.close()
-
 
 def gen_chimney2chimney_traffic(
     narrow_burst_length: int = 16,
@@ -439,11 +440,16 @@ def gen_traffic_cfg(
             assert narrow_length <= MEM_SIZE
             for _ in range(burst.number):
                 narrow_jobs += gen_job_str(narrow_length, src_addr, dst_addr)
-        floonoc_inst_num_x = floonoc_model.routers[0].array[0]
-        floonoc_inst_num_y = floonoc_model.routers[0].array[1]
-        idx = flow.initiator[0] * floonoc_inst_num_y + flow.initiator[1]
+        x = flow.initiator[0]
+        y = flow.initiator[1]
+        floonoc_num_x = floonoc_model.routers[0].array[0]
+        floonoc_num_y = floonoc_model.routers[0].array[1]
+        idx = x * floonoc_num_y + y
         emit_jobs(wide_jobs, out_dir, "traffic", idx)
-        emit_jobs(narrow_jobs, out_dir, "traffic", idx + 100)    
+        print(f"Emitted wide job with index {idx} (x: {x}, y: {y})")
+        emit_jobs(narrow_jobs, out_dir, "traffic", idx + 100)
+        print(f"Emitted narrow job with index {idx + 100} (x: {x}, y: {y})")
+
 
 def main():
     """Main function."""
