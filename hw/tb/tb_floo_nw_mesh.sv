@@ -31,6 +31,7 @@ module tb_floo_nw_mesh;
   localparam addr_t MemSize = HBMSize;
 
   logic clk, rst_n;
+  logic [NumX-1:0][NumY-1:0][1:0] start_of_sim;
   logic [NumX-1:0][NumY-1:0][1:0] end_of_sim;
 
   clk_rst_gen #(
@@ -146,7 +147,9 @@ module tb_floo_nw_mesh;
         .axi_in_rsp_t   ( axi_narrow_out_rsp_t                      ),
         .axi_out_req_t  ( axi_narrow_in_req_t                       ),
         .axi_out_rsp_t  ( axi_narrow_in_rsp_t                       ),
-        .JobId          ( 100 + Index                               )
+        .JobId          ( 100 + Index                               ),
+        .SlaveType      ( floo_test_pkg::IdealSlave                 ),
+        .EnableDebug    ( 1'b0                                      )
       ) i_narrow_dma_node (
         .clk_i          ( clk                           ),
         .rst_ni         ( rst_n                         ),
@@ -154,6 +157,7 @@ module tb_floo_nw_mesh;
         .axi_in_rsp_o   ( cluster_narrow_out_rsp[x][y]  ),
         .axi_out_req_o  ( cluster_narrow_in_req[x][y]   ),
         .axi_out_rsp_i  ( cluster_narrow_in_rsp[x][y]   ),
+        .start_of_sim_i ( start_of_sim[x][y][0]         ),
         .end_of_sim_o   ( end_of_sim[x][y][0]           )
       );
 
@@ -168,7 +172,9 @@ module tb_floo_nw_mesh;
         .axi_in_rsp_t   ( axi_wide_out_rsp_t                        ),
         .axi_out_req_t  ( axi_wide_in_req_t                         ),
         .axi_out_rsp_t  ( axi_wide_in_rsp_t                         ),
-        .JobId          ( Index                                     )
+        .JobId          ( Index                                     ),
+        .SlaveType      ( floo_test_pkg::IdealSlave                 ),
+        .EnableDebug    ( 1'b0                                      )
       ) i_wide_dma_node (
         .clk_i          ( clk                         ),
         .rst_ni         ( rst_n                       ),
@@ -176,6 +182,7 @@ module tb_floo_nw_mesh;
         .axi_in_rsp_o   ( cluster_wide_out_rsp[x][y]  ),
         .axi_out_req_o  ( cluster_wide_in_req[x][y]   ),
         .axi_out_rsp_i  ( cluster_wide_in_rsp[x][y]   ),
+        .start_of_sim_i ( start_of_sim[x][y][1]       ),
         .end_of_sim_o   ( end_of_sim[x][y][1]         )
       );
 
@@ -226,7 +233,7 @@ module tb_floo_nw_mesh;
         .Name       ( NarrowDmaName       )
       ) i_axi_narrow_bw_monitor (
         .clk_i          ( clk                         ),
-        .en_i           ( rst_n                       ),
+        .en_i           ( start_of_sim[x][y][0]       ),
         .end_of_sim_i   ( end_of_sim[x][y][0]         ),
         .req_i          ( cluster_narrow_in_req[x][y] ),
         .rsp_i          ( cluster_narrow_in_rsp[x][y] ),
@@ -241,7 +248,7 @@ module tb_floo_nw_mesh;
         .Name       ( WideDmaName         )
       ) i_axi_wide_bw_monitor (
         .clk_i          ( clk                       ),
-        .en_i           ( rst_n                     ),
+        .en_i           ( start_of_sim[x][y][1]     ),
         .end_of_sim_i   ( end_of_sim[x][y][1]       ),
         .req_i          ( cluster_wide_in_req[x][y] ),
         .rsp_i          ( cluster_wide_in_rsp[x][y] ),
@@ -276,10 +283,45 @@ module tb_floo_nw_mesh;
 
 
   initial begin
-    wait(&end_of_sim);
+    $display ("[tb_floo_axi_mesh] Simulation start.");
+    // Init signals
+    start_of_sim = '{default: '0};
+    end_of_sim = '{default: '0};
+    // Wait for reset
+    wait(rst_n);
+    // Trigger DMA transfers start
+    for (int unsigned x = 0; x < NumX; x++) begin
+      for (int unsigned y = 0; y < NumY; y++) begin
+        start_of_sim[x][y][0] <= 1'b1;
+        start_of_sim[x][y][1] <= 1'b1;
+        $display ("[tb_floo_axi_mesh] Trigger DMA transfer start of tile (%0d; %0d).", x, y);
+      end
+    end
+    repeat (1) @(posedge clk);
+    for (int unsigned x = 0; x < NumX; x++) begin
+      for (int unsigned y = 0; y < NumY; y++) begin
+        start_of_sim[x][y][0] <= 1'b0;
+        start_of_sim[x][y][1] <= 1'b0;
+      end
+    end
+    // Wait for all DMA transfers to terminate
+    $display ("[tb_floo_axi_mesh] Waiting for DMA transfers to terminate...");
+    // wait(&end_of_sim);
+    for (int unsigned x = 0; x < NumX; x++) begin
+      for (int unsigned y = 0; y < NumY; y++) begin
+        while (end_of_sim[x][y][0] != 1) begin
+          @(posedge clk);
+        end
+        while (end_of_sim[x][y][1] != 1) begin
+          @(posedge clk);
+        end
+      end
+    end
+    $display ("[tb_floo_axi_mesh] All DMA transfers have terminated!");
     // Wait for some time
     repeat (2) @(posedge clk);
     // Stop the simulation
+    $display ("[tb_floo_axi_mesh] Simulation end.");
     $stop;
   end
 
