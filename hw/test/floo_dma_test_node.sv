@@ -4,6 +4,7 @@
 
 // Authors:
 //  - Tim Fischer <fischeti@iis.ee.ethz.ch>
+//  - Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
 `include "axi/typedef.svh"
 `include "axi/assign.svh"
@@ -127,7 +128,7 @@ module floo_dma_test_node  #(
   axi_xbar_resp_t axi_mem_rsp;
 
   // DMA control signals
-  logic start, done, ready;
+  logic start, done;
   idma_busy_t busy;
 
   typedef struct packed {
@@ -306,15 +307,13 @@ module floo_dma_test_node  #(
 
   always_ff @(posedge clk_i or negedge rst_ni) begin : proc_ready
     if(!rst_ni) begin
-      ready <= 1'b1;
+      end_of_sim_o <= 1'b0;
     end else if(done == 1'b1) begin // job completion, floo dma is ready to accept new jobs
-      ready <= 1'b1;
+      end_of_sim_o <= 1'b1;
     end else if(start == 1'b1) begin // start, with jobs to run
-      ready <= 1'b0;
+      end_of_sim_o <= 1'b0;
     end
   end
-
-  assign end_of_sim_o = ready;
 
   //--------------------------------------
   // DMA Driver
