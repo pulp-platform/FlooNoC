@@ -178,40 +178,26 @@ module tb_floo_axi_mesh;
   );
 
   initial begin
-    $display ("[tb_floo_axi_mesh] Simulation start.");
+    $timeformat(-9, 0, "ns", 10);
+    $display ("[tb_floo_axi_mesh][%0t] Simulation start.", $time);
     // Init signals
     start_of_sim = '{default: '0};
     end_of_sim = '{default: '0};
     // Wait for reset
     wait(rst_n);
     // Trigger DMA transfers start
-    for (int unsigned x = 0; x < NumX; x++) begin
-      for (int unsigned y = 0; y < NumY; y++) begin
-        start_of_sim[x][y] <= 1'b1;
-        $display ("[tb_floo_axi_mesh] Trigger DMA transfer start of tile (%0d; %0d).", x, y);
-      end
-    end
+    $display ("[tb_floo_axi_mesh][%0t] Trigger DMA transfers start.", $time);
+    start_of_sim = '1;
     repeat (1) @(posedge clk);
-    for (int unsigned x = 0; x < NumX; x++) begin
-      for (int unsigned y = 0; y < NumY; y++) begin
-        start_of_sim[x][y] <= 1'b0;
-      end
-    end
+    start_of_sim = '0;
     // Wait for all DMA transfers to terminate
-    $display ("[tb_floo_axi_mesh] Waiting for DMA transfers to terminate...");
-    // wait(&end_of_sim);
-    for (int unsigned x = 0; x < NumX; x++) begin
-      for (int unsigned y = 0; y < NumY; y++) begin
-        while (end_of_sim[x][y] != 1) begin
-          @(posedge clk);
-        end
-      end
-    end
-    $display ("[tb_floo_axi_mesh] All DMA transfers have terminated!");
+    $display ("[tb_floo_axi_mesh][%0t] Waiting for DMA transfers to terminate...", $time);
+    wait(&end_of_sim);
+    $display ("[tb_floo_axi_mesh][%0t] All DMA transfers have terminated!", $time);
     // Wait for some time
     repeat (2) @(posedge clk);
     // Stop the simulation
-    $display ("[tb_floo_axi_mesh] Simulation end.");
+    $display ("[tb_floo_axi_mesh][%0t] Simulation end.", $time);
     $stop;
   end
 
