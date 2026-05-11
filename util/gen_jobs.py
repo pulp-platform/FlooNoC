@@ -238,6 +238,7 @@ def gen_chimney2chimney_traffic(
     num_narrow_bursts: int = 16,
     rw: str = "write",
     bidir: bool = False,
+    traffic_name: str = "chimney2chimney",
     out_dir: str = "jobs"
 ):
     """Generate Chimney to Chimney traffic."""
@@ -252,7 +253,7 @@ def gen_chimney2chimney_traffic(
                 dst_addr = MEM_SIZE if rw == "write" else 0
                 job_str = gen_job_str(length, src_addr, dst_addr)
                 jobs += job_str
-        emit_jobs(jobs, out_dir, "chimney2chimney", i)
+        emit_jobs(jobs, out_dir, traffic_name, i)
 
 
 def gen_nw_chimney2chimney_traffic(
@@ -262,6 +263,7 @@ def gen_nw_chimney2chimney_traffic(
     num_wide_bursts: int,
     rw: str,
     bidir: bool,
+    traffic_name: str,
     out_dir: str
 ):
     # pylint: disable=too-many-arguments, too-many-positional-arguments
@@ -280,8 +282,8 @@ def gen_nw_chimney2chimney_traffic(
                 wide_jobs += gen_job_str(wide_length, src_addr, dst_addr)
             for _ in range(num_narrow_bursts):
                 narrow_jobs += gen_job_str(narrow_length, src_addr, dst_addr)
-        emit_jobs(wide_jobs, out_dir, "nw_chimney2chimney", i)
-        emit_jobs(narrow_jobs, out_dir, "nw_chimney2chimney", i + 100)
+        emit_jobs(wide_jobs, out_dir, traffic_name, i)
+        emit_jobs(narrow_jobs, out_dir, traffic_name, i + 100)
 
 
 def gen_mesh_traffic(
@@ -290,6 +292,7 @@ def gen_mesh_traffic(
     num_narrow_bursts: int,
     num_wide_bursts: int,
     rw: str,
+    traffic_name: str,
     traffic_type: str,
     out_dir: str,
     **_kwargs
@@ -407,12 +410,13 @@ def gen_mesh_traffic(
                     src_addr = access[0] if access[1] == "read" else local_addr
                     dst_addr = local_addr if access[1] == "read" else access[0]
                     narrow_jobs += gen_job_str(access[2], src_addr, dst_addr)
-            emit_jobs(wide_jobs, out_dir, "mesh", x * NUM_Y + y)
-            emit_jobs(narrow_jobs, out_dir, "mesh", x * NUM_Y + y + 100)
+            emit_jobs(wide_jobs, out_dir, traffic_name, x * NUM_Y + y)
+            emit_jobs(narrow_jobs, out_dir, traffic_name, x * NUM_Y + y + 100)
 
 def gen_traffic_cfg(
     traffic_cfg: str,
     floonoc_cfg: str,
+    traffic_name: str,
     out_dir: str,
     **_kwargs
 ):
@@ -460,9 +464,9 @@ def gen_traffic_cfg(
         floonoc_num_x = floonoc_model.routers[0].array[0]
         floonoc_num_y = floonoc_model.routers[0].array[1]
         idx = x * floonoc_num_y + y
-        emit_jobs(wide_jobs, out_dir, "traffic", idx)
+        emit_jobs(wide_jobs, out_dir, traffic_name, idx)
         print(f"Emitted wide job with index {idx} (x: {x}, y: {y})")
-        emit_jobs(narrow_jobs, out_dir, "traffic", idx + 100)
+        emit_jobs(narrow_jobs, out_dir, traffic_name, idx + 100)
         print(f"Emitted narrow job with index {idx + 100} (x: {x}, y: {y})")
 
 
@@ -477,6 +481,7 @@ def main():
     parser.add_argument("--wide_burst_length", type=int, default=16)
     parser.add_argument("--bidir", action="store_true")
     parser.add_argument("--tb", type=str, default="dma_mesh")
+    parser.add_argument("--traffic_name", type=str, default="mesh")
     parser.add_argument("--traffic_type", type=str, default="uniform")
     parser.add_argument("--traffic_cfg", type=str, default="traffic.yml")
     parser.add_argument("--rw", type=str, default="read")
