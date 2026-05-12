@@ -76,7 +76,7 @@ class Traffic(BaseModel):  # pylint: disable=too-many-public-methods
 def create_floonoc_model(floonoc_cfg: str):
     """Parse FlooNoC configuration and create model using FlooGen."""
     if not FLOOGEN_AVAILABLE:
-        print("Warning: floogen not available, skipping topology validation")
+        print(f"Warning: floogen not available, skipping topology validation")
         return None
     cfg_path = Path(floonoc_cfg)
     if not cfg_path.exists():
@@ -116,12 +116,16 @@ def create_traffic_model(traffic_cfg: str, floonoc_model: Optional[Network]):
     except ValidationError as e:
         print(f"Warning: Error while validating traffic configuration: {e}")
         return None
-    # Add burst data width from FlooNoC model
+    # Add NoC channel data width from FlooNoC model
     if floonoc_model:
         proto_dw: Dict[str, int] = {}
         for p in floonoc_model.protocols:
-            if p.type not in proto_dw:
-                proto_dw[p.type] = p.data_width
+            if p.type is not None:
+                if p.type not in proto_dw:
+                    proto_dw[p.type] = p.data_width
+            else:
+                print(f"Warning: Protocol '{p.name}' does not have a type, please provide a type in the FlooNoC configuration: '{floonoc_model.name}'")
+                
         for flow in traffic_model.traffic_flows:
             for burst in flow.narrow_burst:
                 burst.data_width = proto_dw.get("narrow")
@@ -450,15 +454,21 @@ def gen_traffic_cfg(
         src_addr = ext_addr  if flow.rw == "read"  else local_addr
         dst_addr = local_addr if flow.rw == "read" else ext_addr
         for burst in flow.wide_burst:
-            wide_length = burst.length * burst.data_width / 8
-            assert wide_length <= MEM_SIZE
-            for _ in range(burst.number):
-                wide_jobs += gen_job_str(wide_length, src_addr, dst_addr)
+            if burst.data_width is not None:
+                wide_length = burst.length * burst.data_width / 8
+                assert wide_length <= MEM_SIZE
+                for _ in range(burst.number):
+                    wide_jobs += gen_job_str(wide_length, src_addr, dst_addr)
+            else:
+                print(f"Warning: No wide interface was detected, skipping wide burst generation for traffic flow '{flow.name}'")
         for burst in flow.narrow_burst:
-            narrow_length = burst.length * burst.data_width / 8
-            assert narrow_length <= MEM_SIZE
-            for _ in range(burst.number):
-                narrow_jobs += gen_job_str(narrow_length, src_addr, dst_addr)
+            if burst.data_width is not None:
+                narrow_length = burst.length * burst.data_width / 8
+                assert narrow_length <= MEM_SIZE
+                for _ in range(burst.number):
+                    narrow_jobs += gen_job_str(narrow_length, src_addr, dst_addr)
+            else:
+                print(f"Warning: No narrow interface was detected, skipping narrow burst generation for traffic flow '{flow.name}'")
         x = flow.initiator[0]
         y = flow.initiator[1]
         floonoc_num_x = floonoc_model.routers[0].array[0]
