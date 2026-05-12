@@ -54,11 +54,12 @@ run-floogen:
 ######################
 
 TRAFFIC_GEN 	?= util/gen_jobs.py
-TRAFFIC_TB 		?= dma_mesh
 TRAFFIC_NAME 	?= $(basename $(notdir $(FLOO_CFG)))
 TRAFFIC_OUTDIR 	?= $(FLOO_ROOT)/hw/test/jobs
+TRAFFIC_TB 		?= import_traffic_cfg
 TRAFFIC_TYPE 	?= hbm
 TRAFFIC_RW 		?= write
+TRAFFIC_CFG 	?= $(FLOO_ROOT)/hw/test/traffic_cfg/$(basename $(notdir $(FLOO_CFG))).yml
 
 NARROW_BURST_NUM 	?= 4
 WIDE_BURST_NUM 		?= 4
@@ -77,7 +78,9 @@ jobs: $(TRAFFIC_GEN)
 		--tb $(TRAFFIC_TB) \
 		--traffic_name $(TRAFFIC_NAME) \
 		--traffic_type $(TRAFFIC_TYPE) \
-		--rw $(TRAFFIC_RW)
+		--rw $(TRAFFIC_RW) \
+		--traffic_cfg $(TRAFFIC_CFG) \
+		--floonoc_cfg $(FLOO_CFG)
 
 clean-jobs:
 	rm -rf $(TRAFFIC_OUTDIR)
