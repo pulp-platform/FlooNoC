@@ -193,7 +193,7 @@ def get_xy_base_addr(x: int, y: int):
 def get_hbm_base_addr(ch: int):
     """Get the address of an HBM channel."""
     assert ch <= NUM_Y+1
-    return HBM_BASE_ADDR + (ch << MEM_SIZE)
+    return HBM_BASE_ADDR + (ch << clog2(MEM_SIZE))
 
 
 def gen_job_str(
