@@ -56,16 +56,14 @@ run-floogen:
 TRAFFIC_GEN 	?= util/gen_jobs.py
 TRAFFIC_TB 		?= dma_mesh
 TRAFFIC_NAME 	?= $(basename $(notdir $(FLOO_CFG)))
+TRAFFIC_OUTDIR 	?= $(FLOO_ROOT)/hw/test/jobs
 TRAFFIC_TYPE 	?= hbm
 TRAFFIC_RW 		?= write
-TRAFFIC_OUTDIR 	?= hw/test/jobs
 
 NARROW_BURST_NUM 	?= 4
 WIDE_BURST_NUM 		?= 4
 NARROW_BURST_LENGTH ?= 256
 WIDE_BURST_LENGTH 	?= 256
-
-JOB_DIR	 ?= $(FLOO_ROOT)/hw/test/jobs
 
 .PHONY: jobs clean-jobs
 jobs: $(TRAFFIC_GEN)
@@ -91,8 +89,8 @@ endif
 ifdef TRAFFIC_INJ_RATIO
 VSIM_FLAGS += +TRAFFIC_INJ_RATIO=$(TRAFFIC_INJ_RATIO)
 endif
-ifdef JOB_DIR
-VSIM_FLAGS += +JOB_DIR=$(JOB_DIR)
+ifdef TRAFFIC_OUTDIR
+VSIM_FLAGS += +JOB_DIR=$(TRAFFIC_OUTDIR)
 endif
 ifdef LOG_FILE
 VSIM_FLAGS += -l $(LOG_FILE)
