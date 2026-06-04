@@ -196,10 +196,8 @@ module floo_meta_buffer #(
     assign ar_no_atop_buf_full = !ar_no_atop_buf_not_full;
     assign aw_no_atop_buf_full = !aw_no_atop_buf_not_full;
 
-    `ASSERT(NoBResponseIdQueue, axi_rsp_i.b_valid -> (b_oup_data_valid && b_oup_gnt),
-            "Meta data for B response must exist in Id Queue!")
-    `ASSERT(NoRResponseIdQueue, axi_rsp_i.r_valid -> (r_oup_data_valid && r_oup_gnt),
-            "Meta data for R response must exist in Id Queue!")
+    `ASSERT(NoBResponseIdQueue, axi_rsp_i.b_valid -> (b_oup_data_valid && b_oup_gnt))
+    `ASSERT(NoRResponseIdQueue, axi_rsp_i.r_valid -> (r_oup_data_valid && r_oup_gnt))
   end
 
   // Non-atomic AR's
@@ -213,8 +211,7 @@ module floo_meta_buffer #(
 
   assign is_atop_r_rsp = AtopSupport && axi_rsp_i.r_valid && (axi_rsp_i.r.id < MaxAtomicTxns);
   assign is_atop_b_rsp = AtopSupport && axi_rsp_i.b_valid && (axi_rsp_i.b.id < MaxAtomicTxns);
-  `ASSERT(NoAtopSupportAw, !(!AtopSupport && is_atop_aw),
-          "Atomics not supported, but atomic request received!")
+  `ASSERT(NoAtopSupportAw, !(!AtopSupport && is_atop_aw))
 
   assign r_buf_o = (is_atop_r_rsp && AtopSupport)? atop_r_buf[axi_rsp_i.r.id] : no_atop_r_buf;
   assign b_buf_o = (is_atop_b_rsp && AtopSupport)? atop_b_buf[axi_rsp_i.b.id] : no_atop_b_buf;

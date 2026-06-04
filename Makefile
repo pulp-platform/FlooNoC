@@ -187,14 +187,14 @@ clean-spyglass:
 ###################
 
 PD_REMOTE ?= git@iis-git.ee.ethz.ch:axi-noc/floo_noc_pd.git
-PD_BRANCH ?= 85eaa6f8dcf8142457668b4e6aa9b7e20ee90339
+PD_BRANCH ?= 4eca55093f3f4589e186150023f29614964d39a0
 PD_DIR = $(FLOO_ROOT)/pd
 
 .PHONY: init-pd
 
 init-pd:
 	rm -rf $(PD_DIR)
-	git clone $(PD_REMOTE) $(PD_DIR) 
+	git clone $(PD_REMOTE) $(PD_DIR)
 	cd $(PD_DIR) && git checkout $(PD_BRANCH)
 
 -include $(PD_DIR)/pd.mk

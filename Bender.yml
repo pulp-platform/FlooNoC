@@ -42,8 +42,6 @@ sources:
   - hw/floo_route_xymask.sv
   - hw/floo_alu.sv
   # Level 2
-  - hw/floo_route_select.sv
-  - hw/floo_route_comp.sv
   - hw/floo_meta_buffer.sv
   - hw/floo_reduction_arbiter.sv
   - hw/floo_reduction_unit.sv
