@@ -1,0 +1,23 @@
+// Copyright 2024 ETH Zurich and University of Bologna.
+// Solderpad Hardware License, Version 0.51, see LICENSE for details.
+// SPDX-License-Identifier: SHL-0.51
+
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+  ],
+  lockFileMaintenance: {
+    enabled: true,
+    schedule: ["before 5am on monday"],
+  },
+  minimumReleaseAge: "7 days",
+  osvVulnerabilityAlerts: true,
+  packageRules: [
+    {
+      matchManagers: ["github-actions"],
+      groupName: "github-actions",
+    },
+  ],
+}
