@@ -13,6 +13,10 @@ updates:
     # to avoid pulling in compromised releases that get yanked quickly.
     cooldown:
       default-days: 7
+    ignore:
+      # Dependabot currently detects uv_build from [build-system.requires]
+      # as uv-build, but cannot determine its previous version.
+      - dependency-name: "uv-build"
     groups:
       python-deps:
         patterns: ["*"]
