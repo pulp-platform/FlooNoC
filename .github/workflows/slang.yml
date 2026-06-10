@@ -46,7 +46,7 @@ jobs:
         run: bender script flist-plus -t floo_synth -t ${{ matrix.DUT }} -e fpnew > sources.f
 
       - name: Slang lint
-        uses: pulp-platform/pulp-actions/slang@fix_slang # TODO: pin to a specific version once it has been released
+        uses: pulp-platform/pulp-actions/slang@v2.5.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           reviewdog-name: ${{ matrix.DUT }}_${{ matrix.ROUTE_ALGO }}_noc_check
