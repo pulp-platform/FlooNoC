@@ -8,6 +8,7 @@
 import argparse
 from pathlib import Path
 from importlib.resources import files
+from importlib.metadata import version
 
 from mako.template import Template
 
@@ -92,6 +93,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="FlooGen: A Network-on-Chip Generator for FlooNoC",
         add_help=True,
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {version('floogen')}",
     )
 
     subparsers = parser.add_subparsers(dest="command")
