@@ -708,10 +708,13 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         for addr_rule in self.routing.sam.rules:
             mask_fields = {}
             if addr_rule.addr_range.en_collective:
-                mask_offset_x = clog2(addr_rule.addr_range.size)
+                arr_dim = addr_rule.addr_range.arr_dim
+                arr_x_bits = clog2(arr_dim[0])
+                arr_y_bits = clog2(arr_dim[1])
+                mask_offset_y = clog2(addr_rule.addr_range.size)
                 mask_fields = {
-                    "mask_len": (self.routing.num_x_bits, self.routing.num_y_bits),
-                    "mask_offset": (mask_offset_x + self.routing.num_y_bits, mask_offset_x),
+                    "mask_len": (arr_x_bits, arr_y_bits),
+                    "mask_offset": (mask_offset_y + arr_y_bits, mask_offset_y),
                     "base_id": (addr_rule.dest.x - addr_rule.addr_range.arr_idx[0],
                                 addr_rule.dest.y - addr_rule.addr_range.arr_idx[1]),
                 }
