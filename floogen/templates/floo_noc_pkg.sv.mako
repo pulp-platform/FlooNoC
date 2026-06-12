@@ -17,6 +17,14 @@ package floo_${name}_noc_pkg;
 
   import floo_pkg::*;
 
+% if any(ep.array is not None for ep in noc.endpoints):
+  /////////////////////////////
+  //   Endpoint Dimensions   //
+  /////////////////////////////
+
+  ${noc.render_ep_arr_dims()}
+% endif
+
   /////////////////////
   //   Address Map   //
   /////////////////////

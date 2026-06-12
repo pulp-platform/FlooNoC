@@ -22,7 +22,7 @@ from floogen.model.connection import ConnectionDesc
 from floogen.model.link import NarrowWideLink, NarrowWideVCLink, AxiLink
 from floogen.model.network_interface import NarrowWideAxiNI, AxiNI
 from floogen.model.protocol import AXI4, AXI4Bus
-from floogen.utils import clog2, sv_enum_typedef, sv_param_decl
+from floogen.utils import clog2, sv_enum_typedef, sv_param_decl, snake_to_camel
 
 
 class NetworkType(str, Enum):
@@ -806,6 +806,24 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         string = ""
         for ni in self.graph.get_ni_nodes():
             string += ni.render(noc=self)
+        return string
+
+    def render_ep_arr_dims(self):
+        """Render the array dimensions of the endpoints as localparams.
+
+        For each endpoint declared as an array, the number of instances per
+        dimension is exposed. 2D arrays render an `X` and `Y` parameter, while
+        1D arrays render a single parameter."""
+        string = ""
+        for ep in self.endpoints:
+            if ep.array is None:
+                continue
+            ep_name = snake_to_camel(ep.name)
+            if len(ep.array) == 1:
+                string += sv_param_decl(f"Num{ep_name}", ep.array[0])
+            else:
+                string += sv_param_decl(f"Num{ep_name}X", ep.array[0])
+                string += sv_param_decl(f"Num{ep_name}Y", ep.array[1])
         return string
 
     def render_ep_enum(self):

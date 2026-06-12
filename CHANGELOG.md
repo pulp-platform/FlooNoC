@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 #### FlooGen
 
 - Add `--version` flag to the CLI to print the installed _FlooGen_ version
+- Render the array dimensions of array endpoints as `Num<Endpoint>`(`X`/`Y`) localparams in the generated NoC package
 
 ## [0.8.2] - 2026-06-08
 
