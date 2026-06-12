@@ -4,14 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.8.3] - 2026-06-12
+
+### Fixed
+
+#### FlooGen
+
+- Alignment of y-shifted endpoints in collective system address map (https://github.com/pulp-platform/FlooNoC/pull/191)
 
 ### Added
 
 #### FlooGen
 
-- Add `--version` flag to the CLI to print the installed _FlooGen_ version
-- Render the array dimensions of array endpoints as `Num<Endpoint>`(`X`/`Y`) localparams in the generated NoC package
+- Add `--version` flag to the CLI to print the installed _FlooGen_ version (https://github.com/pulp-platform/FlooNoC/pull/189)
+- Render the array dimensions of array endpoints as `Num<Endpoint>`(`X`/`Y`) localparams in the generated NoC package (https://github.com/pulp-platform/FlooNoC/pull/190)
 
 ## [0.8.2] - 2026-06-08
 
