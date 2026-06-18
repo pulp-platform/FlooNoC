@@ -96,7 +96,7 @@ module floo_route_select
       channel_o.hdr.dst_id = channel_i.hdr.dst_id >> RouteSelWidth;
     end
 
-  end else if (RouteAlgo == XYRouting) begin : gen_xy_routing
+  end else if (RouteAlgo == XYRouting || RouteAlgo == YXRouting) begin : gen_xy_yx_routing
     // Routing based on simple XY routing
     // Assumes an even-bit ID field in the flit_t used for xy
     // assert ((IdWidth/2)*2 == IdWidth);
@@ -118,7 +118,7 @@ module floo_route_select
         .flit_t        ( flit_t           ),
         .id_t          ( id_t             ),
         .FwdMode       ( 1'b1             ),
-        .RouteAlgo     ( XYRouting  )
+        .RouteAlgo     ( RouteAlgo        )
       ) i_route_xymask (
         .channel_i   ( channel_i ),
         .xy_id_i     ( xy_id_i   ),
@@ -128,30 +128,58 @@ module floo_route_select
       assign route_sel_multicast = '0;  // No MCast supported
     end
 
-    // Calculate here the unicast output mask
-    id_t id_in;
-    assign id_in = id_t'(channel_i.hdr.dst_id);
-    always_comb begin
-      route_sel_id = East;
-      if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
-        route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
-      end else if (id_in.x == xy_id_i.x) begin
-        if (id_in.y < xy_id_i.y) begin
-          route_sel_id = South;
+    if (RouteAlgo == XYRouting) begin : gen_xy_routing
+      // Routing based on simple XY routing (X dimension resolved first, then Y)
+      // Calculate here the unicast output mask
+      id_t id_in;
+      assign id_in = id_t'(channel_i.hdr.dst_id);
+      always_comb begin
+        route_sel_id = East;
+        if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
+          route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
+        end else if (id_in.x == xy_id_i.x) begin
+          if (id_in.y < xy_id_i.y) begin
+            route_sel_id = South;
+          end else begin
+            route_sel_id = North;
+          end
         end else begin
-          route_sel_id = North;
+          if (id_in.x < xy_id_i.x) begin
+            route_sel_id = West;
+          end else begin
+            route_sel_id = East;
+          end
         end
-      end else begin
-        if (id_in.x < xy_id_i.x) begin
-          route_sel_id = West;
-        end else begin
-          route_sel_id = East;
-        end
+        route_sel_unicast = '0;
+        route_sel_unicast[route_sel_id] = 1'b1;
       end
-      route_sel_unicast = '0;
-      route_sel_unicast[route_sel_id] = 1'b1;
+    end else begin : gen_yx_routing
+      // Routing based on simple YX routing (Y dimension resolved first, then X)
+      id_t id_in;
+      assign id_in = id_t'(channel_i.hdr.dst_id);
+      always_comb begin
+        route_sel_id = North;
+        if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
+          route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
+        end else if (id_in.y == xy_id_i.y) begin
+          // Y matches — now route along X
+          if (id_in.x < xy_id_i.x) begin
+            route_sel_id = West;
+          end else begin
+            route_sel_id = East;
+          end
+        end else begin
+          // Route along Y first
+          if (id_in.y < xy_id_i.y) begin
+            route_sel_id = South;
+          end else begin
+            route_sel_id = North;
+          end
+        end
+        route_sel_unicast = '0;
+        route_sel_unicast[route_sel_id] = 1'b1;
+      end
     end
-
     // Depending on the flit header choose the correct route
     if(EnMultiCast) begin: gen_mcast_out_sel
       assign route_sel = (channel_i.hdr.collective_op == Multicast) ?
@@ -159,68 +187,7 @@ module floo_route_select
     end else begin: gen_unicast_route_sel
       assign route_sel = route_sel_unicast;
     end
-
     // Assign the data directly to the output
-    assign channel_o = channel_i;
-
-  end else if (RouteAlgo == YXRouting) begin : gen_yx_routing
-    // Routing based on simple YX routing (Y dimension resolved first, then X)
-
-    // Port map same as XYRouting:
-    //   - 0: target/destination (Eject)
-    //   - 1: upper bits decreasing (South)
-    //   - 2: lower bits decreasing (West)
-    //   - 3: upper bits increasing (North)
-    //   - 4: lower bits increasing (East)
-
-    if (EnMultiCast) begin : gen_mcast_route_sel
-      floo_route_xymask #(
-        .NumRoutes  ( NumRoutes  ),
-        .flit_t     ( flit_t     ),
-        .id_t       ( id_t       ),
-        .FwdMode    ( 1'b1       ),
-        .RouteAlgo  ( YXRouting  )
-      ) i_route_xymask (
-        .channel_i   ( channel_i         ),
-        .xy_id_i     ( xy_id_i           ),
-        .route_sel_o ( route_sel_multicast )
-      );
-    end else begin : gen_no_mcast
-      assign route_sel_multicast = '0;
-    end
-
-    id_t id_in;
-    assign id_in = id_t'(channel_i.hdr.dst_id);
-    always_comb begin
-      route_sel_id = North;
-      if (id_in.x == xy_id_i.x && id_in.y == xy_id_i.y) begin
-        route_sel_id = Eject + channel_i.hdr.dst_id.port_id;
-      end else if (id_in.y == xy_id_i.y) begin
-        // Y matches — now route along X
-        if (id_in.x < xy_id_i.x) begin
-          route_sel_id = West;
-        end else begin
-          route_sel_id = East;
-        end
-      end else begin
-        // Route along Y first
-        if (id_in.y < xy_id_i.y) begin
-          route_sel_id = South;
-        end else begin
-          route_sel_id = North;
-        end
-      end
-      route_sel_unicast = '0;
-      route_sel_unicast[route_sel_id] = 1'b1;
-    end
-
-    if (EnMultiCast) begin : gen_mcast_out_sel
-      assign route_sel = (channel_i.hdr.collective_op == Multicast) ?
-                        route_sel_multicast : route_sel_unicast;
-    end else begin : gen_unicast_route_sel
-      assign route_sel = route_sel_unicast;
-    end
-
     assign channel_o = channel_i;
 
   end else begin : gen_err
