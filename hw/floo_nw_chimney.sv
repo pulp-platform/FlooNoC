@@ -62,7 +62,7 @@ module floo_nw_chimney
   /// SAM Index type to support multicast info
   parameter type sam_idx_t                              = id_t,
   /// Struct consisting of offset and len to speficy the position of the mask bits
-  /// (only used if `EnMultiCast && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
+  /// (only used if `EnMultiCast && RouteCfg.UseIdTable == 1'b1 && RouteAlgo is XY or YX`)
   parameter type mask_sel_t                             = logic,
   /// Narrow AXI manager request channel type
   parameter type axi_narrow_in_req_t                    = logic,
@@ -1034,7 +1034,8 @@ module floo_nw_chimney
           (en_wide_collective(CollectOpCfg) && Ch == WideAw)) begin : gen_req_id_mask
         // Evaluate the ID Mask according to the info read from the SAM through the flooo_id_translation module
         if (RouteCfg.UseIdTable &&
-            RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin: gen_collecttive_idtable
+            (RouteCfg.RouteAlgo == floo_pkg::XYRouting ||
+             RouteCfg.RouteAlgo == floo_pkg::YXRouting)) begin: gen_collecttive_idtable
           assign x_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel[ch].len))
                                     << x_mask_sel[ch].offset);
           assign y_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel[ch].len))
@@ -1042,7 +1043,8 @@ module floo_nw_chimney
           assign mask_id[ch].x = (axi_req_user[ch] & x_addr_mask[ch]) >> x_mask_sel[ch].offset;
           assign mask_id[ch].y = (axi_req_user[ch] & y_addr_mask[ch]) >> y_mask_sel[ch].offset;
           assign mask_id[ch].port_id = '0;
-        end else if (RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin: gen_collective_noidtable
+        end else if (RouteCfg.RouteAlgo == floo_pkg::XYRouting ||
+                     RouteCfg.RouteAlgo == floo_pkg::YXRouting) begin: gen_collective_noidtable
           assign mask_id[ch].x = axi_req_user[ch][RouteCfg.XYAddrOffsetX +: $bits(id_out[ch].x)];
           assign mask_id[ch].y = axi_req_user[ch][RouteCfg.XYAddrOffsetY +: $bits(id_out[ch].y)];
           assign mask_id[ch].port_id = '0;

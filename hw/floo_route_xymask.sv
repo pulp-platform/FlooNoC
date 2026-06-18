@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: SHL-0.51
 //
 // Author:
+// - Lorenzo Leone <lleone@iis.ee.ethz.ch>
 // - Chen Wu <chenwu@student.ethz.ch>
 // - Raphael Roth <raroth@student.ethz.ch>
 
@@ -12,7 +13,7 @@
 // input direction (e.g. which input provides a flit).
 
 // Limitations:
-// - It only supports xy routing
+// - It only supports xy and yx routing
 // - It only supports 5 in/out routes
 
 `include "common_cells/assertions.svh"
@@ -24,6 +25,8 @@ module floo_route_xymask import floo_pkg::*; #(
   /// 1: Determine output directions of the forward path in Multicast
   /// 0: Determine input directions of the backward path in Multicast i.e the reduction
   parameter bit             FwdMode     = 1'b1,
+  /// Routing algorithm: XYRouting resolves X first, YXRouting resolves Y first
+  parameter route_algo_e    RouteAlgo   = XYRouting,
   /// type for data flit
   parameter type            flit_t      = logic,
   /// type for local id (router id)
@@ -129,31 +132,65 @@ module floo_route_xymask import floo_pkg::*; #(
         route_output[Eject] = 1'b1;
       end
 
-      // If the multicast was issued from an endpoint in the same row
-      // i.e. the same Y-coordinate, we forward it to `East` if:
-      // 1. The request is incoming from `West` or `Eject` and
-      // 2. There are more multicast destinations in the `East` direction
-      // The same applies to the `West` direction.
-      if (xy_id_i.y == src_id.y) begin
-        if (xy_id_i.x >= src_id.x && xy_id_i.x < dst_id_max.x) begin
-          route_output[East] = 1;
-        end
-        if (xy_id_i.x <= src_id.x && xy_id_i.x > dst_id_min.x) begin
-          route_output[West] = 1;
-        end
-      end
+      if (RouteAlgo == XYRouting) begin
+        // XY: spread along X first (same row as source), then along Y
 
-      // If there are multicast destinations in the current column,
-      // We inject it to `North` if:
-      // 1. The request is incoming from `South` or `Eject` and
-      // 2. There are more multicast destinations in the `North` direction
-      // The same applies to the `South` direction.
-      if (x_matched_output) begin
-        if (xy_id_i.y >= src_id.y && xy_id_i.y < dst_id_max.y) begin
-          route_output[North] = 1;
+        // If the multicast was issued from an endpoint in the same row
+        // i.e. the same Y-coordinate, we forward it to `East` if:
+        // 1. The request is incoming from `West` or `Eject` and
+        // 2. There are more multicast destinations in the `East` direction
+        // The same applies to the `West` direction.
+        if (xy_id_i.y == src_id.y) begin
+          if (xy_id_i.x >= src_id.x && xy_id_i.x < dst_id_max.x) begin
+            route_output[East] = 1;
+          end
+          if (xy_id_i.x <= src_id.x && xy_id_i.x > dst_id_min.x) begin
+            route_output[West] = 1;
+          end
         end
-        if (xy_id_i.y <= src_id.y && xy_id_i.y > dst_id_min.y) begin
-          route_output[South] = 1;
+
+        // If there are multicast destinations in the current column,
+        // We inject it to `North` if:
+        // 1. The request is incoming from `South` or `Eject` and
+        // 2. There are more multicast destinations in the `North` direction
+        // The same applies to the `South` direction.
+        if (x_matched_output) begin
+          if (xy_id_i.y >= src_id.y && xy_id_i.y < dst_id_max.y) begin
+            route_output[North] = 1;
+          end
+          if (xy_id_i.y <= src_id.y && xy_id_i.y > dst_id_min.y) begin
+            route_output[South] = 1;
+          end
+        end
+      end else begin
+        // YX: spread along Y first (same column as source), then along X
+
+        // If the multicast was issued from an endpoint in the same column
+        // i.e. the same X-coordinate, we forward it to `North` if:
+        // 1. The request is incoming from `South` or `Eject` and
+        // 2. There are more multicast destinations in the `North` direction
+        // The same applies to the `South` direction.
+        if (xy_id_i.x == src_id.x) begin
+          if (xy_id_i.y >= src_id.y && xy_id_i.y < dst_id_max.y) begin
+            route_output[North] = 1;
+          end
+          if (xy_id_i.y <= src_id.y && xy_id_i.y > dst_id_min.y) begin
+            route_output[South] = 1;
+          end
+        end
+
+        // If there are multicast destinations in the current row,
+        // We inject it to `East` if:
+        // 1. The request is incoming from `West` or `Eject` and
+        // 2. There are more multicast destinations in the `East` direction
+        // The same applies to the `West` direction.
+        if (y_matched_output) begin
+          if (xy_id_i.x >= src_id.x && xy_id_i.x < dst_id_max.x) begin
+            route_output[East] = 1;
+          end
+          if (xy_id_i.x <= src_id.x && xy_id_i.x > dst_id_min.x) begin
+            route_output[West] = 1;
+          end
         end
       end
     end
@@ -169,30 +206,63 @@ module floo_route_xymask import floo_pkg::*; #(
         route_expected_input[Eject] = 1'b1;
       end
 
-      // In the case of an reduction we want to collect the source responses first in the x direction.
-      // e.g. the North / South can only be selected if we are in the correct dst columne.
-      // We expect a packet from the north if the current y id is higher/equal as the destination but still
-      // inside the expected maximum range of the source reduction. Same for the South!
-      if(xy_id_i.x == dst_id.x) begin
-        if((xy_id_i.y >= dst_id.y) && (xy_id_i.y < src_id_max.y)) begin
-          route_expected_input[North] = 1'b1;
-        end
-        if((xy_id_i.y <= dst_id.y) && (xy_id_i.y > src_id_min.y)) begin
-          route_expected_input[South] = 1'b1;
-        end
-      end
+      if (RouteAlgo == XYRouting) begin
+        // XY: collect along X first, then along Y
 
-      // If we have multiple sources in the same row we first have to collect them in x direction
-      // therefor expecting inputs from either the east or west direction.
-      // For all members of a rows involved in the reduction the flag y_matched_expected_input is set!
-      // We expect a packet from the east if the current x id is higher/equal as the destination but still
-      // inside the expected maximum range of the source reduction. Same for the West!
-      if(y_matched_expected_input) begin
-        if((xy_id_i.x >= dst_id.x) && (xy_id_i.x < src_id_max.x)) begin
-          route_expected_input[East] = 1'b1;
+        // In the case of an reduction we want to collect the source responses first in the x direction.
+        // e.g. the North / South can only be selected if we are in the correct dst columne.
+        // We expect a packet from the north if the current y id is higher/equal as the destination but still
+        // inside the expected maximum range of the source reduction. Same for the South!
+        if(xy_id_i.x == dst_id.x) begin
+          if((xy_id_i.y >= dst_id.y) && (xy_id_i.y < src_id_max.y)) begin
+            route_expected_input[North] = 1'b1;
+          end
+          if((xy_id_i.y <= dst_id.y) && (xy_id_i.y > src_id_min.y)) begin
+            route_expected_input[South] = 1'b1;
+          end
         end
-        if((xy_id_i.x <= dst_id.x) && (xy_id_i.x > src_id_min.x)) begin
-          route_expected_input[West] = 1'b1;
+
+        // If we have multiple sources in the same row we first have to collect them in x direction
+        // therefor expecting inputs from either the east or west direction.
+        // For all members of a rows involved in the reduction the flag y_matched_expected_input is set!
+        // We expect a packet from the east if the current x id is higher/equal as the destination but still
+        // inside the expected maximum range of the source reduction. Same for the West!
+        if(y_matched_expected_input) begin
+          if((xy_id_i.x >= dst_id.x) && (xy_id_i.x < src_id_max.x)) begin
+            route_expected_input[East] = 1'b1;
+          end
+          if((xy_id_i.x <= dst_id.x) && (xy_id_i.x > src_id_min.x)) begin
+            route_expected_input[West] = 1'b1;
+          end
+        end
+      end else begin
+        // YX: collect along Y first, then along X
+
+        // In the case of a reduction we want to collect the source responses first in the y direction.
+        // e.g. the East / West can only be selected if we are in the correct dst row.
+        // We expect a packet from the east if the current x id is higher/equal as the destination but still
+        // inside the expected maximum range of the source reduction. Same for the West!
+        if(xy_id_i.y == dst_id.y) begin
+          if((xy_id_i.x >= dst_id.x) && (xy_id_i.x < src_id_max.x)) begin
+            route_expected_input[East] = 1'b1;
+          end
+          if((xy_id_i.x <= dst_id.x) && (xy_id_i.x > src_id_min.x)) begin
+            route_expected_input[West] = 1'b1;
+          end
+        end
+
+        // If we have multiple sources in the same column we first have to collect them in y direction
+        // therefor expecting inputs from either the north or south direction.
+        // For all members of a column involved in the reduction the flag x_matched_expected_input is set!
+        // We expect a packet from the north if the current y id is higher/equal as the destination but still
+        // inside the expected maximum range of the source reduction. Same for the South!
+        if(x_matched_expected_input) begin
+          if((xy_id_i.y >= dst_id.y) && (xy_id_i.y < src_id_max.y)) begin
+            route_expected_input[North] = 1'b1;
+          end
+          if((xy_id_i.y <= dst_id.y) && (xy_id_i.y > src_id_min.y)) begin
+            route_expected_input[South] = 1'b1;
+          end
         end
       end
     end
@@ -203,6 +273,8 @@ module floo_route_xymask import floo_pkg::*; #(
 
   // We only support five input/output routes
   `ASSERT_INIT(NoMultiCastSupport, NumRoutes == 5)
+  `ASSERT_INIT(CollectRouteAlg, RouteAlgo == XYRouting ||
+                                RouteAlgo == YXRouting)
 
   // TODO(colluca): fix code and uncomment
   // always_comb begin

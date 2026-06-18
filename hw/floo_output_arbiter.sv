@@ -20,6 +20,8 @@ module floo_output_arbiter import floo_pkg::*;
   parameter int unsigned NumParallelRedRoutes = 0,
   /// Collective ops configuration
   parameter collect_op_be_cfg_t  CollectOpCfg    = CollectiveSupportDefaultCfg,
+  /// Routing algorithm
+  parameter route_algo_e    RouteAlgo   = XYRouting,
   /// Type definitions
   parameter type         flit_t               = logic,
   parameter type         hdr_t                = logic,
@@ -107,6 +109,7 @@ module floo_output_arbiter import floo_pkg::*;
       .flit_t               ( flit_t               ),
       .hdr_t                ( hdr_t                ),
       .id_t                 ( id_t                 ),
+      .RouteAlgo            ( RouteAlgo            ),
       .AxiCfg               ( AxiCfg               )
     ) i_reduction_arbiter (
       .xy_id_i,

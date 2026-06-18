@@ -23,6 +23,8 @@ module floo_reduction_arbiter import floo_pkg::*;
   parameter int unsigned NumRoutes            = 1,
   /// Collective ops configuration
   parameter collect_op_be_cfg_t  CollectOpCfg    = CollectiveSupportDefaultCfg,
+  /// Routing algorithm
+  parameter route_algo_e    RouteAlgo   = XYRouting,
   /// Type definitions
   parameter type         flit_t               = logic,
   parameter type         hdr_t                = logic,
@@ -71,7 +73,8 @@ module floo_reduction_arbiter import floo_pkg::*;
       .NumRoutes ( NumRoutes ),
       .flit_t    ( flit_t    ),
       .id_t      ( id_t      ),
-      .FwdMode   ( 0         ) // We enable the backward mode for reduction
+      .FwdMode   ( 0         ), // We enable the backward mode for reduction
+      .RouteAlgo ( RouteAlgo  )
     ) i_route_xymask (
       .channel_i    ( data_i[i]   ),
       .xy_id_i      ( xy_id_i         ),
