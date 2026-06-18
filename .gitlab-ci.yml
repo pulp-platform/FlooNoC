@@ -66,7 +66,7 @@ compile-meshes:
   parallel:
     matrix:
       - DUT: [axi_mesh, nw_mesh]
-        ROUTE_ALGO: [xy, src, id]
+        ROUTE_ALGO: [xy, yx, src, id]
   script:
     - $UV run --cache-dir $CI_BUILDS_DIR/../cache/uv floogen rtl -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
     # Compile the network
@@ -109,7 +109,7 @@ run-traffic:
   parallel:
     matrix:
       - DUT: [axi_mesh, nw_mesh]
-        ROUTE_ALGO: [xy, src, id]
+        ROUTE_ALGO: [xy, yx, src, id]
         TRAFFIC_TYPE: [uniform, hbm, shuffle, hotspot]
         TRAFFIC_RW: [read, write]
   script:
