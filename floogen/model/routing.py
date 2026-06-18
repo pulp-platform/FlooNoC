@@ -874,7 +874,7 @@ class Routing(BaseModel):
     @model_validator(mode="after")
     def validate_collective_route_algo(self):
         """Collective operations are supported with XY routing only."""
-        if self.en_collective and self.route_algo != RouteAlgo.XY:
+        if self.en_collective and self.route_algo != RouteAlgo.XY and self.route_algo != RouteAlgo.YX:
             raise ValueError(
                 "Collective operations are only supported with XY routing algorithm, "
                 f"but got {self.route_algo}"
@@ -886,7 +886,7 @@ class Routing(BaseModel):
         string += sv_param_decl("RouteAlgo", self.route_algo.value, dtype="route_algo_e")
         string += sv_param_decl("UseIdTable", bool_to_sv(self.use_id_table), dtype="bit")
         match (self.route_algo):
-            case RouteAlgo.XY:
+            case RouteAlgo.XY | RouteAlgo.YX:
                 string += sv_param_decl("NumXBits", self.num_x_bits)
                 string += sv_param_decl("NumYBits", self.num_y_bits)
             case RouteAlgo.ID:
@@ -894,7 +894,7 @@ class Routing(BaseModel):
             case _:
                 pass
 
-        if self.route_algo == RouteAlgo.XY:
+        if self.route_algo in (RouteAlgo.XY, RouteAlgo.YX):
             string += sv_param_decl("XYAddrOffsetX", self.addr_offset_bits)
             string += sv_param_decl("XYAddrOffsetY", self.addr_offset_bits + self.num_x_bits)
         else:
@@ -913,7 +913,7 @@ class Routing(BaseModel):
         if self.port_id_bits > 0:
             string += sv_typedef("port_id_t", array_size=self.port_id_bits)
         match self.route_algo:
-            case RouteAlgo.XY:
+            case RouteAlgo.XY | RouteAlgo.YX:
                 string += sv_typedef("x_bits_t", array_size=self.num_x_bits)
                 string += sv_typedef("y_bits_t", array_size=self.num_y_bits)
                 id_fields = {"x": "x_bits_t", "y": "y_bits_t"}
@@ -952,9 +952,9 @@ class Routing(BaseModel):
         fields = {
             "RouteAlgo": self.route_algo.value,
             "UseIdTable": bool_to_sv(self.use_id_table),
-            "XYAddrOffsetX": self.addr_offset_bits if self.route_algo == RouteAlgo.XY else 0,
+            "XYAddrOffsetX": self.addr_offset_bits if self.route_algo in (RouteAlgo.XY, RouteAlgo.YX) else 0,
             "XYAddrOffsetY": self.addr_offset_bits + self.num_x_bits if
-                                self.route_algo == RouteAlgo.XY else 0,
+                                self.route_algo in (RouteAlgo.XY, RouteAlgo.YX) else 0,
             "IdAddrOffset": self.addr_offset_bits if
                                 self.route_algo == RouteAlgo.ID and not self.use_id_table else 0,
             "NumSamRules": len(self.sam),
