@@ -552,7 +552,8 @@ module floo_router
   end
 
   // Multicast is currently only supported for `XYRouting`
-  `ASSERT_INIT(NoMultiCastSupport, !(EnMultiCast && (RouteAlgo != XYRouting && RouteAlgo != YXRouting)))
+  `ASSERT_INIT(NoMultiCastSupport, !(EnMultiCast &&
+              (RouteAlgo != XYRouting && RouteAlgo != YXRouting)))
   // We only support symmetrical configuration for the FP reduction
   `ASSERT_INIT(NoSymConfig, !(EnSequentialReduction && (NumInput != NumOutput)))
   // We can not support collective without loopback active
