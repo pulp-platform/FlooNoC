@@ -35,7 +35,10 @@ package floo_pkg;
     ///  XY coordinates, which can be done with addressoffsets `XYAddrOffsetX`
     /// and `XYAddrOffsetY`, or by indexing the system address map `Sam`. This
     /// is controlled with the `UseIdTable` parameter.
-    XYRouting
+    XYRouting,
+    /// `YXRouting` is identical to `XYRouting` but resolves the Y dimension first,
+    /// then the X dimension.
+    YXRouting
   } route_algo_e;
 
   /// The directions in a 2D mesh network, mainly useful for indexing

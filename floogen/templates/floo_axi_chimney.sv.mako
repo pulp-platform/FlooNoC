@@ -6,7 +6,7 @@
 <% in_prot = next((prot for prot in noc.protocols if prot.direction == "input"), None) %>\
 <% out_prot = next((prot for prot in noc.protocols if prot.direction == "output"), None) %>\
 
-% if ni.routing.route_algo.value == 'XYRouting':
+% if ni.routing.route_algo.value == 'XYRouting' or ni.routing.route_algo.value == 'YXRouting':
   localparam id_t ${ni.name.upper()}_ID = ${actual_xy_id.render()};
 % else:
   localparam id_t ${ni.name.upper()}_ID = id_t'(${ni.id.render()});

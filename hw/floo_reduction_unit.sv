@@ -273,7 +273,6 @@ module floo_reduction_unit
         .ready_i  (result_ready_out)
   );
 
-  // TODO(lleone): Make sure this logic is actually optimized away in PnR
   // Apply the result from the offload unit to the stored flit
   always_comb begin: gen_result_flit
     w_flit_result = floo_axi_w_flit_t'(metadata_flit_out);

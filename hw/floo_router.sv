@@ -205,7 +205,8 @@ module floo_router
           .NumRoutes    (NumInput),
           .flit_t       (flit_t),
           .id_t         (id_t),
-          .FwdMode      (0)
+          .FwdMode      (0),
+          .RouteAlgo    (RouteAlgo)
         ) i_gen_route_xymask (
           .channel_i    (in_routed_data[in][v]),
           .xy_id_i      (xy_id_i),
@@ -347,7 +348,9 @@ module floo_router
         // we tie the handshake & data signals to 0, to optimize them away during synthesis
         if((NoLoopback && (in == out)) ||
            ((RouteAlgo == XYRouting) && XYRouteOpt &&
-            (in == South || in == North) && (out == East || out == West)))
+            (in == South || in == North) && (out == East || out == West)) ||
+           ((RouteAlgo == YXRouting) && XYRouteOpt &&
+            (in == East || in == West)  && (out == North || out == South)))
         begin : gen_no_conn
           assign masked_ready_transposed[in][v][out] = '0;
           assign masked_valid[out][v][in]     = '0;
@@ -423,6 +426,7 @@ module floo_router
         .NumRoutes            ( LocalNumInputs            ),
         .NumParallelRedRoutes ( NumParallelRedRoutes      ),
         .CollectOpCfg         ( CollectiveCfg             ),
+        .RouteAlgo            ( RouteAlgo                  ),
         .flit_t               ( flit_t                    ),
         .hdr_t                ( hdr_t                     ),
         .id_t                 ( id_t                      ),
@@ -518,6 +522,17 @@ module floo_router
     end
   end
 
+  // If YXRouting optimization is enabled, assert that not X->Y routing occurs
+  if ((RouteAlgo == YXRouting) && XYRouteOpt) begin : gen_yx_opt_assert
+    for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt
+      `ASSERT(YXDirectionNotAllowed,
+          !(in_valid[East][v] && route_mask[East][v][North]) &&
+          !(in_valid[East][v] && route_mask[East][v][South]) &&
+          !(in_valid[West][v] && route_mask[West][v][North]) &&
+          !(in_valid[West][v] && route_mask[West][v][South]))
+    end
+  end
+
   // If `NoLoopback` is enabled, assert that no loopback occurs
   if (NoLoopback) begin: gen_no_loopback_assert
     for (genvar in = 0; in < NumInput; in++) begin : gen_input
@@ -537,7 +552,8 @@ module floo_router
   end
 
   // Multicast is currently only supported for `XYRouting`
-  `ASSERT_INIT(NoMultiCastSupport, !(EnMultiCast && RouteAlgo != XYRouting))
+  `ASSERT_INIT(NoMultiCastSupport, !(EnMultiCast &&
+              (RouteAlgo != XYRouting && RouteAlgo != YXRouting)))
   // We only support symmetrical configuration for the FP reduction
   `ASSERT_INIT(NoSymConfig, !(EnSequentialReduction && (NumInput != NumOutput)))
   // We can not support collective without loopback active
