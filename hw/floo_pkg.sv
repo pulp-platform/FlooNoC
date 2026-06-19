@@ -37,7 +37,7 @@ package floo_pkg;
     /// is controlled with the `UseIdTable` parameter.
     XYRouting,
     /// `YXRouting` is identical to `XYRouting` but resolves the Y dimension first,
-    /// then the X dimension. Useful when the Y dimension is the critical path.
+    /// then the X dimension.
     YXRouting
   } route_algo_e;
 

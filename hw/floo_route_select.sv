@@ -96,7 +96,7 @@ module floo_route_select
       channel_o.hdr.dst_id = channel_i.hdr.dst_id >> RouteSelWidth;
     end
 
-  end else if (RouteAlgo == XYRouting || RouteAlgo == YXRouting) begin : gen_xy_yx_routing
+  end else if (RouteAlgo == XYRouting || RouteAlgo == YXRouting) begin : gen_dor_routing
     // Routing based on simple XY routing
     // Assumes an even-bit ID field in the flit_t used for xy
     // assert ((IdWidth/2)*2 == IdWidth);
