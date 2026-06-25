@@ -40,14 +40,13 @@ module floo_fifo #(
 
       for (genvar n = 0; n < NumChannels; n++) begin : gen_channel
         for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_channel
-          stream_fifo #(
+          cc_stream_fifo #(
             .DEPTH        ( FifoDepth ),
             .T            ( flit_t    ),
             .FALL_THROUGH ( 1'b0      )
           ) i_stream_fifo (
             .clk_i      ( clk_i           ),
             .rst_ni     ( rst_ni          ),
-            .testmode_i ( test_enable_i   ),
             .flush_i    ( 1'b0            ),
             .usage_o    (                 ),
             .data_i     ( data_i[n]       ),
@@ -78,14 +77,13 @@ module floo_fifo #(
     end else if (NumVirtChannels == NumPhysChannels) begin : gen_phys_channels
       for (genvar n = 0; n < NumChannels; n++) begin : gen_channel
         for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_channel
-          stream_fifo #(
+          cc_stream_fifo #(
             .DEPTH        ( FifoDepth ),
             .T            ( flit_t    ),
             .FALL_THROUGH ( 1'b0      )
           ) i_stream_fifo (
             .clk_i      ( clk_i         ),
             .rst_ni     ( rst_ni        ),
-            .testmode_i ( test_enable_i ),
             .flush_i    ( 1'b0          ),
             .usage_o    (               ),
             .data_i     ( data_i[n][v]  ),

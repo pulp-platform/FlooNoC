@@ -116,7 +116,7 @@ module floo_router
   for (genvar in = 0; in < NumInput; in++) begin : gen_input
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_input
 
-      logic [cf_math_pkg::idx_width(NumPhysChannels)-1:0] in_p;
+      logic [cc_pkg::idx_width(NumPhysChannels)-1:0] in_p;
       if (NumPhysChannels == 1) begin : gen_single_phys
         assign in_p = '0;
       end else if (NumPhysChannels == NumVirtChannels) begin : gen_virt_eq_phys
@@ -126,13 +126,12 @@ module floo_router
       end
 
       (* ungroup *)
-      stream_fifo_optimal_wrap #(
+      cc_stream_fifo_optimal_wrap #(
         .Depth  ( InFifoDepth ),
         .type_t ( flit_t      )
       ) i_stream_fifo (
         .clk_i      ( clk_i         ),
         .rst_ni     ( rst_ni        ),
-        .testmode_i ( test_enable_i ),
         .flush_i    ( 1'b0  ),
         .usage_o    (       ),
         .data_i     ( data_i  [in][in_p] ),
@@ -215,7 +214,7 @@ module floo_router
 
         // onehot decoding of the input direction
         // bypass the reduction if only on  e input member is selected (if none is selected then bypass too [should never occure but to avoid deadlocks])
-        popcount #(
+        cc_popcount #(
           .INPUT_WIDTH (NumInput)
         ) i_red_list_counter (
           .data_i       (red_expected_in_route[in][v]),
@@ -228,7 +227,7 @@ module floo_router
         // Output 1: reduction
         assign offload_reduction[in][v] = (~red_single_member[in][v]) &
                             (is_seq_reduction_op(in_routed_data[in][v].hdr.collective_op));
-        stream_demux #(
+        cc_stream_demux #(
           .N_OUP              (2)
         ) i_stream_demux (
           .inp_valid_i        (in_valid[in][v]),
@@ -447,13 +446,12 @@ module floo_router
 
       if (OutFifoDepth > 0) begin : gen_out_fifo
         (* ungroup *)
-        stream_fifo_optimal_wrap #(
+        cc_stream_fifo_optimal_wrap #(
           .Depth  ( OutFifoDepth  ),
           .type_t ( flit_t        )
         ) i_stream_fifo (
           .clk_i      ( clk_i         ),
           .rst_ni     ( rst_ni        ),
-          .testmode_i ( test_enable_i ),
           .flush_i    ( 1'b0          ),
           .usage_o    (               ),
           .data_i     ( out_data          [out][v] ),

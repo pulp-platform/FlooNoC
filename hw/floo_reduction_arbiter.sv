@@ -62,7 +62,7 @@ module floo_reduction_arbiter import floo_pkg::*;
   logic [NumRoutes-1:0]                 red_valid_in;
   logic [NumRoutes-1:0][NumRoutes-1:0]  ready_out;
 
-  typedef logic [cf_math_pkg::idx_width(NumRoutes)-1:0] arb_idx_t;
+  typedef logic [cc_pkg::idx_width(NumRoutes)-1:0] arb_idx_t;
   arb_idx_t input_sel;
 
   assign ready_o = ready_out[input_sel];
@@ -97,7 +97,7 @@ module floo_reduction_arbiter import floo_pkg::*;
   end
 
   // Use a leading zero counter to find the first valid reduction input
-  lzc #(
+  cc_lzc #(
     .WIDTH(NumRoutes)
   ) i_lzc (
     .in_i  ( red_valid_in ),

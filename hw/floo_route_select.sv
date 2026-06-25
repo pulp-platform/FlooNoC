@@ -63,7 +63,7 @@ module floo_route_select
     logic [RouteSelWidth-1:0] id_table_result;
     assign channel_o = channel_i;
 
-    addr_decode #(
+    cc_addr_decode #(
       .NoIndices ( NumRoutes    ),
       .NoRules   ( NumAddrRules ),
       .addr_t    ( id_t         ),

@@ -43,7 +43,7 @@ module floo_id_translation #(
     mask_sel_t x_mask_sel, y_mask_sel;
     addr_t x_addr_mask, y_addr_mask;
 
-    addr_decode #(
+    cc_addr_decode #(
       .NoRules    ( RouteCfg.NumSamRules ),
       .addr_t     ( addr_t               ),
       .rule_t     ( addr_rule_t          ),
