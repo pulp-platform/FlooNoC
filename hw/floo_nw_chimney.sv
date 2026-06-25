@@ -412,7 +412,6 @@ module floo_nw_chimney
     ) i_axi_err_slv (
       .clk_i      ( clk_i               ),
       .rst_ni     ( rst_ni              ),
-      .test_i     ( test_enable_i       ),
       .slv_req_i  ( axi_narrow_in_req_i ),
       .slv_resp_o ( axi_narrow_in_rsp_o )
     );
@@ -519,7 +518,6 @@ module floo_nw_chimney
     ) i_axi_err_slv (
       .clk_i      ( clk_i             ),
       .rst_ni     ( rst_ni            ),
-      .test_i     ( test_enable_i     ),
       .slv_req_i  ( axi_wide_in_req_i ),
       .slv_resp_o ( axi_wide_in_rsp_o )
     );
@@ -1705,7 +1703,6 @@ module floo_nw_chimney
     ) i_axi_err_slv (
       .clk_i      ( clk_i                       ),
       .rst_ni     ( rst_ni                      ),
-      .test_i     ( test_enable_i               ),
       .slv_req_i  ( axi_narrow_meta_buf_req_in  ),
       .slv_resp_o ( axi_narrow_meta_buf_rsp_out )
     );
@@ -1757,7 +1754,6 @@ module floo_nw_chimney
     ) i_axi_err_slv (
       .clk_i      ( clk_i                     ),
       .rst_ni     ( rst_ni                    ),
-      .test_i     ( test_enable_i             ),
       .slv_req_i  ( axi_wide_meta_buf_req_in  ),
       .slv_resp_o ( axi_wide_meta_buf_rsp_out )
     );
