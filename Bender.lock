@@ -67,11 +67,12 @@ packages:
     dependencies:
     - common_cells
   idma:
-    revision: addf7d4fecf42064300842fbc0795753df7c75fc
+    revision: 9f44a53c738a9e45ef0ec513f87fdcf5e4d498b4
     version: null
     source:
       Git: https://github.com/pulp-platform/idma.git
     dependencies:
+    - apb
     - axi
     - axi_stream
     - common_cells
