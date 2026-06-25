@@ -90,7 +90,7 @@ module floo_axi_chimney
   /// Coordinates/ID of the current tile
   input  id_t id_i,
   /// Routing table for the current tile
-  input  route_t [floo_iomsb(RouteCfg.NumRoutes):0] route_table_i,
+  input  route_t [cc_pkg::iomsb(RouteCfg.NumRoutes):0] route_table_i,
   /// Output links to NoC
   output floo_req_t floo_req_o,
   output floo_rsp_t floo_rsp_o,
