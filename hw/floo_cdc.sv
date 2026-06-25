@@ -38,7 +38,7 @@ module floo_cdc #(
   output flit_t dst_data_o
 );
 
-  cdc_fifo_gray #(
+  cc_cdc_fifo_gray #(
     .LOG_DEPTH    ( FifoLogDepth  ),
     .SYNC_STAGES  ( SyncStages    ),
     .T            ( flit_t        )

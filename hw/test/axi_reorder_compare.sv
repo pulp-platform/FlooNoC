@@ -144,7 +144,7 @@ module axi_reorder_compare #(
   slv_id_t w_slv_idx[$];
   slv_id_t aw_slv_idx, ar_slv_idx;
 
-  addr_decode #(
+  cc_addr_decode #(
     .NoIndices  ( NumAddrRegions  ),
     .NoRules    ( NumAddrRegions  ),
     .addr_t     ( addr_t          ),
@@ -159,7 +159,7 @@ module axi_reorder_compare #(
     .idx_o            ( aw_slv_idx            )
   );
 
-  addr_decode #(
+  cc_addr_decode #(
     .NoIndices  ( NumAddrRegions  ),
     .NoRules    ( NumAddrRegions  ),
     .addr_t     ( addr_t          ),

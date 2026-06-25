@@ -154,9 +154,9 @@ module floo_rob #(
 
   assign rob_next_free_idx = RoBSize - rob_free_space;
 
-  lzc #(
+  cc_lzc #(
     .WIDTH  ( RoBSize ),
-    .MODE   ( 1'b1    )
+    .MODE   ( cc_pkg::LZC_LEADING_ZERO_CNT )
   ) i_lzc (
     .in_i     ( rob_alloc_q     ),
     .cnt_o    ( rob_free_space  ),
@@ -447,14 +447,13 @@ module floo_rob_status_table #(
 
   end
 
-  fifo_v3 #(
+  cc_fifo #(
     .DEPTH  ( MaxTxnsPerId  ),
     .dtype  ( fifo_data_t   )
   ) i_status_table_fifo [NumIds-1:0] (
     .clk_i,
     .rst_ni,
     .push_i     ( fifo_push     ),
-    .testmode_i ( 1'b0          ),
     .flush_i    ( 1'b0          ),
     .data_i     ( fifo_data_in  ),
     .pop_i      ( fifo_pop      ),
