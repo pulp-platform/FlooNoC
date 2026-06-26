@@ -90,7 +90,7 @@ module floo_axi_chimney
   /// Coordinates/ID of the current tile
   input  id_t id_i,
   /// Routing table for the current tile
-  input  route_t [floo_iomsb(RouteCfg.NumRoutes):0] route_table_i,
+  input  route_t [cc_pkg::iomsb(RouteCfg.NumRoutes):0] route_table_i,
   /// Output links to NoC
   output floo_req_t floo_req_o,
   output floo_rsp_t floo_rsp_o,
@@ -211,7 +211,7 @@ module floo_axi_chimney
     end
 
     if (ChimneyCfg.CutAx) begin : gen_ax_cuts
-      spill_register #(
+      cc_spill_register #(
         .T ( axi_aw_chan_t )
       ) i_aw_queue (
         .clk_i,
@@ -224,7 +224,7 @@ module floo_axi_chimney
         .ready_i    ( axi_aw_queue_ready_in   )
       );
 
-      spill_register #(
+      cc_spill_register #(
         .T ( axi_ar_chan_t )
       ) i_ar_queue (
         .clk_i,
@@ -237,7 +237,7 @@ module floo_axi_chimney
         .ready_i    ( axi_ar_queue_ready_in   )
       );
       if (en_narrow_collective(CollectOpCfg)) begin : gen_mask_cuts
-        spill_register #(
+        cc_spill_register #(
           .T (logic [AxiCfg.UserWidth-1:0])
         ) i_usermask_queue (
           .clk_i,
@@ -271,7 +271,6 @@ module floo_axi_chimney
     ) i_axi_err_slv (
       .clk_i      ( clk_i         ),
       .rst_ni     ( rst_ni        ),
-      .test_i     ( test_enable_i ),
       .slv_req_i  ( axi_in_req_i  ),
       .slv_resp_o ( axi_in_rsp_o  )
     );
@@ -284,7 +283,7 @@ module floo_axi_chimney
   end
 
   if (ChimneyCfg.CutRsp) begin : gen_rsp_cuts
-    spill_register #(
+    cc_spill_register #(
       .T ( floo_req_chan_t )
     ) i_data_req_arb (
       .clk_i      ( clk_i               ),
@@ -297,7 +296,7 @@ module floo_axi_chimney
       .ready_i    ( floo_req_out_ready  )
     );
 
-    spill_register #(
+    cc_spill_register #(
       .T ( floo_rsp_chan_t )
     ) i_data_rsp_arb (
       .clk_i      ( clk_i               ),
@@ -327,7 +326,7 @@ module floo_axi_chimney
   // Since AW and W are transferred over the same link, it can happen that
   // a downstream module does not accept the AW until the W is valid.
   // Therefore, we need to add a spill register for the AW channel.
-  spill_register #(
+  cc_spill_register #(
     .T (axi_out_aw_chan_t)
   ) i_aw_out_queue (
     .clk_i    ( clk_i                     ),
@@ -683,7 +682,7 @@ module floo_axi_chimney
     .valid_o  ( floo_req_arb_valid    )
   );
 
-  spill_register #(
+  cc_spill_register #(
     .T     ( floo_req_chan_t    ),
     .Bypass( !ChimneyCfg.CutOup )
   ) i_req_out_cut (
@@ -714,7 +713,7 @@ module floo_axi_chimney
     .valid_o  ( floo_rsp_arb_valid    )
   );
 
-  spill_register #(
+  cc_spill_register #(
     .T     ( floo_rsp_chan_t    ),
     .Bypass( !ChimneyCfg.CutOup )
   ) i_rsp_out_cut (
@@ -851,7 +850,6 @@ module floo_axi_chimney
     ) i_axi_err_slv (
       .clk_i      ( clk_i             ),
       .rst_ni     ( rst_ni            ),
-      .test_i     ( test_enable_i     ),
       .slv_req_i  ( meta_buf_req_in   ),
       .slv_resp_o ( meta_buf_rsp_out  )
     );

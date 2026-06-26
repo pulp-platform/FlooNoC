@@ -50,7 +50,7 @@ module floo_cut #(
       for (genvar c = 0; c < NumCuts; c++) begin : gen_cut
 
         for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt
-          spill_register #(
+          cc_spill_register #(
             .T       ( flit_t ),
             .Bypass  ( 1'b0   )
           ) i_floo_spill_reg (

@@ -148,7 +148,7 @@ module axi_reorder_compare_multicast #(
   logic [NumAddrRegions-1:0] multiaddr_decode_sel;
 
 
-  addr_decode #(
+  cc_addr_decode #(
     .NoIndices  ( NumAddrRegions  ),
     .NoRules    ( NumAddrRegions  ),
     .addr_t     ( addr_t          ),
@@ -163,7 +163,7 @@ module axi_reorder_compare_multicast #(
     .idx_o            ( aw_slv_idx            )
   );
 
-  multiaddr_decode #(
+  cc_multiaddr_decode #(
     .NoIndices  ( NumAddrRegions  ),
     .NoRules    ( NumAddrRegions  ),
     .addr_t     ( addr_t          ),
@@ -181,7 +181,7 @@ module axi_reorder_compare_multicast #(
     .default_idx_i    ( '0                    )
   );
 
-  addr_decode #(
+  cc_addr_decode #(
     .NoIndices  ( NumAddrRegions  ),
     .NoRules    ( NumAddrRegions  ),
     .addr_t     ( addr_t          ),

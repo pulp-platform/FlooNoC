@@ -24,7 +24,7 @@ module floo_wormhole_arbiter import floo_pkg::*;
   input  logic                   ready_i,
   output flit_t                  data_o
 );
-  typedef logic [cf_math_pkg::idx_width(NumRoutes)-1:0] arb_idx_t;
+  typedef logic [cc_pkg::idx_width(NumRoutes)-1:0] arb_idx_t;
 
   logic last_out, last_q;
   arb_idx_t selected_idx, valid_selected_idx;
@@ -32,7 +32,7 @@ module floo_wormhole_arbiter import floo_pkg::*;
   logic [NumRoutes-1:0] valid_d, valid_q;
 
   // Use arbiter to determine overall packet arbitration
-  rr_arb_tree #(
+  cc_rr_arb_tree #(
     .NumIn    ( NumRoutes ),
     .DataType ( logic     ),
     .ExtPrio  ( 1'b0      ),
