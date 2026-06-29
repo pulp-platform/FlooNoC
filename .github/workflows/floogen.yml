@@ -22,9 +22,9 @@ jobs:
   unit-test-pip:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6.0.3
+    - uses: actions/checkout@v7.0.0
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v6.2.0
       with:
         python-version: '3.10'
     - name: Install dependencies
@@ -39,7 +39,7 @@ jobs:
   unit-test-uv:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
 
       - name: Install uv
         uses: astral-sh/setup-uv@v8.2.0
@@ -61,7 +61,7 @@ jobs:
           - "3.13"
           - "3.14"
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
 
       - name: Install uv and set the Python version
         uses: astral-sh/setup-uv@v8.2.0
