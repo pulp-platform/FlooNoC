@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.4] - 2026-06-30
+
+### Added
+
+#### Hardware
+
+- Add support for the YX routing algorithm (https://github.com/pulp-platform/FlooNoC/pull/193)
+
+#### FlooGen
+
+- Add support for the YX routing algorithm, including the `axi_mesh_yx` and `nw_mesh_yx` examples (https://github.com/pulp-platform/FlooNoC/pull/193)
+
+### Changed
+
+#### FlooGen
+
+- The `visualize` command now requires the optional `viz` extra (`floogen[viz]`); `matplotlib` is no longer a default dependency and the command is only available when the extra is installed (https://github.com/pulp-platform/FlooNoC/pull/199)
+
 ## [0.8.3] - 2026-06-12
 
 ### Fixed
