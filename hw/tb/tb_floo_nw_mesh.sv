@@ -192,7 +192,6 @@ module tb_floo_nw_mesh;
       ) i_axi_narrow_buffer (
         .clk_i      ( clk                             ),
         .rst_ni     ( rst_n                           ),
-        .test_i     ( 1'b0                            ),
         .slv_req_i  ( cluster_narrow_in_req[x][y]     ),
         .slv_resp_o ( cluster_narrow_in_rsp[x][y]     ),
         .mst_req_o  ( cluster_narrow_in_buf_req[x][y] ),
@@ -212,7 +211,6 @@ module tb_floo_nw_mesh;
       ) i_axi_wide_buffer (
         .clk_i      ( clk                           ),
         .rst_ni     ( rst_n                         ),
-        .test_i     ( 1'b0                          ),
         .slv_req_i  ( cluster_wide_in_req[x][y]     ),
         .slv_resp_o ( cluster_wide_in_rsp[x][y]     ),
         .mst_req_o  ( cluster_wide_in_buf_req[x][y] ),
