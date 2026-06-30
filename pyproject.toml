@@ -23,11 +23,12 @@ keywords = ["noc", "network-on-chip", "generator", "systemverilog", "eda", "pulp
 dependencies = [
   "pydantic",
   "networkx",
-  "matplotlib",
   "mako",
   "ruamel.yaml",
-  "click>=8.3.1",
 ]
+
+[project.optional-dependencies]
+viz = ["matplotlib"]
 
 [project.urls]
 Homepage = "https://github.com/pulp-platform/FlooNoC"
@@ -45,7 +46,6 @@ dev = [
     "mkdocstrings-python>=2.0.1",
     "zensical",
 ]
-viz = ["pygame"]
 
 [build-system]
 requires = ["uv_build>=0.9.2,<0.10.0"]

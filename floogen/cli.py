@@ -9,6 +9,7 @@ import argparse
 from pathlib import Path
 from importlib.resources import files
 from importlib.metadata import version
+from importlib.util import find_spec
 
 from mako.template import Template
 
@@ -162,13 +163,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to external template to render. Multiple templates can be specified.",
     )
 
-    # floogen visualize
-    subparsers.add_parser(
-        "visualize",
-        parents=[common],
-        add_help=True,
-        help="Visualize the network graph.",
-    )
+    # floogen visualize (only available if the optional 'viz' extra is installed)
+    if find_spec("matplotlib") is not None:
+        subparsers.add_parser(
+            "visualize",
+            parents=[common],
+            add_help=True,
+            help="Visualize the network graph.",
+        )
 
     # floogen query <key>
     p_query = subparsers.add_parser(

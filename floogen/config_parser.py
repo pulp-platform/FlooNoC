@@ -5,9 +5,10 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
+from collections.abc import Mapping
 from pathlib import Path
 import logging
-from typing import List, Union, Tuple, Mapping, TypeVar
+from typing import TypeVar
 
 from pydantic import ValidationError, BaseModel
 
@@ -15,44 +16,31 @@ from ruamel.yaml.comments import CommentedMap
 from ruamel.yaml import YAMLError
 import ruamel.yaml
 
-import click
+logger = logging.getLogger(__name__)
 
-logger = logging.getLogger("padrick.ConfigParser")
-
-
-def get_error_context(config_file: Path, line, column, context_before=4, context_after=4):
-    """Retrieves the context surrounding an error in a configuration file."""
-    lines_to_return = []
-    with config_file.open() as file:
-        for line_idx, line in enumerate(file.readlines()):
-            if line_idx + 1 == line:
-                lines_to_return.append(line)
-                lines_to_return.append(click.style(column * " " + "^\n", blink=True, fg="yellow"))
-            elif line_idx + 1 >= line - context_before and line_idx + 1 <= line + context_after:
-                lines_to_return.append(line)
-    return "".join(lines_to_return)
+# ANSI escapes to highlight the error column with a yellow caret.
+_YELLOW = "\033[33m"
+_RESET = "\033[0m"
 
 
-def get_human_readable_error_path(config_data: dict, error_location: List[Union[str, int]]):
-    """Transforms a list of path segments into a human readable string."""
-    transformed_path_segments = []
-    node = config_data
-    for path_segment in error_location:
-        try:
-            node = node[path_segment]
-        except KeyError:
-            transformed_path_segments.append(path_segment)
-            break
-        if isinstance(path_segment, int):
-            transformed_path_segments.append(node.get("name", path_segment))
-        else:
-            transformed_path_segments.append(path_segment)
-    return "->".join(transformed_path_segments)
+def get_error_context(
+    config_file: Path, line: int, column: int, context_before: int = 4, context_after: int = 4
+) -> str:
+    """Return the lines surrounding `line`, with a caret marking `column`."""
+    lines = config_file.read_text().splitlines()
+    start = max(line - context_before, 1)
+    end = min(line + context_after, len(lines))
+    context = []
+    for lineno in range(start, end + 1):
+        context.append(lines[lineno - 1])
+        if lineno == line:
+            context.append(f"{_YELLOW}{column * ' '}^{_RESET}")
+    return "\n".join(context)
 
 
 def get_file_location(
-    config_data: CommentedMap, error_location: List[Union[str, int]]
-) -> Tuple[Tuple[int, int], Mapping]:
+    config_data: CommentedMap, error_location: tuple[str | int, ...]
+) -> tuple[tuple[int, int], Mapping]:
     """Retrieves the location of an error in a configuration file."""
     node = config_data
     location = (node.lc.line + 1, node.lc.col)
@@ -71,46 +59,33 @@ def get_file_location(
 T = TypeVar("T", bound=BaseModel)
 
 
-def parse_config(cls: T, config_file: Path) -> Union[T, None]:
+def parse_config(cls: type[T], config_file: Path) -> T | None:
     """Parses a configuration file and returns a validated model."""
     with config_file.open() as file:
         try:
-            yaml = ruamel.yaml.YAML(typ="rt")
-            # enable support for !include directives (see pyyaml-include package)
-            # if not include_base_dir:
-            #     include_base_dir = config_file.parent
-            # if not ignore_includes:
-            #     include_constructor = YamlIncludeConstructor(base_dir=str(include_base_dir))
-            # else:
-            #     include_constructor = IgnoreIncludeConstructor
-            # yaml.register_class(include_constructor)
-            config_data = yaml.load(file)
-            # config_data = ruamel.yaml.load(file, Loader=ruamel.yaml.RoundTripLoader)
+            config_data = ruamel.yaml.YAML(typ="rt").load(file)
         except YAMLError as e:
             logger.error("Error while parsing config_file:\n %s", e)
             return None
-        try:
-            model = cls.model_validate(config_data)
-            return model
-        except ValidationError as e:
-            logger.error(
-                "Encountered %s validation errors while parsing the configuration file:",
-                len(e.errors()),
-            )
-            for error in e.errors():
-                if error["type"] == "extra":
-                    error[
-                        "msg"
-                    ] = f'Unknown field {error["loc"][-1]}. \
-                        Did you mispell the field name?'
-                if error["type"] == "missing":
-                    error["msg"] = f'Missing field \'{error["loc"][-1]}\''
-                else:
-                    error["msg"] = f'{error["msg"]} (field \'{error["loc"][-1]}\')'
-                # error_path = get_human_readable_error_path(config_data, error["loc"])
-                (line, column), _ = get_file_location(config_data, error["loc"])
-                error_context = get_error_context(config_file, line, column, context_after=10)
-                logger.error("Line %s, Column %s:", line, column)
-                logger.error("...\n%s\n...", error_context)
-                logger.error("Error: %s", error["msg"])
-            return None
+
+    try:
+        return cls.model_validate(config_data)
+    except ValidationError as e:
+        logger.error(
+            "Encountered %s validation errors while parsing the configuration file:",
+            len(e.errors()),
+        )
+        for error in e.errors():
+            field = error["loc"][-1]
+            if error["type"] == "extra_forbidden":
+                error["msg"] = f"Unknown field '{field}'. Did you misspell the field name?"
+            elif error["type"] == "missing":
+                error["msg"] = f"Missing field '{field}'"
+            else:
+                error["msg"] = f"{error['msg']} (field '{field}')"
+            (line, column), _ = get_file_location(config_data, error["loc"])
+            error_context = get_error_context(config_file, line, column, context_after=10)
+            logger.error("Line %s, Column %s:", line, column)
+            logger.error("...\n%s\n...", error_context)
+            logger.error("Error: %s", error["msg"])
+        return None
