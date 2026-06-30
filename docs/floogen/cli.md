@@ -62,6 +62,30 @@ floogen top -c <config_file> -o <output_dir>
 
 Generates a graphical representation of the network topology. This is critical for verifying that your complex graph connections match your mental model.
 
+!!! note "Requires the optional `viz` extra"
+
+    This command depends on `matplotlib`, which is **not** installed by default. The
+    `visualize` command is only available once the optional `viz` extra is installed.
+    Without it, `visualize` is hidden from the CLI and will not appear in `floogen --help`.
+
+    === "uv"
+
+        **As a global tool:**
+        ```bash
+        uv tool install 'floogen[viz]'
+        ```
+
+        **Inside the repository** (one-off, for the `visualize` command):
+        ```bash
+        uv run --extra viz floogen visualize -c <config_file>
+        ```
+
+    === "pip"
+
+        ```bash
+        pip install 'floogen[viz]'
+        ```
+
 **Usage:**
 
 ```bash
