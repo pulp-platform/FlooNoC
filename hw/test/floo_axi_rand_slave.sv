@@ -105,7 +105,6 @@ module floo_axi_rand_slave #(
   ) i_xbar (
     .clk_i                  ( clk_i         ),
     .rst_ni                 ( rst_ni        ),
-    .test_i                 ( 1'b0          ),
     .slv_ports_req_i        ( xbar_in_req   ),
     .slv_ports_resp_o       ( xbar_in_rsp   ),
     .mst_ports_req_o        ( xbar_out_req  ),
