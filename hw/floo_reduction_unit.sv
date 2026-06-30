@@ -115,9 +115,10 @@ module floo_reduction_unit
   /// Outgoing operands flow ///
   ///------------------------///
 
-  // Leading zero counter to chose the first valid operand
+  // Trailing zero counter to find the first valid operand (index of first set bit)
   cc_lzc #(
-    .WIDTH(NumInputs)
+    .WIDTH ( NumInputs                  ),
+    .MODE  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
   ) i_lzc_opn1 (
     .in_i     ( valid_i       ),
     .cnt_o    ( operand1_sel  ),
@@ -147,7 +148,8 @@ module floo_reduction_unit
   assign mask_operand2 = in_mask_i[operand1_sel] & ~mask_operand1;
   // This zero counter is used to select the second operand looking at the input mask
   cc_lzc #(
-    .WIDTH(NumInputs)
+    .WIDTH ( NumInputs                  ),
+    .MODE  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
   ) i_lzc_opn2 (
     .in_i     ( mask_operand2 ),
     .cnt_o    ( operand2_sel  ),
@@ -300,7 +302,8 @@ module floo_reduction_unit
 
   // Output destination cc_lzc
   cc_lzc #(
-    .WIDTH(NumOutputs)
+    .WIDTH ( NumOutputs                 ),
+    .MODE  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
   ) i_lzc_result_out (
     .in_i     ( metadata_route_out_dir  ),
     .cnt_o    ( out_select       ),
