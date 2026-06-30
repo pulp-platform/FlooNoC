@@ -10,7 +10,6 @@ from typing import Optional, List
 from enum import Enum
 
 import networkx as nx
-import matplotlib.pyplot as plt
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from floogen.model.routing import Routing, RouteAlgo, RouteMapRule, RouteRule, RouteMap, RouteTable, RouteMapRuleCollective, WideRwDecouple
@@ -849,6 +848,11 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     def visualize(self, savefig=True, filename: pathlib.Path = "network.png"):
         """Visualize the network graph."""
+        # Imported lazily so the optional 'viz' extra (matplotlib) is only
+        # required when this feature is actually used. The CLI hides the
+        # `visualize` command when matplotlib is unavailable.
+        import matplotlib.pyplot as plt  # pylint: disable=import-outside-toplevel
+
         ni_nodes = self.graph.get_ni_nodes(with_obj=False, with_name=True)
         router_nodes = self.graph.get_rt_nodes(with_obj=False, with_name=True)
         filtered_graph = self.graph.subgraph(ni_nodes + router_nodes)
