@@ -305,7 +305,8 @@ module floo_meta_buffer #(
     logic atop_req_pending_q, atop_req_pending_d;
 
     cc_lzc #(
-      .WIDTH  (MaxAtomicTxns)
+      .WIDTH  ( MaxAtomicTxns              ),
+      .MODE   ( cc_pkg::LZC_TRAILING_ZERO_CNT )
     ) i_lzc (
       .in_i     ( available_atop_ids  ),
       .cnt_o    ( lzc_cnt_d           ),
