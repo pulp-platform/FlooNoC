@@ -32,6 +32,8 @@ Included is **_FlooGen_**, a Python-based generation framework that produces ful
 
 ## 📚 Documentation
 
+test some stuff
+
 The full [documentation](https://pulp-platform.github.io/FlooNoC/) is available online.
 
 We provide detailed guides for both the hardware IPs (FlooNoC) and the generation tool (FlooGen):
