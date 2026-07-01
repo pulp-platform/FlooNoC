@@ -37,7 +37,7 @@ module floo_route_select
   input  logic                          test_enable_i,
 
   input  id_t                           xy_id_i,
-  input  addr_rule_t [floo_iomsb(NumAddrRules):0] id_route_map_i,
+  input  addr_rule_t [cc_pkg::iomsb(NumAddrRules):0] id_route_map_i,
 
   input  flit_t                         channel_i,
   input  logic                          valid_i,
@@ -63,7 +63,7 @@ module floo_route_select
     logic [RouteSelWidth-1:0] id_table_result;
     assign channel_o = channel_i;
 
-    addr_decode #(
+    cc_addr_decode #(
       .NoIndices ( NumRoutes    ),
       .NoRules   ( NumAddrRules ),
       .addr_t    ( id_t         ),

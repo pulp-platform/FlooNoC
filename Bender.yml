@@ -13,12 +13,12 @@ remotes:
     pulp: https://github.com/pulp-platform
 
 dependencies:
-  axi: 0.39.7
-  axi_riscv_atomics: 0.8.2
-  common_cells: 1.39.0
+  axi: { git: "https://github.com/pulp-platform/axi.git", rev: common-cells-v2 }
+  axi_riscv_atomics: { git: "https://github.com/pulp-platform/axi_riscv_atomics.git", rev: common-cells-v2-test }
+  common_cells: { git: "https://github.com/pulp-platform/common_cells.git", rev: v2-test }
   common_verification: 0.2.3
-  idma: { version: 0.6.2, upstream_name: iDMA }
-  FPnew: { git: "https://github.com/pulp-platform/cvfpu.git", rev: pulp-v0.2.3 }
+  idma: { git: https://github.com/pulp-platform/idma.git,              rev: 858c4995dd4e1f01413d2671e64bf7299b254be1,  upstream_name: iDMA }
+  FPnew: { git: "https://github.com/pulp-platform/cvfpu.git", rev: common-cells-v2 }
   floo_noc_pd: { path: ./pd, target: "floo_synth" }
 
 export_include_dirs:

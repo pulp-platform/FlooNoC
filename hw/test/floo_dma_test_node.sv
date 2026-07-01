@@ -186,7 +186,6 @@ module floo_dma_test_node  #(
   ) i_idma_backend (
     .clk_i          ( clk_i           ),
     .rst_ni         ( rst_ni          ),
-    .testmode_i     ( 1'b0            ),
     .idma_req_i     ( idma_req        ),
     .req_valid_i    ( req_valid       ),
     .req_ready_o    ( req_ready       ),
@@ -239,7 +238,6 @@ module floo_dma_test_node  #(
   ) i_xbar (
     .clk_i                  ( clk_i         ),
     .rst_ni                 ( rst_ni        ),
-    .test_i                 ( 1'b0          ),
     .slv_ports_req_i        ( xbar_in_req   ),
     .slv_ports_resp_o       ( xbar_in_rsp   ),
     .mst_ports_req_o        ( xbar_out_req  ),

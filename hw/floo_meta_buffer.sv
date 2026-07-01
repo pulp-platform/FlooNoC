@@ -90,7 +90,7 @@ module floo_meta_buffer #(
     assign no_atop_aw_req_id = '1;
     assign no_atop_ar_req_id = '1;
 
-    fifo_v3 #(
+    cc_fifo #(
       .FALL_THROUGH ( 1'b0    ),
       .DEPTH        ( MaxTxns ),
       .dtype        ( buf_t   )
@@ -98,7 +98,6 @@ module floo_meta_buffer #(
       .clk_i,
       .rst_ni,
       .flush_i    ( 1'b0                ),
-      .testmode_i ( test_enable_i       ),
       .full_o     ( ar_no_atop_buf_full ),
       .empty_o    (                     ),
       .usage_o    (                     ),
@@ -108,7 +107,7 @@ module floo_meta_buffer #(
       .pop_i      ( ar_no_atop_pop      )
     );
 
-    fifo_v3 #(
+    cc_fifo #(
       .FALL_THROUGH ( 1'b0    ),
       .DEPTH        ( MaxTxns ),
       .dtype        ( buf_t   )
@@ -116,7 +115,6 @@ module floo_meta_buffer #(
       .clk_i,
       .rst_ni,
       .flush_i    ( 1'b0                ),
-      .testmode_i ( test_enable_i       ),
       .full_o     ( aw_no_atop_buf_full ),
       .empty_o    (                     ),
       .usage_o    (                     ),
@@ -143,7 +141,7 @@ module floo_meta_buffer #(
 
     logic aw_no_atop_buf_not_full, ar_no_atop_buf_not_full;
 
-    id_queue #(
+    cc_id_queue #(
       .ID_WIDTH ( IdMinWidth  ),
       .CAPACITY ( MaxTxns     ),
       .FULL_BW  ( 1'b1        ),
@@ -168,7 +166,7 @@ module floo_meta_buffer #(
       .oup_gnt_o        ( b_oup_gnt                   )
     );
 
-    id_queue #(
+    cc_id_queue #(
       .ID_WIDTH ( IdMinWidth  ),
       .CAPACITY ( MaxTxns     ),
       .FULL_BW  ( 1'b1        ),
@@ -273,13 +271,12 @@ module floo_meta_buffer #(
     assign available_atop_ids = ar_atop_reg_empty & aw_atop_reg_empty;
     assign no_atop_id_available = (available_atop_ids == '0);
 
-    stream_register #(
+    cc_stream_register #(
       .T(buf_t)
     ) i_ar_atop_regs [MaxAtomicTxns-1:0] (
       .clk_i,
       .rst_ni,
       .clr_i      ( '0                ),
-      .testmode_i ( test_enable_i     ),
       .valid_i    ( ar_atop_reg_push  ),
       .ready_o    ( ar_atop_reg_empty ),
       .data_i     ( ar_buf_i          ),
@@ -288,13 +285,12 @@ module floo_meta_buffer #(
       .data_o     ( atop_r_buf        )
     );
 
-    stream_register #(
+    cc_stream_register #(
       .T(buf_t)
     ) i_aw_atop_regs [MaxAtomicTxns-1:0] (
       .clk_i,
       .rst_ni,
       .clr_i      ( '0                ),
-      .testmode_i ( test_enable_i     ),
       .valid_i    ( aw_atop_reg_push  ),
       .ready_o    ( aw_atop_reg_empty ),
       .data_i     ( aw_buf_i          ),
@@ -303,13 +299,14 @@ module floo_meta_buffer #(
       .data_o     ( atop_b_buf        )
     );
 
-    typedef logic [cf_math_pkg::idx_width(MaxAtomicTxns)-1:0] atop_req_id_t;
+    typedef logic [cc_pkg::idx_width(MaxAtomicTxns)-1:0] atop_req_id_t;
     atop_req_id_t lzc_cnt_q, lzc_cnt_d;
     atop_req_id_t atop_req_id;
     logic atop_req_pending_q, atop_req_pending_d;
 
-    lzc #(
-      .WIDTH  (MaxAtomicTxns)
+    cc_lzc #(
+      .WIDTH  ( MaxAtomicTxns              ),
+      .MODE   ( cc_pkg::LZC_TRAILING_ZERO_CNT )
     ) i_lzc (
       .in_i     ( available_atop_ids  ),
       .cnt_o    ( lzc_cnt_d           ),

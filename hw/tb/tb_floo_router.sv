@@ -183,7 +183,7 @@ module tb_floo_router;
 
   for (genvar port = 0; port < NumPorts; port++) begin : gen_in_delay
     for (genvar vc = 0; vc < NumVirtChannels; vc++) begin : gen_in_vc_delay
-      stream_delay #(
+      cc_stream_delay #(
         .StallRandom ( 1'b1        ),
         .FixedDelay  ( 1           ),
         .payload_t   ( floo_req_generic_flit_t ),
@@ -265,13 +265,12 @@ module tb_floo_router;
   for (genvar port = 0; port < NumPorts; port++) begin : gen_out_delay
     for (genvar vc = 0; vc < NumVirtChannels; vc++) begin : gen_out_vc_delay
 
-      fall_through_register #(
+      cc_fall_through_register #(
         .T ( floo_req_generic_flit_t )
       ) i_fall (
         .clk_i     (clk),
         .rst_ni    (rst_n),
         .clr_i     (1'b0),
-        .testmode_i(1'b0),
 
         .valid_i   ( valid_out     [port][vc] ),
         .ready_o   ( ready_out     [port][vc] ),
@@ -282,7 +281,7 @@ module tb_floo_router;
         .data_o    ( fall_data_out [port][vc] )
       );
 
-      stream_delay #(
+      cc_stream_delay #(
         .StallRandom ( 1'b1        ),
         .FixedDelay  ( 1           ),
         .payload_t   ( floo_req_generic_flit_t ),

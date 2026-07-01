@@ -1,14 +1,14 @@
 packages:
   apb:
-    revision: 77ddf073f194d44b9119949d2421be59789e69ae
-    version: 0.2.4
+    revision: c36e398b5e9b02f3a5fb1511be02764c94e1c413
+    version: null
     source:
       Git: https://github.com/pulp-platform/apb.git
     dependencies:
     - common_cells
   axi:
-    revision: a256a3b86394fedf19e361047fccfdd7f6ef83e4
-    version: 0.39.9
+    revision: 57779b81d7a1e776454f0b1db358747c11371272
+    version: null
     source:
       Git: https://github.com/pulp-platform/axi.git
     dependencies:
@@ -16,8 +16,8 @@ packages:
     - common_verification
     - tech_cells_generic
   axi_riscv_atomics:
-    revision: 97a1dd2ac643c276880420a0cf8eea697f228aa9
-    version: 0.8.3
+    revision: ff108e6ab88e98d22bc1798febfff87dd666ac3a
+    version: null
     source:
       Git: https://github.com/pulp-platform/axi_riscv_atomics.git
     dependencies:
@@ -32,8 +32,8 @@ packages:
     dependencies:
     - common_cells
   common_cells:
-    revision: 9ca8a7655f741e7dd5736669a20a301325194c28
-    version: 1.39.0
+    revision: e42f76dcb1e8a1a171943b22f36c94f640508994
+    version: null
     source:
       Git: https://github.com/pulp-platform/common_cells.git
     dependencies:
@@ -52,7 +52,7 @@ packages:
       Path: pd
     dependencies: []
   fpnew:
-    revision: e5aa6a01b5bbe1675c3aa8872e1203413ded83d1
+    revision: 4101e71b389f7873555ff4e0c2afb960021215b6
     version: null
     source:
       Git: https://github.com/pulp-platform/cvfpu.git
@@ -67,11 +67,12 @@ packages:
     dependencies:
     - common_cells
   idma:
-    revision: 28a36e5e07705549e59fc33db96ab681bc1ca88e
-    version: 0.6.5
+    revision: 858c4995dd4e1f01413d2671e64bf7299b254be1
+    version: null
     source:
-      Git: https://github.com/pulp-platform/iDMA.git
+      Git: https://github.com/pulp-platform/idma.git
     dependencies:
+    - apb
     - axi
     - axi_stream
     - common_cells
@@ -79,16 +80,16 @@ packages:
     - obi
     - register_interface
   obi:
-    revision: 0155fc34e900c7c884e081c0a1114a247937ff69
-    version: 0.1.7
+    revision: ddeced68bf1d180750171384eed809628eb890c7
+    version: null
     source:
       Git: https://github.com/pulp-platform/obi.git
     dependencies:
     - common_cells
     - common_verification
   register_interface:
-    revision: d6e1d4cdaab7870f4faf3f88a1c788eaf5ac129d
-    version: 0.4.7
+    revision: f04dc815b72e32ae483b2abafcb87a8f4b6c37e7
+    version: null
     source:
       Git: https://github.com/pulp-platform/register_interface.git
     dependencies:

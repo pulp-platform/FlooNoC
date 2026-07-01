@@ -130,7 +130,6 @@ module tb_floo_axi_mesh;
       ) i_axi_narrow_buffer (
         .clk_i      ( clk                      ),
         .rst_ni     ( rst_n                    ),
-        .test_i     ( 1'b0                     ),
         .slv_req_i  ( cluster_in_req[x][y]     ),
         .slv_resp_o ( cluster_in_rsp[x][y]     ),
         .mst_req_o  ( cluster_in_buf_req[x][y] ),
