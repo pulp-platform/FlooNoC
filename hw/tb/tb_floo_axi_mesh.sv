@@ -2,7 +2,9 @@
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
 //
-// Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
+// Authors: 
+//  - Tim Fischer <fischeti@iis.ee.ethz.ch>
+//  - Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
 `include "axi/typedef.svh"
 `include "floo_noc/typedef.svh"
@@ -31,6 +33,7 @@ module tb_floo_axi_mesh;
   localparam addr_t MemSize = HBMSize;
 
   logic clk, rst_n;
+  logic [NumX-1:0][NumY-1:0] start_of_sim;
   logic [NumX-1:0][NumY-1:0] end_of_sim;
 
   clk_rst_gen #(
@@ -102,11 +105,14 @@ module tb_floo_axi_mesh;
         .MemBaseAddr    ( MemBaseAddr                               ),
         .MemSize        ( MemSize                                   ),
         .NumAxInFlight  ( 2*floo_test_pkg::ChimneyCfg.MaxTxnsPerId  ),
+        .BufferDepth    ( 2*floo_test_pkg::ChimneyCfg.MaxTxnsPerId  ),
         .axi_in_req_t   ( axi_out_req_t                             ),
         .axi_in_rsp_t   ( axi_out_rsp_t                             ),
         .axi_out_req_t  ( axi_in_req_t                              ),
         .axi_out_rsp_t  ( axi_in_rsp_t                              ),
-        .JobId          ( Index                                     )
+        .JobId          ( 100 + Index                               ),
+        .SlaveType      ( floo_test_pkg::IdealSlave                 ),
+        .EnableDebug    ( 1'b0                                      )
       ) i_dma_node (
         .clk_i          ( clk                   ),
         .rst_ni         ( rst_n                 ),
@@ -114,6 +120,7 @@ module tb_floo_axi_mesh;
         .axi_in_rsp_o   ( cluster_out_rsp[x][y] ),
         .axi_out_req_o  ( cluster_in_req[x][y]  ),
         .axi_out_rsp_i  ( cluster_in_rsp[x][y]  ),
+        .start_of_sim_i ( start_of_sim[x][y]    ),
         .end_of_sim_o   ( end_of_sim[x][y]      )
       );
 
@@ -143,17 +150,16 @@ module tb_floo_axi_mesh;
         .AxiIdWidth ( AxiCfg.InIdWidth  ),
         .Name       ( DmaName           )
       ) i_axi_bw_monitor (
-        .clk_i          ( clk                   ),
-        .en_i           ( rst_n                 ),
-        .end_of_sim_i   ( end_of_sim[x][y]      ),
-        .req_i          ( cluster_in_req[x][y]  ),
-        .rsp_i          ( cluster_in_rsp[x][y]  ),
-        .ar_in_flight_o (                       ),
-        .aw_in_flight_o (                       )
+        .clk_i          ( clk                     ),
+        .en_i           ( start_of_sim[x][y]      ),
+        .end_of_sim_i   ( end_of_sim[x][y]        ),
+        .req_i          ( cluster_in_req[x][y]    ),
+        .rsp_i          ( cluster_in_rsp[x][y]    ),
+        .ar_in_flight_o (                         ),
+        .aw_in_flight_o (                         )
         );
     end
   end
-
 
   /////////////////////////
   //   Network-on-Chip   //
@@ -171,12 +177,27 @@ module tb_floo_axi_mesh;
     .hbm_axi_out_rsp_i      ( hbm_rsp             )
   );
 
-
   initial begin
+    $timeformat(-9, 0, "ns", 10);
+    $display ("[tb_floo_axi_mesh][%0t] Simulation start.", $time);
+    // Init signals
+    start_of_sim = '{default: '0};
+    end_of_sim = '{default: '0};
+    // Wait for reset
+    wait(rst_n);
+    // Trigger DMA transfers start
+    $display ("[tb_floo_axi_mesh][%0t] Trigger DMA transfers start.", $time);
+    start_of_sim = '1;
+    repeat (1) @(posedge clk);
+    start_of_sim = '0;
+    // Wait for all DMA transfers to terminate
+    $display ("[tb_floo_axi_mesh][%0t] Waiting for DMA transfers to terminate...", $time);
     wait(&end_of_sim);
+    $display ("[tb_floo_axi_mesh][%0t] All DMA transfers have terminated!", $time);
     // Wait for some time
     repeat (2) @(posedge clk);
     // Stop the simulation
+    $display ("[tb_floo_axi_mesh][%0t] Simulation end.", $time);
     $stop;
   end
 

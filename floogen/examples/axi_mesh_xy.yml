@@ -12,6 +12,7 @@ routing:
 
 protocols:
   - name: "axi_in"
+    type: "narrow"
     protocol: "AXI4"
     data_width: 64
     addr_width: 48
@@ -19,6 +20,7 @@ protocols:
     user_width: 1
     type_prefix: # prevents `axi_axi` prefix
   - name: "axi_out"
+    type: "narrow"
     protocol: "AXI4"
     data_width: 64
     addr_width: 48
