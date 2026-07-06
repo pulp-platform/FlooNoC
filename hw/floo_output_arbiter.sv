@@ -124,9 +124,9 @@ module floo_output_arbiter import floo_pkg::*;
     // Arbitrate between wormhole and reduction arbiter
     // Reductions have higher priority than unicasts (index 0)
     cc_stream_arbiter #(
-      .N_INP  (2),
-      .ARBITER("prio"),
-      .DATA_T (flit_t)
+      .NumInp  (2),
+      .ArbMode (cc_pkg::ARB_PRIO),
+      .data_t  (flit_t)
     ) i_stream_arbiter (
       .clk_i,
       .rst_ni,

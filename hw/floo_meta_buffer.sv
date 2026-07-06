@@ -142,9 +142,9 @@ module floo_meta_buffer #(
     logic aw_no_atop_buf_not_full, ar_no_atop_buf_not_full;
 
     cc_id_queue #(
-      .ID_WIDTH ( IdMinWidth  ),
-      .CAPACITY ( MaxTxns     ),
-      .FULL_BW  ( 1'b1        ),
+      .IdWidth ( IdMinWidth  ),
+      .Capacity ( MaxTxns     ),
+      .FullBw   ( 1'b1        ),
       .data_t   ( buf_t       )
     ) i_aw_no_atop_id_queue (
       .clk_i,
@@ -167,9 +167,9 @@ module floo_meta_buffer #(
     );
 
     cc_id_queue #(
-      .ID_WIDTH ( IdMinWidth  ),
-      .CAPACITY ( MaxTxns     ),
-      .FULL_BW  ( 1'b1        ),
+      .IdWidth ( IdMinWidth  ),
+      .Capacity ( MaxTxns     ),
+      .FullBw   ( 1'b1        ),
       .data_t   ( buf_t       )
     ) i_ar_no_atop_id_queue (
       .clk_i,

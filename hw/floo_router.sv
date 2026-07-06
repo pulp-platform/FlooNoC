@@ -215,7 +215,7 @@ module floo_router
         // onehot decoding of the input direction
         // bypass the reduction if only on  e input member is selected (if none is selected then bypass too [should never occure but to avoid deadlocks])
         cc_popcount #(
-          .INPUT_WIDTH (NumInput)
+          .InputWidth  (NumInput)
         ) i_red_list_counter (
           .data_i       (red_expected_in_route[in][v]),
           .popcount_o   (red_how_many_participants[in][v])
@@ -228,7 +228,7 @@ module floo_router
         assign offload_reduction[in][v] = (~red_single_member[in][v]) &
                             (is_seq_reduction_op(in_routed_data[in][v].hdr.collective_op));
         cc_stream_demux #(
-          .N_OUP              (2)
+          .NumOup             (2)
         ) i_stream_demux (
           .inp_valid_i        (in_valid[in][v]),
           .inp_ready_o        (in_ready[in][v]),

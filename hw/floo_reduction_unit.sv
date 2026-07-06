@@ -162,7 +162,7 @@ module floo_reduction_unit
   // - Output 1: Offload unit
   // - Output 2: SelectAW unit
   cc_stream_demux #(
-    .N_OUP ( 2 )
+    .NumOup ( 2 )
   ) i_operands_demux (
     .inp_valid_i   ( operands_valid_out     ),
     .inp_ready_o   ( operands_ready_in      ),
@@ -288,8 +288,8 @@ module floo_reduction_unit
 
   assign result_mux_sel = metadata_flit_out.hdr.collective_op == SeqAW;
   cc_stream_mux #(
-    .DATA_T   ( flit_t ),
-    .N_INP    ( 2 )
+    .data_t   ( flit_t ),
+    .NumInp   ( 2 )
   ) i_result_mux (
     .inp_data_i   ( {aw_out, result_flit_in}        ),
     .inp_valid_i  ( {aw_valid_out, result_valid_in} ),
@@ -311,7 +311,7 @@ module floo_reduction_unit
   );
 
   cc_stream_demux #(
-    .N_OUP ( NumOutputs )
+    .NumOup ( NumOutputs )
   ) i_result_demux (
     .inp_valid_i   ( result_flit_valid_out  ),
     .inp_ready_o   ( result_flit_ready_in   ),
