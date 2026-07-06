@@ -34,6 +34,7 @@ BENDER_FLAGS += -t test
 BENDER_FLAGS += -t floo_test
 BENDER_FLAGS += -t snitch_cluster
 BENDER_FLAGS += -t idma_test
+BENDER_FLAGS += -t cc_no_deprecated
 BENDER_FLAGS := $(BENDER_FLAGS) $(EXTRA_BENDER_FLAGS)
 
 WORK 	 		?= work
