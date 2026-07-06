@@ -46,8 +46,11 @@ FLOO_CFG  		?= $(FLOO_ROOT)/floogen/examples/topology/nw_mesh_xy.yml
 # FlooGen #
 ###########
 
+FLOO_GEN_DIR 	?= $(FLOO_ROOT)/generated/hw
+
+.PHONY: run-floogen
 run-floogen:
-	floogen rtl -c $(FLOO_CFG) -o $(FLOO_ROOT)/generated 
+	floogen rtl -c $(FLOO_CFG) -o $(FLOO_GEN_DIR)
 
 ######################
 # Traffic Generation #
@@ -55,9 +58,9 @@ run-floogen:
 
 TRAFFIC_GEN 	?= util/gen_jobs.py
 TRAFFIC_NAME 	?= $(basename $(notdir $(FLOO_CFG)))
-TRAFFIC_OUTDIR 	?= $(FLOO_ROOT)/hw/test/jobs
 TRAFFIC_TB 		?= import_traffic_cfg
 TRAFFIC_TYPE 	?= hbm
+TRAFFIC_OUTDIR 	?= $(FLOO_ROOT)/generated/jobs
 TRAFFIC_RW 		?= write
 TRAFFIC_CFG 	?= $(FLOO_ROOT)/hw/test/traffic_cfg/$(basename $(notdir $(FLOO_CFG))).yml
 
