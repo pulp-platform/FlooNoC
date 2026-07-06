@@ -276,7 +276,7 @@ logic [31:0] max_res_32;
 // Input Cut to split the ALU from the rest of the system
 if (CutInput == 1'b1) begin : gen_input_cut
   cc_spill_register_flushable #(
-    .T                  (cut_input_t),
+    .data_t                  (cut_input_t),
     .Bypass             (1'b0)
   ) i_output_cut (
     .clk_i              (clk_i),
@@ -366,7 +366,7 @@ assign status_d.is_zero = ~(|res_32);
 // introduce cut at output of ALU
 if (CutOutput == 1'b1) begin : gen_output_cut
   cc_spill_register_flushable #(
-    .T                  (cut_output_t),
+    .data_t                  (cut_output_t),
     .Bypass             (1'b0)
   ) i_output_cut (
     .clk_i              (clk_i),

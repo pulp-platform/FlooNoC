@@ -91,9 +91,9 @@ module floo_meta_buffer #(
     assign no_atop_ar_req_id = '1;
 
     cc_fifo #(
-      .FALL_THROUGH ( 1'b0    ),
-      .DEPTH        ( MaxTxns ),
-      .dtype        ( buf_t   )
+      .FallThrough ( 1'b0    ),
+      .Depth        ( MaxTxns ),
+      .data_t        ( buf_t   )
     ) i_ar_no_atop_fifo (
       .clk_i,
       .rst_ni,
@@ -108,9 +108,9 @@ module floo_meta_buffer #(
     );
 
     cc_fifo #(
-      .FALL_THROUGH ( 1'b0    ),
-      .DEPTH        ( MaxTxns ),
-      .dtype        ( buf_t   )
+      .FallThrough ( 1'b0    ),
+      .Depth        ( MaxTxns ),
+      .data_t        ( buf_t   )
     ) i_aw_no_atop_fifo (
       .clk_i,
       .rst_ni,
@@ -272,7 +272,7 @@ module floo_meta_buffer #(
     assign no_atop_id_available = (available_atop_ids == '0);
 
     cc_stream_register #(
-      .T(buf_t)
+      .data_t(buf_t)
     ) i_ar_atop_regs [MaxAtomicTxns-1:0] (
       .clk_i,
       .rst_ni,
@@ -286,7 +286,7 @@ module floo_meta_buffer #(
     );
 
     cc_stream_register #(
-      .T(buf_t)
+      .data_t(buf_t)
     ) i_aw_atop_regs [MaxAtomicTxns-1:0] (
       .clk_i,
       .rst_ni,
@@ -305,8 +305,8 @@ module floo_meta_buffer #(
     logic atop_req_pending_q, atop_req_pending_d;
 
     cc_lzc #(
-      .WIDTH  ( MaxAtomicTxns              ),
-      .MODE   ( cc_pkg::LZC_TRAILING_ZERO_CNT )
+      .Width  ( MaxAtomicTxns              ),
+      .Mode   ( cc_pkg::LZC_TRAILING_ZERO_CNT )
     ) i_lzc (
       .in_i     ( available_atop_ids  ),
       .cnt_o    ( lzc_cnt_d           ),

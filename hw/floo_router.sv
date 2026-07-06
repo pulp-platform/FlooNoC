@@ -128,7 +128,7 @@ module floo_router
       (* ungroup *)
       cc_stream_fifo_optimal_wrap #(
         .Depth  ( InFifoDepth ),
-        .type_t ( flit_t      )
+        .data_t ( flit_t      )
       ) i_stream_fifo (
         .clk_i      ( clk_i         ),
         .rst_ni     ( rst_ni        ),
@@ -448,7 +448,7 @@ module floo_router
         (* ungroup *)
         cc_stream_fifo_optimal_wrap #(
           .Depth  ( OutFifoDepth  ),
-          .type_t ( flit_t        )
+          .data_t ( flit_t        )
         ) i_stream_fifo (
           .clk_i      ( clk_i         ),
           .rst_ni     ( rst_ni        ),

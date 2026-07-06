@@ -34,7 +34,7 @@ module floo_wormhole_arbiter import floo_pkg::*;
   // Use arbiter to determine overall packet arbitration
   cc_rr_arb_tree #(
     .NumIn    ( NumRoutes ),
-    .DataType ( logic     ),
+    .data_t   ( logic     ),
     .ExtPrio  ( 1'b0      ),
     .AxiVldRdy( 1'b1      ),
     .LockIn   ( 1'b1      ), // Ensure LockIn to avoid changing priority
@@ -42,7 +42,7 @@ module floo_wormhole_arbiter import floo_pkg::*;
   ) i_rr_arb_packets (
     .clk_i,
     .rst_ni,
-    .flush_i( 1'b0 ),
+    .clr_i  ( 1'b0 ),
     .rr_i   ( '0 ),
     .req_i  ( valid_d ),
     .gnt_o  (),

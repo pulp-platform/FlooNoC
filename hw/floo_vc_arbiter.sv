@@ -107,13 +107,13 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
 
     cc_rr_arb_tree #(
       .NumIn      ( NumVirtChannels ),
-      .DataType   ( flit_t          ),
+      .data_t   ( flit_t          ),
       .AxiVldRdy  ( 1'b0            ), // fischeti: Don't think that applies
       .LockIn     ( 1'b0            )
     ) i_rr_vc_arbiter (
       .clk_i    ( clk_i             ),
       .rst_ni   ( rst_ni            ),
-      .flush_i  ( 1'b0              ),
+      .clr_i    ( 1'b0              ),
       .rr_i     ( '0                ),
       .req_i    ( vc_arb_req_in     ),
       .gnt_o    ( ready_o           ),

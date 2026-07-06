@@ -117,8 +117,8 @@ module floo_reduction_unit
 
   // Trailing zero counter to find the first valid operand (index of first set bit)
   cc_lzc #(
-    .WIDTH ( NumInputs                  ),
-    .MODE  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
+    .Width ( NumInputs                  ),
+    .Mode  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
   ) i_lzc_opn1 (
     .in_i     ( valid_i       ),
     .cnt_o    ( operand1_sel  ),
@@ -148,8 +148,8 @@ module floo_reduction_unit
   assign mask_operand2 = in_mask_i[operand1_sel] & ~mask_operand1;
   // This zero counter is used to select the second operand looking at the input mask
   cc_lzc #(
-    .WIDTH ( NumInputs                  ),
-    .MODE  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
+    .Width ( NumInputs                  ),
+    .Mode  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
   ) i_lzc_opn2 (
     .in_i     ( mask_operand2 ),
     .cnt_o    ( operand2_sel  ),
@@ -199,9 +199,9 @@ module floo_reduction_unit
   `FFLARNC(already_pushed_q, 1'b1, operands_valid_out && (~already_pushed_q),
            valid_operand_handshake, 1'b0, clk_i, rst_ni)
   cc_fifo #(
-      .FALL_THROUGH     (1'b1),
-      .dtype            (flit_t),
-      .DEPTH            (RedCfg.RdPipelineDepth+2)
+      .FallThrough     (1'b1),
+      .data_t            (flit_t),
+      .Depth            (RedCfg.RdPipelineDepth+2)
   ) i_fifo_flit (
       .clk_i      (clk_i),
       .rst_ni     (rst_ni),
@@ -216,9 +216,9 @@ module floo_reduction_unit
   );
   // Fifo to store the output direction of the element during the FPU reduction
   cc_fifo #(
-      .FALL_THROUGH     (1'b1),
+      .FallThrough     (1'b1),
       .DATA_WIDTH       (NumInputs),
-      .DEPTH            (RedCfg.RdPipelineDepth+2)
+      .Depth            (RedCfg.RdPipelineDepth+2)
   ) i_fifo_route_dir (
       .clk_i      (clk_i),
       .rst_ni     (rst_ni),
@@ -235,7 +235,7 @@ module floo_reduction_unit
   // TODO (lleone): Create a REQ/RSP struct for the following interface
   // and replace all the spill registers with just one for REQ and one for RSP
   cc_spill_register #(
-        .T (red_intsr_t),
+        .data_t (red_intsr_t),
         .Bypass (!RedCfg.CutOffloadIntf)
   ) i_offload_cut_req (
         .clk_i,
@@ -260,7 +260,7 @@ module floo_reduction_unit
   ///-------------------------///
 
   cc_spill_register #(
-        .T (reduction_data_t),
+        .data_t (reduction_data_t),
         .Bypass (!RedCfg.CutOffloadIntf)
   ) i_offload_cut_rsp (
         .clk_i,
@@ -302,8 +302,8 @@ module floo_reduction_unit
 
   // Output destination cc_lzc
   cc_lzc #(
-    .WIDTH ( NumOutputs                 ),
-    .MODE  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
+    .Width ( NumOutputs                 ),
+    .Mode  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
   ) i_lzc_result_out (
     .in_i     ( metadata_route_out_dir  ),
     .cnt_o    ( out_select       ),

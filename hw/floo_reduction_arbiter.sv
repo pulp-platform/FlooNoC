@@ -98,8 +98,8 @@ module floo_reduction_arbiter import floo_pkg::*;
 
   // Use a trailing zero counter to find the first valid reduction input
   cc_lzc #(
-    .WIDTH ( NumRoutes                  ),
-    .MODE  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
+    .Width ( NumRoutes                  ),
+    .Mode  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
   ) i_lzc (
     .in_i  ( red_valid_in ),
     .cnt_o ( input_sel    ),

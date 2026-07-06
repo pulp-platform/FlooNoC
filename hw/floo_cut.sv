@@ -51,7 +51,7 @@ module floo_cut #(
 
         for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt
           cc_spill_register #(
-            .T       ( flit_t ),
+            .data_t       ( flit_t ),
             .Bypass  ( 1'b0   )
           ) i_floo_spill_reg (
             .clk_i   ( clk_i                ),

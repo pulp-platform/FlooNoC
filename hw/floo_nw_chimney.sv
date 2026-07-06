@@ -338,7 +338,7 @@ module floo_nw_chimney
 
     if (ChimneyCfgN.CutAx) begin : gen_ax_cuts
       cc_spill_register #(
-        .T ( axi_narrow_aw_chan_t )
+        .data_t ( axi_narrow_aw_chan_t )
       ) i_narrow_aw_queue (
         .clk_i,
         .rst_ni,
@@ -351,7 +351,7 @@ module floo_nw_chimney
       );
 
       cc_spill_register #(
-        .T ( axi_narrow_ar_chan_t )
+        .data_t ( axi_narrow_ar_chan_t )
       ) i_narrow_ar_queue (
         .clk_i,
         .rst_ni,
@@ -365,7 +365,7 @@ module floo_nw_chimney
 
       if (en_narrow_collective(CollectOpCfg)) begin : gen_collective_cuts
         cc_spill_register #(
-          .T (user_mask_t)
+          .data_t (user_mask_t)
         ) i_narrow_usermask_queue (
           .clk_i,
           .rst_ni,
@@ -377,7 +377,7 @@ module floo_nw_chimney
           .ready_i  ( axi_narrow_aw_queue_ready_in )
         );
         cc_spill_register #(
-          .T (floo_pkg::collect_op_e)
+          .data_t (floo_pkg::collect_op_e)
         ) i_coll_operation_queue (
           .clk_i,
           .rst_ni,
@@ -443,7 +443,7 @@ module floo_nw_chimney
 
     if (ChimneyCfgW.CutAx) begin : gen_ax_cuts
       cc_spill_register #(
-        .T ( axi_wide_aw_chan_t )
+        .data_t ( axi_wide_aw_chan_t )
       ) i_wide_aw_queue (
         .clk_i,
         .rst_ni,
@@ -456,7 +456,7 @@ module floo_nw_chimney
       );
 
       cc_spill_register #(
-        .T ( axi_wide_ar_chan_t )
+        .data_t ( axi_wide_ar_chan_t )
       ) i_wide_ar_queue (
         .clk_i,
         .rst_ni,
@@ -470,7 +470,7 @@ module floo_nw_chimney
 
       if (en_wide_collective(CollectOpCfg)) begin : gen_collective_cuts
         cc_spill_register #(
-          .T (user_mask_t)
+          .data_t (user_mask_t)
         ) i_wide_usermask_queue (
           .clk_i,
           .rst_ni,
@@ -482,7 +482,7 @@ module floo_nw_chimney
           .ready_i  ( axi_wide_aw_queue_ready_in )
         );
         cc_spill_register #(
-          .T (floo_pkg::collect_op_e)
+          .data_t (floo_pkg::collect_op_e)
         ) i_coll_operation_queue (
           .clk_i,
           .rst_ni,
@@ -531,7 +531,7 @@ module floo_nw_chimney
   end
 
   cc_spill_register #(
-    .T      ( floo_req_chan_t ),
+    .data_t      ( floo_req_chan_t ),
     .Bypass ( !(ChimneyCfgN.CutRsp && ChimneyCfgW.CutRsp) )
   ) i_narrow_data_req_arb (
     .clk_i,
@@ -545,7 +545,7 @@ module floo_nw_chimney
   );
 
   cc_spill_register #(
-    .T      ( floo_rsp_chan_t ),
+    .data_t      ( floo_rsp_chan_t ),
     .Bypass ( !(ChimneyCfgN.CutRsp && ChimneyCfgW.CutRsp) )
     ) i_narrow_data_rsp_arb (
     .clk_i,
@@ -564,7 +564,7 @@ module floo_nw_chimney
 
   if (EnDecoupledRW) begin : gen_spill_vc
     cc_spill_register #(
-      .T ( floo_wide_chan_t )
+      .data_t ( floo_wide_chan_t )
     ) i_wide_wr_req_arb (
       .clk_i,
       .rst_ni,
@@ -576,7 +576,7 @@ module floo_nw_chimney
       .ready_i    ( floo_wide_out_wr_ready_q )
     );
     cc_spill_register #(
-      .T ( floo_wide_chan_t )
+      .data_t ( floo_wide_chan_t )
     ) i_wide_rd_req_arb (
       .clk_i,
       .rst_ni,
@@ -589,7 +589,7 @@ module floo_nw_chimney
     );
   end else begin : gen_spill_wide
     cc_spill_register #(
-      .T      ( floo_wide_chan_t ),
+      .data_t      ( floo_wide_chan_t ),
       .Bypass ( !(ChimneyCfgN.CutRsp && ChimneyCfgW.CutRsp) )
     ) i_wide_data_req_arb (
       .clk_i,
@@ -615,7 +615,7 @@ module floo_nw_chimney
   // a downstream module does not accept the AW until the W is valid.
   // Therefore, we need to add a spill register for the AW channel.
   cc_spill_register #(
-    .T (axi_narrow_out_aw_chan_t)
+    .data_t (axi_narrow_out_aw_chan_t)
   ) i_aw_narrow_out_queue (
     .clk_i    ( clk_i                                 ),
     .rst_ni   ( rst_ni                                ),
@@ -628,7 +628,7 @@ module floo_nw_chimney
   );
 
   cc_spill_register #(
-    .T (axi_wide_out_aw_chan_t)
+    .data_t (axi_wide_out_aw_chan_t)
   ) i_aw_out_queue (
     .clk_i    ( clk_i                               ),
     .rst_ni   ( rst_ni                              ),
@@ -1381,7 +1381,7 @@ module floo_nw_chimney
   );
 
   cc_spill_register #(
-    .T     ( floo_req_chan_t     ),
+    .data_t     ( floo_req_chan_t     ),
     .Bypass( !ChimneyCfgN.CutOup )
   ) i_req_out_cut (
     .clk_i,
@@ -1412,7 +1412,7 @@ module floo_nw_chimney
   );
 
   cc_spill_register #(
-    .T     ( floo_rsp_chan_t     ),
+    .data_t     ( floo_rsp_chan_t     ),
     .Bypass( !ChimneyCfgN.CutOup )
   ) i_rsp_out_cut (
     .clk_i,
@@ -1449,7 +1449,7 @@ module floo_nw_chimney
     );
 
     cc_spill_register #(
-      .T     ( floo_wide_chan_t    ),
+      .data_t     ( floo_wide_chan_t    ),
       .Bypass( !ChimneyCfgW.CutOup )
     ) i_wide_out_cut (
       .clk_i,

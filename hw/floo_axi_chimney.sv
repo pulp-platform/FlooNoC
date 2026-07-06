@@ -212,7 +212,7 @@ module floo_axi_chimney
 
     if (ChimneyCfg.CutAx) begin : gen_ax_cuts
       cc_spill_register #(
-        .T ( axi_aw_chan_t )
+        .data_t ( axi_aw_chan_t )
       ) i_aw_queue (
         .clk_i,
         .rst_ni,
@@ -225,7 +225,7 @@ module floo_axi_chimney
       );
 
       cc_spill_register #(
-        .T ( axi_ar_chan_t )
+        .data_t ( axi_ar_chan_t )
       ) i_ar_queue (
         .clk_i,
         .rst_ni,
@@ -238,7 +238,7 @@ module floo_axi_chimney
       );
       if (en_narrow_collective(CollectOpCfg)) begin : gen_mask_cuts
         cc_spill_register #(
-          .T (logic [AxiCfg.UserWidth-1:0])
+          .data_t (logic [AxiCfg.UserWidth-1:0])
         ) i_usermask_queue (
           .clk_i,
           .rst_ni,
@@ -284,7 +284,7 @@ module floo_axi_chimney
 
   if (ChimneyCfg.CutRsp) begin : gen_rsp_cuts
     cc_spill_register #(
-      .T ( floo_req_chan_t )
+      .data_t ( floo_req_chan_t )
     ) i_data_req_arb (
       .clk_i      ( clk_i               ),
       .rst_ni     ( rst_ni              ),
@@ -297,7 +297,7 @@ module floo_axi_chimney
     );
 
     cc_spill_register #(
-      .T ( floo_rsp_chan_t )
+      .data_t ( floo_rsp_chan_t )
     ) i_data_rsp_arb (
       .clk_i      ( clk_i               ),
       .rst_ni     ( rst_ni              ),
@@ -327,7 +327,7 @@ module floo_axi_chimney
   // a downstream module does not accept the AW until the W is valid.
   // Therefore, we need to add a spill register for the AW channel.
   cc_spill_register #(
-    .T (axi_out_aw_chan_t)
+    .data_t (axi_out_aw_chan_t)
   ) i_aw_out_queue (
     .clk_i    ( clk_i                     ),
     .rst_ni   ( rst_ni                    ),
@@ -689,7 +689,7 @@ module floo_axi_chimney
   );
 
   cc_spill_register #(
-    .T     ( floo_req_chan_t    ),
+    .data_t     ( floo_req_chan_t    ),
     .Bypass( !ChimneyCfg.CutOup )
   ) i_req_out_cut (
     .clk_i,
@@ -720,7 +720,7 @@ module floo_axi_chimney
   );
 
   cc_spill_register #(
-    .T     ( floo_rsp_chan_t    ),
+    .data_t     ( floo_rsp_chan_t    ),
     .Bypass( !ChimneyCfg.CutOup )
   ) i_rsp_out_cut (
     .clk_i,
