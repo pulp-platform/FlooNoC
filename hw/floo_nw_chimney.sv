@@ -1566,7 +1566,7 @@ module floo_nw_chimney
 
     // Demux write VC to AXI AW and W channels
     cc_stream_demux #(
-      .N_OUP(NumVirtualChannels)
+      .NumOup(NumVirtualChannels)
     ) i_wide_wr_flit_demux (
       .inp_valid_i(floo_wide_in_wr_valid_q),
       .inp_ready_o(floo_wide_out_wr_ready_q),

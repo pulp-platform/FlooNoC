@@ -217,7 +217,7 @@ module floo_reduction_unit
   // Fifo to store the output direction of the element during the FPU reduction
   cc_fifo #(
       .FallThrough     (1'b1),
-      .DATA_WIDTH       (NumInputs),
+      .DataWidth        (NumInputs),
       .Depth            (RedCfg.RdPipelineDepth+2)
   ) i_fifo_route_dir (
       .clk_i      (clk_i),
