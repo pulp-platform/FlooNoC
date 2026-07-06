@@ -85,6 +85,7 @@ VLOG_ARGS += -work $(WORK)
 VSIM_FLAGS += -64
 VSIM_FLAGS += -t 1ps
 VSIM_FLAGS += -sv_seed 0
+# VSIM_FLAGS += -suppress vsim-8386
 VSIM_FLAGS += -quiet
 VSIM_FLAGS += -work $(WORK)
 

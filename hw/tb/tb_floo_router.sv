@@ -266,7 +266,7 @@ module tb_floo_router;
     for (genvar vc = 0; vc < NumVirtChannels; vc++) begin : gen_out_vc_delay
 
       cc_fall_through_register #(
-        .T ( floo_req_generic_flit_t )
+        .data_t ( floo_req_generic_flit_t )
       ) i_fall (
         .clk_i     (clk),
         .rst_ni    (rst_n),
