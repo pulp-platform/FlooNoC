@@ -728,8 +728,26 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 continue
             ports += ep.render_ports(pkg_name=pkg_name)
             declared_ports.append(ep.name)
+        # Append the reduction offload interfaces (empty unless reduction is enabled).
+        ports += self.render_reduction_offload_ports()
         port_string = ",\n  ".join(ports) + "\n"
         return port_string
+
+    def render_reduction_offload_ports(self):
+        """Return the reduction offload interfaces."""
+        if self.network_type != NetworkType.NARROW_WIDE:
+            return []
+        coll = self.routing.collective
+        # One offload interface per router -> size the port arrays by router count.
+        num_routers = len(self.graph.get_rt_nodes())
+        ports = []
+        if coll.en_narrow_reduction is not None:
+            ports.append(f"output red_narrow_req_t [{num_routers - 1}:0] offload_narrow_req_o")
+            ports.append(f"input  red_narrow_rsp_t [{num_routers - 1}:0] offload_narrow_rsp_i")
+        if coll.en_wide_reduction is not None:
+            ports.append(f"output red_wide_req_t [{num_routers - 1}:0] offload_wide_req_o")
+            ports.append(f"input  red_wide_rsp_t [{num_routers - 1}:0] offload_wide_rsp_i")
+        return ports
 
     def render_link_typedefs(self):
         """Render the protocol configuration structs."""
@@ -779,8 +797,8 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     def render_routers(self):
         """Render the routers in the generated code."""
         string = ""
-        for rt in self.graph.get_rt_nodes():
-            string += rt.render(network=self)
+        for offload_idx, rt in enumerate(self.graph.get_rt_nodes()):
+            string += rt.render(network=self, offload_idx=offload_idx)
         return string
 
     def render_ni_tables(self):
