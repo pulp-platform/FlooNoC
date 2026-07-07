@@ -42,14 +42,14 @@ WORK 	 		?= work
 TB_DUT 			?= tb_floo_nw_mesh
 FLOO_CFG  		?= $(FLOO_ROOT)/floogen/examples/topology/nw_mesh_xy.yml
 
-###########
-# FlooGen #
-###########
+##################
+# NoC Generation #
+##################
 
 FLOO_GEN_DIR 	?= $(FLOO_ROOT)/generated/hw
 
-.PHONY: run-floogen
-run-floogen:
+.PHONY: generate-noc
+generate-noc:
 	floogen rtl --topology-cfg $(FLOO_CFG) -o $(FLOO_GEN_DIR)
 
 ######################
@@ -68,14 +68,14 @@ TRAFFIC_RW 		?= write
 
 .PHONY: jobs clean-jobs
 ifeq ($(strip $(TRAFFIC_TYPE)),)
-jobs:
+generate-jobs:
 	floogen traffic \
 		--topology-cfg $(FLOO_CFG) \
 		--traffic-cfg $(TRAFFIC_CFG) \
 		--traffic-name $(TRAFFIC_NAME) \
 		-o $(TRAFFIC_OUTDIR)
 else
-jobs:
+generate-jobs:
 	floogen traffic \
 		--topology-cfg $(FLOO_CFG) \
 		--traffic-type $(TRAFFIC_TYPE) \
