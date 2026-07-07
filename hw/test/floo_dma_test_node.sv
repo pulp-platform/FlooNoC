@@ -9,6 +9,7 @@
 `include "axi/typedef.svh"
 `include "axi/assign.svh"
 `include "idma/typedef.svh"
+`include "common_cells/registers.svh"
 
 /// An endpoint node with a DMA master port and a Simulation Memory Slave port
 module floo_dma_test_node  #(
@@ -130,6 +131,7 @@ module floo_dma_test_node  #(
   // DMA control signals
   logic start, done;
   idma_busy_t busy;
+  logic end_of_sim_d;
 
   typedef struct packed {
     logic [31:0] idx;
@@ -297,23 +299,12 @@ module floo_dma_test_node  #(
   // DMA Controls
   //--------------------------------------
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin : proc_start
-    if(!rst_ni) begin
-      start <= 1'b0;
-    end else begin
-      start <= start_of_sim_i;
-    end
-  end
+  // job start
+  `FF(start, start_of_sim_i, 1'b0)
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin : proc_ready
-    if(!rst_ni) begin
-      end_of_sim_o <= 1'b0;
-    end else if(done == 1'b1) begin // job completion, floo dma is ready to accept new jobs
-      end_of_sim_o <= 1'b1;
-    end else if(start == 1'b1) begin // start, with jobs to run
-      end_of_sim_o <= 1'b0;
-    end
-  end
+  // job termination
+  assign end_of_sim_d = done ? 1'b1 : (start ? 1'b0 : end_of_sim_o);
+  `FF(end_of_sim_o, end_of_sim_d, 1'b0)
 
   //--------------------------------------
   // DMA Driver
@@ -455,7 +446,7 @@ module floo_dma_test_node  #(
       end
       // once done: launched all transfers
       if (EnableDebug) $display("[DMA%0d] Launched all Transfers.", JobId + 1);
-      
+
       // wait for last response
       wait (done == 1'b1);
     end
