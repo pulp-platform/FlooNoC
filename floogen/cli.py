@@ -53,9 +53,9 @@ def build_parser() -> argparse.ArgumentParser:
     # Parser that holds all common options
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument(
-        "-c", "--topology-cfg", type=Path, required=True,
-        dest="topology_cfg",
-        help="Path to the NoC topology configuration file."
+        "-c", "--noc-cfg", type=Path, required=True,
+        dest="noc_cfg",
+        help="Path to the FlooNoC configuration file."
     )
     common.add_argument(
         "-o", "--outdir", type=Path, required=False,
@@ -271,7 +271,7 @@ def main():
         parser.print_help()
         return 0
 
-    network = parse_config(Network, args.topology_cfg)
+    network = parse_config(Network, args.noc_cfg)
 
     network.create_network()
     network.compile_network()

@@ -40,7 +40,7 @@ BENDER_FLAGS := $(BENDER_FLAGS) $(EXTRA_BENDER_FLAGS)
 
 WORK 	 		?= work
 TB_DUT 			?= tb_floo_nw_mesh
-FLOO_CFG  		?= $(FLOO_ROOT)/floogen/examples/topology/nw_mesh_xy.yml
+NOC_CFG  		?= $(FLOO_ROOT)/floogen/examples/noc/nw_mesh_xy.yml
 
 ##################
 # NoC Generation #
@@ -50,41 +50,44 @@ FLOO_GEN_DIR 	?= $(FLOO_ROOT)/generated/hw
 
 .PHONY: generate-noc
 generate-noc:
-	floogen rtl --topology-cfg $(FLOO_CFG) -o $(FLOO_GEN_DIR)
+	floogen rtl --noc-cfg $(NOC_CFG) -o $(FLOO_GEN_DIR)
+
+install-floogen:
+	uv tool install floogen --reinstall .
 
 ######################
 # Traffic Generation #
 ######################
 
-TRAFFIC_NAME 	?= $(basename $(notdir $(FLOO_CFG)))
+TRAFFIC_NAME 	?= $(basename $(notdir $(NOC_CFG)))
 TRAFFIC_OUTDIR 	?= $(FLOO_ROOT)/generated/jobs
 
 # Generate custom traffic from configuration file
-TRAFFIC_CFG 	?= $(FLOO_ROOT)/floogen/examples/traffic/$(basename $(notdir $(FLOO_CFG))).yml
+TRAFFIC_CFG 	?= $(FLOO_ROOT)/floogen/examples/traffic/$(basename $(notdir $(NOC_CFG))).yml
 
 # Generate built-in traffic, not requiring any dedicated traffic configuration file
 TRAFFIC_TYPE	?=
 TRAFFIC_RW 		?= write
 
-.PHONY: jobs clean-jobs
+.PHONY: generate-traffic clean-traffic
 ifeq ($(strip $(TRAFFIC_TYPE)),)
-generate-jobs:
+generate-traffic:
 	floogen traffic \
-		--topology-cfg $(FLOO_CFG) \
+		--noc-cfg $(NOC_CFG) \
 		--traffic-cfg $(TRAFFIC_CFG) \
 		--traffic-name $(TRAFFIC_NAME) \
 		-o $(TRAFFIC_OUTDIR)
 else
-generate-jobs:
+generate-traffic:
 	floogen traffic \
-		--topology-cfg $(FLOO_CFG) \
+		--noc-cfg $(NOC_CFG) \
 		--traffic-type $(TRAFFIC_TYPE) \
 		--traffic-rw $(TRAFFIC_RW) \
 		--traffic-name $(TRAFFIC_NAME) \
 		-o $(TRAFFIC_OUTDIR)
 endif
 
-clean-jobs:
+clean-traffic:
 	rm -rf $(TRAFFIC_OUTDIR)
 
 # Set the job name and directory if specified
@@ -236,6 +239,6 @@ init-pd:
 .PHONY: all clean build
 
 all: compile-vsim run-sim-batch
-clean: clean-vsim clean-spyglass clean-jobs clean-sources clean-vcs
+clean: clean-vsim clean-spyglass clean-traffic clean-sources clean-vcs
 build: compile-vsim
 run: run-vsim
