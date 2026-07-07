@@ -414,7 +414,7 @@ module floo_dma_test_node  #(
     #2ns;
 
     while(1) begin
-      wait (start == 1'b1);
+      wait (start);
 
       // run all requests in queue
       for (int req_idx = 0; req_idx < req_jobs.size(); req_idx++) begin
@@ -448,7 +448,7 @@ module floo_dma_test_node  #(
       if (EnableDebug) $display("[DMA%0d] Launched all Transfers.", JobId + 1);
 
       // wait for last response
-      wait (done == 1'b1);
+      wait (done);
     end
   end
 
@@ -458,7 +458,7 @@ initial begin
   wait (rst_ni);
 
   while(1) begin
-    wait (start == 1'b1);
+    wait (start);
     done = 1'b0;
 
     // run all requests in queue
