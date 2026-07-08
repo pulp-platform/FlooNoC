@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         DUT: [axi_mesh, nw_mesh]
-        ROUTE_ALGO: [xy, src, id]
+        ROUTE_ALGO: [xy, yx, src, id]
     steps:
       - uses: actions/checkout@v7.0.0
 
@@ -39,7 +39,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.3.0
 
       - name: Generate RTL
-        run: uv run floogen rtl -c floogen/examples/${{ matrix.DUT }}_${{ matrix.ROUTE_ALGO }}.yml -o generated --no-format
+        run: uv run floogen rtl -c floogen/examples/topology/${{ matrix.DUT }}_${{ matrix.ROUTE_ALGO }}.yml -o generated --no-format
 
       - name: Generate bender file list
         # TODO: Remove -e fpnew once fpnew_top.sv is fixed upstream.
