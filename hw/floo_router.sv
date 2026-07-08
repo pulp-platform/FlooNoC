@@ -191,7 +191,7 @@ module floo_router
 
   // Vars to separate reductions with only one member
   logic [NumInput-1:0][NumVirtChannels-1:0][NumInput-1:0] red_expected_in_route;
-  logic [NumInput-1:0][NumVirtChannels-1:0][$clog2(NumInput):0] red_how_many_participants;
+  logic [NumInput-1:0][NumVirtChannels-1:0][$clog2(NumInput+1)-1:0] red_how_many_participants;
   logic [NumInput-1:0][NumVirtChannels-1:0] red_single_member, offload_reduction;
 
   // If we support offload reduction and a reduction is dedected then we split the signal and forward it to the reduction
