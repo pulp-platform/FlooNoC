@@ -389,9 +389,19 @@ class AddrRange(BaseModel):
     rdl_as_mem: Optional[bool] = None
     en_collective: bool = False
     desc: Optional[str] = None
+    rdl_addrmap_grp: Optional[List[str]] = None
+    """One or more SystemRDL addrmap group tags this address range belongs to."""
 
     def __str__(self):
         return f"[{self.start:X}:{self.end:X}]"
+
+    @field_validator("rdl_addrmap_grp", mode="before")
+    @classmethod
+    def rdl_addrmap_grp_to_list(cls, v):
+        """Convert a single group name to a list."""
+        if isinstance(v, str):
+            return [v]
+        return v
 
     @model_validator(mode="before")
     def validate_input(self):
@@ -788,6 +798,20 @@ class RouteMap(BaseModel):
         for rule in rdl_names:
             string += f"`include \"{rule}.rdl\"\n"
         return string
+
+    def distinct_groups(self) -> List[str]:
+        """Return the sorted list of distinct RDL addrmap groups used by any rule."""
+        groups = set()
+        for rule in self.rules:
+            if rule.addr_range.rdl_addrmap_grp:
+                groups.update(rule.addr_range.rdl_addrmap_grp)
+        return sorted(groups)
+
+    def filter_by_group(self, group: str) -> "RouteMap":
+        """Return a new RouteMap with only rules in `group` (untagged rules included)."""
+        rules = [r for r in self.rules
+                 if not r.addr_range.rdl_addrmap_grp or group in r.addr_range.rdl_addrmap_grp]
+        return RouteMap(name=self.name, rules=rules)
 
     def pprint(self):
         """Pretty print the routing table."""

@@ -112,3 +112,37 @@ endpoints:
     sbr_port_protocol:
       - "axi_out"
 ```
+
+### SystemRDL Addrmap Groups
+
+Each address range can be tagged with one or more `rdl_addrmap_grp` values to control
+which generated SystemRDL addrmap(s) it appears in (see the [`rdl` CLI
+command](cli.md#rdl)). This is a per-`addr_range` field, not a per-endpoint one, since
+different address ranges of the *same* endpoint (e.g. its main registers vs. a
+debug-only region) may need to be reachable from different views. A single group can
+be given as a plain string, or multiple groups as a list. Address ranges without
+`rdl_addrmap_grp` are considered common and are included in every group's file.
+
+```yaml
+endpoints:
+  - name: "cluster"
+    addr_range:
+      - base: 0x1000_0000
+        size: 0x0004_0000
+        rdl_name: "cluster_regs"
+        rdl_addrmap_grp: ["32b", "64b"] # visible in both the 32b and 64b addrmaps
+      - base: 0x1000_4000
+        size: 0x0000_1000
+        rdl_name: "cluster_debug_regs"
+        rdl_addrmap_grp: "64b" # only visible in the 64b addrmap
+    sbr_port_protocol:
+      - "axi_out"
+  - name: "hbm"
+    addr_range:
+      base: 0x8000_0000
+      size: 0x1000_0000
+      rdl_name: "hbm_regs"
+      rdl_addrmap_grp: "64b" # only visible in the 64b addrmap
+    sbr_port_protocol:
+      - "axi_out"
+```

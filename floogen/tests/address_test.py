@@ -154,3 +154,69 @@ def test_trim():
         RouteMapRule(addr_range=AddrRange(start=31, end=40), dest=SimpleId(id=2)),
     ]
     assert routing_table.rules == expected_rules
+
+
+def test_rdl_addrmap_grp_addr_range_scalar_and_list():
+    """Test that a scalar or list rdl_addrmap_grp both normalize to a List[str]."""
+    ar_scalar = AddrRange(start=0, end=0x1000, rdl_addrmap_grp="32b")
+    ar_list = AddrRange(start=0, end=0x1000, rdl_addrmap_grp=["32b", "64b"])
+    assert ar_scalar.rdl_addrmap_grp == ["32b"]
+    assert ar_list.rdl_addrmap_grp == ["32b", "64b"]
+
+
+def test_route_map_distinct_groups():
+    """Test that distinct_groups() collects the sorted set of groups across all rules."""
+    rule1 = RouteMapRule(addr_range=AddrRange(start=0, end=10, rdl_addrmap_grp=["32b", "64b"]),
+                          dest=SimpleId(id=1))
+    rule2 = RouteMapRule(addr_range=AddrRange(start=10, end=20, rdl_addrmap_grp=["32b"]),
+                          dest=SimpleId(id=2))
+    rule3 = RouteMapRule(addr_range=AddrRange(start=20, end=30), dest=SimpleId(id=3))
+    route_map = RouteMap(name="sam", rules=[rule1, rule2, rule3])
+    assert route_map.distinct_groups() == ["32b", "64b"]
+
+
+def test_route_map_filter_by_group():
+    """Test filtering a RouteMap by group, keeping untagged rules in every group."""
+    rule1 = RouteMapRule(addr_range=AddrRange(start=0, end=10, rdl_addrmap_grp=["32b", "64b"]),
+                          dest=SimpleId(id=1), desc="endpoint1")
+    rule2 = RouteMapRule(addr_range=AddrRange(start=10, end=20, rdl_addrmap_grp=["32b"]),
+                          dest=SimpleId(id=2), desc="endpoint2")
+    rule3 = RouteMapRule(addr_range=AddrRange(start=20, end=30, rdl_addrmap_grp=["64b"]),
+                          dest=SimpleId(id=3), desc="endpoint3")
+    route_map = RouteMap(name="sam", rules=[rule1, rule2, rule3])
+
+    grp_32b = route_map.filter_by_group("32b")
+    assert {r.desc for r in grp_32b.rules} == {"endpoint1", "endpoint2"}
+
+    grp_64b = route_map.filter_by_group("64b")
+    assert {r.desc for r in grp_64b.rules} == {"endpoint1", "endpoint3"}
+
+
+def test_route_map_filter_by_group_includes_untagged():
+    """Test that untagged rules are included in every group's filtered RouteMap."""
+    tagged = RouteMapRule(addr_range=AddrRange(start=0, end=10, rdl_addrmap_grp=["32b"]),
+                          dest=SimpleId(id=1), desc="tagged")
+    untagged = RouteMapRule(addr_range=AddrRange(start=10, end=20), dest=SimpleId(id=2),
+                             desc="untagged")
+    route_map = RouteMap(name="sam", rules=[tagged, untagged])
+
+    grp_32b = route_map.filter_by_group("32b")
+    assert {r.desc for r in grp_32b.rules} == {"tagged", "untagged"}
+
+    grp_64b = route_map.filter_by_group("64b")
+    assert {r.desc for r in grp_64b.rules} == {"untagged"}
+
+
+def test_rdl_addrmap_grp_differs_per_addr_range_of_same_endpoint():
+    """Test that two addr_ranges of the same endpoint can belong to different groups."""
+    narrow_range = RouteMapRule(addr_range=AddrRange(start=0, end=10, rdl_addrmap_grp="32b"),
+                                 dest=SimpleId(id=1), desc="ep_narrow")
+    wide_range = RouteMapRule(addr_range=AddrRange(start=10, end=20, rdl_addrmap_grp="64b"),
+                               dest=SimpleId(id=1), desc="ep_wide")
+    route_map = RouteMap(name="sam", rules=[narrow_range, wide_range])
+
+    grp_32b = route_map.filter_by_group("32b")
+    assert {r.desc for r in grp_32b.rules} == {"ep_narrow"}
+
+    grp_64b = route_map.filter_by_group("64b")
+    assert {r.desc for r in grp_64b.rules} == {"ep_wide"}

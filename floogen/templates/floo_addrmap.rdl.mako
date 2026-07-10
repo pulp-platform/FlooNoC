@@ -10,10 +10,10 @@
 
 // AUTOMATICALLY GENERATED! DO NOT EDIT!
 
-${noc.routing.sam.render_rdl_inc()}
+${sam.render_rdl_inc()}
 
-addrmap ${noc.name}_addrmap {
+addrmap ${addrmap_name} {
 
-${noc.routing.sam.render_rdl(rdl_as_mem, rdl_memwidth)}
+${sam.render_rdl(rdl_as_mem, rdl_memwidth)}
 
 };

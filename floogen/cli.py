@@ -219,8 +219,6 @@ def main():
             context["name"] = args.name or network.name
             pkg_file_name = f"floo_{args.name or network.name}_noc_pkg.sv"
             top_file_name = f"floo_{args.name or network.name}_noc.sv"
-        case "rdl":
-            rdl_file_name = f"{network.name}_addrmap.rdl"
 
 
     match args.command:
@@ -250,11 +248,16 @@ def main():
         case "rdl":
             context["rdl_as_mem"] = args.as_mem
             context["rdl_memwidth"] = args.memwidth
-            render_template(context,
-                tpl=tpl_dir / "floo_addrmap.rdl.mako",
-                file_name=rdl_file_name,
-                **render_kwargs,
-            )
+            groups = network.routing.sam.distinct_groups() or [None]
+            for group in groups:
+                suffix = f"_{group}" if group else ""
+                context["sam"] = network.routing.sam.filter_by_group(group) if group else network.routing.sam
+                context["addrmap_name"] = f"{network.name}_addrmap{suffix}"
+                render_template(context,
+                    tpl=tpl_dir / "floo_addrmap.rdl.mako",
+                    file_name=f"{network.name}_addrmap{suffix}.rdl",
+                    **render_kwargs,
+                )
         case "template":
             for tpl in args.template:
                 render_template(context,

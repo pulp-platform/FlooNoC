@@ -107,6 +107,12 @@ Generates the **SystemRDL** description for the endpoint address regions. This i
 floogen rdl -c <config_file> -o <output_dir>
 ```
 
+By default, this produces a single `<name>_addrmap.rdl` file containing all endpoints.
+If any endpoint declares [`rdl_addrmap_grp`](endpoints.md#systemrdl-addrmap-groups), one
+`<name>_addrmap_<group>.rdl` file is generated per distinct group instead, each
+containing only the endpoints tagged with that group (endpoints without
+`rdl_addrmap_grp` are included in every group).
+
 -----
 
 ### `query`
