@@ -248,6 +248,19 @@ package floo_pkg;
     reduction_cfg_t  WideRedCfg;
   } collective_cfg_t;
 
+  /// Per-channel routing algorithm selection for the narrow-wide router.
+  /// `Req` and `Rsp` govern the narrow request/response routers, and are
+  /// reused for the wide channel: the wide-write crossbar (VC0) uses `Req`,
+  /// the wide-read crossbar (VC1) uses `Rsp`. `Req` must equal `Rsp` unless
+  /// the wide channel is physically decoupled (`WideRwDecouple == Phys`),
+  /// since only then do wide reads and writes traverse independent physical
+  /// crossbars; otherwise a single, shared wide crossbar can only use one
+  /// algorithm.
+  typedef struct packed {
+    route_algo_e Req;
+    route_algo_e Rsp;
+  } nw_route_algo_t;
+
   /// Configuration to pass routing information to the routers
   /// as well as network interfaces
   typedef struct packed {
@@ -352,6 +365,12 @@ package floo_pkg;
     CutAx: 1'b0,
     CutOup: 1'b0,
     CutRsp: 1'b0
+  };
+
+  /// The default configuration for the per-channel narrow-wide routing algorithm
+  localparam nw_route_algo_t NwRouteAlgoDefaultCfg = '{
+    Req: XYRouting,
+    Rsp: XYRouting
   };
 
   /// The default configuration for routing
