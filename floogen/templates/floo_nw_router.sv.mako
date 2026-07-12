@@ -11,7 +11,7 @@
 <% req_type = next(d for d in router.incoming if d is not None).req_type %>\
 <% rsp_type = next(d for d in router.incoming if d is not None).rsp_type %>\
 <% wide_type = next(d for d in router.incoming if d is not None).wide_type %>\
-% if router.route_algo == RouteAlgo.ID:
+% if router.route_algo.req == RouteAlgo.ID:
 ${router.table.render()}
 % endif
 
@@ -64,14 +64,14 @@ ${wide_type} [${len(router.outgoing)-1}:0] ${router.name}_wide_out;
   % endif
 % endfor
 
-% if router.route_algo == RouteAlgo.XY or router.route_algo == RouteAlgo.YX:
+% if router.route_algo.req == RouteAlgo.XY or router.route_algo.req == RouteAlgo.YX:
   localparam id_t ${router.name.upper()}_ID = ${offset_xy_id.render()};
 % endif
 
 floo_nw_router #(
   .AxiCfgN(AxiCfgN),
   .AxiCfgW(AxiCfgW),
-  .RouteAlgo (${router.route_algo.value}),
+  .RouteAlgo (${router.route_algo.render()}),
   .NumRoutes (${router.degree}),
   .NumInputs (${len(router.incoming)}),
   .NumOutputs (${len(router.outgoing)}),
@@ -79,7 +79,7 @@ floo_nw_router #(
   .OutFifoDepth (2),
   .id_t(id_t),
   .hdr_t(hdr_t),
-% if router.route_algo == RouteAlgo.ID:
+% if router.route_algo.req == RouteAlgo.ID:
   .NumAddrRules (${len(router.table.rules)}),
   .addr_rule_t (route_map_rule_t),
 % endif
@@ -105,12 +105,12 @@ floo_nw_router #(
   .clk_i,
   .rst_ni,
   .test_enable_i,
-% if router.route_algo == RouteAlgo.XY or router.route_algo == RouteAlgo.YX:
+% if router.route_algo.req == RouteAlgo.XY or router.route_algo.req == RouteAlgo.YX:
   .id_i (${router.name.upper()}_ID),
 % else:
   .id_i ('0),
 % endif
-% if router.route_algo == RouteAlgo.ID:
+% if router.route_algo.req == RouteAlgo.ID:
   .id_route_map_i (${camelcase(router.name + "_map")}),
 % else:
   .id_route_map_i ('0),

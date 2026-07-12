@@ -40,6 +40,31 @@ class RouteAlgo(Enum):
         return f"{self.name}"
 
 
+class NwRouteAlgo(BaseModel):
+    """Per-channel routing algorithm selection for the narrow-wide router.
+
+    Mirrors ``nw_route_algo_t`` in `floo_pkg`. ``req``/``rsp`` govern the
+    narrow request/response routers, and are reused for the wide channel:
+    the wide-write crossbar uses ``req``, the wide-read crossbar uses
+    ``rsp``. ``req`` must equal ``rsp`` unless the wide channel is
+    physically decoupled (``decouple_rw == Phys``), since only then do wide
+    reads and writes traverse independent physical crossbars.
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    req: RouteAlgo
+    rsp: RouteAlgo
+
+    def render(self) -> str:
+        """Render the SystemVerilog `nw_route_algo_t` struct literal."""
+        fields = {
+            "Req": self.req.value,
+            "Rsp": self.rsp.value,
+        }
+        return sv_struct_render(fields)
+
+
 class WideRwDecouple(Enum):
     """Read/write decoupling mode for the wide link (mirrors wide_rw_decouple_e in floo_pkg).
 
@@ -833,6 +858,26 @@ class Routing(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
     route_algo: RouteAlgo
+    """The network-wide routing algorithm, and the "family" (XY/YX vs ID vs
+    SRC) shared by all channels. Drives `id_t`, `hdr_t`, and
+    `NumXBits`/`NumYBits` sizing, which are identical for `XY` and `YX`.
+
+    Instead of a single algorithm (e.g. `route_algo: XY`), this can also be
+    given as a mapping with optional `req`/`rsp` keys to pick a different
+    algorithm per channel, e.g. `route_algo: {req: XY, rsp: YX}`. A missing
+    key defaults to `XY`. `req` is also reused for the wide-write crossbar,
+    `rsp` for the wide-read crossbar; they must resolve to the same value
+    unless `decouple_rw` is `Phys` (otherwise the wide channel is a single
+    shared crossbar that can only use one algorithm). Only `XY`/`YX` support
+    this per-channel form."""
+    route_algo_req: Optional[RouteAlgo] = None
+    """Resolved routing algorithm for the narrow request channel (also used
+    for the wide-write crossbar). Populated automatically from the `req` key
+    when `route_algo` is given as a mapping; not meant to be set directly."""
+    route_algo_rsp: Optional[RouteAlgo] = None
+    """Resolved routing algorithm for the narrow response channel (also used
+    for the wide-read crossbar). Populated automatically from the `rsp` key
+    when `route_algo` is given as a mapping; not meant to be set directly."""
     use_id_table: bool = True
     sam: Optional[RouteMap] = None
     """The system address map."""
@@ -869,6 +914,25 @@ class Routing(BaseModel):
         """True when any collective feature is enabled (multicast, barrier, or reduction)."""
         return self.collective.en_collective
 
+    @model_validator(mode="before")
+    @classmethod
+    def parse_route_algo_channels(cls, data):
+        """Allow `route_algo` to be given either as a single algorithm
+        (applied uniformly), or as a `{req: ..., rsp: ...}` mapping to pick a
+        different algorithm per channel. A missing key defaults to `XY`."""
+        if isinstance(data, dict) and isinstance(data.get("route_algo"), dict):
+            channels = dict(data["route_algo"])
+            extra_keys = set(channels) - {"req", "rsp"}
+            if extra_keys:
+                raise ValueError(
+                    "`route_algo` mapping only supports 'req'/'rsp' keys, "
+                    f"got {sorted(extra_keys)}"
+                )
+            req = channels.get("req", "XY")
+            rsp = channels.get("rsp", "XY")
+            data = {**data, "route_algo": req, "route_algo_req": req, "route_algo_rsp": rsp}
+        return data
+
     @field_validator("route_algo", mode="before")
     @classmethod
     def validate_route_algo(cls, v):
@@ -876,6 +940,64 @@ class Routing(BaseModel):
         if isinstance(v, str):
             v = RouteAlgo[v]
         return v
+
+    @field_validator("route_algo_req", "route_algo_rsp", mode="before")
+    @classmethod
+    def validate_route_algo_override(cls, v):
+        """Validate the per-channel routing algorithm overrides."""
+        if isinstance(v, str):
+            v = RouteAlgo[v]
+        return v
+
+    @property
+    def effective_route_algo_req(self) -> RouteAlgo:
+        """The resolved routing algorithm for the narrow request channel
+        (also used for the wide-write crossbar)."""
+        return self.route_algo_req if self.route_algo_req is not None else self.route_algo
+
+    @property
+    def effective_route_algo_rsp(self) -> RouteAlgo:
+        """The resolved routing algorithm for the narrow response channel
+        (also used for the wide-read crossbar)."""
+        return self.route_algo_rsp if self.route_algo_rsp is not None else self.route_algo
+
+    @property
+    def effective_nw_route_algo(self) -> NwRouteAlgo:
+        """The resolved per-channel routing algorithm, for narrow-wide networks."""
+        return NwRouteAlgo(
+            req=self.effective_route_algo_req,
+            rsp=self.effective_route_algo_rsp,
+        )
+
+    @model_validator(mode="after")
+    def validate_channel_route_algo_overrides(self):
+        """Per-channel routing algorithm overrides are only meaningful within
+        the XY/YX family, and `req`/`rsp` must agree unless the wide channel
+        is physically decoupled (otherwise the shared wide crossbar can only
+        use one algorithm)."""
+        overrides = {
+            "route_algo_req": self.route_algo_req,
+            "route_algo_rsp": self.route_algo_rsp,
+        }
+        if self.route_algo not in (RouteAlgo.XY, RouteAlgo.YX):
+            set_overrides = {k: v for k, v in overrides.items() if v is not None}
+            if set_overrides:
+                raise ValueError(
+                    "Per-channel routing algorithm overrides "
+                    f"({list(set_overrides)}) are only supported when "
+                    f"`route_algo` is `XY` or `YX`, but got {self.route_algo}"
+                )
+        elif self.decouple_rw != WideRwDecouple.PHYS and (
+            self.effective_route_algo_req != self.effective_route_algo_rsp
+        ):
+            raise ValueError(
+                "`route_algo_req` and `route_algo_rsp` must resolve to the same "
+                "routing algorithm unless `decouple_rw` is `Phys` (they are reused "
+                "for the wide-write/wide-read crossbars, which otherwise share a "
+                f"single physical crossbar), got {self.effective_route_algo_req} "
+                f"and {self.effective_route_algo_rsp}"
+            )
+        return self
 
     @field_validator("decouple_rw", mode="before")
     @classmethod

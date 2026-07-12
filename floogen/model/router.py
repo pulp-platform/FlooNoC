@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from mako.lookup import Template
 
-from floogen.model.routing import RouteMap, SimpleId, Coord, RouteAlgo
+from floogen.model.routing import RouteMap, SimpleId, Coord, RouteAlgo, NwRouteAlgo
 from floogen.model.link import Link
 import floogen.templates
 
@@ -101,6 +101,8 @@ class AxiRouter(Router):
 
 class NarrowWideRouter(Router):
     """Router class to describe a narrow-wide router"""
+
+    route_algo: NwRouteAlgo
 
     with as_file(
         files(floogen.templates).joinpath("floo_nw_router.sv.mako")

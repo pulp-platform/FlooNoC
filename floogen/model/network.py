@@ -466,6 +466,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 case "axi":
                     self.graph.set_node_obj(rt_name, AxiRouter(**router_dict))
                 case "narrow-wide":
+                    router_dict["route_algo"] = self.routing.effective_nw_route_algo
                     self.graph.set_node_obj(rt_name, NarrowWideRouter(**router_dict))
 
     def compile_endpoints(self):
