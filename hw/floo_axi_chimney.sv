@@ -481,7 +481,13 @@ module floo_axi_chimney
 
   for (genvar ch = 0; ch < NumAxiChannels; ch++) begin : gen_route
     localparam axi_ch_e Ch = axi_ch_e'(ch);
+
     if (Ch == AxiAw || Ch == AxiAr) begin : gen_req_route
+
+      logic axi_req_valid;
+      assign axi_req_valid = (Ch == AxiAw)? axi_aw_queue_valid_out :
+                              (Ch == AxiAr)? axi_ar_queue_valid_out : 1'b0;
+
       // Translate the address from AXI requests to a destination ID
       floo_id_translation #(
         .RouteCfg   (RouteCfg),
@@ -494,7 +500,7 @@ module floo_axi_chimney
       ) i_floo_id_translation (
         .clk_i,
         .rst_ni,
-        .valid_i       (axi_aw_queue_valid_out),
+        .valid_i       (axi_req_valid),
         .addr_i        (axi_req_addr[ch]),
         .id_o          (id_out[ch]),
         .mask_addr_x_o (x_mask_sel[ch]),
