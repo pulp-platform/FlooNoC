@@ -12,25 +12,17 @@ variables:
 
 default:
   interruptible: true
+  before_script:
+    - export BENDER_DB_DIR=$CACHEDIR/bender
+    - export UV_CACHE_DIR=$CACHEDIR/uv
 
 stages:
   - init
   - build
   - run
 
-collect-bender-sources:
-  stage: init
-  script:
-    - $BENDER checkout
-  artifacts:
-    paths:
-      - .bender/
-      - Bender.lock
-
 compile-vsim:
   stage: build
-  needs:
-    - collect-bender-sources
   script:
     - make compile-vsim | tee compile.log 2>&1
     - '! grep "\*\* Error" compile.log'
@@ -42,8 +34,6 @@ compile-vsim:
 
 compile-vcs:
   stage: build
-  needs:
-    - collect-bender-sources
   parallel:
     matrix:
       - TB_DUT:
@@ -59,14 +49,12 @@ compile-vcs:
 
 compile-meshes:
   stage: build
-  needs:
-    - collect-bender-sources
   parallel:
     matrix:
       - DUT: [axi_mesh, nw_mesh]
         ROUTE_ALGO: [xy, yx, src, id]
   script:
-    - uv run --cache-dir $CACHEDIR/uv floogen rtl -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
+    - uv run floogen rtl -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
     # Compile the network
     - make compile-vsim EXTRA_BENDER_FLAGS="-t ${DUT}" WORK="work_${DUT}_${ROUTE_ALGO}" | tee compile.log 2>&1
     - '! grep "\*\* Error" compile.log'
@@ -77,7 +65,6 @@ compile-meshes:
 run-sim:
   stage: run
   needs:
-    - collect-bender-sources
     - compile-vsim
     - compile-vcs
   parallel:
@@ -100,7 +87,6 @@ run-sim:
 run-traffic:
   stage: run
   needs:
-    - collect-bender-sources
     - compile-meshes
   variables:
     JOB_NAME: mesh
