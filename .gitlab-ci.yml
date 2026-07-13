@@ -18,7 +18,6 @@ default:
     - export UV_CACHE_DIR=$CACHEDIR/uv
 
 stages:
-  - init
   - build
   - run
 
@@ -107,7 +106,7 @@ run-traffic:
 ###################
 
 init-pd:
-  stage: init
+  stage: build
   script:
     - make init-pd
   artifacts:
