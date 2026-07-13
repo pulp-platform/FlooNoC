@@ -252,7 +252,7 @@ def main():
             for group in groups:
                 suffix = f"_{group}" if group else ""
                 context["sam"] = network.routing.sam.filter_by_group(group) if group else network.routing.sam
-                context["addrmap_name"] = f"{network.name}_addrmap{suffix}"
+                context["suffix"] = suffix
                 render_template(context,
                     tpl=tpl_dir / "floo_addrmap.rdl.mako",
                     file_name=f"{network.name}_addrmap{suffix}.rdl",

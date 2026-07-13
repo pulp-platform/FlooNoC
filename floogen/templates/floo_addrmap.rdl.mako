@@ -12,7 +12,7 @@
 
 ${sam.render_rdl_inc()}
 
-addrmap ${addrmap_name} {
+addrmap ${noc.name}_addrmap${suffix} {
 
 ${sam.render_rdl(rdl_as_mem, rdl_memwidth)}
 

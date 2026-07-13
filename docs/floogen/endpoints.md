@@ -113,6 +113,37 @@ endpoints:
       - "axi_out"
 ```
 
+### SystemRDL Generation
+
+The [`rdl` CLI command](cli.md#rdl) generates a SystemRDL description of the network's
+address map, with one addrmap entry per subordinate address range. By default, an
+address range without further annotation is either skipped or rendered as an anonymous
+`external mem` block (if `--as-mem` is passed on the command line). Two `addr_range`
+fields give finer control over how each range is rendered:
+
+- `rdl_name`: instantiates an externally-defined SystemRDL component (e.g. a register
+  file described in its own `.rdl` file) at this address range. FlooGen emits an
+  `` `include `` for it in the generated file.
+- `rdl_as_mem`: renders this specific range as an anonymous `external mem` block,
+  overriding the global `--as-mem` flag for this range only (`true` forces it on,
+  `false` forces it off, regardless of the CLI flag).
+
+`rdl_name` and `rdl_as_mem` are mutually exclusive on the same address range.
+
+```yaml
+endpoints:
+  - name: "cluster"
+    addr_range:
+      - base: 0x1000_0000
+        size: 0x0004_0000
+        rdl_name: "cluster_regs" # instantiate an externally-defined `cluster_regs.rdl`
+      - base: 0x1000_4000
+        size: 0x0000_1000
+        rdl_as_mem: true # always render as `external mem`, regardless of --as-mem
+    sbr_port_protocol:
+      - "axi_out"
+```
+
 ### SystemRDL Addrmap Groups
 
 Each address range can be tagged with one or more `rdl_addrmap_grp` values to control
