@@ -43,26 +43,16 @@ class RouteAlgo(Enum):
 class NwRouteAlgo(BaseModel):
     """Per-channel routing algorithm selection for the narrow-wide router.
 
-    Mirrors ``nw_route_algo_t`` in `floo_pkg`. ``req``/``rsp`` govern the
-    narrow request/response routers, and are reused for the wide channel:
-    the wide-write crossbar uses ``req``, the wide-read crossbar uses
-    ``rsp``. ``req`` must equal ``rsp`` unless the wide channel is
-    physically decoupled (``decouple_rw == Phys``), since only then do wide
-    reads and writes traverse independent physical crossbars.
+    ``req`` must equal ``rsp``
+    unless the wide channel is physically decoupled
+    (``decouple_rw == Phys``), since only then do wide reads and writes
+    traverse independent physical crossbars.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     req: RouteAlgo
     rsp: RouteAlgo
-
-    def render(self) -> str:
-        """Render the SystemVerilog `nw_route_algo_t` struct literal."""
-        fields = {
-            "Req": self.req.value,
-            "Rsp": self.rsp.value,
-        }
-        return sv_struct_render(fields)
 
 
 class WideRwDecouple(Enum):
@@ -1109,9 +1099,11 @@ class Routing(BaseModel):
         }
         return sv_param_decl(name, sv_struct_render(fields), dtype="route_cfg_t")
 
-    def render_nw_route_algo(self, name) -> str:
-        """Per-channel `nw_route_algo_t` localparam declaration."""
-        return sv_param_decl(name, self.effective_nw_route_algo.render(), dtype="nw_route_algo_t")
+    def render_nw_route_algo(self) -> str:
+        """Render the `ReqRouteAlgo`/`RspRouteAlgo` localparam declarations"""
+        s = sv_param_decl("ReqRouteAlgo", self.effective_route_algo_req.value, dtype="route_algo_e")
+        s += sv_param_decl("RspRouteAlgo", self.effective_route_algo_rsp.value, dtype="route_algo_e")
+        return s
 
     def render_vc_impl(self) -> str:
         """Render WideRwDecouple and VcImpl localparam declarations."""

@@ -71,7 +71,8 @@ ${wide_type} [${len(router.outgoing)-1}:0] ${router.name}_wide_out;
 floo_nw_router #(
   .AxiCfgN(AxiCfgN),
   .AxiCfgW(AxiCfgW),
-  .RouteAlgo (${router.route_algo.render()}),
+  .ReqRouteAlgo (${router.route_algo.req.value}),
+  .RspRouteAlgo (${router.route_algo.rsp.value}),
   .NumRoutes (${router.degree}),
   .NumInputs (${len(router.incoming)}),
   .NumOutputs (${len(router.outgoing)}),
