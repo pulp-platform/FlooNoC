@@ -1109,6 +1109,10 @@ class Routing(BaseModel):
         }
         return sv_param_decl(name, sv_struct_render(fields), dtype="route_cfg_t")
 
+    def render_nw_route_algo(self, name) -> str:
+        """Per-channel `nw_route_algo_t` localparam declaration."""
+        return sv_param_decl(name, self.effective_nw_route_algo.render(), dtype="nw_route_algo_t")
+
     def render_vc_impl(self) -> str:
         """Render WideRwDecouple and VcImpl localparam declarations."""
         s = ""

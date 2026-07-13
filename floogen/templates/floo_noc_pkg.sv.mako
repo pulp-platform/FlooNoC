@@ -57,6 +57,9 @@ package floo_${name}_noc_pkg;
 % endif
 
   ${noc.routing.render_route_cfg(name="RouteCfg")}
+% if noc.network_type == "narrow-wide":
+  ${noc.routing.render_nw_route_algo(name="NwRouteAlgo")}
+% endif
   ${noc.routing.render_vc_impl()}
 
 % for prot in noc.protocols:
