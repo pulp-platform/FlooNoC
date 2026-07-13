@@ -187,7 +187,7 @@ clean-spyglass:
 ###################
 
 PD_REMOTE ?= git@iis-git.ee.ethz.ch:axi-noc/floo_noc_pd.git
-PD_BRANCH ?= 4eca55093f3f4589e186150023f29614964d39a0
+PD_BRANCH ?= 5a2e34345740923dda068358c4b05f26cd205a0c
 PD_DIR = $(FLOO_ROOT)/pd
 
 .PHONY: init-pd
