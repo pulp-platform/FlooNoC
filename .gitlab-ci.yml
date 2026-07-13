@@ -9,6 +9,7 @@ variables:
   QUESTA_SEPP: questa-2025.1
   VCS_SEPP: vcs-2025.06
   BENDER: bender
+  BENDER_GIT_SUBMODULES: false
 
 default:
   interruptible: true
