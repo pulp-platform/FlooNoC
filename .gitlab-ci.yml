@@ -10,6 +10,7 @@ variables:
   VCS_SEPP: vcs-2025.06
   BENDER: bender
   BENDER_GIT_SUBMODULES: false
+  UV_LINK_MODE: copy
 
 default:
   interruptible: true
