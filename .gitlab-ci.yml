@@ -57,7 +57,7 @@ compile-meshes:
   script:
     - uv run floogen rtl -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
     # Compile the network
-    - make compile-vsim WORK="work_${DUT}_${ROUTE_ALGO}" | tee compile.log 2>&1
+    - make compile-vsim TB_DUT=tb_floo_${DUT} WORK="work_${DUT}_${ROUTE_ALGO}" | tee compile.log 2>&1
     - '! grep "\*\* Error" compile.log'
   artifacts:
     paths:
@@ -96,7 +96,7 @@ run-traffic-builtin:
         TRAFFIC_TYPE: [uniform, hbm, shuffle, hotspot]
         TRAFFIC_RW: [read, write]
   script:
-    - make jobs NOC_CFG=floogen/examples/${DUT}_${ROUTE_ALGO}.yml TRAFFIC_TYPE=${TRAFFIC_TYPE} TRAFFIC_RW=${TRAFFIC_RW}
+    - make generate-traffic NOC_CFG=floogen/examples/${DUT}_${ROUTE_ALGO}.yml TRAFFIC_TYPE=${TRAFFIC_TYPE} TRAFFIC_RW=${TRAFFIC_RW}
     - make run-vsim-batch TB_DUT=tb_floo_${DUT} WORK=work_${DUT}_${ROUTE_ALGO} NOC_CFG=floogen/examples/${DUT}_${ROUTE_ALGO}.yml | tee vsim.log 2>&1
     - 'grep "Errors: 0," vsim.log'
 
@@ -109,7 +109,7 @@ run-traffic-cfg:
       - DUT: [axi_mesh, nw_mesh]
         ROUTE_ALGO: [xy, yx, src, id]
   script:
-    - make jobs NOC_CFG=floogen/examples/${DUT}_${ROUTE_ALGO}.yml TRAFFIC_CFG=floogen/examples/traffic/${DUT}_${ROUTE_ALGO}.yml
+    - make generate-traffic NOC_CFG=floogen/examples/${DUT}_${ROUTE_ALGO}.yml TRAFFIC_CFG=floogen/examples/traffic/${DUT}_${ROUTE_ALGO}.yml
     - make run-vsim-batch TB_DUT=tb_floo_${DUT} WORK=work_${DUT}_${ROUTE_ALGO} NOC_CFG=floogen/examples/${DUT}_${ROUTE_ALGO}.yml | tee vsim.log 2>&1
     - 'grep "Errors: 0," vsim.log'
 
