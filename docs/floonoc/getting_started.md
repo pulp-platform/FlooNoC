@@ -120,13 +120,13 @@ Then, you can generate either of the testbenches with:
 === "uv"
 
     ```bash
-    uv run floogen rtl --noc-cfg floogen/examples/<mesh>_<route_algo>.yml -o generated/hw
+    uv run floogen rtl -c floogen/examples/<mesh>_<route_algo>.yml -o generated
     ```
 
 === "pip"
 
     ```bash
-    floogen rtl --noc-cfg floogen/examples/<mesh>_<route_algo>.yml -o generated/hw
+    floogen rtl -c floogen/examples/<mesh>_<route_algo>.yml -o generated
     ```
 
 === "Makefile"
@@ -162,13 +162,13 @@ The testbench endpoints are DMA models that accept job files to perform AXI4 tra
 === "uv"
 
     ```bash
-    uv run floogen traffic --noc-cfg floogen/examples/<floonoc_config>.yml --traffic-cfg floogen/examples/traffic/<traffic_config>.yml -o <outdir>
+    uv run floogen traffic -c floogen/examples/<floonoc_config>.yml --traffic-cfg floogen/examples/traffic/<traffic_config>.yml -o <outdir>
     ```
 
 === "pip"
 
     ```bash
-    floogen traffic --noc-cfg floogen/examples/<floonoc_config>.yml --traffic-cfg floogen/examples/traffic/<traffic_config>.yml -o <outdir>
+    floogen traffic -c floogen/examples/<floonoc_config>.yml --traffic-cfg floogen/examples/traffic/<traffic_config>.yml -o <outdir>
     ```
 
 === "Makefile"
@@ -229,7 +229,7 @@ make generate-noc NOC_CFG=<floonoc_config>.yml TRAFFIC_CFG=<traffic_config>.yml 
 Alternatively, `floogen traffic` also supports generating a handful of built-in, mesh-wide traffic patterns that onlyrequire a FlooNoC configuration file:
 
 ```bash
-floogen traffic --noc-cfg <floonoc_config>.yml --traffic-type <traffic_type> --traffic-rw <read_or_write> -o <outdir>
+floogen traffic -c <floonoc_config>.yml --traffic-type <traffic_type> --traffic-rw <read_or_write> -o <outdir>
 ```
 
 Currently supported traffic types are:

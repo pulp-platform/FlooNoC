@@ -23,12 +23,12 @@ This is the primary command for generating the hardware description. It generate
 **Usage:**
 
 ```bash
-floogen rtl -c <noc_config_file> -o <output_dir>
+floogen rtl -c <config_file> -o <output_dir>
 ```
 
 **Common Options:**
 
-  * `-c, --noc-cfg <file>`: Path to the YAML NoC configuration file.
+  * `-c, --config <file>`: Path to the YAML NoC configuration file.
   * `-o, --outdir <dir>`: Directory where generated files will be written. If omitted, output is printed to stdout.
   * `--no-format`: Disable auto-formatting (e.g., Verible) of the generated SystemVerilog.
 
@@ -41,7 +41,7 @@ Generates **only** the SystemVerilog package (`*_pkg.sv`). This is useful if you
 **Usage:**
 
 ```bash
-floogen pkg -c <noc_config_file> -o <output_dir>
+floogen pkg -c <config_file> -o <output_dir>
 ```
 
 -----
@@ -53,7 +53,7 @@ Generates **only** the structural top-level module (`*_top.sv`).
 **Usage:**
 
 ```bash
-floogen top -c <noc_config_file> -o <output_dir>
+floogen top -c <config_file> -o <output_dir>
 ```
 
 -----
@@ -89,7 +89,7 @@ Generates a graphical representation of the network topology. This is critical f
 **Usage:**
 
 ```bash
-floogen visualize -c <noc_config_file> [-o <output_dir>]
+floogen visualize -c <config_file> [-o <output_dir>]
 ```
 
   * If `-o` is specified, it saves the plot (e.g., as a PDF or PNG).
@@ -104,7 +104,7 @@ Generates the **SystemRDL** description for the endpoint address regions. This i
 **Usage:**
 
 ```bash
-floogen rdl -c <noc_config_file> -o <output_dir>
+floogen rdl -c <config_file> -o <output_dir>
 ```
 
 By default, this produces a single `<name>_addrmap.rdl` file containing all endpoints.
@@ -123,10 +123,10 @@ Introspection tool to query specific values from the internal graph representati
 
 ```bash
 # Example: Get the number of endpoints
-floogen query -c <noc_config_file> "endpoints"
+floogen query -c <config_file> "endpoints"
 
 # Example: Get a specific attribute
-floogen query -c <noc_config_file> "endpoints.my_cluster.addr_range.base"
+floogen query -c <config_file> "endpoints.my_cluster.addr_range.base"
 ```
 
 -----
@@ -138,14 +138,14 @@ Renders custom, user-provided Mako templates using the *FlooGen* network model. 
 **Usage:**
 
 ```bash
-floogen template -c <noc_config_file> --template <template_file> -o <output_dir>
+floogen template -c <config_file> --template <template_file> -o <output_dir>
 ```
 
 -----
 
 ### `traffic`
 
-Generates DMA **job files** for simulating synthetic traffic loads in RTL simulation. These can be read by the DMA test nodes to drive AXI transactions over the NoC. The network model (`-c <noc_config_file>`) provides the topology, address map, and protocol data widths, so the same traffic description adapts automatically to different NoC configurations.
+Generates DMA **job files** for simulating synthetic traffic loads in RTL simulation. These can be read by the DMA test nodes to drive AXI transactions over the NoC. The network model (`-c <config_file>`) provides the topology, address map, and protocol data widths, so the same traffic description adapts automatically to different NoC configurations.
 
 traffic is currently generated either via:
 
@@ -156,15 +156,15 @@ traffic is currently generated either via:
 
 ```bash
 # Generating traffic using traffic configuration files
-floogen traffic -c <noc_config_file> --traffic-cfg <traffic_file> -o <output_dir>
+floogen traffic -c <config_file> --traffic-cfg <traffic_file> -o <output_dir>
 
 #  Generating traffic using built-in mesh traffic patterns
-floogen traffic -c <noc_config_file> --traffic-type <pattern> --traffic-rw <read|write> -o <output_dir>
+floogen traffic -c <config_file> --traffic-type <pattern> --traffic-rw <read|write> -o <output_dir>
 ```
 
 **Common Options:**
 
-  * `-c, --noc-cfg <file>`: Path to the network (topology) YAML configuration file.
+  * `-c, --config <file>`: Path to the network (topology) YAML configuration file.
   * `-o, --outdir <dir>`: Directory where the job files are written. Defaults to `jobs`.
   * `--traffic-name <name>`: Base name of the emitted job files. Defaults to the traffic configuration's file stem (`--traffic`) or `mesh` (`--traffic-type`).
   * `-v, --verbose`: Print detailed information about what the tool is doing (the resolved traffic model, emitted job indices, and any warnings). Without it, generation is silent.

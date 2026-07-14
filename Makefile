@@ -50,7 +50,7 @@ FLOO_GEN_DIR 	?= $(FLOO_ROOT)/generated/hw
 
 .PHONY: generate-noc
 generate-noc:
-	floogen rtl --noc-cfg $(NOC_CFG) -o $(FLOO_GEN_DIR)
+	floogen rtl --config $(NOC_CFG) -o $(FLOO_GEN_DIR)
 
 install-floogen:
 	uv tool install floogen --reinstall .
@@ -73,14 +73,14 @@ TRAFFIC_RW 		?= write
 ifeq ($(strip $(TRAFFIC_TYPE)),)
 generate-traffic:
 	floogen traffic \
-		--noc-cfg $(NOC_CFG) \
+		--config $(NOC_CFG) \
 		--traffic-cfg $(TRAFFIC_CFG) \
 		--traffic-name $(TRAFFIC_NAME) \
 		-o $(TRAFFIC_OUTDIR)
 else
 generate-traffic:
 	floogen traffic \
-		--noc-cfg $(NOC_CFG) \
+		--config $(NOC_CFG) \
 		--traffic-type $(TRAFFIC_TYPE) \
 		--traffic-rw $(TRAFFIC_RW) \
 		--traffic-name $(TRAFFIC_NAME) \
