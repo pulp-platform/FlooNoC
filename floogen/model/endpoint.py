@@ -6,7 +6,7 @@
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
-from floogen.model.protocol import Protocols
+from floogen.model.protocol import ProtocolDesc
 from floogen.model.routing import AddrRange, Coord, SimpleId
 
 
@@ -114,13 +114,13 @@ class EndpointDesc(BaseModel):
 class Endpoint(EndpointDesc):
     """Endpoint class to describe an endpoint with adress ranges and configuration parameters."""
 
-    mgr_ports: list[Protocols] = []
-    sbr_ports: list[Protocols] = []
+    mgr_ports: list[ProtocolDesc] = []
+    sbr_ports: list[ProtocolDesc] = []
 
     @classmethod
     def from_desc(cls, desc: EndpointDesc,
-                  mgr_ports: list[Protocols],
-                  sbr_ports: list[Protocols]):
+                  mgr_ports: list[ProtocolDesc],
+                  sbr_ports: list[ProtocolDesc]):
         """Create an endpoint from a description."""
         return cls(**desc.model_dump(), mgr_ports=mgr_ports, sbr_ports=sbr_ports)
 

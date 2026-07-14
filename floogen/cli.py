@@ -10,6 +10,7 @@ from importlib.metadata import version
 from importlib.resources import files
 from importlib.util import find_spec
 from pathlib import Path
+from typing import TypedDict
 
 from mako.template import Template
 
@@ -19,7 +20,17 @@ from floogen.model.traffic import MESH_TRAFFIC_TYPES, gen_traffic_builtin, gen_t
 from floogen.query import handle_query
 from floogen.utils import verible_format
 
-tpl_dir = files("floogen") / "templates"
+tpl_dir = Path(str(files("floogen") / "templates"))
+
+
+class RenderKwargs(TypedDict, total=False):
+    """Keyword arguments forwarded to `render_template`."""
+
+    outdir: Path | None
+    format_output: bool
+    verible_fmt_bin: str | None
+    verible_fmt_args: str | None
+
 
 def render_template(context: dict, tpl: Path,
                     outdir: Path | None = None, file_name: str | None = None,
@@ -280,7 +291,7 @@ def main():
     context = {"noc": network}
 
     # Additional render arguments
-    render_kwargs = {"outdir": args.outdir}
+    render_kwargs: RenderKwargs = {"outdir": args.outdir}
 
     # Command specific render arguments
     match args.command:

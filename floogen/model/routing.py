@@ -375,7 +375,11 @@ class AddrRange(BaseModel):
         en_collective (bool): If true, marks this range as a multicast/collective destination.
     """
 
-    model_config = ConfigDict(extra="forbid", validate_assignement=True)
+    # NOTE: `validate_assignment` is intentionally *not* enabled. It was previously spelled
+    # `validate_assignement`, which pydantic silently ignored, so it has never been active.
+    # Enabling it breaks `set_arr()`, which assigns `start` before `end` and therefore
+    # transiently violates the `start < end` invariant checked by `validate_output`.
+    model_config = ConfigDict(extra="forbid")
 
     start: int = Field(ge=0)
     end: int = Field(ge=0)

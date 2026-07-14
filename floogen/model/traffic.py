@@ -160,6 +160,19 @@ def _xy_addr_map(network: Network) -> dict[tuple[int, int], int]:
     return xy_addr_map
 
 
+def _mesh_dims(network: Network) -> tuple[int, int]:
+    """Return the `(x, y)` dimensions of the network's router mesh.
+
+    `Router.array` is optional and may describe a 1D array, but traffic generation is only
+    defined for a 2D mesh, so reject anything else with a readable error.
+    """
+    match network.routers[0].array:
+        case (num_x, num_y):
+            return num_x, num_y
+        case _:
+            raise ValueError("Traffic generation requires a 2D mesh of routers")
+
+
 def resolve_traffic_model(traffic_model: Traffic, network: Network,
                           verbose: bool = False) -> Traffic:
     """Resolve burst data widths and initiator/endpoint addresses using the FlooNoC model."""
@@ -251,7 +264,7 @@ def gen_traffic_cfg(  # pylint: disable=too-many-arguments, too-many-positional-
     traffic_model = resolve_traffic_model(traffic_model, network, verbose=verbose)
     if verbose:
         print_traffic_model(traffic_model)
-    floonoc_num_y = network.routers[0].array[1]
+    _, floonoc_num_y = _mesh_dims(network)
     for flow in traffic_model.traffic_flows:
         local_addr = flow.initiator_addr
         ext_addr = flow.endpoint_addr
@@ -300,7 +313,7 @@ def gen_traffic_builtin(  # pylint: disable=too-many-arguments, too-many-positio
         raise ValueError(f"Unknown traffic type: '{traffic_type}'. "
                           f"Supported types: {', '.join(MESH_TRAFFIC_TYPES)}")
 
-    num_x, num_y = network.routers[0].array[0], network.routers[0].array[1]
+    num_x, num_y = _mesh_dims(network)
     xy_addr_map = _xy_addr_map(network)
     proto_dw = _protocol_data_widths(network, verbose=verbose)
     narrow_dw = proto_dw.get("narrow")

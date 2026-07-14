@@ -25,7 +25,7 @@ class Link(BaseModel, ABC):
     dest_type: str
     is_bidirectional: bool = False
     is_array: bool = False
-    array: list = None
+    array: list | None = None
 
     channel_mapping: ClassVar[dict] = {}
 

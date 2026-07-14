@@ -34,6 +34,10 @@ class ProtocolDesc(BaseModel):
     type: Annotated[str, StringConstraints(pattern=r"narrow|wide")] | None = None
     direction: str | None = None
 
+    def render_port(self, pkg_name="", prefix="") -> list[str]:
+        """Render the port of the protocol."""
+        raise NotImplementedError
+
 
 class AXI4(ProtocolDesc):
     """AXI4 protocol class.

@@ -874,7 +874,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             fields_dict[rule_desc] = i
         return sv_enum_typedef(name="sam_idx_e", fields_dict=fields_dict)
 
-    def visualize(self, savefig=True, filename: pathlib.Path = "network.png"):
+    def visualize(self, savefig=True, filename: pathlib.Path = pathlib.Path("network.png")):
         """Visualize the network graph."""
         # Imported lazily so the optional 'viz' extra (matplotlib) is only
         # required when this feature is actually used. The CLI hides the
