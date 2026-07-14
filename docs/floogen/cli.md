@@ -171,7 +171,7 @@ floogen traffic -c <config_file> --traffic-type <pattern> --traffic-rw <read|wri
 
 **Mode-specific Options:**
 
-  * `--traffic-cfg <file>`: Path to the traffic configuration file (see the [traffic configuration format](../floonoc/getting_started.md#the-traffic-configuration-file)).
+  * `--traffic-cfg <file>`: Path to the traffic configuration file (see the [traffic configuration format](../floonoc/getting_started.md#traffic-configuration-file)).
   * `--traffic-type <pattern>`: Name of the built-in traffic pattern to generate (e.g. `hbm`, `uniform`, `shuffle`). See the [full list of patterns](../floonoc/getting_started.md#built-in-mesh-traffic-patterns).
   * `--traffic-rw <read|write>`: Direction of the built-in traffic pattern (default: `write`). Only used with `--traffic-type`.
   * `--num-narrow-bursts <n>` / `--num-wide-bursts <n>`: Number of narrow/wide bursts generated per node (defaults: `10` / `100`). Only used with `--traffic-type`.

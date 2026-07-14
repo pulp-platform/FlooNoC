@@ -24,7 +24,6 @@ SPYGLASS   	?= sg_shell
 VERIBLE_FMT	?= verible-verilog-format
 VCS		      ?= $(VCS_SEPP) vcs
 VLOGAN  	  ?= $(VCS_SEPP) vlogan
-FLOOGEN       ?= uv run --locked floogen
 
 #####################
 # Compilation Flags #
@@ -38,7 +37,6 @@ BENDER_FLAGS += -t idma_test
 
 WORK 	 		?= work
 TB_DUT 			?= tb_floo_router
-NOC_CFG  		?= $(FLOO_ROOT)/floogen/examples/nw_mesh_xy.yml
 
 ifeq ($(TB_DUT),tb_floo_nw_mesh)
 BENDER_FLAGS += -t nw_mesh
@@ -47,46 +45,9 @@ ifeq ($(TB_DUT),tb_floo_axi_mesh)
 BENDER_FLAGS += -t axi_mesh
 endif
 
-##################
-# NoC Generation #
-##################
-
-FLOO_GEN_DIR 	?= $(FLOO_ROOT)/generated
-
-.PHONY: generate-noc
-generate-noc:
-	$(FLOOGEN) rtl --config $(NOC_CFG) -o $(FLOO_GEN_DIR)
-
-######################
-# Traffic Generation #
-######################
-
-TRAFFIC_NAME 	?= $(basename $(notdir $(NOC_CFG)))
+# Traffic simulation defaults.
+TRAFFIC_NAME 	?=
 TRAFFIC_OUTDIR 	?= $(FLOO_ROOT)/generated/jobs
-
-# Generate custom traffic from configuration file
-TRAFFIC_CFG 	?= $(FLOO_ROOT)/floogen/examples/traffic/$(basename $(notdir $(NOC_CFG))).yml
-
-# Generate built-in traffic, not requiring any dedicated traffic configuration file
-TRAFFIC_TYPE	?=
-TRAFFIC_RW 		?= write
-
-.PHONY: generate-traffic clean-traffic
-ifeq ($(strip $(TRAFFIC_TYPE)),)
-TRAFFIC_MODE_ARGS := --traffic-cfg $(TRAFFIC_CFG)
-else
-TRAFFIC_MODE_ARGS := --traffic-type $(TRAFFIC_TYPE) --traffic-rw $(TRAFFIC_RW)
-endif
-
-generate-traffic:
-	$(FLOOGEN) traffic \
-		--config $(NOC_CFG) \
-		$(TRAFFIC_MODE_ARGS) \
-		--traffic-name $(TRAFFIC_NAME) \
-		-o $(TRAFFIC_OUTDIR)
-
-clean-traffic:
-	rm -rf $(TRAFFIC_OUTDIR)
 
 # Set the job name and directory if specified
 ifdef TRAFFIC_NAME
@@ -237,6 +198,6 @@ init-pd:
 .PHONY: all clean build
 
 all: compile-vsim run-sim-batch
-clean: clean-vsim clean-spyglass clean-traffic clean-sources clean-vcs
+clean: clean-vsim clean-spyglass clean-vcs
 build: compile-vsim
 run: run-vsim

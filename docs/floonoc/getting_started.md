@@ -129,13 +129,7 @@ Then, you can generate either of the testbenches with:
     floogen rtl -c floogen/examples/<mesh>_<route_algo>.yml -o generated
     ```
 
-=== "Makefile"
-
-    ```bash
-    make generate-noc NOC_CFG=floogen/examples/<mesh>_<route_algo>.yml
-    ```
-
-Where `<mesh>` is either `axi_mesh` or `nw_mesh`, and `<route_algo>` is either `xy`, `id` or `src`.
+Where `<mesh>` is either `axi_mesh` or `nw_mesh`, and `<route_algo>` is either `xy`, `yx`, `id` or `src`.
 
 The generated RTL must be placed under `generated`, as referenced by `Bender.yml`.
 
@@ -169,12 +163,6 @@ The testbench endpoints are DMA models that accept job files to perform AXI4 tra
 
     ```bash
     floogen traffic -c floogen/examples/<floonoc_config>.yml --traffic-cfg floogen/examples/traffic/<traffic_config>.yml -o <outdir>
-    ```
-
-=== "Makefile"
-
-    ```bash
-    make generate-traffic NOC_CFG=floogen/examples/<mesh>_<route_algo>.yml TRAFFIC_CFG=floogen/examples/traffic/<traffic_config>.yml
     ```
 
 #### Traffic Configuration File
@@ -218,12 +206,6 @@ Both `narrow_burst` and `wide_burst` take a *burst* descriptor with two fields:
 
 Reference traffic configuration examples for the mesh testbenches can be found under [`floogen/examples/traffic/`](https://github.com/pulp-platform/FlooNoC/tree/main/floogen/examples/traffic/).
 
-You can also generate the job files for a mesh testbench with:
-
-```bash
-make generate-noc NOC_CFG=<floonoc_config>.yml TRAFFIC_CFG=<traffic_config>.yml TRAFFIC_NAME=<name> TRAFFIC_OUTDIR=<outdir>
-```
-
 #### Built-in Mesh Traffic Patterns
 
 Alternatively, `floogen traffic` also supports generating a handful of built-in, mesh-wide traffic patterns that onlyrequire a FlooNoC configuration file:
@@ -251,12 +233,6 @@ Currently supported traffic types are:
 | `matmul` | Each node performs a blocked matrix-multiplication-like access pattern to HBM. |
 
 The number and length of the generated bursts can be tuned with the `--num-narrow-bursts`, `--num-wide-bursts`, `--narrow-burst-length` and `--wide-burst-length` options (see `floogen traffic --help`).
-
-The same patterns can also be produced through the Makefile by setting `TRAFFIC_TYPE` (and optionally `TRAFFIC_RW`):
-
-```bash
-make generate-noc NOC_CFG=<floonoc_config>.yml TRAFFIC_TYPE=<traffic_type> TRAFFIC_RW=<read_or_write>
-```
 
 ### Running Mesh Testbenches
 
