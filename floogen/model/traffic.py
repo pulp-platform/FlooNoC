@@ -22,6 +22,7 @@ import ruamel.yaml
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
 from floogen.model.network import Network
+from floogen.model.routing import XYDirections
 from floogen.utils import clog2
 
 # Built-in, mesh-wide algorithmic traffic patterns supported by `gen_traffic_builtin`.
@@ -116,13 +117,48 @@ def _protocol_data_widths(network: Network, verbose: bool = False) -> Dict[str, 
     return proto_dw
 
 
+def _ni_mesh_coord(network: Network, ni_name: str) -> Tuple[int, int]:
+    """Infer an NI's mesh coordinate from its router connection.
+
+    Traffic configurations identify nodes by their physical mesh coordinates. Those
+    coordinates are independent of the routing ID: ID and source routing assign a
+    ``SimpleId`` to the NI, whereas XY and YX routing assign a ``Coord``. Derive
+    the coordinate from the adjacent router's array index and the link direction
+    instead.
+    """
+    if network.graph is None:
+        raise ValueError("Network graph has not been created")
+
+    for neighbor in network.graph.neighbors(ni_name):
+        if not network.graph.is_rt_node(neighbor):
+            continue
+
+        router_idx = network.graph.get_node_arr_idx(neighbor)
+        if len(router_idx) != 2:
+            continue
+
+        edge = network.graph.edges[(ni_name, neighbor)]
+        direction = edge["dst_dir"]
+        if direction is None and network.graph.has_edge(neighbor, ni_name):
+            direction = network.graph.edges[(neighbor, ni_name)]["src_dir"]
+        if direction is None:
+            continue
+
+        offset = XYDirections.to_coords(direction)
+        return router_idx[0] + offset.x, router_idx[1] + offset.y
+
+    raise ValueError(f"Cannot infer a mesh coordinate for network interface '{ni_name}'")
+
+
 def _xy_addr_map(network: Network) -> Dict[Tuple[int, int], int]:
-    """Build an XY-coordinate-to-base-address lookup from the endpoints of the FlooNoC model."""
+    """Build an XY-coordinate-to-base-address lookup from the physical mesh topology."""
+    if network.graph is None:
+        raise ValueError("Network graph has not been created")
+
     xy_addr_map: Dict[Tuple[int, int], int] = {}
     for ni_name, ni in network.graph.get_ni_nodes(with_name=True):
-        coord = network.graph.get_node_id(node_name=ni_name)
         if getattr(ni, "addr_range", None):
-            xy_addr_map[(coord.x, coord.y)] = ni.addr_range[0].start
+            xy_addr_map[_ni_mesh_coord(network, ni_name)] = ni.addr_range[0].start
     return xy_addr_map
 
 
