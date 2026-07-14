@@ -43,6 +43,7 @@ floogen = "floogen.cli:main"
 dev = [
     "pytest",
     "ruff",
+    "ty",
     "mkdocstrings-python>=2.0.1",
     "zensical",
 ]
@@ -72,3 +73,32 @@ suggestion-mode = "yes"
 
 [tool.ruff]
 line-length = 100
+
+[tool.ty.environment]
+python-version = "3.10"
+
+[tool.ty.terminal]
+# Warnings are informational for now (see [tool.ty.rules] below); only
+# error-level diagnostics should fail CI.
+error-on-warning = false
+
+[tool.ty.src]
+# `util/` holds standalone helper scripts with their own optional dependencies
+# (e.g. pygame) that are not part of the distributed package.
+include = ["floogen"]
+
+[tool.ty.rules]
+# These are all downstream of a single pattern: model fields are declared
+# `Optional[X] = None` and only populated later by the build pipeline
+# (`create_network()` -> `compile_network()` -> `gen_routing_info()`), so every
+# use afterwards looks like a possible `None` to the type checker.
+#
+# They are kept at `warn` so CI stays green while the annotations are still
+# lying. Promote them to `error` once the pipeline state is modelled honestly;
+# see the tracking issue for the `Optional` refactor.
+unresolved-attribute = "warn"
+missing-argument = "warn"
+invalid-argument-type = "warn"
+not-subscriptable = "warn"
+unsupported-operator = "warn"
+not-iterable = "warn"
