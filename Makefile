@@ -50,40 +50,39 @@ FLOO_GEN_DIR 	?= $(FLOO_ROOT)/generated/hw
 
 .PHONY: run-floogen
 run-floogen:
-	floogen rtl -c $(FLOO_CFG) -o $(FLOO_GEN_DIR)
+	floogen rtl --topology-cfg $(FLOO_CFG) -o $(FLOO_GEN_DIR)
 
 ######################
 # Traffic Generation #
 ######################
 
-TRAFFIC_GEN 	?= util/gen_jobs.py
 TRAFFIC_NAME 	?= $(basename $(notdir $(FLOO_CFG)))
-TRAFFIC_TB 		?= import_traffic_cfg
-TRAFFIC_TYPE 	?= hbm
 TRAFFIC_OUTDIR 	?= $(FLOO_ROOT)/generated/jobs
-TRAFFIC_RW 		?= write
-TRAFFIC_CFG 	?= $(FLOO_ROOT)/hw/test/traffic_cfg/$(basename $(notdir $(FLOO_CFG))).yml
 
-NARROW_BURST_NUM 	?= 4
-WIDE_BURST_NUM 		?= 4
-NARROW_BURST_LENGTH ?= 256
-WIDE_BURST_LENGTH 	?= 256
+# Generate custom traffic from configuration file
+TRAFFIC_CFG 	?= $(FLOO_ROOT)/floogen/examples/traffic/$(basename $(notdir $(FLOO_CFG))).yml
+
+# Generate built-in traffic, not requiring any dedicated traffic configuration file
+TRAFFIC_TYPE	?=
+TRAFFIC_RW 		?= write
 
 .PHONY: jobs clean-jobs
-jobs: $(TRAFFIC_GEN)
-	mkdir -p $(TRAFFIC_OUTDIR)
-	$(PYTHON) $(TRAFFIC_GEN) \
-		--out_dir $(TRAFFIC_OUTDIR) \
-		--num_narrow_bursts=$(NARROW_BURST_NUM) \
-		--num_wide_bursts=$(WIDE_BURST_NUM) \
-		--narrow_burst_length=$(NARROW_BURST_LENGTH) \
-		--wide_burst_length=$(WIDE_BURST_LENGTH) \
-		--tb $(TRAFFIC_TB) \
-		--traffic_name $(TRAFFIC_NAME) \
-		--traffic_type $(TRAFFIC_TYPE) \
-		--rw $(TRAFFIC_RW) \
-		--traffic_cfg $(TRAFFIC_CFG) \
-		--floonoc_cfg $(FLOO_CFG)
+ifeq ($(strip $(TRAFFIC_TYPE)),)
+jobs:
+	floogen traffic \
+		--topology-cfg $(FLOO_CFG) \
+		--traffic-cfg $(TRAFFIC_CFG) \
+		--traffic-name $(TRAFFIC_NAME) \
+		-o $(TRAFFIC_OUTDIR)
+else
+jobs:
+	floogen traffic \
+		--topology-cfg $(FLOO_CFG) \
+		--traffic-type $(TRAFFIC_TYPE) \
+		--traffic-rw $(TRAFFIC_RW) \
+		--traffic-name $(TRAFFIC_NAME) \
+		-o $(TRAFFIC_OUTDIR)
+endif
 
 clean-jobs:
 	rm -rf $(TRAFFIC_OUTDIR)
