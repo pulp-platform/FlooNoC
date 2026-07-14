@@ -137,7 +137,7 @@ Then, you can generate either of the testbenches with:
 
 Where `<mesh>` is either `axi_mesh` or `nw_mesh`, and `<route_algo>` is either `xy`, `id` or `src`.
 
-The generated RTL must be placed under `generated/hw`, as referenced by `Bender.yml`.
+The generated RTL must be placed under `generated`, as referenced by `Bender.yml`.
 
 ### Compiling Testbenches
 

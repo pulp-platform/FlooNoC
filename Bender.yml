@@ -84,8 +84,8 @@ sources:
 
   - target: all(any(floo_test, floo_synth), axi_mesh)
     files:
-      - generated/hw/floo_axi_mesh_noc_pkg.sv
-      - generated/hw/floo_axi_mesh_noc.sv
+      - generated/floo_axi_mesh_noc_pkg.sv
+      - generated/floo_axi_mesh_noc.sv
 
   - target: all(floo_test, axi_mesh)
     include_dirs:
@@ -95,8 +95,8 @@ sources:
 
   - target: all(any(floo_test, floo_synth), nw_mesh)
     files:
-      - generated/hw/floo_nw_mesh_noc_pkg.sv
-      - generated/hw/floo_nw_mesh_noc.sv
+      - generated/floo_nw_mesh_noc_pkg.sv
+      - generated/floo_nw_mesh_noc.sv
 
   - target: all(floo_test, nw_mesh)
     include_dirs:

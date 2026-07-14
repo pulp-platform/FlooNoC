@@ -46,7 +46,7 @@ NOC_CFG  		?= $(FLOO_ROOT)/floogen/examples/nw_mesh_xy.yml
 # NoC Generation #
 ##################
 
-FLOO_GEN_DIR 	?= $(FLOO_ROOT)/generated/hw
+FLOO_GEN_DIR 	?= $(FLOO_ROOT)/generated
 
 .PHONY: generate-noc
 generate-noc:
