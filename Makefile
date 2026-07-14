@@ -57,9 +57,6 @@ FLOO_GEN_DIR 	?= $(FLOO_ROOT)/generated
 generate-noc:
 	$(FLOOGEN) rtl --config $(NOC_CFG) -o $(FLOO_GEN_DIR)
 
-install-floogen:
-	uv tool install floogen --reinstall .
-
 ######################
 # Traffic Generation #
 ######################
