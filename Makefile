@@ -40,7 +40,7 @@ BENDER_FLAGS := $(BENDER_FLAGS) $(EXTRA_BENDER_FLAGS)
 
 WORK 	 		?= work
 TB_DUT 			?= tb_floo_nw_mesh
-FLOO_CFG  		?= $(FLOO_ROOT)/floogen/examples/nw_mesh_xy.yml
+FLOO_CFG  		?= $(FLOO_ROOT)/floogen/examples/topology/nw_mesh_xy.yml
 
 ###########
 # FlooGen #
