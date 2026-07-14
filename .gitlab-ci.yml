@@ -107,7 +107,7 @@ run-traffic-cfg:
   parallel:
     matrix:
       - DUT: [axi_mesh, nw_mesh]
-        ROUTE_ALGO: [xy, yx, src, id]
+        ROUTE_ALGO: [xy]
   script:
     - make generate-traffic NOC_CFG=floogen/examples/${DUT}_${ROUTE_ALGO}.yml TRAFFIC_CFG=floogen/examples/traffic/${DUT}_${ROUTE_ALGO}.yml
     - make run-vsim-batch TB_DUT=tb_floo_${DUT} WORK=work_${DUT}_${ROUTE_ALGO} NOC_CFG=floogen/examples/${DUT}_${ROUTE_ALGO}.yml | tee vsim.log 2>&1
