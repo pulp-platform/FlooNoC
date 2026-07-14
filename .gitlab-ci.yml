@@ -103,7 +103,6 @@ run-traffic-builtin:
 run-traffic-cfg:
   stage: run
   needs:
-    - collect-bender-sources
     - compile-meshes
   parallel:
     matrix:
