@@ -36,7 +36,7 @@ BENDER_FLAGS += -t snitch_cluster
 BENDER_FLAGS += -t idma_test
 
 WORK 	 		?= work
-TB_DUT 			?= tb_floo_nw_mesh
+TB_DUT 			?= tb_floo_router
 NOC_CFG  		?= $(FLOO_ROOT)/floogen/examples/nw_mesh_xy.yml
 
 ifeq ($(TB_DUT),tb_floo_nw_mesh)
