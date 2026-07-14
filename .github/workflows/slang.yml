@@ -39,7 +39,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.3.0
 
       - name: Generate RTL
-        run: uv run floogen rtl -c floogen/examples/topology/${{ matrix.DUT }}_${{ matrix.ROUTE_ALGO }}.yml -o generated --no-format
+        run: uv run floogen rtl -c floogen/examples/${{ matrix.DUT }}_${{ matrix.ROUTE_ALGO }}.yml -o generated --no-format
 
       - name: Generate bender file list
         # TODO: Remove -e fpnew once fpnew_top.sv is fixed upstream.

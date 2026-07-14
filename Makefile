@@ -40,7 +40,7 @@ BENDER_FLAGS := $(BENDER_FLAGS) $(EXTRA_BENDER_FLAGS)
 
 WORK 	 		?= work
 TB_DUT 			?= tb_floo_nw_mesh
-NOC_CFG  		?= $(FLOO_ROOT)/floogen/examples/noc/nw_mesh_xy.yml
+NOC_CFG  		?= $(FLOO_ROOT)/floogen/examples/nw_mesh_xy.yml
 
 ##################
 # NoC Generation #

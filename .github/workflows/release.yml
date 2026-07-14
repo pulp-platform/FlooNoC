@@ -31,8 +31,8 @@ jobs:
               run: uv build
             - name: Smoke tests
               run: |
-                  uv run --isolated --no-project --with dist/*.whl floogen rtl -c floogen/examples/topology/axi_mesh_xy.yml
-                  uv run --isolated --no-project --with dist/*.tar.gz floogen rtl -c floogen/examples/topology/axi_mesh_xy.yml
+                  uv run --isolated --no-project --with dist/*.whl floogen rtl -c floogen/examples/axi_mesh_xy.yml
+                  uv run --isolated --no-project --with dist/*.tar.gz floogen rtl -c floogen/examples/axi_mesh_xy.yml
             - name: Publish
               run: uv publish
 
@@ -52,7 +52,7 @@ jobs:
               run: uv build
             - name: Smoke tests
               run: |
-                  uv run --isolated --no-project --with dist/*.whl floogen rtl -c floogen/examples/topology/axi_mesh_xy.yml
-                  uv run --isolated --no-project --with dist/*.tar.gz floogen rtl -c floogen/examples/topology/axi_mesh_xy.yml
+                  uv run --isolated --no-project --with dist/*.whl floogen rtl -c floogen/examples/axi_mesh_xy.yml
+                  uv run --isolated --no-project --with dist/*.tar.gz floogen rtl -c floogen/examples/axi_mesh_xy.yml
             - name: Publish
               run: uv publish --index testpypi
