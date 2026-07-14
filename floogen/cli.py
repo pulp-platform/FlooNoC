@@ -291,8 +291,6 @@ def main():
             context["name"] = args.name or network.name
             pkg_file_name = f"floo_{args.name or network.name}_noc_pkg.sv"
             top_file_name = f"floo_{args.name or network.name}_noc.sv"
-        case "rdl":
-            rdl_file_name = f"{network.name}_addrmap.rdl"
         case "traffic":
             traffic_outdir = args.outdir or Path("jobs")
             default_traffic_name = args.traffic_cfg.stem if args.traffic_cfg else "mesh"
@@ -352,10 +350,10 @@ def main():
         case "traffic":
             if args.traffic_cfg:
                 gen_traffic_cfg(
-                    args.traffic_cfg, 
-                    network, 
+                    args.traffic_cfg,
+                    network,
                     traffic_name,
-                    traffic_outdir, 
+                    traffic_outdir,
                     verbose=args.verbose
                 )
             else:
