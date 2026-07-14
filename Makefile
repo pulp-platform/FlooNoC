@@ -24,6 +24,7 @@ SPYGLASS   	?= sg_shell
 VERIBLE_FMT	?= verible-verilog-format
 VCS		      ?= $(VCS_SEPP) vcs
 VLOGAN  	  ?= $(VCS_SEPP) vlogan
+FLOOGEN       ?= uv run --locked floogen
 
 #####################
 # Compilation Flags #
@@ -54,7 +55,7 @@ FLOO_GEN_DIR 	?= $(FLOO_ROOT)/generated
 
 .PHONY: generate-noc
 generate-noc:
-	floogen rtl --config $(NOC_CFG) -o $(FLOO_GEN_DIR)
+	$(FLOOGEN) rtl --config $(NOC_CFG) -o $(FLOO_GEN_DIR)
 
 install-floogen:
 	uv tool install floogen --reinstall .
@@ -81,7 +82,7 @@ TRAFFIC_MODE_ARGS := --traffic-type $(TRAFFIC_TYPE) --traffic-rw $(TRAFFIC_RW)
 endif
 
 generate-traffic:
-	floogen traffic \
+	$(FLOOGEN) traffic \
 		--config $(NOC_CFG) \
 		$(TRAFFIC_MODE_ARGS) \
 		--traffic-name $(TRAFFIC_NAME) \
