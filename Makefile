@@ -24,7 +24,6 @@ SPYGLASS   	?= sg_shell
 VERIBLE_FMT	?= verible-verilog-format
 VCS		      ?= $(VCS_SEPP) vcs
 VLOGAN  	  ?= $(VCS_SEPP) vlogan
-PYTHON	  	?= python
 
 #####################
 # Compilation Flags #
@@ -33,14 +32,19 @@ PYTHON	  	?= python
 BENDER_FLAGS += -t rtl
 BENDER_FLAGS += -t test
 BENDER_FLAGS += -t floo_test
-BENDER_FLAGS += -t nw_mesh
 BENDER_FLAGS += -t snitch_cluster
 BENDER_FLAGS += -t idma_test
-BENDER_FLAGS := $(BENDER_FLAGS) $(EXTRA_BENDER_FLAGS)
 
 WORK 	 		?= work
 TB_DUT 			?= tb_floo_nw_mesh
 NOC_CFG  		?= $(FLOO_ROOT)/floogen/examples/nw_mesh_xy.yml
+
+ifeq ($(TB_DUT),tb_floo_nw_mesh)
+BENDER_FLAGS += -t nw_mesh
+endif
+ifeq ($(TB_DUT),tb_floo_axi_mesh)
+BENDER_FLAGS += -t axi_mesh
+endif
 
 ##################
 # NoC Generation #
@@ -71,21 +75,17 @@ TRAFFIC_RW 		?= write
 
 .PHONY: generate-traffic clean-traffic
 ifeq ($(strip $(TRAFFIC_TYPE)),)
-generate-traffic:
-	floogen traffic \
-		--config $(NOC_CFG) \
-		--traffic-cfg $(TRAFFIC_CFG) \
-		--traffic-name $(TRAFFIC_NAME) \
-		-o $(TRAFFIC_OUTDIR)
+TRAFFIC_MODE_ARGS := --traffic-cfg $(TRAFFIC_CFG)
 else
+TRAFFIC_MODE_ARGS := --traffic-type $(TRAFFIC_TYPE) --traffic-rw $(TRAFFIC_RW)
+endif
+
 generate-traffic:
 	floogen traffic \
 		--config $(NOC_CFG) \
-		--traffic-type $(TRAFFIC_TYPE) \
-		--traffic-rw $(TRAFFIC_RW) \
+		$(TRAFFIC_MODE_ARGS) \
 		--traffic-name $(TRAFFIC_NAME) \
 		-o $(TRAFFIC_OUTDIR)
-endif
 
 clean-traffic:
 	rm -rf $(TRAFFIC_OUTDIR)

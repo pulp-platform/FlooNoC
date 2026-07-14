@@ -57,7 +57,7 @@ compile-meshes:
   script:
     - uv run floogen rtl -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
     # Compile the network
-    - make compile-vsim EXTRA_BENDER_FLAGS="-t ${DUT}" WORK="work_${DUT}_${ROUTE_ALGO}" | tee compile.log 2>&1
+    - make compile-vsim WORK="work_${DUT}_${ROUTE_ALGO}" | tee compile.log 2>&1
     - '! grep "\*\* Error" compile.log'
   artifacts:
     paths:
