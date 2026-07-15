@@ -130,6 +130,7 @@ module floo_output_arbiter import floo_pkg::*;
     ) i_stream_arbiter (
       .clk_i,
       .rst_ni,
+      .clr_i      (1'b0),
       .inp_data_i ({unicast_data_out, reduce_data_out}),
       .inp_valid_i({unicast_valid_out, reduce_valid_out}),
       .inp_ready_o({unicast_ready_in, reduce_ready_in}),

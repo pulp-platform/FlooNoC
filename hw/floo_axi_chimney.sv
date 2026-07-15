@@ -216,6 +216,7 @@ module floo_axi_chimney
       ) i_aw_queue (
         .clk_i,
         .rst_ni,
+        .clr_i(1'b0),
         .data_i     ( axi_in_req_i.aw         ),
         .valid_i    ( axi_in_req_i.aw_valid   ),
         .ready_o    ( axi_rsp_out.aw_ready    ),
@@ -229,6 +230,7 @@ module floo_axi_chimney
       ) i_ar_queue (
         .clk_i,
         .rst_ni,
+        .clr_i(1'b0),
         .data_i     ( axi_in_req_i.ar         ),
         .valid_i    ( axi_in_req_i.ar_valid   ),
         .ready_o    ( axi_rsp_out.ar_ready    ),
@@ -242,6 +244,7 @@ module floo_axi_chimney
         ) i_usermask_queue (
           .clk_i,
           .rst_ni,
+          .clr_i(1'b0),
           .data_i   ( axi_req_in_mask ),
           .valid_i  ( axi_req_in.aw_valid ),
           .ready_o  (  ),
@@ -288,6 +291,7 @@ module floo_axi_chimney
     ) i_data_req_arb (
       .clk_i      ( clk_i               ),
       .rst_ni     ( rst_ni              ),
+      .clr_i(1'b0),
       .data_i     ( floo_req_i.req      ),
       .valid_i    ( floo_req_i.valid    ),
       .ready_o    ( floo_req_o.ready    ),
@@ -301,6 +305,7 @@ module floo_axi_chimney
     ) i_data_rsp_arb (
       .clk_i      ( clk_i               ),
       .rst_ni     ( rst_ni              ),
+      .clr_i(1'b0),
       .data_i     ( floo_rsp_i.rsp      ),
       .valid_i    ( floo_rsp_i.valid    ),
       .ready_o    ( floo_rsp_o.ready    ),
@@ -331,6 +336,7 @@ module floo_axi_chimney
   ) i_aw_out_queue (
     .clk_i    ( clk_i                     ),
     .rst_ni   ( rst_ni                    ),
+    .clr_i(1'b0),
     .valid_i  ( meta_buf_req_out.aw_valid ),
     .ready_o  ( aw_out_queue_ready        ),
     .data_i   ( axi_aw_queue_in           ),
@@ -694,6 +700,7 @@ module floo_axi_chimney
   ) i_req_out_cut (
     .clk_i,
     .rst_ni,
+    .clr_i(1'b0),
     .valid_i ( floo_req_arb_valid ),
     .ready_o ( floo_req_arb_ready ),
     .data_i  ( floo_req_chan_t'(floo_req_arb_data) ),
@@ -725,6 +732,7 @@ module floo_axi_chimney
   ) i_rsp_out_cut (
     .clk_i,
     .rst_ni,
+    .clr_i(1'b0),
     .valid_i ( floo_rsp_arb_valid ),
     .ready_o ( floo_rsp_arb_ready ),
     .data_i  ( floo_rsp_chan_t'(floo_rsp_arb_data) ),

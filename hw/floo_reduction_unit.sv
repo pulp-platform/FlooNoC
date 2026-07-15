@@ -205,6 +205,7 @@ module floo_reduction_unit
   ) i_fifo_flit (
       .clk_i      (clk_i),
       .rst_ni     (rst_ni),
+      .clr_i      (1'b0),
       .flush_i    (1'b0),
       .full_o     (),
       .empty_o    (),
@@ -222,6 +223,7 @@ module floo_reduction_unit
   ) i_fifo_route_dir (
       .clk_i      (clk_i),
       .rst_ni     (rst_ni),
+      .clr_i      (1'b0),
       .flush_i    (1'b0),
       .full_o     (),
       .empty_o    (), // Not needed, this fifo is always sinc with the flit one
@@ -240,6 +242,7 @@ module floo_reduction_unit
   ) i_offload_cut_req (
         .clk_i,
         .rst_ni,
+        .clr_i    (1'b0),
         .data_i   (instr_out),
         .valid_i  (offload_operands_valid_out),
         .ready_o  (offload_operands_ready_in),
@@ -265,6 +268,7 @@ module floo_reduction_unit
   ) i_offload_cut_rsp (
         .clk_i,
         .rst_ni,
+        .clr_i    (1'b0),
         .data_i   (result_i),
         .valid_i  (result_valid_i),
         .ready_o  (result_ready_o),

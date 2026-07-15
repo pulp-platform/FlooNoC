@@ -97,6 +97,7 @@ module floo_meta_buffer #(
     ) i_ar_no_atop_fifo (
       .clk_i,
       .rst_ni,
+      .clr_i      ( 1'b0                ),
       .flush_i    ( 1'b0                ),
       .full_o     ( ar_no_atop_buf_full ),
       .empty_o    (                     ),
@@ -114,6 +115,7 @@ module floo_meta_buffer #(
     ) i_aw_no_atop_fifo (
       .clk_i,
       .rst_ni,
+      .clr_i      ( 1'b0                ),
       .flush_i    ( 1'b0                ),
       .full_o     ( aw_no_atop_buf_full ),
       .empty_o    (                     ),

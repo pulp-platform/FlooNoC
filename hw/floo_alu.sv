@@ -281,6 +281,7 @@ if (CutInput == 1'b1) begin : gen_input_cut
   ) i_output_cut (
     .clk_i              (clk_i),
     .rst_ni             (rst_ni),
+    .clr_i              (1'b0),
     .valid_i            (in_valid_i),
     .flush_i            (flush_i),
     .ready_o            (in_ready_o),
@@ -371,6 +372,7 @@ if (CutOutput == 1'b1) begin : gen_output_cut
   ) i_output_cut (
     .clk_i              (clk_i),
     .rst_ni             (rst_ni),
+    .clr_i              (1'b0),
     .valid_i            (out_valid_d),
     .flush_i            (flush_i),
     .ready_o            (out_ready_d),

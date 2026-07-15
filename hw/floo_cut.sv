@@ -56,6 +56,7 @@ module floo_cut #(
           ) i_floo_spill_reg (
             .clk_i   ( clk_i                ),
             .rst_ni  ( rst_ni               ),
+            .clr_i   ( 1'b0                 ),
             .valid_i ( valid[n][c][v]       ),
             .ready_o ( ready[n][c][v]       ),
             .data_i  ( data[n][c]           ),

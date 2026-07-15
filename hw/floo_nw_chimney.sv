@@ -342,6 +342,7 @@ module floo_nw_chimney
       ) i_narrow_aw_queue (
         .clk_i,
         .rst_ni,
+        .clr_i(1'b0),
         .data_i   ( axi_narrow_req_in.aw        ),
         .valid_i  ( axi_narrow_req_in.aw_valid  ),
         .ready_o  ( axi_narrow_rsp_out.aw_ready   ),
@@ -355,6 +356,7 @@ module floo_nw_chimney
       ) i_narrow_ar_queue (
         .clk_i,
         .rst_ni,
+        .clr_i(1'b0),
         .data_i   ( axi_narrow_req_in.ar        ),
         .valid_i  ( axi_narrow_req_in.ar_valid  ),
         .ready_o  ( axi_narrow_rsp_out.ar_ready   ),
@@ -369,6 +371,7 @@ module floo_nw_chimney
         ) i_narrow_usermask_queue (
           .clk_i,
           .rst_ni,
+          .clr_i(1'b0),
           .data_i   ( axi_narrow_req_in_mask ),
           .valid_i  ( axi_narrow_req_in.aw_valid ),
           .ready_o  (  ),
@@ -381,6 +384,7 @@ module floo_nw_chimney
         ) i_coll_operation_queue (
           .clk_i,
           .rst_ni,
+          .clr_i(1'b0),
           .data_i   ( axi_narrow_req_in_red_op ),
           .valid_i  ( axi_narrow_req_in.aw_valid ),
           .ready_o  (  ),
@@ -447,6 +451,7 @@ module floo_nw_chimney
       ) i_wide_aw_queue (
         .clk_i,
         .rst_ni,
+        .clr_i(1'b0),
         .data_i   ( axi_wide_req_in.aw          ),
         .valid_i  ( axi_wide_req_in.aw_valid    ),
         .ready_o  ( axi_wide_rsp_out.aw_ready   ),
@@ -460,6 +465,7 @@ module floo_nw_chimney
       ) i_wide_ar_queue (
         .clk_i,
         .rst_ni,
+        .clr_i(1'b0),
         .data_i   ( axi_wide_req_in.ar          ),
         .valid_i  ( axi_wide_req_in.ar_valid    ),
         .ready_o  ( axi_wide_rsp_out.ar_ready   ),
@@ -474,6 +480,7 @@ module floo_nw_chimney
         ) i_wide_usermask_queue (
           .clk_i,
           .rst_ni,
+          .clr_i(1'b0),
           .data_i   ( axi_wide_req_in_mask       ),
           .valid_i  ( axi_wide_req_in.aw_valid   ),
           .ready_o  (                            ),
@@ -486,6 +493,7 @@ module floo_nw_chimney
         ) i_coll_operation_queue (
           .clk_i,
           .rst_ni,
+          .clr_i(1'b0),
           .data_i   ( axi_wide_req_in_red_op ),
           .valid_i  ( axi_wide_req_in.aw_valid ),
           .ready_o  (  ),
@@ -536,6 +544,7 @@ module floo_nw_chimney
   ) i_narrow_data_req_arb (
     .clk_i,
     .rst_ni,
+    .clr_i      ( 1'b0                ),
     .data_i     ( floo_req_i.req      ),
     .valid_i    ( floo_req_i.valid    ),
     .ready_o    ( floo_req_o.ready    ),
@@ -550,6 +559,7 @@ module floo_nw_chimney
     ) i_narrow_data_rsp_arb (
     .clk_i,
     .rst_ni,
+    .clr_i      ( 1'b0                ),
     .data_i     ( floo_rsp_i.rsp      ),
     .valid_i    ( floo_rsp_i.valid    ),
     .ready_o    ( floo_rsp_o.ready    ),
@@ -568,6 +578,7 @@ module floo_nw_chimney
     ) i_wide_wr_req_arb (
       .clk_i,
       .rst_ni,
+      .clr_i      ( 1'b0                     ),
       .data_i     ( floo_wide_in_wr          ),
       .valid_i    ( floo_wide_in_wr_valid    ),
       .ready_o    ( floo_wide_out_wr_ready   ),
@@ -580,6 +591,7 @@ module floo_nw_chimney
     ) i_wide_rd_req_arb (
       .clk_i,
       .rst_ni,
+      .clr_i      ( 1'b0                     ),
       .data_i     ( floo_wide_in_rd          ),
       .valid_i    ( floo_wide_in_rd_valid    ),
       .ready_o    ( floo_wide_out_rd_ready   ),
@@ -594,6 +606,7 @@ module floo_nw_chimney
     ) i_wide_data_req_arb (
       .clk_i,
       .rst_ni,
+      .clr_i      ( 1'b0                  ),
       .data_i     ( floo_wide_in          ),
       .valid_i    ( floo_wide_in_valid    ),
       .ready_o    ( floo_wide_out_ready   ),
@@ -619,6 +632,7 @@ module floo_nw_chimney
   ) i_aw_narrow_out_queue (
     .clk_i    ( clk_i                                 ),
     .rst_ni   ( rst_ni                                ),
+    .clr_i    ( 1'b0                                  ),
     .valid_i  ( axi_narrow_meta_buf_req_out.aw_valid  ),
     .ready_o  ( narrow_aw_out_queue_ready             ),
     .data_i   ( axi_narrow_aw_queue_in                ),
@@ -632,6 +646,7 @@ module floo_nw_chimney
   ) i_aw_out_queue (
     .clk_i    ( clk_i                               ),
     .rst_ni   ( rst_ni                              ),
+    .clr_i    ( 1'b0                                ),
     .valid_i  ( axi_wide_meta_buf_req_out.aw_valid  ),
     .ready_o  ( wide_aw_out_queue_ready             ),
     .data_i   ( axi_wide_aw_queue_in                ),
@@ -1386,6 +1401,7 @@ module floo_nw_chimney
   ) i_req_out_cut (
     .clk_i,
     .rst_ni,
+    .clr_i   ( 1'b0                                ),
     .valid_i ( floo_req_arb_valid                  ),
     .ready_o ( floo_req_arb_ready                  ),
     .data_i  ( floo_req_chan_t'(floo_req_arb_data) ),
@@ -1417,6 +1433,7 @@ module floo_nw_chimney
   ) i_rsp_out_cut (
     .clk_i,
     .rst_ni,
+    .clr_i   ( 1'b0                                ),
     .valid_i ( floo_rsp_arb_valid                  ),
     .ready_o ( floo_rsp_arb_ready                  ),
     .data_i  ( floo_rsp_chan_t'(floo_rsp_arb_data) ),
@@ -1454,6 +1471,7 @@ module floo_nw_chimney
     ) i_wide_out_cut (
       .clk_i,
       .rst_ni,
+      .clr_i(1'b0),
       .valid_i ( floo_wide_arb_valid                   ),
       .ready_o ( floo_wide_arb_ready                   ),
       .data_i  ( floo_wide_chan_t'(floo_wide_arb_data) ),

@@ -132,6 +132,7 @@ module floo_router
       ) i_stream_fifo (
         .clk_i      ( clk_i         ),
         .rst_ni     ( rst_ni        ),
+        .clr_i      ( 1'b0  ),
         .flush_i    ( 1'b0  ),
         .usage_o    (       ),
         .data_i     ( data_i  [in][in_p] ),
@@ -452,6 +453,7 @@ module floo_router
         ) i_stream_fifo (
           .clk_i      ( clk_i         ),
           .rst_ni     ( rst_ni        ),
+          .clr_i      ( 1'b0          ),
           .flush_i    ( 1'b0          ),
           .usage_o    (               ),
           .data_i     ( out_data          [out][v] ),
