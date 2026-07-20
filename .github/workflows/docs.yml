@@ -27,7 +27,7 @@ jobs:
       - uses: actions/configure-pages@v6
       - uses: actions/checkout@v7.0.0
       - name: Install uv
-        uses: astral-sh/setup-uv@v8.3.0
+        uses: astral-sh/setup-uv@v8.3.2
         # Zensical does not allow symlinks outside of the docs folder,
         # so we copy it in.
       - name: Copy CHANGELOG
