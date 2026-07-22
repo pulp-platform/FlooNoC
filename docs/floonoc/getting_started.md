@@ -120,16 +120,18 @@ Then, you can generate either of the testbenches with:
 === "uv"
 
     ```bash
-    uv run floogen rtl -c floogen/examples<mesh>_<route_algo>.yml -o generated
+    uv run floogen rtl -c floogen/examples/<mesh>_<route_algo>.yml -o generated
     ```
 
 === "pip"
 
     ```bash
-    floogen rtl -c floogen/examples<mesh>_<route_algo>.yml -o generated
+    floogen rtl -c floogen/examples/<mesh>_<route_algo>.yml -o generated
     ```
 
-Where `<mesh>` is either `axi_mesh` or `nw_mesh`, and `<route_algo>` is either `xy`, `id` or `src`.
+Where `<mesh>` is either `axi_mesh` or `nw_mesh`, and `<route_algo>` is either `xy`, `yx`, `id` or `src`.
+
+The generated RTL must be placed under `generated`, as referenced by `Bender.yml`.
 
 ### Compiling Testbenches
 
@@ -149,12 +151,67 @@ Then, you can compile and run the generated testbenches as described above, with
 
 ### Generating Traffic
 
-The endpoint of those testbenches are DMA models that accept job files to perform AXI transactions over the network. This is better documented in the DMA documentation [here](https://github.com/pulp-platform/iDMA/tree/master/jobs). There is a script `util/gen_jobs.py` that can help generate job files for testing.
+The testbench endpoints are DMA models that accept job files to perform AXI4 transactions over the NoC. This is better documented in the DMA documentation [here](https://github.com/pulp-platform/iDMA/tree/master/jobs). Job files are generated via `floogen` from a traffic configuration file:
 
-For instance you can generate random traffic with:
+=== "uv"
+
+    ```bash
+    uv run floogen traffic -c floogen/examples/<floonoc_config>.yml --traffic-cfg floogen/examples/traffic/<traffic_config>.yml -o <outdir>
+    ```
+
+=== "pip"
+
+    ```bash
+    floogen traffic -c floogen/examples/<floonoc_config>.yml --traffic-cfg floogen/examples/traffic/<traffic_config>.yml -o <outdir>
+    ```
+
+#### Traffic Configuration File
+
+A traffic configuration file contains a list of traffic flows, which describes the transfers issued by one initiator node towards one endpoint node, both identified by their XY coordinates in the NoC mesh:
+
+```yaml
+traffic_flows:
+  - name: "cl_0_0_to_mem_1_0"
+    initiator: [0, 0]
+    endpoint: [1, 0]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 8
+    wide_burst:
+      number: 32
+      length: 256
+```
+
+Each traffic flow accepts the following fields:
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `name` | string | Name of the traffic flow, used only in the generation log to identify it. |
+| `initiator` | `[x, y]` | Mesh coordinates of the source node that issues the transfers. |
+| `endpoint` | `[x, y]` | Mesh coordinates of the endpoint node. |
+| `rw` | `read` \| `write` | Direction of the transfer. `write` moves data from the `initiator` to the `endpoint`; `read` moves data from the `endpoint` to the `initiator`. |
+| `narrow_burst` | burst | Transfers issued over the *narrow* NoC. |
+| `wide_burst` | burst | Transfers issued over the *wide* NoC. |
+
+Both `narrow_burst` and `wide_burst` take a *burst* descriptor with two fields:
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `number` | int | Number of bursts to generate. Set to `0` to disable that interface for a specific flow. |
+| `length` | int | Burst length, expressed in **Beats**. |
+
+!!! note
+    The `narrow`/`wide` data widths are resolved from the FlooNoC configuration, so only the `number` and `length` need to be specified per flow. If the network has no *wide* protocol (e.g. a single-AXI mesh), any `wide_burst` entries are skipped with a warning and only the narrow transfers are used.
+
+Reference traffic configuration examples for the mesh testbenches can be found under [`floogen/examples/traffic/`](https://github.com/pulp-platform/FlooNoC/tree/main/floogen/examples/traffic/).
+
+#### Built-in Mesh Traffic Patterns
+
+Alternatively, `floogen traffic` also supports generating a handful of built-in, mesh-wide traffic patterns that onlyrequire a FlooNoC configuration file:
 
 ```bash
-make jobs DUT=<mesh> ROUTE_ALGO=<route_algo> TRAFFIC_TYPE=<traffic_type> TRAFFIC_RW=<read_or_write>
+floogen traffic -c <floonoc_config>.yml --traffic-type <traffic_type> --traffic-rw <read_or_write> -o <outdir>
 ```
 
 Currently supported traffic types are:
@@ -163,7 +220,7 @@ Currently supported traffic types are:
 | :--- | :--- |
 | `hbm` | Traffic goes to boundary nodes (simulating HBM). |
 | `uniform` | Traffic is uniformly distributed across all nodes. |
-| `onehop` | Each node accesse its upper neighbor. |
+| `onehop` | Each node accesses its upper neighbor. |
 | `bit_complement` | Each node accesses its bit-complement address. |
 | `bit_reverse` | Each node accesses its bit-reversed address. |
 | `bit_rotation` | Each node accesses its bit-rotated address. |
@@ -173,6 +230,9 @@ Currently supported traffic types are:
 | `tornado` | Each node accesses a node halfway across the network. |
 | `hotspot` | Traffic goes to a single hotspot node. |
 | `hotspot_boundary` | Traffic goes to a single hotspot node on the boundary. |
+| `matmul` | Each node performs a blocked matrix-multiplication-like access pattern to HBM. |
+
+The number and length of the generated bursts can be tuned with the `--num-narrow-bursts`, `--num-wide-bursts`, `--narrow-burst-length` and `--wide-burst-length` options (see `floogen traffic --help`).
 
 ### Running Mesh Testbenches
 

@@ -19,6 +19,7 @@ task automatic read_jobs (
     addr_t                  err_addr;
     tb_dma_job_t            now;
     idma_pkg::idma_eh_req_t eh;
+    int unsigned            protocol_raw;
 
     // open file
     job_file = $fopen(filename, "r");
@@ -33,8 +34,10 @@ task automatic read_jobs (
         void'($fscanf(job_file, "%d\n", now.length));
         void'($fscanf(job_file, "0x%x\n", now.src_addr));
         void'($fscanf(job_file, "0x%x\n", now.dst_addr));
-        void'($fscanf(job_file, "%d\n", now.src_protocol));
-        void'($fscanf(job_file, "%d\n", now.dst_protocol));
+        void'($fscanf(job_file, "%d\n", protocol_raw));
+        now.src_protocol = idma_pkg::protocol_e'(protocol_raw);
+        void'($fscanf(job_file, "%d\n", protocol_raw));
+        now.dst_protocol = idma_pkg::protocol_e'(protocol_raw);
         void'($fscanf(job_file, "%d\n", now.max_src_len));
         void'($fscanf(job_file, "%d\n", now.max_dst_len));
         void'($fscanf(job_file, "%b\n", now.aw_decoupled));

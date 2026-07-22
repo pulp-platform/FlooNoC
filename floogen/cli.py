@@ -16,6 +16,7 @@ from mako.template import Template
 from floogen.config_parser import parse_config
 from floogen.query import handle_query
 from floogen.model.network import Network
+from floogen.model.traffic import gen_traffic_cfg, gen_traffic_builtin, MESH_TRAFFIC_TYPES
 from floogen.utils import verible_format
 
 tpl_dir = files("floogen") / "templates"
@@ -61,6 +62,11 @@ def build_parser() -> argparse.ArgumentParser:
             "Path to the output directory of the generated output files. "
             "If not specified, the files are printed to stdout."
         ),
+    )
+    common.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Print detailed information about what the tool is doing.",
     )
 
     # Parser for SystemVerilog formatting options
@@ -172,6 +178,72 @@ def build_parser() -> argparse.ArgumentParser:
             help="Visualize the network graph.",
         )
 
+    # floogen traffic generation
+    p_traffic = subparsers.add_parser(
+        "traffic",
+        parents=[common],
+        add_help=True,
+        help="Generate DMA job files from a traffic configuration file.",
+    )
+    p_traffic_src = p_traffic.add_mutually_exclusive_group(required=True)
+    p_traffic_src.add_argument(
+        "--traffic-cfg",
+        dest="traffic_cfg",
+        type=Path,
+        help="Path to the traffic configuration file.",
+    )
+    p_traffic_src.add_argument(
+        "--traffic-type",
+        dest="traffic_type",
+        type=str,
+        choices=MESH_TRAFFIC_TYPES,
+        help="Generate a built-in traffic pattern, not requiring any dedicated traffic configuration file. "
+             "Available types: "+ ", ".join(MESH_TRAFFIC_TYPES) + ".",
+    )
+    p_traffic.add_argument(
+        "--traffic-name",
+        dest="traffic_name",
+        type=str,
+        default=None,
+        help="Base name of the emitted job files. Defaults to the traffic configuration filename. ",
+    )
+    p_traffic.add_argument(
+        "--traffic-rw",
+        dest="traffic_rw",
+        type=str,
+        default="write",
+        choices=["read", "write"],
+        help="Read or write transaction, only used with --traffic-type.",
+    )
+    p_traffic.add_argument(
+        "--num-narrow-bursts",
+        dest="num_narrow_bursts",
+        type=int,
+        default=10,
+        help="Number of narrow bursts per node, only used with --traffic-type.",
+    )
+    p_traffic.add_argument(
+        "--num-wide-bursts",
+        dest="num_wide_bursts",
+        type=int,
+        default=100,
+        help="Number of wide bursts per node, only used with --traffic-type.",
+    )
+    p_traffic.add_argument(
+        "--narrow-burst-length",
+        dest="narrow_burst_length",
+        type=int,
+        default=1,
+        help="Narrow burst length, in beats, only used with --traffic-type.",
+    )
+    p_traffic.add_argument(
+        "--wide-burst-length",
+        dest="wide_burst_length",
+        type=int,
+        default=16,
+        help="Wide burst length, in beats, only used with --traffic-type.",
+    )
+
     # floogen query <key>
     p_query = subparsers.add_parser(
         "query",
@@ -219,6 +291,10 @@ def main():
             context["name"] = args.name or network.name
             pkg_file_name = f"floo_{args.name or network.name}_noc_pkg.sv"
             top_file_name = f"floo_{args.name or network.name}_noc.sv"
+        case "traffic":
+            traffic_outdir = args.outdir or Path("jobs")
+            default_traffic_name = args.traffic_cfg.stem if args.traffic_cfg else "mesh"
+            traffic_name = args.traffic_name or default_traffic_name
 
 
     match args.command:
@@ -271,6 +347,28 @@ def main():
                 network.visualize(savefig=False)
         case "query":
             handle_query(network, args.query)
+        case "traffic":
+            if args.traffic_cfg:
+                gen_traffic_cfg(
+                    args.traffic_cfg,
+                    network,
+                    traffic_name,
+                    traffic_outdir,
+                    verbose=args.verbose
+                )
+            else:
+                gen_traffic_builtin(
+                    args.traffic_type,
+                    network,
+                    traffic_name,
+                    traffic_outdir,
+                    args.num_narrow_bursts,
+                    args.narrow_burst_length,
+                    args.num_wide_bursts,
+                    args.wide_burst_length,
+                    args.traffic_rw,
+                    verbose=args.verbose,
+                )
 
 
 if __name__ == "__main__":
