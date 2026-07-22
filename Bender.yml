@@ -13,9 +13,9 @@ remotes:
     pulp: https://github.com/pulp-platform
 
 dependencies:
-  axi: { git: "https://github.com/pulp-platform/axi.git", rev: common-cells-v2 }
+  axi: { git: "https://github.com/pulp-platform/axi.git", rev: 1008d75e012d85c17a20533061b30c44d8cb85b1 }
   axi_riscv_atomics: { git: "https://github.com/pulp-platform/axi_riscv_atomics.git", rev: common-cells-v2 }
-  common_cells: { git: "https://github.com/pulp-platform/common_cells.git", rev: master }
+  common_cells: 2.0.0-beta.2
   common_verification: 0.2.3
   idma: { git: https://github.com/pulp-platform/idma.git,              rev: 78ab25f13a88658be3f7b4d1d7b1074effaf42eb,  upstream_name: iDMA }
   FPnew: { git: "https://github.com/pulp-platform/cvfpu.git", rev: common-cells-v2 }
