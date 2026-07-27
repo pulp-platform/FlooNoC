@@ -8,7 +8,7 @@ updates:
   - package-ecosystem: "uv"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     # Only update to versions that have been published for at least 7 days,
     # to avoid pulling in compromised releases that get yanked quickly.
     cooldown:
@@ -25,7 +25,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     cooldown:
       default-days: 7
     groups:
