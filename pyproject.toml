@@ -74,9 +74,6 @@ suggestion-mode = "yes"
 [tool.ruff]
 line-length = 100
 
-[tool.ty.environment]
-python-version = "3.10"
-
 [tool.ty.terminal]
 # Warnings are informational for now (see [tool.ty.rules] below); only
 # error-level diagnostics should fail CI.
@@ -88,14 +85,24 @@ error-on-warning = false
 include = ["floogen"]
 
 [tool.ty.rules]
-# These are all downstream of a single pattern: model fields are declared
-# `Optional[X] = None` and only populated later by the build pipeline
-# (`create_network()` -> `compile_network()` -> `gen_routing_info()`), so every
-# use afterwards looks like a possible `None` to the type checker.
+# Demoted to `warn` so CI stays green. Nothing is wrong with these rules; the
+# problem is purely the volume of pre-existing findings (~203 at the time of
+# writing), which break down into two dominant causes plus a small remainder:
 #
-# They are kept at `warn` so CI stays green while the annotations are still
-# lying. Promote them to `error` once the pipeline state is modelled honestly;
-# see the tracking issue for the `Optional` refactor.
+#  * ~159  Model fields declared `X | None = None` that are only populated later
+#          by the build pipeline (`create_network()` -> `compile_network()` ->
+#          `gen_routing_info()`), so every use afterwards looks possibly-`None`.
+#          Fixing this means modelling the post-build state honestly rather than
+#          sprinkling asserts.
+#  *  ~34  `AddrRange` constructor contract: `start`, `end` and `size` are all
+#          declared required, but a `mode="before"` validator derives the third
+#          from the other two, so callers legitimately pass only two of them.
+#  *  ~10  Assorted genuine findings worth fixing on their own merits, e.g.
+#          `.x`/`.y` accessed on a `SimpleId | Coord` union, and `user_width`
+#          (`int | dict`) passed where `int | str` is expected.
+#
+# Promote a rule to `error` once its blockers are gone. Re-measure with:
+#   uv run --extra viz ty check --output-format concise
 unresolved-attribute = "warn"
 missing-argument = "warn"
 invalid-argument-type = "warn"

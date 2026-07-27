@@ -9,7 +9,6 @@ from typing import Annotated, TypeVar
 from pydantic import BaseModel, StringConstraints
 
 from floogen.utils import (
-    snake_to_camel,
     sv_param_decl,
     sv_struct_render,
     sv_struct_typedef,
@@ -59,15 +58,6 @@ class AXI4(ProtocolDesc):
     def type_name(self, prefix="") -> str:
         """Return the full name of the protocol."""
         return "_".join(filter(None, [prefix, self.type_prefix, self.name]))
-
-    def render_params(self) -> str:
-        """Render the parameters of the protocol."""
-        cfull_name = snake_to_camel(self.full_name())
-        string = sv_param_decl(cfull_name + "AddrWidth", self.addr_width)
-        string += sv_param_decl(cfull_name + "DataWidth", self.data_width)
-        string += sv_param_decl(cfull_name + "IdWidth", self.id_width)
-        string += sv_param_decl(cfull_name + "UserWidth", self.user_width)
-        return string + "\n"
 
     def render_typedefs(self, prefix="", ignored_user_fields=None) -> str:
         """Render the typedefs of the protocol."""
