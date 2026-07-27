@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -6,22 +5,33 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 import pathlib
-from typing import Optional, List
 from enum import Enum
 
 import networkx as nx
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
-from floogen.model.routing import Routing, RouteAlgo, RouteMapRule, RouteRule, RouteMap, RouteTable, RouteMapRuleCollective, WideRwDecouple
-from floogen.model.routing import Coord, SimpleId, AddrRange, XYDirections
-from floogen.model.graph import Graph
-from floogen.model.endpoint import EndpointDesc, Endpoint
-from floogen.model.router import RouterDesc, NarrowWideRouter, AxiRouter
 from floogen.model.connection import ConnectionDesc
-from floogen.model.link import NarrowWideLink, NarrowWideVCLink, AxiLink
-from floogen.model.network_interface import NarrowWideAxiNI, AxiNI
+from floogen.model.endpoint import Endpoint, EndpointDesc
+from floogen.model.graph import Graph
+from floogen.model.link import AxiLink, NarrowWideLink, NarrowWideVCLink
+from floogen.model.network_interface import AxiNI, NarrowWideAxiNI
 from floogen.model.protocol import AXI4, AXI4Bus
-from floogen.utils import clog2, sv_enum_typedef, sv_param_decl, snake_to_camel
+from floogen.model.router import AxiRouter, NarrowWideRouter, RouterDesc
+from floogen.model.routing import (
+    AddrRange,
+    Coord,
+    RouteAlgo,
+    RouteMap,
+    RouteMapRule,
+    RouteMapRuleCollective,
+    RouteRule,
+    RouteTable,
+    Routing,
+    SimpleId,
+    WideRwDecouple,
+    XYDirections,
+)
+from floogen.utils import clog2, snake_to_camel, sv_enum_typedef, sv_param_decl
 
 
 class NetworkType(str, Enum):
@@ -52,13 +62,13 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
     name: str
-    description: Optional[str]
+    description: str | None
     network_type: NetworkType
-    protocols: List[AXI4]
-    endpoints: List[EndpointDesc]
-    routers: List[RouterDesc]
-    connections: List[ConnectionDesc]
-    graph: Optional[Graph] = None
+    protocols: list[AXI4]
+    endpoints: list[EndpointDesc]
+    routers: list[RouterDesc]
+    connections: list[ConnectionDesc]
+    graph: Graph | None = None
     routing: Routing
 
     def create_network(self):
@@ -102,19 +112,19 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     def validate_protocols(self):
         """Check that names are unique and parameters are compatible."""
         # Check that address width is unique among all protocols
-        if len(set(prot.addr_width for prot in self.protocols)) != 1:
+        if len({prot.addr_width for prot in self.protocols}) != 1:
             raise ValueError("All protocols must have the same address width")
         if self.network_type == "narrow-wide":
             # Check that `narrow` and `wide` protocols have the same data width
-            if len(set(prot.data_width for prot in self.protocols if prot.type == "narrow")) != 1:
+            if len({prot.data_width for prot in self.protocols if prot.type == "narrow"}) != 1:
                 raise ValueError("All `narrow` protocols must have the same data width")
-            if len(set(prot.data_width for prot in self.protocols if prot.type == "wide")) != 1:
+            if len({prot.data_width for prot in self.protocols if prot.type == "wide"}) != 1:
                 raise ValueError("All `wide` protocols must have the same data width")
             # Check that `narrow` and `wide` protocols have the same user width
             if not self.routing.en_collective:
-                if len(set(prot.user_width for prot in self.protocols if prot.type == "narrow")) != 1:
+                if len({prot.user_width for prot in self.protocols if prot.type == "narrow"}) != 1:
                     raise ValueError("All `narrow` protocols must have the same user width")
-                if len(set(prot.user_width for prot in self.protocols if prot.type == "wide")) != 1:
+                if len({prot.user_width for prot in self.protocols if prot.type == "wide"}) != 1:
                     raise ValueError("All `wide` protocols must have the same user width")
             # Check that `type` is defined when using `narrow-wide` network
             if any(prot.type not in ["narrow", "wide"] for prot in self.protocols) and \
@@ -122,10 +132,10 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 raise ValueError("Protocols must define `type` for `narrow-wide` networks")
         else:
             # Check that data width is the same among all protocols
-            if len(set(prot.data_width for prot in self.protocols)) != 1:
+            if len({prot.data_width for prot in self.protocols}) != 1:
                 raise ValueError("All protocols must have the same data width")
             # Check that user width is the same among all protocols
-            if len(set(prot.user_width for prot in self.protocols)) != 1:
+            if len({prot.user_width for prot in self.protocols}) != 1:
                 raise ValueError("All protocols must have the same user width")
         return self
 

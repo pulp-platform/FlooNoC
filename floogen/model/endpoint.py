@@ -1,14 +1,13 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
-from typing import Optional, List, Union, Tuple
+
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
-from floogen.model.routing import AddrRange, SimpleId, Coord
 from floogen.model.protocol import Protocols
+from floogen.model.routing import AddrRange, Coord, SimpleId
 
 
 class EndpointDesc(BaseModel):
@@ -28,14 +27,14 @@ class EndpointDesc(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str
-    description: Optional[str] = ""
-    array: Optional[Union[Tuple[int], Tuple[int, int]]] = None
-    num: Optional[int] = None
+    description: str | None = ""
+    array: tuple[int] | tuple[int, int] | None = None
+    num: int | None = None
     """The total number of endpoints based on the `array` configuration."""
-    addr_range: List[AddrRange] = []
-    xy_id_offset: Optional[Union[SimpleId, Coord]] = None
-    mgr_port_protocol: Optional[List[str]] = None
-    sbr_port_protocol: Optional[List[str]] = None
+    addr_range: list[AddrRange] = []
+    xy_id_offset: SimpleId | Coord | None = None
+    mgr_port_protocol: list[str] | None = None
+    sbr_port_protocol: list[str] | None = None
 
     @field_validator("array", mode="before")
     @classmethod
@@ -55,7 +54,7 @@ class EndpointDesc(BaseModel):
     @classmethod
     def addr_range_to_list(cls, v):
         """Convert single AddrRange to list."""
-        if not isinstance(v, List):
+        if not isinstance(v, list):
             return [v]
         return v
 
@@ -102,7 +101,7 @@ class EndpointDesc(BaseModel):
 
     def is_collective_ep(self) -> bool:
         """Return true if the endpoint supports collective operations."""
-        return any([b for b in self.addr_range if b.en_collective])
+        return any(b for b in self.addr_range if b.en_collective)
 
     def get_ni_name(self, name: str) -> str:
         """Return the name of the NI."""
@@ -115,13 +114,13 @@ class EndpointDesc(BaseModel):
 class Endpoint(EndpointDesc):
     """Endpoint class to describe an endpoint with adress ranges and configuration parameters."""
 
-    mgr_ports: List[Protocols] = []
-    sbr_ports: List[Protocols] = []
+    mgr_ports: list[Protocols] = []
+    sbr_ports: list[Protocols] = []
 
     @classmethod
     def from_desc(cls, desc: EndpointDesc,
-                  mgr_ports: List[Protocols],
-                  sbr_ports: List[Protocols]):
+                  mgr_ports: list[Protocols],
+                  sbr_ports: list[Protocols]):
         """Create an endpoint from a description."""
         return cls(**desc.model_dump(), mgr_ports=mgr_ports, sbr_ports=sbr_ports)
 

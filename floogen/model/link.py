@@ -1,12 +1,12 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from typing import ClassVar, List, Union, Dict
 from abc import ABC, abstractmethod
+from typing import ClassVar
+
 from pydantic import BaseModel
 
 from floogen.utils import sv_struct_typedef
@@ -19,15 +19,15 @@ class Link(BaseModel, ABC):
     """
 
     description: str = ""
-    source: Union[str, List[str]]
-    dest: Union[str, List[str]]
+    source: str | list[str]
+    dest: str | list[str]
     source_type: str
     dest_type: str
     is_bidirectional: bool = False
     is_array: bool = False
     array: list = None
 
-    channel_mapping: ClassVar[Dict] = {}
+    channel_mapping: ClassVar[dict] = {}
 
     @abstractmethod
     def declare(self):
@@ -148,7 +148,7 @@ class NarrowLink(Link):
     configuration parameters.
     """
 
-    channel_mapping: ClassVar[Dict] = {
+    channel_mapping: ClassVar[dict] = {
         "req": {"axi": ["aw", "w", "ar"]},
         "rsp": {"axi": ["b", "r"]},
     }

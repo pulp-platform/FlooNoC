@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2026 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -12,7 +11,6 @@ import pytest
 from floogen.config_parser import parse_config
 from floogen.model.network import Network
 from floogen.model.traffic import _xy_addr_map, gen_traffic_builtin
-
 
 EXAMPLES_DIR = Path(__file__).resolve().parents[1] / "examples"
 

@@ -7,9 +7,8 @@
 
 import argparse
 import os
-from math import sqrt
 import re
-
+from math import sqrt
 
 
 def main():

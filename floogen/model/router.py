@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -6,16 +5,16 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 
-from typing import Optional, List, ClassVar, Tuple, Union
-from importlib.resources import files, as_file
 from abc import ABC, abstractmethod
+from importlib.resources import as_file, files
+from typing import ClassVar
 
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from mako.lookup import Template
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
-from floogen.model.routing import RouteMap, SimpleId, Coord, RouteAlgo
-from floogen.model.link import Link
 import floogen.templates
+from floogen.model.link import Link
+from floogen.model.routing import Coord, RouteAlgo, RouteMap, SimpleId
 
 
 class RouterDesc(BaseModel):
@@ -33,11 +32,11 @@ class RouterDesc(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str
-    array: Optional[Union[Tuple[int], Tuple[int, int]]] = None
-    tree: Optional[List[int]] = None
-    xy_id_offset: Optional[Union[SimpleId, Coord]] = None
-    auto_connect: Optional[bool] = True
-    degree: Optional[int] = None
+    array: tuple[int] | tuple[int, int] | None = None
+    tree: list[int] | None = None
+    xy_id_offset: SimpleId | Coord | None = None
+    auto_connect: bool | None = True
+    degree: int | None = None
 
     @field_validator("array", mode="before")
     @classmethod
@@ -65,12 +64,12 @@ class Router(BaseModel, ABC):
     """Abstract router class of an actual router"""
 
     name: str
-    incoming: List[Optional[Link]]
-    outgoing: List[Optional[Link]]
+    incoming: list[Link | None]
+    outgoing: list[Link | None]
     degree: int
     route_algo: RouteAlgo
-    table: Optional[RouteMap] = None
-    id: Optional[Coord] = None
+    table: RouteMap | None = None
+    id: Coord | None = None
 
     @abstractmethod
     def render(self):

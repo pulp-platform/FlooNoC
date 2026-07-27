@@ -1,20 +1,18 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
+import logging
 from collections.abc import Mapping
 from pathlib import Path
-import logging
 from typing import TypeVar
 
-from pydantic import ValidationError, BaseModel
-
-from ruamel.yaml.comments import CommentedMap
-from ruamel.yaml import YAMLError
 import ruamel.yaml
+from pydantic import BaseModel, ValidationError
+from ruamel.yaml import YAMLError
+from ruamel.yaml.comments import CommentedMap
 
 logger = logging.getLogger(__name__)
 

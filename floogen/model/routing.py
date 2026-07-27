@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -6,18 +5,17 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 from enum import Enum
-from typing import Optional, List, Tuple, Union
 
-from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from floogen.utils import (
-    cdiv,
-    sv_param_decl,
-    sv_typedef,
-    sv_struct_typedef,
     bool_to_sv,
+    cdiv,
     snake_to_camel,
-    sv_struct_render
+    sv_param_decl,
+    sv_struct_render,
+    sv_struct_typedef,
+    sv_typedef,
 )
 
 
@@ -115,7 +113,7 @@ class ReductionCfg(BaseModel):
 
 class NarrowReductionCfg(ReductionCfg):
     """Reduction configuration for the narrow link."""
-    ops: List[NarrowReductionOp] = Field(
+    ops: list[NarrowReductionOp] = Field(
         default_factory=lambda: list(NarrowReductionOp)
     )
 
@@ -129,7 +127,7 @@ class NarrowReductionCfg(ReductionCfg):
 
 class WideReductionCfg(ReductionCfg):
     """Reduction configuration for the wide link."""
-    ops: List[WideReductionOp] = Field(
+    ops: list[WideReductionOp] = Field(
         default_factory=lambda: list(WideReductionOp)
     )
 
@@ -167,8 +165,8 @@ class CollectiveCfg(BaseModel):
     en_narrow_multicast: bool = False
     en_wide_multicast:   bool = False
     en_barrier:          bool = False
-    en_narrow_reduction: Optional[NarrowReductionCfg] = None
-    en_wide_reduction:   Optional[WideReductionCfg] = None
+    en_narrow_reduction: NarrowReductionCfg | None = None
+    en_wide_reduction:   WideReductionCfg | None = None
 
     @field_validator("en_narrow_reduction", "en_wide_reduction", mode="before")
     @classmethod
@@ -178,12 +176,12 @@ class CollectiveCfg(BaseModel):
             return None
         return v
 
-    def _narrow_ops(self) -> List[NarrowReductionOp]:
+    def _narrow_ops(self) -> list[NarrowReductionOp]:
         if self.en_narrow_reduction is None:
             return []
         return self.en_narrow_reduction.ops
 
-    def _wide_ops(self) -> List[WideReductionOp]:
+    def _wide_ops(self) -> list[WideReductionOp]:
         if self.en_wide_reduction is None:
             return []
         return self.en_wide_reduction.ops
@@ -382,14 +380,14 @@ class AddrRange(BaseModel):
     start: int = Field(ge=0)
     end: int = Field(ge=0)
     size: int
-    base: Optional[int] = None
-    arr_idx: Optional[Tuple[int, ...]] = None
-    arr_dim: Optional[Tuple[int, ...]] = None
-    rdl_name: Optional[str] = None
-    rdl_as_mem: Optional[bool] = None
+    base: int | None = None
+    arr_idx: tuple[int, ...] | None = None
+    arr_dim: tuple[int, ...] | None = None
+    rdl_name: str | None = None
+    rdl_as_mem: bool | None = None
     en_collective: bool = False
-    desc: Optional[str] = None
-    rdl_addrmap_grp: Optional[List[str]] = None
+    desc: str | None = None
+    rdl_addrmap_grp: list[str] | None = None
     """One or more SystemRDL addrmap group tags this address range belongs to."""
 
     def __str__(self):
@@ -407,7 +405,9 @@ class AddrRange(BaseModel):
     def validate_input(self):
         """Validate the address range."""
         if not isinstance(self, dict):
-            raise ValueError("Invalid address range specification")
+            # `ValueError` on purpose: pydantic turns it into a `ValidationError`,
+            # while a `TypeError` would escape as an unhandled exception.
+            raise ValueError("Invalid address range specification")  # noqa: TRY004
         addr_dict = {k: v for k, v in self.items() if v is not None}
         match addr_dict:
             case {"size": size, "base": base, "arr_idx": arr_idx}:
@@ -468,9 +468,9 @@ class RouteMapRule(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    dest: Union[SimpleId, Coord]
+    dest: SimpleId | Coord
     addr_range: AddrRange
-    desc: Optional[str] = None
+    desc: str | None = None
 
     def __str__(self):
         return f"{self.addr_range} -> {self.dest}"
@@ -536,9 +536,9 @@ class RouteMapRule(BaseModel):
 class RouteMapRuleCollective(RouteMapRule):
     """Routing rule class for collective operations (multicast, reduction, barrier)."""
 
-    mask_offset: Optional[Tuple[int, int]] = None
-    mask_len: Optional[Tuple[int, int]] = None
-    base_id: Optional[Tuple[int, int]] = None
+    mask_offset: tuple[int, int] | None = None
+    mask_len: tuple[int, int] | None = None
+    base_id: tuple[int, int] | None = None
 
     def render(self, aw=None):
         """Render the SystemVerilog routing rule."""
@@ -567,9 +567,9 @@ class RouteMapRuleCollective(RouteMapRule):
 class RouteRule(BaseModel):
     """Routing rule class."""
 
-    route: Optional[List[Tuple[int, int]]]
-    id: Union[SimpleId, Coord]
-    desc: Optional[str] = None
+    route: list[tuple[int, int]] | None
+    id: SimpleId | Coord
+    desc: str | None = None
 
     def render(self, num_route_bits):
         """Render the SystemVerilog route."""
@@ -601,7 +601,7 @@ class RouteTable(BaseModel):
     """Route Table class, which can hold the route entries to each destination"""
 
     name: str
-    routes: List[RouteRule]
+    routes: list[RouteRule]
 
     def __len__(self):
         return len(self.routes)
@@ -649,7 +649,7 @@ class RouteMap(BaseModel):
     or a routing table of a router."""
 
     name: str
-    rules: List[RouteMapRule]
+    rules: list[RouteMapRule]
 
     def __str__(self):
         return f"{self.rules}"
@@ -794,12 +794,12 @@ class RouteMap(BaseModel):
             if rule.addr_range.rdl_name is not None:
                 rdl_names.append(rule.addr_range.rdl_name.split()[0].split('#')[0])
         # uniquify the names
-        rdl_names = sorted(list(set(rdl_names)))
+        rdl_names = sorted(set(rdl_names))
         for rule in rdl_names:
             string += f"`include \"{rule}.rdl\"\n"
         return string
 
-    def distinct_groups(self) -> List[str]:
+    def distinct_groups(self) -> list[str]:
         """Return the sorted list of distinct RDL addrmap groups used by any rule."""
         groups = set()
         for rule in self.rules:
@@ -834,25 +834,25 @@ class Routing(BaseModel):
 
     route_algo: RouteAlgo
     use_id_table: bool = True
-    sam: Optional[RouteMap] = None
+    sam: RouteMap | None = None
     """The system address map."""
-    table: Optional[RouteMap] = None
+    table: RouteMap | None = None
     """The routing table of the router."""
-    addr_offset_bits: Optional[int] = None
+    addr_offset_bits: int | None = None
     """The number of bits to decode the X and Y coordinates from the address. Only used if `use_id_table` is False and `route_algo` is XY."""
-    xy_id_offset: Optional[Union[SimpleId, Coord]] = None
+    xy_id_offset: SimpleId | Coord | None = None
     """A constant offset to add to the X and Y coordinates. Only used if `route_algo` is XY."""
-    num_endpoints: Optional[int] = None
+    num_endpoints: int | None = None
     """The number of endpoints in the network."""
-    num_id_bits: Optional[int] = None
+    num_id_bits: int | None = None
     """The number of bits to represent the ID. Only used if `route_algo` is ID or SRC."""
-    num_x_bits: Optional[int] = None
+    num_x_bits: int | None = None
     """The number of bits to represent the X coordinate. Only used if `route_algo` is XY."""
-    num_y_bits: Optional[int] = None
+    num_y_bits: int | None = None
     """The number of bits to represent the Y coordinate. Only used if `route_algo` is XY."""
-    num_route_bits: Optional[int] = None
+    num_route_bits: int | None = None
     """The number of bits to represent the route. Only used if `route_algo` is SRC."""
-    addr_width: Optional[int] = None
+    addr_width: int | None = None
     """The width of the address bus."""
     rob_idx_bits: int = 1
     port_id_bits: int = 1
@@ -860,7 +860,7 @@ class Routing(BaseModel):
     num_vc_id_bits: int = 0
     decouple_rw: WideRwDecouple = WideRwDecouple.NONE
     vc_impl: VcImpl = VcImpl.NAIVE
-    collective_sam: Optional[RouteMap] = None
+    collective_sam: RouteMap | None = None
     """The collective system address map. Only used if collective is enabled."""
     collective: CollectiveCfg = CollectiveCfg()
 

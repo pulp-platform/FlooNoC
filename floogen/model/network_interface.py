@@ -1,21 +1,20 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from typing import Optional, ClassVar, List, Union
-from importlib.resources import files, as_file
+from importlib.resources import as_file, files
+from typing import ClassVar
 
-from pydantic import BaseModel
 from mako.lookup import Template
+from pydantic import BaseModel
 
-from floogen.model.routing import SimpleId, Coord, AddrRange, Routing, RouteMap
-from floogen.model.protocol import AXI4
-from floogen.model.link import NarrowWideLink, AxiLink
-from floogen.model.endpoint import EndpointDesc
 import floogen.templates
+from floogen.model.endpoint import EndpointDesc
+from floogen.model.link import AxiLink, NarrowWideLink
+from floogen.model.protocol import AXI4
+from floogen.model.routing import AddrRange, Coord, RouteMap, Routing, SimpleId
 
 
 class NetworkInterface(BaseModel):
@@ -25,11 +24,11 @@ class NetworkInterface(BaseModel):
     endpoint: EndpointDesc
     description: str = ""
     routing: Routing
-    table: Optional[RouteMap] = None
-    id: Optional[Union[SimpleId, Coord]] = None
-    uid: Optional[SimpleId] = None
-    arr_idx: Optional[Union[SimpleId, Coord]] = None
-    addr_range: Optional[List[AddrRange]] = None
+    table: RouteMap | None = None
+    id: SimpleId | Coord | None = None
+    uid: SimpleId | None = None
+    arr_idx: SimpleId | Coord | None = None
+    addr_range: list[AddrRange] | None = None
 
     def is_sbr(self) -> bool:
         """Return true if the network interface is a subordinate."""
@@ -49,7 +48,7 @@ class NetworkInterface(BaseModel):
 
     def is_collective_ni(self) -> bool:
         """Return true if the network interface supports collective operations."""
-        return any([b for b in self.addr_range if b.en_collective])
+        return any(b for b in self.addr_range if b.en_collective)
 
     def render_enum_name(self) -> str:
         """Render the enum name."""
@@ -69,8 +68,8 @@ class AxiNI(NetworkInterface):
     ) as _tpl_path:
         tpl: ClassVar = Template(filename=str(_tpl_path))
 
-    mgr_port: Optional[AXI4] = None
-    sbr_port: Optional[AXI4] = None
+    mgr_port: AXI4 | None = None
+    sbr_port: AXI4 | None = None
     mgr_link: AxiLink
     sbr_link: AxiLink
 
@@ -86,10 +85,10 @@ class NarrowWideAxiNI(NetworkInterface):
     ) as _tpl_path:
         tpl: ClassVar = Template(filename=str(_tpl_path))
 
-    mgr_narrow_port: Optional[AXI4] = None
-    sbr_narrow_port: Optional[AXI4] = None
-    mgr_wide_port: Optional[AXI4] = None
-    sbr_wide_port: Optional[AXI4] = None
+    mgr_narrow_port: AXI4 | None = None
+    sbr_narrow_port: AXI4 | None = None
+    mgr_wide_port: AXI4 | None = None
+    sbr_wide_port: AXI4 | None = None
     mgr_link: NarrowWideLink
     sbr_link: NarrowWideLink
 
