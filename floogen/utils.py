@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -8,10 +7,9 @@
 import math
 import shutil
 import subprocess
-from typing import Union, List
 
 
-def cdiv(x: Union[int, float], y: Union[int, float]) -> int:
+def cdiv(x: float, y: float) -> int:
     """Compute the ceiling of x / y.
 
     Examples:
@@ -28,7 +26,7 @@ def cdiv(x: Union[int, float], y: Union[int, float]) -> int:
     return -(-x // y)
 
 
-def clog2(x: Union[int, float]) -> int:
+def clog2(x: float) -> int:
     """Returns the ceiling of log2(x).
 
     Examples:
@@ -124,10 +122,10 @@ def int_to_hex(value: int, width: int) -> str:
 
 def sv_param_decl(
     name: str,
-    value: Union[int, str],
+    value: int | str,
     ptype: str = "localparam",
     dtype: str = "int unsigned",
-    array_size: Union[int, str, List[Union[int, str]]] = None,
+    array_size: int | str | list[int | str] | None = None,
 ) -> str:
     """Declare a SystemVerilog parameter.
 
@@ -163,7 +161,7 @@ def sv_param_decl(
     raise ValueError("array_size must be int, str, or list.")
 
 
-def sv_typedef(name: str, dtype: str = "logic", array_size: int = None) -> str:
+def sv_typedef(name: str, dtype: str = "logic", array_size: int | None = None) -> str:
     """Declare a SystemVerilog typedef.
 
     Examples:
@@ -222,7 +220,9 @@ def sv_struct_render(fields: dict) -> str:
         decl += f"    {field}: {value},\n"
     return decl[:-2] + "}"
 
-def sv_enum_typedef(name: str, fields_dict: dict=None, fields_list: list=None) -> str:
+def sv_enum_typedef(
+    name: str, fields_dict: dict | None = None, fields_list: list | None = None
+) -> str:
     """Declare a SystemVerilog enum typedef.
 
     Examples:

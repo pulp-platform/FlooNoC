@@ -6,25 +6,25 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 import argparse
-from pathlib import Path
-from importlib.resources import files
 from importlib.metadata import version
+from importlib.resources import files
 from importlib.util import find_spec
+from pathlib import Path
 
 from mako.template import Template
 
 from floogen.config_parser import parse_config
-from floogen.query import handle_query
 from floogen.model.network import Network
-from floogen.model.traffic import gen_traffic_cfg, gen_traffic_builtin, MESH_TRAFFIC_TYPES
+from floogen.model.traffic import MESH_TRAFFIC_TYPES, gen_traffic_builtin, gen_traffic_cfg
+from floogen.query import handle_query
 from floogen.utils import verible_format
 
 tpl_dir = files("floogen") / "templates"
 
 def render_template(context: dict, tpl: Path,
-                    outdir: Path = None, file_name: str = None,
-                    format_output: bool=False, verible_fmt_bin: str = None,
-                    verible_fmt_args: str = None):
+                    outdir: Path | None = None, file_name: str | None = None,
+                    format_output: bool=False, verible_fmt_bin: str | None = None,
+                    verible_fmt_args: str | None = None):
     """Render a template, format if requested and write to file or print to stdout."""
     if not tpl.exists():
         # Search in the internal template directory if the template exists there

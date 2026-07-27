@@ -5,11 +5,12 @@
 #
 # Lukas Berner <bernerl@student.ethz.ch>
 
-import math
-import random
 import argparse
-import subprocess
+import math
 import os
+import random
+import subprocess
+
 import pygame as pg
 import pygame.gfxdraw
 

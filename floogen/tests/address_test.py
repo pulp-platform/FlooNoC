@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -6,7 +5,8 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 import pytest
-from floogen.model.routing import AddrRange, RouteMapRule, RouteMap, SimpleId
+
+from floogen.model.routing import AddrRange, RouteMap, RouteMapRule, SimpleId
 
 
 def test_addr_range_creation1():

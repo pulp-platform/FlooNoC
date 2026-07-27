@@ -1,15 +1,21 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from typing import Dict, Optional, List, TypeVar, Union
-from typing_extensions import Annotated
+from typing import Annotated, TypeVar
+
 from pydantic import BaseModel, StringConstraints
 
-from floogen.utils import snake_to_camel, sv_param_decl, sv_typedef, sv_struct_render, sv_struct_typedef
+from floogen.utils import (
+    snake_to_camel,
+    sv_param_decl,
+    sv_struct_render,
+    sv_struct_typedef,
+    sv_typedef,
+)
+
 
 class ProtocolDesc(BaseModel):
     """Protocol class to describe a protocol.
@@ -23,10 +29,10 @@ class ProtocolDesc(BaseModel):
     """
 
     name: str
-    description: Optional[str] = ""
+    description: str | None = ""
     protocol: Annotated[str, StringConstraints(pattern=r"AXI4")]
-    type: Optional[Annotated[str, StringConstraints(pattern=r"narrow|wide")]] = None
-    direction: Optional[str] = None
+    type: Annotated[str, StringConstraints(pattern=r"narrow|wide")] | None = None
+    direction: str | None = None
 
 
 class AXI4(ProtocolDesc):
@@ -43,8 +49,8 @@ class AXI4(ProtocolDesc):
     data_width: int
     addr_width: int
     id_width: int
-    user_width: Union[int, Dict[str, int]] = 1
-    type_prefix: Optional[str] = "axi"
+    user_width: int | dict[str, int] = 1
+    type_prefix: str | None = "axi"
 
     def type_name(self, prefix="") -> str:
         """Return the full name of the protocol."""
@@ -59,8 +65,10 @@ class AXI4(ProtocolDesc):
         string += sv_param_decl(cfull_name + "UserWidth", self.user_width)
         return string + "\n"
 
-    def render_typedefs(self, prefix="", ignored_user_fields=[]) -> str:
+    def render_typedefs(self, prefix="", ignored_user_fields=None) -> str:
         """Render the typedefs of the protocol."""
+        if ignored_user_fields is None:
+            ignored_user_fields = []
         name_t = self.type_name() if prefix == "" else f"{prefix}_{self.type_name()}"
         string = sv_typedef(name_t + "_addr_t", array_size=self.addr_width)
         string += sv_typedef(name_t + "_data_t", array_size=self.data_width)
@@ -111,10 +119,10 @@ class AXI4Bus(AXI4):
     """AXI4 bus protocol class."""
 
     base_name: str
-    source: Union[str, List[str]]
-    dest: Union[str, List[str]]
-    arr_dim: Optional[List[int]] = None
-    arr_idx: Optional[List[int]] = None
+    source: str | list[str]
+    dest: str | list[str]
+    arr_dim: list[int] | None = None
+    arr_idx: list[int] | None = None
     is_declared: bool = False
     subtype: str = ""
 
@@ -166,7 +174,7 @@ class AXI4Bus(AXI4):
         string += f"{self.rsp_type()} {self.rsp_name()};\n"
         return string + "\n"
 
-    def render_port(self, pkg_name="", prefix="") -> List[str]:
+    def render_port(self, pkg_name="", prefix="") -> list[str]:
         """Render the port of the protocol."""
         rev_direction = self._invert_dir()
         ports = []

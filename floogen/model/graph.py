@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from typing import List, Tuple
 
 import networkx as nx
 
@@ -156,7 +154,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
         """Return the link edges."""
         return self.get_edges(filters=[self.is_link_edge], with_obj=with_obj, with_name=with_name)
 
-    def get_nodes_from_range(self, node: str, rng: List[Tuple[int]]):
+    def get_nodes_from_range(self, node: str, rng: list[tuple[int]]):
         """Return the nodes from the range."""
         nodes = []
         if len(rng) == 0:
@@ -174,7 +172,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
                 nodes.extend(self.get_nodes_from_range(f"{node}_{i}", rng[1:]))
         return nodes
 
-    def get_nodes_from_idx(self, node: str, idx: List[int]):
+    def get_nodes_from_idx(self, node: str, idx: list[int]):
         """Return the nodes from the index."""
         node_name = f"{node}_{'_'.join([str(i) for i in idx])}"
         if self.has_node(node_name):
@@ -192,7 +190,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
     def add_nodes_as_tree(
         self,
         parent: str,
-        tree: List[int],
+        tree: list[int],
         node_type: str,
         edge_type: str,
         *,
@@ -228,7 +226,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
     def add_nodes_as_array(
         self,
         name: str,
-        array: Tuple[int],
+        array: tuple[int],
         node_type: str,
         *,
         edge_type: str = "",

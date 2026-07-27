@@ -1,11 +1,10 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from typing import Optional, List, Tuple
+
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from floogen.model.routing import XYDirections
@@ -29,19 +28,19 @@ class ConnectionDesc(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    description: Optional[str] = ""
+    description: str | None = ""
     src: str
     dst: str
-    src_range: Optional[List[Tuple[int, int]]] = None
-    dst_range: Optional[List[Tuple[int, int]]] = None
-    src_idx: Optional[List[int]] = None
-    dst_idx: Optional[List[int]] = None
-    src_lvl: Optional[int] = None
-    dst_lvl: Optional[int] = None
-    dst_dir: Optional[int] = None
-    src_dir: Optional[int] = None
-    allow_multi: Optional[bool] = False
-    bidirectional: Optional[bool] = True
+    src_range: list[tuple[int, int]] | None = None
+    dst_range: list[tuple[int, int]] | None = None
+    src_idx: list[int] | None = None
+    dst_idx: list[int] | None = None
+    src_lvl: int | None = None
+    dst_lvl: int | None = None
+    dst_dir: int | None = None
+    src_dir: int | None = None
+    allow_multi: bool | None = False
+    bidirectional: bool | None = True
 
     @field_validator("src_idx", "dst_idx", mode="before")
     @classmethod

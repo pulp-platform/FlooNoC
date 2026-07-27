@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2026 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -16,7 +15,6 @@
 import math
 import random
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 import ruamel.yaml
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
@@ -53,7 +51,7 @@ class Burst(BaseModel):
     length: int
 
     # Resolved using FlooNoC model
-    data_width: Optional[int] = None
+    data_width: int | None = None
 
 
 class TrafficStream(BaseModel):
@@ -69,11 +67,11 @@ class TrafficStream(BaseModel):
     """
 
     name: str
-    initiator: List[int]
-    endpoint: List[int]
+    initiator: list[int]
+    endpoint: list[int]
     rw: str
-    narrow_burst: List[Burst]
-    wide_burst: List[Burst]
+    narrow_burst: list[Burst]
+    wide_burst: list[Burst]
 
     @field_validator("narrow_burst", "wide_burst", mode="before")
     @classmethod
@@ -84,15 +82,15 @@ class TrafficStream(BaseModel):
         return v
 
     # Resolved using FlooNoC model
-    initiator_addr: Optional[int] = None
-    endpoint_addr: Optional[int] = None
+    initiator_addr: int | None = None
+    endpoint_addr: int | None = None
 
 
 class Traffic(BaseModel):
     """Traffic class describing how different traffic streams interact in the FlooNoC system."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
-    traffic_flows: List[TrafficStream]
+    traffic_flows: list[TrafficStream]
 
 
 def parse_traffic_cfg(cfg: Path) -> Traffic:
@@ -105,9 +103,9 @@ def parse_traffic_cfg(cfg: Path) -> Traffic:
         raise ValueError(f"Error while validating traffic configuration '{cfg}': {e}") from e
 
 
-def _protocol_data_widths(network: Network, verbose: bool = False) -> Dict[str, int]:
+def _protocol_data_widths(network: Network, verbose: bool = False) -> dict[str, int]:
     """Map protocol type (`"narrow"`/`"wide"`) to data width, resolved from the FlooNoC model."""
-    proto_dw: Dict[str, int] = {}
+    proto_dw: dict[str, int] = {}
     for p in network.protocols:
         if p.type is None:
             _log(verbose, f"Warning: Protocol '{p.name}' does not have a type, please provide a "
@@ -117,7 +115,7 @@ def _protocol_data_widths(network: Network, verbose: bool = False) -> Dict[str, 
     return proto_dw
 
 
-def _ni_mesh_coord(network: Network, ni_name: str) -> Tuple[int, int]:
+def _ni_mesh_coord(network: Network, ni_name: str) -> tuple[int, int]:
     """Infer an NI's mesh coordinate from its router connection.
 
     Traffic configurations identify nodes by their physical mesh coordinates. Those
@@ -150,12 +148,12 @@ def _ni_mesh_coord(network: Network, ni_name: str) -> Tuple[int, int]:
     raise ValueError(f"Cannot infer a mesh coordinate for network interface '{ni_name}'")
 
 
-def _xy_addr_map(network: Network) -> Dict[Tuple[int, int], int]:
+def _xy_addr_map(network: Network) -> dict[tuple[int, int], int]:
     """Build an XY-coordinate-to-base-address lookup from the physical mesh topology."""
     if network.graph is None:
         raise ValueError("Network graph has not been created")
 
-    xy_addr_map: Dict[Tuple[int, int], int] = {}
+    xy_addr_map: dict[tuple[int, int], int] = {}
     for ni_name, ni in network.graph.get_ni_nodes(with_name=True):
         if getattr(ni, "addr_range", None):
             xy_addr_map[_ni_mesh_coord(network, ni_name)] = ni.addr_range[0].start
