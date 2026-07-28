@@ -87,9 +87,9 @@ include = ["floogen"]
 [tool.ty.rules]
 # Demoted to `warn` so CI stays green. Nothing is wrong with these rules; the
 # problem is the volume of pre-existing findings. The "populated later by the
-# build pipeline" pattern that used to dominate is gone (`Network.graph` and
-# `Routing.sam` are now non-optional properties, and `parse_config` raises
-# instead of returning `None`), taking the count from ~203 to ~66.
+# build pipeline" pattern that used to dominate is largely gone (`Network.graph`
+# default-initializes to an empty `Graph`, and `parse_config` raises instead of
+# returning `None`), taking the count from ~203 to ~71.
 #
 # What is left, and what each rule is still waiting on:
 #
@@ -99,10 +99,12 @@ include = ["floogen"]
 #          legitimately pass only two. Needs a modelling decision (optional
 #          fields with a post-validator, or explicit alternative constructors);
 #          this is the same debt that blocks `validate_assignment` on the model.
-#  *  ~32  A long tail of unrelated findings, each needing its own judgement:
-#          `.x`/`.y` on a `SimpleId | Coord` union, widths typed `int | None`
-#          that are filled in during elaboration, and `int | float` from `/`
-#          where an `int` is expected.
+#  *  ~37  A long tail of unrelated findings, each needing its own judgement:
+#          `Routing.sam`, which is only assigned by `gen_routing_info()` and has
+#          no meaningful empty value to default to; `.x`/`.y` on a
+#          `SimpleId | Coord` union; widths typed `int | None` that are filled
+#          in during elaboration; and `int | float` from `/` where an `int` is
+#          expected.
 #
 # No rule is at zero yet, so none can be promoted. Once a rule's findings reach
 # zero, delete its line here rather than setting it to `error` - these are all

@@ -6,7 +6,7 @@
 
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from floogen.utils import (
     bool_to_sv,
@@ -838,6 +838,8 @@ class Routing(BaseModel):
 
     route_algo: RouteAlgo
     use_id_table: bool = True
+    sam: RouteMap | None = None
+    """The system address map."""
     table: RouteMap | None = None
     """The routing table of the router."""
     addr_offset_bits: int | None = None
@@ -865,23 +867,6 @@ class Routing(BaseModel):
     collective_sam: RouteMap | None = None
     """The collective system address map. Only used if collective is enabled."""
     collective: CollectiveCfg = CollectiveCfg()
-
-    # Only populated by `Network.gen_routing_info()`. Kept private and exposed through the
-    # `sam` property below so that the rest of the code (and the type checker) can rely on
-    # it being a `RouteMap`, with a readable error if routing info was never generated.
-    # `collective_sam` stays optional: it is only generated when collectives are enabled.
-    _sam: RouteMap | None = PrivateAttr(default=None)
-
-    @property
-    def sam(self) -> RouteMap:
-        """The system address map. Raises if routing info has not been generated."""
-        if self._sam is None:
-            raise ValueError("System address map has not been generated")
-        return self._sam
-
-    @sam.setter
-    def sam(self, value: RouteMap) -> None:
-        self._sam = value
 
     @property
     def en_collective(self) -> bool:
