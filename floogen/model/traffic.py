@@ -124,9 +124,6 @@ def _ni_mesh_coord(network: Network, ni_name: str) -> tuple[int, int]:
     the coordinate from the adjacent router's array index and the link direction
     instead.
     """
-    if network.graph is None:
-        raise ValueError("Network graph has not been created")
-
     for neighbor in network.graph.neighbors(ni_name):
         if not network.graph.is_rt_node(neighbor):
             continue
@@ -150,9 +147,6 @@ def _ni_mesh_coord(network: Network, ni_name: str) -> tuple[int, int]:
 
 def _xy_addr_map(network: Network) -> dict[tuple[int, int], int]:
     """Build an XY-coordinate-to-base-address lookup from the physical mesh topology."""
-    if network.graph is None:
-        raise ValueError("Network graph has not been created")
-
     xy_addr_map: dict[tuple[int, int], int] = {}
     for ni_name, ni in network.graph.get_ni_nodes(with_name=True):
         if getattr(ni, "addr_range", None):

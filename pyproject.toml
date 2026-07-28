@@ -86,22 +86,27 @@ include = ["floogen"]
 
 [tool.ty.rules]
 # Demoted to `warn` so CI stays green. Nothing is wrong with these rules; the
-# problem is purely the volume of pre-existing findings (~203 at the time of
-# writing), which break down into two dominant causes plus a small remainder:
+# problem is the volume of pre-existing findings. The "populated later by the
+# build pipeline" pattern that used to dominate is gone (`Network.graph` and
+# `Routing.sam` are now non-optional properties, and `parse_config` raises
+# instead of returning `None`), taking the count from ~203 to ~66.
 #
-#  * ~159  Model fields declared `X | None = None` that are only populated later
-#          by the build pipeline (`create_network()` -> `compile_network()` ->
-#          `gen_routing_info()`), so every use afterwards looks possibly-`None`.
-#          Fixing this means modelling the post-build state honestly rather than
-#          sprinkling asserts.
-#  *  ~34  `AddrRange` constructor contract: `start`, `end` and `size` are all
-#          declared required, but a `mode="before"` validator derives the third
-#          from the other two, so callers legitimately pass only two of them.
-#  *  ~10  Assorted genuine findings worth fixing on their own merits, e.g.
-#          `.x`/`.y` accessed on a `SimpleId | Coord` union, and `user_width`
-#          (`int | dict`) passed where `int | str` is expected.
+# What is left, and what each rule is still waiting on:
 #
-# Promote a rule to `error` once its blockers are gone. Re-measure with:
+#  *  ~34  `AddrRange` constructor contract, all `missing-argument`: `start`,
+#          `end` and `size` are declared required, but a `mode="before"`
+#          validator derives the third from the other two, so callers
+#          legitimately pass only two. Needs a modelling decision (optional
+#          fields with a post-validator, or explicit alternative constructors);
+#          this is the same debt that blocks `validate_assignment` on the model.
+#  *  ~32  A long tail of unrelated findings, each needing its own judgement:
+#          `.x`/`.y` on a `SimpleId | Coord` union, widths typed `int | None`
+#          that are filled in during elaboration, and `int | float` from `/`
+#          where an `int` is expected.
+#
+# No rule is at zero yet, so none can be promoted. Once a rule's findings reach
+# zero, delete its line here rather than setting it to `error` - these are all
+# error-by-default in ty. Re-measure with:
 #   uv run --extra viz ty check --output-format concise
 unresolved-attribute = "warn"
 missing-argument = "warn"

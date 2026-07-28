@@ -8,7 +8,7 @@ import pathlib
 from enum import Enum
 
 import networkx as nx
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, PrivateAttr, field_validator, model_validator
 
 from floogen.model.connection import ConnectionDesc
 from floogen.model.endpoint import Endpoint, EndpointDesc
@@ -68,12 +68,23 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     endpoints: list[EndpointDesc]
     routers: list[RouterDesc]
     connections: list[ConnectionDesc]
-    graph: Graph | None = None
     routing: Routing
+
+    # Only populated by `create_network()`. Kept private and exposed through the `graph`
+    # property below so that the rest of the code (and the type checker) can rely on it
+    # being a `Graph`, with a readable error if the network has not been built yet.
+    _graph: Graph | None = PrivateAttr(default=None)
+
+    @property
+    def graph(self) -> Graph:
+        """The network graph. Raises if the network has not been created yet."""
+        if self._graph is None:
+            raise ValueError("Network graph has not been created")
+        return self._graph
 
     def create_network(self):
         """Initialize the network as a graph."""
-        self.graph = Graph()
+        self._graph = Graph()
         self.create_routers()
         self.create_endpoints()
         self.create_connections()
