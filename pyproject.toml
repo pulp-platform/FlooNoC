@@ -75,34 +75,13 @@ suggestion-mode = "yes"
 line-length = 100
 
 [tool.ty.terminal]
-# Warnings are informational for now (see [tool.ty.rules] below); only
-# error-level diagnostics should fail CI.
-error-on-warning = false
+# `floogen` is clean at ty's default rule set, so let warnings fail CI too and keep
+# it that way. There is deliberately no `[tool.ty.rules]` section: every rule that
+# was demoted while the pre-existing findings were worked down (~203 of them) has
+# since reached zero and had its line removed.
+error-on-warning = true
 
 [tool.ty.src]
 # `util/` holds standalone helper scripts with their own optional dependencies
 # (e.g. pygame) that are not part of the distributed package.
 include = ["floogen"]
-
-[tool.ty.rules]
-# Demoted to `warn` so CI stays green. Nothing is wrong with these rules; the
-# problem is the volume of pre-existing findings, which is being worked down
-# (~203 -> ~17 so far). `missing-argument`, `not-iterable`, `not-subscriptable`
-# and `unsupported-operator` have since reached zero and their lines are gone.
-#
-# What is left, and what each remaining rule is waiting on:
-#
-#  *  ~10  `unresolved-attribute`: `Routing.sam`, which is only assigned by
-#          `gen_routing_info()` and has no meaningful empty value to default
-#          to; `.x`/`.y`/`.id` on a `SimpleId | Coord` union, where the code
-#          assumes a coordinate but the type allows either; and `.type_name`
-#          on an `AXI4 | None`.
-#  *   ~7  `invalid-argument-type`: `int | float` from `/` where `_gen_job_str`
-#          declares `int` (it already applies `int()` internally), plus two
-#          `LaxStr` union cases in `Network.gen_routes`.
-#
-# Once a rule's findings reach zero, delete its line here rather than setting it
-# to `error` - these are all
-# error-by-default in ty. Re-measure with:
-#   uv run --extra viz ty check --output-format concise
-unresolved-attribute = "warn"

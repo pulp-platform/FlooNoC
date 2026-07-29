@@ -342,10 +342,13 @@ def main():
         case "rdl":
             context["rdl_as_mem"] = args.as_mem
             context["rdl_memwidth"] = args.memwidth
-            groups = network.routing.sam.distinct_groups() or [None]
+            sam = network.routing.sam
+            if sam is None:
+                raise ValueError("System address map has not been generated")
+            groups = sam.distinct_groups() or [None]
             for group in groups:
                 suffix = f"_{group}" if group else ""
-                context["sam"] = network.routing.sam.filter_by_group(group) if group else network.routing.sam
+                context["sam"] = sam.filter_by_group(group) if group else sam
                 context["suffix"] = suffix
                 render_template(context,
                     tpl=tpl_dir / "floo_addrmap.rdl.mako",

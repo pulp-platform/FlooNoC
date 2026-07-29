@@ -716,27 +716,30 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     def gen_collective_sam(self):
         """Generate the collective system address map, which contains additional mask
         information for collective endpoints."""
+        if self.routing.sam is None:
+            raise ValueError("System address map has not been generated")
         addr_table = []
         for addr_rule in self.routing.sam.rules:
             mask_fields = {}
             if addr_rule.addr_range.en_collective:
                 # Collective ranges are only defined for 2D endpoint arrays, so `arr_dim`
-                # and `arr_idx` must both be present and two-dimensional.
-                match (addr_rule.addr_range.arr_dim, addr_rule.addr_range.arr_idx):
-                    case ((dim_x, dim_y), (idx_x, idx_y)):
+                # and `arr_idx` must both be present and two-dimensional, and the
+                # destination must be a mesh coordinate rather than a plain ID.
+                match (addr_rule.addr_range.arr_dim, addr_rule.addr_range.arr_idx,
+                       addr_rule.dest):
+                    case ((dim_x, dim_y), (idx_x, idx_y), Coord() as dest):
                         arr_x_bits = clog2(dim_x)
                         arr_y_bits = clog2(dim_y)
                         mask_offset_y = clog2(addr_rule.addr_range.size)
                         mask_fields = {
                             "mask_len": (arr_x_bits, arr_y_bits),
                             "mask_offset": (mask_offset_y + arr_y_bits, mask_offset_y),
-                            "base_id": (addr_rule.dest.x - idx_x,
-                                        addr_rule.dest.y - idx_y),
+                            "base_id": (dest.x - idx_x, dest.y - idx_y),
                         }
                     case _:
                         raise ValueError(
                             f"Collective address range '{addr_rule.desc}' requires a 2D "
-                            "endpoint array"
+                            "endpoint array with mesh coordinates"
                         )
             addr_table.append(RouteMapRuleCollective(**addr_rule.model_dump(), **mask_fields))
         return RouteMap(name="collective_sam", rules=addr_table)
@@ -782,6 +785,10 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 if prot.type == "wide" and prot.direction == "input"), None)
             wide_out_prot = next((prot for prot in self.protocols
                 if prot.type == "wide" and prot.direction == "output"), None)
+            if narrow_in_prot is None or wide_in_prot is None:
+                raise ValueError(
+                    "A `narrow-wide` network requires both a narrow and a wide input protocol"
+                )
             string += AXI4.render_cfg("AxiCfgN", narrow_in_prot, narrow_out_prot)
             string += AXI4.render_cfg("AxiCfgW", wide_in_prot, wide_out_prot)
 
@@ -796,6 +803,8 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         else:
             in_prot = next((prot for prot in self.protocols if prot.direction == "input"), None)
             out_prot = next((prot for prot in self.protocols if prot.direction == "output"), None)
+            if in_prot is None:
+                raise ValueError("An `axi` network requires an input protocol")
             string += AXI4.render_cfg("AxiCfg", in_prot, out_prot)
             string += AxiLink.render_typedefs(in_prot.type_name(), "AxiCfg")
         return string
@@ -879,6 +888,8 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     def render_sam_idx_enum(self):
         """Render the system address map index enum in the generated code."""
+        if self.routing.sam is None:
+            raise ValueError("System address map has not been generated")
         fields_dict = {}
         for i, rule in enumerate(reversed(self.routing.sam.rules)):
             rule_desc = f"{rule.render_desc()}_sam_idx"

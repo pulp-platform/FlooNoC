@@ -655,6 +655,12 @@ class RouteTable(BaseModel):
         """Sort by destination and fill in missing entries."""
         self.routes = sorted(self.routes, key=lambda x: x.id)
         for i, route in enumerate(self.routes):
+            # Route tables index destinations by position, which only makes sense for the
+            # plain IDs used by source routing - not for mesh coordinates. `ValueError` on
+            # purpose, as above: pydantic turns it into a `ValidationError`, while a
+            # `TypeError` would escape as an unhandled exception.
+            if not isinstance(route.id, SimpleId):
+                raise ValueError("Route tables require `SimpleId` destinations")  # noqa: TRY004
             if i != route.id.id:
                 self.routes.insert(i, RouteRule(route=None, id=SimpleId(id=i)))
         return self.routes.reverse()
