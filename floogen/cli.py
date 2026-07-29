@@ -8,7 +8,6 @@
 import argparse
 import sys
 from importlib.metadata import version
-from importlib.resources import files
 from importlib.util import find_spec
 from pathlib import Path
 from typing import TypedDict
@@ -21,7 +20,10 @@ from floogen.model.traffic import MESH_TRAFFIC_TYPES, gen_traffic_builtin, gen_t
 from floogen.query import handle_query
 from floogen.utils import verible_format
 
-tpl_dir = Path(str(files("floogen") / "templates"))
+# `render_template` needs a real filesystem path (it calls `.resolve()` and hands the
+# result to mako), so derive it from `__file__` rather than round-tripping a
+# `importlib.resources` traversable through `str()`.
+tpl_dir = Path(__file__).parent / "templates"
 
 
 class RenderKwargs(TypedDict, total=False):

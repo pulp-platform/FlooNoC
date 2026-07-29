@@ -375,10 +375,12 @@ class AddrRange(BaseModel):
     Attributes:
         start (int): Absolute start address of the range.
         end (int): Absolute end address of the range.
-        size (int): Size of the address range. Accepted as an input key in place of `start`
-            or `end`, but not stored - it is always reported as `end - start`.
         base (Optional[int]): Base address used for calculating ranges in endpoint arrays.
         en_collective (bool): If true, marks this range as a multicast/collective destination.
+
+    `size` is additionally accepted as an *input* key in place of `start` or `end`, but is
+    not stored as a field - it is normalised away into `end` and read back through the
+    derived `size` property.
     """
 
     # NOTE: `validate_assignment` is not enabled. It used to be spelled
@@ -536,7 +538,12 @@ class RouteMapRule(BaseModel):
 
     def render_desc(self):
         '''Render the description of the routing rule.'''
-        rule_desc = self.desc or ""
+        if self.desc is None:
+            # The result is used as a SystemVerilog identifier (see `render_sam_idx_enum`
+            # and `RouteMap.render`), so an absent description would silently produce a
+            # degenerate name rather than anything usable.
+            raise ValueError(f"Routing rule {self} has no description to render")
+        rule_desc = self.desc
         match self.addr_range.arr_idx:
             case (m,):
                 rule_desc += f"_{m}"

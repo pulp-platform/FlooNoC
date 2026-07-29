@@ -262,7 +262,7 @@ dev = [
     { name = "mkdocstrings-python", specifier = ">=2.0.1" },
     { name = "pytest" },
     { name = "ruff" },
-    { name = "ty" },
+    { name = "ty", specifier = ">=0.0.59" },
     { name = "zensical" },
 ]
 
