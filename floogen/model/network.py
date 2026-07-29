@@ -639,7 +639,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 out_link = self.graph.get_edge_obj(out_edge)
                 out_idx = rt.outgoing.index(out_link)
                 dest = SimpleId(id=out_idx)
-                addr_range = AddrRange(start=ni.id.id, size=1)
+                addr_range = AddrRange.from_start_size(ni.id.id, 1)
                 routing_table.append(RouteMapRule(dest=dest, addr_range=addr_range, desc=ni.name))
 
             # Add routing table to the router

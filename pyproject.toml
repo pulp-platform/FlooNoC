@@ -87,18 +87,11 @@ include = ["floogen"]
 [tool.ty.rules]
 # Demoted to `warn` so CI stays green. Nothing is wrong with these rules; the
 # problem is the volume of pre-existing findings, which is being worked down
-# (~203 -> ~51 so far). `not-iterable`, `not-subscriptable` and
-# `unsupported-operator` have since reached zero and their lines are gone.
+# (~203 -> ~17 so far). `missing-argument`, `not-iterable`, `not-subscriptable`
+# and `unsupported-operator` have since reached zero and their lines are gone.
 #
 # What is left, and what each remaining rule is waiting on:
 #
-#  *  ~34  `missing-argument`, entirely the `AddrRange` constructor contract:
-#          `start`, `end` and `size` are declared required, but a
-#          `mode="before"` validator derives the third from the other two, so
-#          callers legitimately pass only two. Needs a modelling decision
-#          (optional fields with a post-validator, or explicit alternative
-#          constructors); this is the same debt that blocks
-#          `validate_assignment` on the model.
 #  *  ~10  `unresolved-attribute`: `Routing.sam`, which is only assigned by
 #          `gen_routing_info()` and has no meaningful empty value to default
 #          to; `.x`/`.y`/`.id` on a `SimpleId | Coord` union, where the code
@@ -108,10 +101,9 @@ include = ["floogen"]
 #          declares `int` (it already applies `int()` internally), plus two
 #          `LaxStr` union cases in `Network.gen_routes`.
 #
-# No rule is at zero yet, so none can be promoted. Once a rule's findings reach
-# zero, delete its line here rather than setting it to `error` - these are all
+# Once a rule's findings reach zero, delete its line here rather than setting it
+# to `error` - these are all
 # error-by-default in ty. Re-measure with:
 #   uv run --extra viz ty check --output-format concise
 unresolved-attribute = "warn"
-missing-argument = "warn"
 invalid-argument-type = "warn"

@@ -375,20 +375,26 @@ class AddrRange(BaseModel):
     Attributes:
         start (int): Absolute start address of the range.
         end (int): Absolute end address of the range.
-        size (int): Size of the address range.
+        size (int): Size of the address range. Accepted as an input key in place of `start`
+            or `end`, but not stored - it is always reported as `end - start`.
         base (Optional[int]): Base address used for calculating ranges in endpoint arrays.
         en_collective (bool): If true, marks this range as a multicast/collective destination.
     """
 
-    # NOTE: `validate_assignment` is intentionally *not* enabled. It was previously spelled
+    # NOTE: `validate_assignment` is not enabled. It used to be spelled
     # `validate_assignement`, which pydantic silently ignored, so it has never been active.
-    # Enabling it breaks `set_arr()`, which assigns `start` before `end` and therefore
-    # transiently violates the `start < end` invariant checked by `validate_output`.
+    # Deriving `size` removed one of the three blockers; two remain, both verified by
+    # turning the flag on and running the suite:
+    #
+    #  1. `validate_input` strips `None`-valued keys, and pydantic rebuilds the instance
+    #     from whatever that validator returns, so every optional field would be dropped on
+    #     *any* assignment. It would have to merge the untouched keys back in.
+    #  2. `set_arr()` assigns `start` and then `end`, which transiently violates the
+    #     `start < end` check in `validate_output`. It would have to update both at once.
     model_config = ConfigDict(extra="forbid")
 
     start: int = Field(ge=0)
     end: int = Field(ge=0)
-    size: int
     base: int | None = None
     arr_idx: tuple[int, ...] | None = None
     arr_dim: tuple[int, ...] | None = None
@@ -401,6 +407,27 @@ class AddrRange(BaseModel):
 
     def __str__(self):
         return f"[{self.start:X}:{self.end:X}]"
+
+    @property
+    def size(self) -> int:
+        """Size of the address range.
+
+        Derived rather than stored: every accepted input shape defines the range as
+        `end - start`, so keeping a separate field would only add state to hold in sync.
+        `size` remains a valid *input* key - see `validate_input` - it is simply
+        normalised away into `end`.
+        """
+        return self.end - self.start
+
+    @classmethod
+    def from_start_size(cls, start: int, size: int, **kwargs) -> "AddrRange":
+        """Create a range from a start address and a size."""
+        return cls.model_validate({"start": start, "size": size, **kwargs})
+
+    @classmethod
+    def from_base_size(cls, base: int, size: int, **kwargs) -> "AddrRange":
+        """Create a range from an array base address and a per-element size."""
+        return cls.model_validate({"base": base, "size": size, **kwargs})
 
     @field_validator("rdl_addrmap_grp", mode="before")
     @classmethod
@@ -418,6 +445,8 @@ class AddrRange(BaseModel):
             # while a `TypeError` would escape as an unhandled exception.
             raise ValueError("Invalid address range specification")  # noqa: TRY004
         addr_dict = {k: v for k, v in self.items() if v is not None}
+        # Normalise every accepted input shape to `start`/`end`. `size` is derived from
+        # those two (see the `size` property), so it is consumed here rather than stored.
         match addr_dict:
             case {"size": size, "base": base, "arr_idx": arr_idx}:
                 match arr_idx:
@@ -425,9 +454,10 @@ class AddrRange(BaseModel):
                         addr_dict["start"] = base + size * m
                         addr_dict["end"] = addr_dict["start"] + size
                     case (m, n):
-                        if addr_dict["arr_dim"] is None:
+                        arr_dim = addr_dict.get("arr_dim")
+                        if arr_dim is None:
                             raise ValueError("Array dimension must be specified for 2D arrays")
-                        addr_dict["start"] = base + size * (m * addr_dict["arr_dim"][1] + n)
+                        addr_dict["start"] = base + size * (m * arr_dim[1] + n)
                         addr_dict["end"] = addr_dict["start"] + size
                     case _:
                         raise ValueError("Invalid array index specification")
@@ -438,11 +468,12 @@ class AddrRange(BaseModel):
                 if end - start != size:
                     raise ValueError("Invalid address range specification")
             case {"start": start, "end": end}:
-                addr_dict["size"] = end - start
+                pass
             case {"start": start, "size": size}:
                 addr_dict["end"] = start + size
             case _:
                 raise ValueError("Invalid address range specification")
+        addr_dict.pop("size", None)
         return addr_dict
 
     @model_validator(mode="after")
@@ -458,15 +489,17 @@ class AddrRange(BaseModel):
 
     def set_arr(self, arr_idx, arr_dim):
         """Update the address range with the given index."""
+        # `size` is derived from `start`/`end`, so it has to be read before either moves.
+        size = self.size
         self.arr_idx = arr_idx
         self.arr_dim = arr_dim
         if self.base is not None:
             match arr_idx:
                 case (m,):
-                    self.start = self.base + self.size * m
+                    self.start = self.base + size * m
                 case (m, n):
-                    self.start = self.base + self.size * (m * arr_dim[1] + n)
-            self.end = self.start + self.size
+                    self.start = self.base + size * (m * arr_dim[1] + n)
+            self.end = self.start + size
         else:
             raise ValueError("Address range base not set")
         return self
@@ -700,10 +733,8 @@ class RouteMap(BaseModel):
             i = 0
             while i < len(ranges) - 1:
                 if ranges[i].addr_range.end == ranges[i + 1].addr_range.start:
+                    # `size` follows from `end`, so extending the range is a single write.
                     ranges[i].addr_range.end = ranges[i + 1].addr_range.end
-                    ranges[i].addr_range.size = (
-                        ranges[i].addr_range.end - ranges[i].addr_range.start
-                    )
                     del ranges[i + 1]
                 else:
                     i += 1
