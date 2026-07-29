@@ -594,11 +594,13 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             ni_dict["sbr_link"] = self.graph.get_edges_to(
                 ni_name, filters=[self.graph.is_link_edge]
             )[0]
+            # `ni_dict` is assembled dynamically above, so validate it as a mapping rather
+            # than splatting it into the constructor.
             match self.network_type:
                 case "axi":
-                    self.graph.set_node_obj(ni_name, AxiNI(**ni_dict))
+                    self.graph.set_node_obj(ni_name, AxiNI.model_validate(ni_dict))
                 case "narrow-wide":
-                    self.graph.set_node_obj(ni_name, NarrowWideAxiNI(**ni_dict))
+                    self.graph.set_node_obj(ni_name, NarrowWideAxiNI.model_validate(ni_dict))
 
     def gen_routing_info(self):
         """Wrapper function to generate all the routing info for the network,

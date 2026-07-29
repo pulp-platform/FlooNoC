@@ -274,7 +274,7 @@ def gen_traffic_cfg(  # pylint: disable=too-many-arguments, too-many-positional-
                 _log(verbose, f"Warning: No wide interface was detected, skipping wide burst "
                               f"generation for traffic flow '{flow.name}'")
                 continue
-            wide_length = burst.length * burst.data_width / 8
+            wide_length = burst.length * burst.data_width // 8
             wide_jobs += _gen_job_str(wide_length, src_addr, dst_addr) * burst.number
 
         narrow_jobs = ""
@@ -283,7 +283,7 @@ def gen_traffic_cfg(  # pylint: disable=too-many-arguments, too-many-positional-
                 _log(verbose, f"Warning: No narrow interface was detected, skipping narrow burst "
                               f"generation for traffic flow '{flow.name}'")
                 continue
-            narrow_length = burst.length * burst.data_width / 8
+            narrow_length = burst.length * burst.data_width // 8
             narrow_jobs += _gen_job_str(narrow_length, src_addr, dst_addr) * burst.number
 
         x, y = flow.initiator[0], flow.initiator[1]
@@ -322,8 +322,10 @@ def gen_traffic_builtin(  # pylint: disable=too-many-arguments, too-many-positio
     for x in range(num_x):
         for y in range(num_y):
             local_addr = addr(x, y)
-            wide_length = wide_burst_length * wide_dw / 8 if wide_dw is not None else None
-            narrow_length = narrow_burst_length * narrow_dw / 8 if narrow_dw is not None else None
+            wide_length = wide_burst_length * wide_dw // 8 if wide_dw is not None else None
+            narrow_length = (
+                narrow_burst_length * narrow_dw // 8 if narrow_dw is not None else None
+            )
             if traffic_type == "hbm":
                 # Tile x=0 are the HBM channels; each core reads/writes the channel of its
                 # y coordinate.

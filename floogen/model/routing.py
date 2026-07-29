@@ -1033,6 +1033,8 @@ class Routing(BaseModel):
             if self.addr_offset_bits is None:
                 raise ValueError(_NOT_GENERATED)
             id_addr_offset = self.addr_offset_bits
+        if self.sam is None:
+            raise ValueError("System address map has not been generated")
 
         fields = {
             "RouteAlgo": self.route_algo.value,

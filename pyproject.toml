@@ -106,4 +106,3 @@ include = ["floogen"]
 # error-by-default in ty. Re-measure with:
 #   uv run --extra viz ty check --output-format concise
 unresolved-attribute = "warn"
-invalid-argument-type = "warn"
