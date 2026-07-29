@@ -48,7 +48,7 @@ class NetworkInterface(BaseModel):
 
     def is_collective_ni(self) -> bool:
         """Return true if the network interface supports collective operations."""
-        return any(b for b in self.addr_range if b.en_collective)
+        return any(b for b in self.addr_range or [] if b.en_collective)
 
     def render_enum_name(self) -> str:
         """Render the enum name."""

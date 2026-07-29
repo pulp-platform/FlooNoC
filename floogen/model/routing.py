@@ -18,6 +18,11 @@ from floogen.utils import (
     sv_typedef,
 )
 
+# The width fields on `Routing` are filled in by `Network.gen_routing_info()`, which sets
+# exactly the ones the configured routing algorithm needs. Reading them before that is a
+# programming error rather than a config error.
+_NOT_GENERATED = "Routing widths are only available after `gen_routing_info()`"
+
 
 class RouteAlgo(Enum):
     """Routing algorithm enum.
@@ -498,7 +503,7 @@ class RouteMapRule(BaseModel):
 
     def render_desc(self):
         '''Render the description of the routing rule.'''
-        rule_desc = self.desc
+        rule_desc = self.desc or ""
         match self.addr_range.arr_idx:
             case (m,):
                 rule_desc += f"_{m}"
@@ -557,8 +562,10 @@ class RouteMapRuleCollective(RouteMapRule):
             "end_addr": f"{aw}'h{self.addr_range.end:0{cdiv(aw,4)}x}",
         }
 
-        # Non-collective nodes don't need any mask information
-        if self.mask_offset is None:
+        # Non-collective nodes don't need any mask information. The three mask fields are
+        # always populated together (see `Network.gen_collective_sam`), so testing all of
+        # them keeps the existing behaviour.
+        if self.mask_offset is None or self.mask_len is None or self.base_id is None:
             struct_fields["idx"]["mask_x"] = {"default": "'0"}
             struct_fields["idx"]["mask_y"] = {"default": "'0"}
         else:
@@ -915,20 +922,28 @@ class Routing(BaseModel):
         string += sv_param_decl("UseIdTable", bool_to_sv(self.use_id_table), dtype="bit")
         match (self.route_algo):
             case RouteAlgo.XY | RouteAlgo.YX:
+                if self.num_x_bits is None or self.num_y_bits is None:
+                    raise ValueError(_NOT_GENERATED)
                 string += sv_param_decl("NumXBits", self.num_x_bits)
                 string += sv_param_decl("NumYBits", self.num_y_bits)
             case RouteAlgo.ID:
+                if self.num_id_bits is None:
+                    raise ValueError(_NOT_GENERATED)
                 string += sv_param_decl("NumIdBits", self.num_id_bits)
             case _:
                 pass
 
         if self.route_algo in (RouteAlgo.XY, RouteAlgo.YX):
+            if self.addr_offset_bits is None or self.num_x_bits is None:
+                raise ValueError(_NOT_GENERATED)
             string += sv_param_decl("XYAddrOffsetX", self.addr_offset_bits)
             string += sv_param_decl("XYAddrOffsetY", self.addr_offset_bits + self.num_x_bits)
         else:
             string += sv_param_decl("XYAddrOffsetX", 0)
             string += sv_param_decl("XYAddrOffsetY", 0)
         if self.route_algo == RouteAlgo.ID and not self.use_id_table:
+            if self.addr_offset_bits is None:
+                raise ValueError(_NOT_GENERATED)
             string += sv_param_decl("IdAddrOffset", self.addr_offset_bits)
         else:
             string += sv_param_decl("IdAddrOffset", 0)
@@ -977,14 +992,23 @@ class Routing(BaseModel):
 
     def render_route_cfg(self, name) -> str:
         """Render the SystemVerilog routing configuration."""
+        xy_addr_offset_x, xy_addr_offset_y, id_addr_offset = 0, 0, 0
+        if self.route_algo in (RouteAlgo.XY, RouteAlgo.YX):
+            if self.addr_offset_bits is None or self.num_x_bits is None:
+                raise ValueError(_NOT_GENERATED)
+            xy_addr_offset_x = self.addr_offset_bits
+            xy_addr_offset_y = self.addr_offset_bits + self.num_x_bits
+        elif self.route_algo == RouteAlgo.ID and not self.use_id_table:
+            if self.addr_offset_bits is None:
+                raise ValueError(_NOT_GENERATED)
+            id_addr_offset = self.addr_offset_bits
+
         fields = {
             "RouteAlgo": self.route_algo.value,
             "UseIdTable": bool_to_sv(self.use_id_table),
-            "XYAddrOffsetX": self.addr_offset_bits if self.route_algo in (RouteAlgo.XY, RouteAlgo.YX) else 0,
-            "XYAddrOffsetY": self.addr_offset_bits + self.num_x_bits if
-                                self.route_algo in (RouteAlgo.XY, RouteAlgo.YX) else 0,
-            "IdAddrOffset": self.addr_offset_bits if
-                                self.route_algo == RouteAlgo.ID and not self.use_id_table else 0,
+            "XYAddrOffsetX": xy_addr_offset_x,
+            "XYAddrOffsetY": xy_addr_offset_y,
+            "IdAddrOffset": id_addr_offset,
             "NumSamRules": len(self.sam),
             "NumRoutes": self.num_endpoints if self.route_algo == RouteAlgo.SRC else 0,
             "CollectiveCfg": self.collective.get_collective_cfg,

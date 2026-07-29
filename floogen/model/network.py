@@ -718,16 +718,24 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         for addr_rule in self.routing.sam.rules:
             mask_fields = {}
             if addr_rule.addr_range.en_collective:
-                arr_dim = addr_rule.addr_range.arr_dim
-                arr_x_bits = clog2(arr_dim[0])
-                arr_y_bits = clog2(arr_dim[1])
-                mask_offset_y = clog2(addr_rule.addr_range.size)
-                mask_fields = {
-                    "mask_len": (arr_x_bits, arr_y_bits),
-                    "mask_offset": (mask_offset_y + arr_y_bits, mask_offset_y),
-                    "base_id": (addr_rule.dest.x - addr_rule.addr_range.arr_idx[0],
-                                addr_rule.dest.y - addr_rule.addr_range.arr_idx[1]),
-                }
+                # Collective ranges are only defined for 2D endpoint arrays, so `arr_dim`
+                # and `arr_idx` must both be present and two-dimensional.
+                match (addr_rule.addr_range.arr_dim, addr_rule.addr_range.arr_idx):
+                    case ((dim_x, dim_y), (idx_x, idx_y)):
+                        arr_x_bits = clog2(dim_x)
+                        arr_y_bits = clog2(dim_y)
+                        mask_offset_y = clog2(addr_rule.addr_range.size)
+                        mask_fields = {
+                            "mask_len": (arr_x_bits, arr_y_bits),
+                            "mask_offset": (mask_offset_y + arr_y_bits, mask_offset_y),
+                            "base_id": (addr_rule.dest.x - idx_x,
+                                        addr_rule.dest.y - idx_y),
+                        }
+                    case _:
+                        raise ValueError(
+                            f"Collective address range '{addr_rule.desc}' requires a 2D "
+                            "endpoint array"
+                        )
             addr_table.append(RouteMapRuleCollective(**addr_rule.model_dump(), **mask_fields))
         return RouteMap(name="collective_sam", rules=addr_table)
 

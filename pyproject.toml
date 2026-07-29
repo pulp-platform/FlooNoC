@@ -86,25 +86,27 @@ include = ["floogen"]
 
 [tool.ty.rules]
 # Demoted to `warn` so CI stays green. Nothing is wrong with these rules; the
-# problem is the volume of pre-existing findings. The "populated later by the
-# build pipeline" pattern that used to dominate is largely gone (`Network.graph`
-# default-initializes to an empty `Graph`, and `parse_config` raises instead of
-# returning `None`), taking the count from ~203 to ~71.
+# problem is the volume of pre-existing findings, which is being worked down
+# (~203 -> ~51 so far). `not-iterable`, `not-subscriptable` and
+# `unsupported-operator` have since reached zero and their lines are gone.
 #
-# What is left, and what each rule is still waiting on:
+# What is left, and what each remaining rule is waiting on:
 #
-#  *  ~34  `AddrRange` constructor contract, all `missing-argument`: `start`,
-#          `end` and `size` are declared required, but a `mode="before"`
-#          validator derives the third from the other two, so callers
-#          legitimately pass only two. Needs a modelling decision (optional
-#          fields with a post-validator, or explicit alternative constructors);
-#          this is the same debt that blocks `validate_assignment` on the model.
-#  *  ~37  A long tail of unrelated findings, each needing its own judgement:
-#          `Routing.sam`, which is only assigned by `gen_routing_info()` and has
-#          no meaningful empty value to default to; `.x`/`.y` on a
-#          `SimpleId | Coord` union; widths typed `int | None` that are filled
-#          in during elaboration; and `int | float` from `/` where an `int` is
-#          expected.
+#  *  ~34  `missing-argument`, entirely the `AddrRange` constructor contract:
+#          `start`, `end` and `size` are declared required, but a
+#          `mode="before"` validator derives the third from the other two, so
+#          callers legitimately pass only two. Needs a modelling decision
+#          (optional fields with a post-validator, or explicit alternative
+#          constructors); this is the same debt that blocks
+#          `validate_assignment` on the model.
+#  *  ~10  `unresolved-attribute`: `Routing.sam`, which is only assigned by
+#          `gen_routing_info()` and has no meaningful empty value to default
+#          to; `.x`/`.y`/`.id` on a `SimpleId | Coord` union, where the code
+#          assumes a coordinate but the type allows either; and `.type_name`
+#          on an `AXI4 | None`.
+#  *   ~7  `invalid-argument-type`: `int | float` from `/` where `_gen_job_str`
+#          declares `int` (it already applies `int()` internally), plus two
+#          `LaxStr` union cases in `Network.gen_routes`.
 #
 # No rule is at zero yet, so none can be promoted. Once a rule's findings reach
 # zero, delete its line here rather than setting it to `error` - these are all
@@ -113,6 +115,3 @@ include = ["floogen"]
 unresolved-attribute = "warn"
 missing-argument = "warn"
 invalid-argument-type = "warn"
-not-subscriptable = "warn"
-unsupported-operator = "warn"
-not-iterable = "warn"
