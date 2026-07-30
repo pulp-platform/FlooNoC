@@ -13,7 +13,6 @@ requires-python = ">=3.10"
 authors = [{ name = "Tim Fischer", email = "fischeti@iis.ee.ethz.ch" }]
 classifiers = [
   "Programming Language :: Python :: 3.10",
-  "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
   "Development Status :: 4 - Beta",
