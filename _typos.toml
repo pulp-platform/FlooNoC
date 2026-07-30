@@ -1,0 +1,20 @@
+# Copyright 2026 ETH Zurich and University of Bologna.
+# Solderpad Hardware License, Version 0.51, see LICENSE for details.
+# SPDX-License-Identifier: SHL-0.51
+
+# Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
+
+[default.extend-identifiers]
+# `now.IsND` is a field of the AXI simulation package, not a typo of `IsAND`.
+IsND = "IsND"
+
+[default.extend-words]
+# Hardware terminology: an `inport` is an input port, not an `import`.
+inport = "inport"
+# `numpy.arange` and `matplotlib.pyplot.setp` are API names.
+arange = "arange"
+setp = "setp"
+# EDA vendor name.
+Synopsys = "Synopsys"
+# Valid alternative spelling of `extendable`.
+extendible = "extendible"

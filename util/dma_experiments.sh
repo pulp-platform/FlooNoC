@@ -23,7 +23,7 @@ wide_burst_len_list=(1  16 1  16 4  8  16 16 16 16 16  4  4  4  4  4  4  4 )
 printf -v date '%(%Y%m%d_%H%M%S)T' -1
 #contains the raw output spam of the experiments (for debugging useful)
 output_file_raw="util/output/dma_experiments_raw_${date}.txt"
-#contains the raw output of 1 experiment, will be read by sript to extract the relevant information
+#contains the raw output of 1 experiment, will be read by script to extract the relevant information
 output_file_temp="util/output/dma_experiment_temp_${date}.txt"
 
 #should contain the output of python script:

@@ -111,7 +111,7 @@ module floo_route_select
 
     // One-hot encoding of the decoded route
 
-    // If we enable multicast then generate the output routes here seperatly
+    // If we enable multicast then generate the output routes here separately
     if (EnMultiCast) begin : gen_mcast_route_sel
       floo_route_xymask #(
         .NumRoutes     ( NumRoutes        ),

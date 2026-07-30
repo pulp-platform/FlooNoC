@@ -63,7 +63,7 @@ module floo_axi_router #(
   typedef logic [AxiCfg.DataWidth-1:0] axi_data_t;
   typedef logic [AxiCfg.DataWidth/8-1:0] axi_strb_t;
 
-  // (Re-) definitons of `axi_in` and `floo` types, for transport
+  // (Re-) definitions of `axi_in` and `floo` types, for transport
   `AXI_TYPEDEF_ALL_CT(axi, axi_req_t, axi_rsp_t, axi_addr_t, axi_in_id_t,
                       axi_data_t, axi_strb_t, axi_user_t)
   `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi, AxiCfg, hdr_t)

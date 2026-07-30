@@ -7,7 +7,7 @@
 `include "axi/assign.svh"
 `include "axi/typedef.svh"
 
-/// A AXI4 Bus Multi-Slave generating random AXI respones with configurable response time
+/// A AXI4 Bus Multi-Slave generating random AXI responses with configurable response time
 module floo_axi_rand_slave #(
   parameter floo_pkg::axi_cfg_t AxiCfg = '0,
   parameter type axi_req_t = logic,

@@ -29,7 +29,7 @@ module floo_nw_chimney
   /// Atomic operation support, currently only implemented for
   /// the narrow network!
   parameter bit AtopSupport                      = 1'b1,
-  /// Maximum number of oustanding Atomic transactions,
+  /// Maximum number of outstanding Atomic transactions,
   /// must be smaller or equal to 2**`AxiCfgN.OutIdWidth`-1 since
   /// Every atomic transactions needs to have a unique ID
   /// and one ID is reserved for non-atomic transactions
@@ -61,7 +61,7 @@ module floo_nw_chimney
   parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam   = '0,
   /// SAM Index type to support multicast info
   parameter type sam_idx_t                              = id_t,
-  /// Struct consisting of offset and len to speficy the position of the mask bits
+  /// Struct consisting of offset and len to specify the position of the mask bits
   /// (only used if `EnMultiCast && RouteCfg.UseIdTable == 1'b1 && RouteAlgo is XY or YX`)
   parameter type mask_sel_t                             = logic,
   /// Narrow AXI manager request channel type
@@ -137,7 +137,7 @@ module floo_nw_chimney
   typedef logic [AxiCfgW.DataWidth-1:0] axi_wide_data_t;
   typedef logic [AxiCfgW.DataWidth/8-1:0] axi_wide_strb_t;
 
-  // (Re-) definitons of `axi_in` and `floo` types, for transport
+  // (Re-) definitions of `axi_in` and `floo` types, for transport
   `AXI_TYPEDEF_ALL_CT(axi_narrow, axi_narrow_req_t, axi_narrow_rsp_t, axi_addr_t,
       axi_narrow_in_id_t, axi_narrow_data_t, axi_narrow_strb_t, axi_narrow_user_t)
   `AXI_TYPEDEF_ALL_CT(axi_wide, axi_wide_req_t, axi_wide_rsp_t, axi_addr_t,
@@ -152,7 +152,7 @@ module floo_nw_chimney
   // For future extension, add an extra opcode in the user_narrow_struct_t
   typedef axi_addr_t user_mask_t ;
 
-  // Derive paramters for decoupling read and write
+  // Derive parameters for decoupling read and write
   localparam bit EnDecoupledRW = (WideRwDecouple != floo_pkg::None);
   localparam int unsigned NumVirtualChannels = (WideRwDecouple == floo_pkg::None) ? 1 : 2;
   localparam int unsigned NumWidePhysChannels = (WideRwDecouple == floo_pkg::Phys) ? 2 : 1;

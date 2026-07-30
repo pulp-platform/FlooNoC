@@ -4,7 +4,7 @@
 //
 // Lorenzo Leone <lleone@iis.ee.ethz.ch>
 //
-// This wrapper wants to simulate a floorplan with 2 tiles. It basically conenct the two routers
+// This wrapper wants to simulate a floorplan with 2 tiles. It basically connect the two routers
 // west <-> east ports together. For this reason, at the interface there will be twice the number of
 // ports compared to a single tile.
 //

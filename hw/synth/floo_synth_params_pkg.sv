@@ -190,7 +190,7 @@ package floo_synth_collective_pkg;
   // Route config with collective support enabled
   // This configuration is the one to be changed in order to enable or disable
   // different collective operation support
-  // TODO (lleone): SCript this with Python
+  // TODO (lleone): Script this with Python
 
   localparam floo_pkg::collect_op_fe_cfg_t CollectiveOpCfg = '{
     EnNarrowMulticast:  1'b1,
