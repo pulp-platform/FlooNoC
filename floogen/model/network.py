@@ -128,8 +128,10 @@ class Network(BaseModel):
                 if len({prot.user_width for prot in self.protocols if prot.type == "wide"}) != 1:
                     raise ValueError("All `wide` protocols must have the same user width")
             # Check that `type` is defined when using `narrow-wide` network
-            if any(prot.type not in ["narrow", "wide"] for prot in self.protocols) and \
-                "narrow-wide" in self.network_type:
+            if (
+                any(prot.type not in ["narrow", "wide"] for prot in self.protocols)
+                and "narrow-wide" in self.network_type
+            ):
                 raise ValueError("Protocols must define `type` for `narrow-wide` networks")
         else:
             # Check that data width is the same among all protocols
@@ -152,14 +154,10 @@ class Network(BaseModel):
         has_collective_eps = any(ep.is_collective_ep() for ep in self.endpoints)
 
         if has_collective_eps and not self.routing.en_collective:
-            raise ValueError(
-                "Collective endpoints found but collective is not enabled in routing"
-            )
+            raise ValueError("Collective endpoints found but collective is not enabled in routing")
 
         if self.routing.en_collective and not has_collective_eps:
-            raise ValueError(
-                "Collective routing is enabled but no endpoint is collective-capable"
-            )
+            raise ValueError("Collective routing is enabled but no endpoint is collective-capable")
 
         return self
 
@@ -338,11 +336,11 @@ class Network(BaseModel):
 
             # Add edges between the nodes
             for src, dst in zip(srcs, dsts):
-                self.graph.add_edge(src, dst, type="link",
-                                    src_dir=con.src_dir, dst_dir=con.dst_dir)
+                self.graph.add_edge(src, dst, type="link", src_dir=con.src_dir, dst_dir=con.dst_dir)
                 if con.bidirectional:
-                    self.graph.add_edge(dst, src, type="link",
-                                        src_dir=con.dst_dir, dst_dir=con.src_dir)
+                    self.graph.add_edge(
+                        dst, src, type="link", src_dir=con.dst_dir, dst_dir=con.src_dir
+                    )
 
     def compile_ids(self):
         """Infer the id type from the network."""
@@ -418,14 +416,22 @@ class Network(BaseModel):
     def compile_routers(self):
         """Infer the router type from the network."""
         for rt_name, rt_obj in self.graph.get_rt_nodes(with_name=True):
-            dir_in_edges = self.graph.get_edges_to(rt_name,
-                filters=[lambda e: self.graph.edges[e]["dst_dir"] is not None], with_name=True)
-            dir_out_edges = self.graph.get_edges_from(rt_name,
-                filters=[lambda e: self.graph.edges[e]["src_dir"] is not None], with_name=True)
-            non_dir_in_edges = self.graph.get_edges_to(rt_name,
-                filters=[lambda e: self.graph.edges[e]["dst_dir"] is None])
-            non_dir_out_edges = self.graph.get_edges_from(rt_name,
-                filters=[lambda e: self.graph.edges[e]["src_dir"] is None])
+            dir_in_edges = self.graph.get_edges_to(
+                rt_name,
+                filters=[lambda e: self.graph.edges[e]["dst_dir"] is not None],
+                with_name=True,
+            )
+            dir_out_edges = self.graph.get_edges_from(
+                rt_name,
+                filters=[lambda e: self.graph.edges[e]["src_dir"] is not None],
+                with_name=True,
+            )
+            non_dir_in_edges = self.graph.get_edges_to(
+                rt_name, filters=[lambda e: self.graph.edges[e]["dst_dir"] is None]
+            )
+            non_dir_out_edges = self.graph.get_edges_from(
+                rt_name, filters=[lambda e: self.graph.edges[e]["src_dir"] is None]
+            )
             if rt_obj.degree is not None:
                 num_edges = rt_obj.degree
             else:
@@ -437,17 +443,19 @@ class Network(BaseModel):
                 in_dir = self.graph.edges[edge]["dst_dir"]
                 if incoming[in_dir] is not None:
                     raise ValueError(
-                        f"Trying to set incoming link #{in_dir} of {rt_name} " +
-                        f"to ({edge[0]} -> {edge[1]}), already taken by " +
-                        f"({incoming[in_dir].source} -> {incoming[in_dir].dest})")
+                        f"Trying to set incoming link #{in_dir} of {rt_name} "
+                        + f"to ({edge[0]} -> {edge[1]}), already taken by "
+                        + f"({incoming[in_dir].source} -> {incoming[in_dir].dest})"
+                    )
                 incoming[in_dir] = edge_obj
             for edge, edge_obj in dir_out_edges:
                 out_dir = self.graph.edges[edge]["src_dir"]
                 if outgoing[out_dir] is not None:
                     raise ValueError(
-                        f"Trying to set outgoing link #{out_dir} of {rt_name} " +
-                        f"to ({edge[0]} -> {edge[1]}), already taken by " +
-                        f"({outgoing[out_dir].source} -> {outgoing[out_dir].dest})")
+                        f"Trying to set outgoing link #{out_dir} of {rt_name} "
+                        + f"to ({edge[0]} -> {edge[1]}), already taken by "
+                        + f"({outgoing[out_dir].source} -> {outgoing[out_dir].dest})"
+                    )
                 outgoing[out_dir] = edge_obj
             # Second, add the undirected edges to in_dir_edges and out_dir_edges edges
             for i, in_edge in enumerate(incoming):
@@ -720,8 +728,7 @@ class Network(BaseModel):
         for addr_rule in self.routing.sam.rules:
             mask_fields = {}
             if addr_rule.addr_range.en_collective:
-                match (addr_rule.addr_range.arr_dim, addr_rule.addr_range.arr_idx,
-                       addr_rule.dest):
+                match (addr_rule.addr_range.arr_dim, addr_rule.addr_range.arr_idx, addr_rule.dest):
                     case ((dim_x, dim_y), (idx_x, idx_y), Coord() as dest):
                         arr_x_bits = clog2(dim_x)
                         arr_y_bits = clog2(dim_y)
@@ -772,14 +779,38 @@ class Network(BaseModel):
         """Render the protocol configuration structs."""
         string = ""
         if self.network_type == "narrow-wide":
-            narrow_in_prot = next((prot for prot in self.protocols
-                if prot.type == "narrow" and prot.direction == "input"), None)
-            narrow_out_prot = next((prot for prot in self.protocols
-                if prot.type == "narrow" and prot.direction == "output"), None)
-            wide_in_prot = next((prot for prot in self.protocols
-                if prot.type == "wide" and prot.direction == "input"), None)
-            wide_out_prot = next((prot for prot in self.protocols
-                if prot.type == "wide" and prot.direction == "output"), None)
+            narrow_in_prot = next(
+                (
+                    prot
+                    for prot in self.protocols
+                    if prot.type == "narrow" and prot.direction == "input"
+                ),
+                None,
+            )
+            narrow_out_prot = next(
+                (
+                    prot
+                    for prot in self.protocols
+                    if prot.type == "narrow" and prot.direction == "output"
+                ),
+                None,
+            )
+            wide_in_prot = next(
+                (
+                    prot
+                    for prot in self.protocols
+                    if prot.type == "wide" and prot.direction == "input"
+                ),
+                None,
+            )
+            wide_out_prot = next(
+                (
+                    prot
+                    for prot in self.protocols
+                    if prot.type == "wide" and prot.direction == "output"
+                ),
+                None,
+            )
             if narrow_in_prot is None or wide_in_prot is None:
                 raise ValueError(
                     "A `narrow-wide` network requires both a narrow and a wide input protocol"
@@ -789,11 +820,15 @@ class Network(BaseModel):
 
             vc_num, phy_num = {
                 WideRwDecouple.PHYS: (2, 2),
-                WideRwDecouple.VC:   (2, 1),
+                WideRwDecouple.VC: (2, 1),
             }.get(self.routing.decouple_rw, (None, None))
             string += NarrowWideLink.render_typedefs(
-                narrow_in_prot.type_name(), wide_in_prot.type_name(), "AxiCfgN", "AxiCfgW",
-                vc_num, phy_num
+                narrow_in_prot.type_name(),
+                wide_in_prot.type_name(),
+                "AxiCfgN",
+                "AxiCfgW",
+                vc_num,
+                phy_num,
             )
         else:
             in_prot = next((prot for prot in self.protocols if prot.direction == "input"), None)
@@ -832,11 +867,10 @@ class Network(BaseModel):
         sorted_ni_list = sorted(
             self.graph.get_ni_nodes(),
             key=lambda ni: self.graph.get_node_id(node_obj=ni),
-            reverse=True
+            reverse=True,
         )
         for ni in sorted_ni_list:
-            string += ni.table.render(
-                num_route_bits=self.routing.num_route_bits, no_decl=True)
+            string += ni.table.render(num_route_bits=self.routing.num_route_bits, no_decl=True)
             string += ",\n"
         string = "'{\n" + string[:-2] + "}\n"
         return sv_param_decl(

@@ -60,6 +60,7 @@ class RouterDesc(BaseModel):
         """Convert dict to Coord object."""
         return Coord.from_dict(v)
 
+
 class Router(BaseModel, ABC):
     """Abstract router class of an actual router"""
 
@@ -79,31 +80,33 @@ class Router(BaseModel, ABC):
     def check_links(self):
         """Check if the number of links is correct."""
         if len(self.incoming) != self.degree:
-            raise ValueError(f"Router {self.name} has {self.incoming} " +
-                             f"incoming links but should have {self.degree}")
+            raise ValueError(
+                f"Router {self.name} has {self.incoming} "
+                + f"incoming links but should have {self.degree}"
+            )
         if len(self.outgoing) != self.degree:
-            raise ValueError(f"Router {self.name} has {self.outgoing} " +
-                             f"outgoing links but should have {self.degree}")
+            raise ValueError(
+                f"Router {self.name} has {self.outgoing} "
+                + f"outgoing links but should have {self.degree}"
+            )
         return self
+
 
 class AxiRouter(Router):
     """Router class to describe a single-AXI router"""
 
-    with as_file(
-        files(floogen.templates).joinpath("floo_axi_router.sv.mako")
-    ) as _tpl_path:
+    with as_file(files(floogen.templates).joinpath("floo_axi_router.sv.mako")) as _tpl_path:
         _tpl: ClassVar = Template(filename=str(_tpl_path))
 
     def render(self, **kwargs):
         """Declare the router in the generated code."""
         return self._tpl.render(router=self, **kwargs) + "\n"
 
+
 class NarrowWideRouter(Router):
     """Router class to describe a narrow-wide router"""
 
-    with as_file(
-        files(floogen.templates).joinpath("floo_nw_router.sv.mako")
-    ) as _tpl_path:
+    with as_file(files(floogen.templates).joinpath("floo_nw_router.sv.mako")) as _tpl_path:
         _tpl: ClassVar = Template(filename=str(_tpl_path))
 
     def render(self, **kwargs):

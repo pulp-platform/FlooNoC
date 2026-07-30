@@ -82,7 +82,6 @@ class EndpointDesc(BaseModel):
             raise ValueError("Invalid array size")
         return self
 
-
     def is_sbr(self) -> bool:
         """Return true if the endpoint is a subordinate."""
         return self.sbr_port_protocol is not None
@@ -118,9 +117,9 @@ class Endpoint(EndpointDesc):
     sbr_ports: list[ProtocolDesc] = []
 
     @classmethod
-    def from_desc(cls, desc: EndpointDesc,
-                  mgr_ports: list[ProtocolDesc],
-                  sbr_ports: list[ProtocolDesc]):
+    def from_desc(
+        cls, desc: EndpointDesc, mgr_ports: list[ProtocolDesc], sbr_ports: list[ProtocolDesc]
+    ):
         """Create an endpoint from a description."""
         return cls(**desc.model_dump(), mgr_ports=mgr_ports, sbr_ports=sbr_ports)
 

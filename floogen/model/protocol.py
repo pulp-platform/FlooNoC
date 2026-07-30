@@ -73,7 +73,9 @@ class AXI4(ProtocolDesc):
             case int(v):
                 string += sv_typedef(name_t + "_user_t", array_size=v)
             case dict(d):
-                fields = {k: f"logic [{v-1}:0]" for k, v in d.items() if k not in ignored_user_fields}
+                fields = {
+                    k: f"logic [{v - 1}:0]" for k, v in d.items() if k not in ignored_user_fields
+                }
                 if fields:
                     string += sv_struct_typedef(name_t + "_user_t", fields)
                 else:
@@ -127,7 +129,7 @@ class AXI4Bus(AXI4):
     def _array_to_sv_array(self):
         """Convert the array to a SystemVerilog array."""
         if self.arr_dim is not None:
-            return "".join([f"[{i-1}:0]" if i != 1 else "" for i in self.arr_dim])
+            return "".join([f"[{i - 1}:0]" if i != 1 else "" for i in self.arr_dim])
         return ""
 
     def _idx_to_sv_idx(self):

@@ -22,19 +22,19 @@ def main():
 
     parser.add_argument("--traffic_rw", type=str, required=True)
     args = parser.parse_args()
-    assert os.path.exists(args.output_file), \
-        "Error: output file does not exist"
-    assert args.router_tb in ["tb_floo_dma_mesh", "tb_floo_vc_dma_mesh"], \
+    assert os.path.exists(args.output_file), "Error: output file does not exist"
+    assert args.router_tb in ["tb_floo_dma_mesh", "tb_floo_vc_dma_mesh"], (
         "Error: router_tb not tb_floo_dma_mesh"
-    assert args.traffic_rw in ["read", "write"], \
-        "Error: traffic_rw not read or write"
-
+    )
+    assert args.traffic_rw in ["read", "write"], "Error: traffic_rw not read or write"
 
     monitors_n = []
     monitors_w = []
 
-    monitor_regex = re.compile(r"# \[Monitor (wide|narrow)_dma_._.\]\[(Read|Write)\] " + \
-        r"Latency: (\d+.\d+) \+- (\d+.\d+), BW: (\d+.\d+) Bits/cycle, Util: \d+.\d+%")
+    monitor_regex = re.compile(
+        r"# \[Monitor (wide|narrow)_dma_._.\]\[(Read|Write)\] "
+        + r"Latency: (\d+.\d+) \+- (\d+.\d+), BW: (\d+.\d+) Bits/cycle, Util: \d+.\d+%"
+    )
 
     # read the output file
     with open(args.output_file, "r", encoding="utf8") as output:
@@ -46,10 +46,11 @@ def main():
             # check if legal: if traffic_rw == read: must be all 0 if Write
             [mtype, mrw, mlat, mlatstd, mbw] = regex_match.groups()
             # ignore all 0 lines:
-            if(mlat == "0.00" and mlatstd == "0.00" and mbw == "0.00"):
+            if mlat == "0.00" and mlatstd == "0.00" and mbw == "0.00":
                 continue
-            if((mrw == "Read" and args.traffic_rw == "write")
-            or (mrw == "Write" and args.traffic_rw == "read")):
+            if (mrw == "Read" and args.traffic_rw == "write") or (
+                mrw == "Write" and args.traffic_rw == "read"
+            ):
                 print(f"Error: nonzero {mrw} monitor in {args.traffic_rw} experiment: ")
                 print(f"Line {line_index}: {line}")
                 return
@@ -57,57 +58,56 @@ def main():
                 monitors_n.append([mlat, mlatstd, mbw])
             else:
                 monitors_w.append([mlat, mlatstd, mbw])
-        assert not output_lines[-2].startswith("# Errors: 0, Warnings:"), \
+        assert not output_lines[-2].startswith("# Errors: 0, Warnings:"), (
             "Error: simulation did not finish correctly"
-
-
+        )
 
     assert len(monitors_n) == len(monitors_w), "Error: number of monitors do not match"
     assert len(monitors_n) > 0, "Error: no monitors found"
 
     # process monitors
     n_lat = n_lat_std = n_bw = 0
-    w_lat  = w_lat_std  = w_bw  = 0
+    w_lat = w_lat_std = w_bw = 0
 
     # variances add linearly -> square, add, sqrt
-    for (mlat, mlatstd, mbw) in monitors_n:
+    for mlat, mlatstd, mbw in monitors_n:
         n_lat += float(mlat)
         n_lat_std += float(mlatstd) ** 2
         n_bw += float(mbw)
 
-    for (mlat, mlatstd, mbw) in monitors_w:
+    for mlat, mlatstd, mbw in monitors_w:
         w_lat += float(mlat)
         w_lat_std += float(mlatstd) ** 2
         w_bw += float(mbw)
 
     n_lat_std = sqrt(n_lat_std)
-    w_lat_std  = sqrt(w_lat_std)
+    w_lat_std = sqrt(w_lat_std)
 
     n_lat /= len(monitors_n)
     n_lat_std /= len(monitors_n)
     n_bw /= len(monitors_n)
-    n_bw_std = sqrt(sum((float(mbw)-n_bw)**2 for (_, _, mbw) in monitors_n) / len(monitors_n))
+    n_bw_std = sqrt(sum((float(mbw) - n_bw) ** 2 for (_, _, mbw) in monitors_n) / len(monitors_n))
 
     w_lat /= len(monitors_w)
     w_lat_std /= len(monitors_w)
     w_bw /= len(monitors_w)
-    w_bw_std = sqrt(sum((float(wbw)-w_bw)**2 for (_, _, wbw) in monitors_w) / len(monitors_w))
+    w_bw_std = sqrt(sum((float(wbw) - w_bw) ** 2 for (_, _, wbw) in monitors_w) / len(monitors_w))
 
-
-
-#     - average nw latency
-#     - average w latency
-#     - average nw Bandwidth
-#     - average w Bandwidth
+    #     - average nw latency
+    #     - average w latency
+    #     - average nw Bandwidth
+    #     - average w Bandwidth
 
     with open(args.results_file, "a", encoding="utf8") as results:
         if args.router_tb == "tb_floo_dma_mesh":
             results.write("Old router: ")
         else:
             results.write("VC router : ")
-        results.write(f"[latency +- std, BW +- std]: narrow: \
+        results.write(
+            f"[latency +- std, BW +- std]: narrow: \
 [{n_lat:.2f} +- {n_lat_std:.1f}, {n_bw:.2f} +- {n_bw_std:.1f}], \
-wide: [{w_lat:.2f} +- {w_lat_std:.1f}, {w_bw:.2f} +- {w_bw_std:.1f}]\n")
+wide: [{w_lat:.2f} +- {w_lat_std:.1f}, {w_bw:.2f} +- {w_bw_std:.1f}]\n"
+        )
 
 
 if __name__ == "__main__":

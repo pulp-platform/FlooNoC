@@ -32,10 +32,15 @@ class RenderKwargs(TypedDict, total=False):
     verible_fmt_args: str | None
 
 
-def render_template(context: dict, tpl: Path,
-                    outdir: Path | None = None, file_name: str | None = None,
-                    format_output: bool=False, verible_fmt_bin: str | None = None,
-                    verible_fmt_args: str | None = None):
+def render_template(
+    context: dict,
+    tpl: Path,
+    outdir: Path | None = None,
+    file_name: str | None = None,
+    format_output: bool = False,
+    verible_fmt_bin: str | None = None,
+    verible_fmt_args: str | None = None,
+):
     """Render a template, format if requested and write to file or print to stdout."""
     if not tpl.exists():
         # Search in the internal template directory if the template exists there
@@ -64,18 +69,21 @@ def build_parser() -> argparse.ArgumentParser:
     # Parser that holds all common options
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument(
-        "-c", "--config", type=Path, required=True,
-        help="Path to the configuration file."
+        "-c", "--config", type=Path, required=True, help="Path to the configuration file."
     )
     common.add_argument(
-        "-o", "--outdir", type=Path, required=False,
+        "-o",
+        "--outdir",
+        type=Path,
+        required=False,
         help=(
             "Path to the output directory of the generated output files. "
             "If not specified, the files are printed to stdout."
         ),
     )
     common.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         help="Print detailed information about what the tool is doing.",
     )
@@ -104,7 +112,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--name",
         type=str,
         default=None,
-        help="Override the module/package name and prefix for generated files."
+        help="Override the module/package name and prefix for generated files.",
     )
 
     # Top-level parser
@@ -209,7 +217,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=str,
         choices=MESH_TRAFFIC_TYPES,
         help="Generate a built-in traffic pattern, not requiring any dedicated traffic configuration file. "
-             "Available types: "+ ", ".join(MESH_TRAFFIC_TYPES) + ".",
+        "Available types: " + ", ".join(MESH_TRAFFIC_TYPES) + ".",
     )
     p_traffic.add_argument(
         "--traffic-name",
@@ -313,27 +321,30 @@ def main():
             default_traffic_name = args.traffic_cfg.stem if args.traffic_cfg else "mesh"
             traffic_name = args.traffic_name or default_traffic_name
 
-
     match args.command:
         case "rtl":
-            render_template(context,
+            render_template(
+                context,
                 tpl=tpl_dir / "floo_noc_pkg.sv.mako",
                 file_name=pkg_file_name,
                 **render_kwargs,
             )
-            render_template(context,
+            render_template(
+                context,
                 tpl=tpl_dir / "floo_noc.sv.mako",
                 file_name=top_file_name,
                 **render_kwargs,
             )
         case "pkg":
-            render_template(context,
+            render_template(
+                context,
                 tpl=tpl_dir / "floo_noc_pkg.sv.mako",
                 file_name=pkg_file_name,
                 **render_kwargs,
             )
         case "top":
-            render_template(context,
+            render_template(
+                context,
                 tpl=tpl_dir / "floo_noc.sv.mako",
                 file_name=top_file_name,
                 **render_kwargs,
@@ -349,14 +360,16 @@ def main():
                 suffix = f"_{group}" if group else ""
                 context["sam"] = sam.filter_by_group(group) if group else sam
                 context["suffix"] = suffix
-                render_template(context,
+                render_template(
+                    context,
                     tpl=tpl_dir / "floo_addrmap.rdl.mako",
                     file_name=f"{network.name}_addrmap{suffix}.rdl",
                     **render_kwargs,
                 )
         case "template":
             for tpl in args.template:
-                render_template(context,
+                render_template(
+                    context,
                     tpl=tpl,
                     **render_kwargs,
                 )
@@ -370,11 +383,7 @@ def main():
         case "traffic":
             if args.traffic_cfg:
                 gen_traffic_cfg(
-                    args.traffic_cfg,
-                    network,
-                    traffic_name,
-                    traffic_outdir,
-                    verbose=args.verbose
+                    args.traffic_cfg, network, traffic_name, traffic_outdir, verbose=args.verbose
                 )
             else:
                 gen_traffic_builtin(

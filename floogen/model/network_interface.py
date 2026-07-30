@@ -63,11 +63,9 @@ class NetworkInterface(BaseModel):
 
 
 class AxiNI(NetworkInterface):
-    """ Axi Network Interface class."""
+    """Axi Network Interface class."""
 
-    with as_file(
-        files(floogen.templates).joinpath("floo_axi_chimney.sv.mako")
-    ) as _tpl_path:
+    with as_file(files(floogen.templates).joinpath("floo_axi_chimney.sv.mako")) as _tpl_path:
         tpl: ClassVar = Template(filename=str(_tpl_path))
 
     mgr_port: AXI4 | None = None
@@ -79,12 +77,11 @@ class AxiNI(NetworkInterface):
         """Render the network interface."""
         return self.tpl.render(ni=self, **kwargs)
 
+
 class NarrowWideAxiNI(NetworkInterface):
     """ " NarrowWideNI class to describe a narrow-wide network interface."""
 
-    with as_file(
-        files(floogen.templates).joinpath("floo_nw_chimney.sv.mako")
-    ) as _tpl_path:
+    with as_file(files(floogen.templates).joinpath("floo_nw_chimney.sv.mako")) as _tpl_path:
         tpl: ClassVar = Template(filename=str(_tpl_path))
 
     mgr_narrow_port: AXI4 | None = None
