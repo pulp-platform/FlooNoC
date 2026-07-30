@@ -383,16 +383,6 @@ class AddrRange(BaseModel):
     derived `size` property.
     """
 
-    # NOTE: `validate_assignment` is not enabled. It used to be spelled
-    # `validate_assignement`, which pydantic silently ignored, so it has never been active.
-    # Deriving `size` removed one of the three blockers; two remain, both verified by
-    # turning the flag on and running the suite:
-    #
-    #  1. `validate_input` strips `None`-valued keys, and pydantic rebuilds the instance
-    #     from whatever that validator returns, so every optional field would be dropped on
-    #     *any* assignment. It would have to merge the untouched keys back in.
-    #  2. `set_arr()` assigns `start` and then `end`, which transiently violates the
-    #     `start < end` check in `validate_output`. It would have to update both at once.
     model_config = ConfigDict(extra="forbid")
 
     start: int = Field(ge=0)
@@ -539,9 +529,6 @@ class RouteMapRule(BaseModel):
     def render_desc(self):
         '''Render the description of the routing rule.'''
         if self.desc is None:
-            # The result is used as a SystemVerilog identifier (see `render_sam_idx_enum`
-            # and `RouteMap.render`), so an absent description would silently produce a
-            # degenerate name rather than anything usable.
             raise ValueError(f"Routing rule {self} has no description to render")
         rule_desc = self.desc
         match self.addr_range.arr_idx:
@@ -602,9 +589,6 @@ class RouteMapRuleCollective(RouteMapRule):
             "end_addr": f"{aw}'h{self.addr_range.end:0{cdiv(aw,4)}x}",
         }
 
-        # Non-collective nodes don't need any mask information. The three mask fields are
-        # always populated together (see `Network.gen_collective_sam`), so testing all of
-        # them keeps the existing behaviour.
         if self.mask_offset is None or self.mask_len is None or self.base_id is None:
             struct_fields["idx"]["mask_x"] = {"default": "'0"}
             struct_fields["idx"]["mask_y"] = {"default": "'0"}
@@ -662,10 +646,6 @@ class RouteTable(BaseModel):
         """Sort by destination and fill in missing entries."""
         self.routes = sorted(self.routes, key=lambda x: x.id)
         for i, route in enumerate(self.routes):
-            # Route tables index destinations by position, which only makes sense for the
-            # plain IDs used by source routing - not for mesh coordinates. `ValueError` on
-            # purpose, as above: pydantic turns it into a `ValidationError`, while a
-            # `TypeError` would escape as an unhandled exception.
             if not isinstance(route.id, SimpleId):
                 raise ValueError("Route tables require `SimpleId` destinations")  # noqa: TRY004
             if i != route.id.id:
@@ -746,7 +726,6 @@ class RouteMap(BaseModel):
             i = 0
             while i < len(ranges) - 1:
                 if ranges[i].addr_range.end == ranges[i + 1].addr_range.start:
-                    # `size` follows from `end`, so extending the range is a single write.
                     ranges[i].addr_range.end = ranges[i + 1].addr_range.end
                     del ranges[i + 1]
                 else:

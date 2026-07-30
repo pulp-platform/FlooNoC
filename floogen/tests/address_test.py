@@ -66,8 +66,6 @@ def test_addr_range_arr_idx():
 
 def test_invalid_addr_range():
     """Test the validation of an AddrRange object."""
-    # `size` is an input key rather than a field, so these go through `model_validate`
-    # to exercise the same normalisation path a YAML config would take.
     with pytest.raises(ValueError):
         AddrRange.model_validate({"start": 100, "end": 0, "size": 100})
 

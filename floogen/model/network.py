@@ -70,7 +70,6 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     connections: list[ConnectionDesc]
     routing: Routing
     graph: Graph = Field(default_factory=Graph)
-    """The network graph. Empty until `create_network()` has been called."""
 
     def create_network(self):
         """Initialize the network as a graph."""
@@ -594,8 +593,6 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             ni_dict["sbr_link"] = self.graph.get_edges_to(
                 ni_name, filters=[self.graph.is_link_edge]
             )[0]
-            # `ni_dict` is assembled dynamically above, so validate it as a mapping rather
-            # than splatting it into the constructor.
             match self.network_type:
                 case "axi":
                     self.graph.set_node_obj(ni_name, AxiNI.model_validate(ni_dict))
@@ -722,9 +719,6 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         for addr_rule in self.routing.sam.rules:
             mask_fields = {}
             if addr_rule.addr_range.en_collective:
-                # Collective ranges are only defined for 2D endpoint arrays, so `arr_dim`
-                # and `arr_idx` must both be present and two-dimensional, and the
-                # destination must be a mesh coordinate rather than a plain ID.
                 match (addr_rule.addr_range.arr_dim, addr_rule.addr_range.arr_idx,
                        addr_rule.dest):
                     case ((dim_x, dim_y), (idx_x, idx_y), Coord() as dest):

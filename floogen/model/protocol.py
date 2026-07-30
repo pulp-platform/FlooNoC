@@ -132,8 +132,6 @@ class AXI4Bus(AXI4):
 
     def _idx_to_sv_idx(self):
         """Convert the array to a SystemVerilog array."""
-        # `arr_idx` and `arr_dim` are always assigned together (see `Network.create_endpoints`),
-        # so requiring both here does not change behaviour.
         if self.arr_idx is not None and self.arr_dim is not None:
             string = ""
             for idx, val in zip(self.arr_idx, self.arr_dim):

@@ -44,9 +44,6 @@ dev = [
     "pytest",
     "ruff",
     "ty",
-    # Floor only: `uv.lock` is what actually gates upgrades, so a new `ty` release lands as
-    # a reviewable lockfile bump rather than a surprise CI failure. `error-on-warning`
-    # below means such a bump can introduce new findings - that is intended.
     "mkdocstrings-python>=2.0.1",
     "zensical",
 ]
@@ -78,10 +75,6 @@ suggestion-mode = "yes"
 line-length = 100
 
 [tool.ty.terminal]
-# `floogen` is clean at ty's default rule set, so let warnings fail CI too and keep
-# it that way. There is deliberately no `[tool.ty.rules]` section: every rule that
-# was demoted while the pre-existing findings were worked down (~203 of them) has
-# since reached zero and had its line removed.
 error-on-warning = true
 
 [tool.ty.src]
