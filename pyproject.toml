@@ -43,10 +43,10 @@ floogen = "floogen.cli:main"
 dev = [
     "pytest",
     "ruff",
+    "ty",
     # Floor only: `uv.lock` is what actually gates upgrades, so a new `ty` release lands as
     # a reviewable lockfile bump rather than a surprise CI failure. `error-on-warning`
     # below means such a bump can introduce new findings - that is intended.
-    "ty>=0.0.59",
     "mkdocstrings-python>=2.0.1",
     "zensical",
 ]
