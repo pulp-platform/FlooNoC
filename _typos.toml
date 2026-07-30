@@ -16,5 +16,3 @@ arange = "arange"
 setp = "setp"
 # EDA vendor name.
 Synopsys = "Synopsys"
-# Valid alternative spelling of `extendable`.
-extendible = "extendible"
