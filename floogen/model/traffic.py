@@ -25,12 +25,24 @@ from floogen.utils import clog2
 
 # Built-in, mesh-wide algorithmic traffic patterns supported by `gen_traffic_builtin`.
 MESH_TRAFFIC_TYPES = [
-    "hbm", "uniform", "onehop", "bit_complement", "bit_reverse", "bit_rotation",
-    "neighbor", "shuffle", "transpose", "tornado", "hotspot", "hotspot_boundary", "matmul",
+    "hbm",
+    "uniform",
+    "onehop",
+    "bit_complement",
+    "bit_reverse",
+    "bit_rotation",
+    "neighbor",
+    "shuffle",
+    "transpose",
+    "tornado",
+    "hotspot",
+    "hotspot_boundary",
+    "matmul",
 ]
 
 # Seeded for reproducibility of the `uniform` traffic pattern.
 random.seed(42)
+
 
 def _log(verbose: bool, msg: str):
     """Print `msg` only when verbose output is enabled."""
@@ -108,8 +120,11 @@ def _protocol_data_widths(network: Network, verbose: bool = False) -> dict[str, 
     proto_dw: dict[str, int] = {}
     for p in network.protocols:
         if p.type is None:
-            _log(verbose, f"Warning: Protocol '{p.name}' does not have a type, please provide a "
-                          f"type in the FlooNoC configuration: '{network.name}'")
+            _log(
+                verbose,
+                f"Warning: Protocol '{p.name}' does not have a type, please provide a "
+                f"type in the FlooNoC configuration: '{network.name}'",
+            )
             continue
         proto_dw.setdefault(p.type, p.data_width)
     return proto_dw
@@ -167,8 +182,9 @@ def _mesh_dims(network: Network) -> tuple[int, int]:
             raise ValueError("Traffic generation requires a 2D mesh of routers")
 
 
-def resolve_traffic_model(traffic_model: Traffic, network: Network,
-                          verbose: bool = False) -> Traffic:
+def resolve_traffic_model(
+    traffic_model: Traffic, network: Network, verbose: bool = False
+) -> Traffic:
     """Resolve burst data widths and initiator/endpoint addresses using the FlooNoC model."""
     proto_dw = _protocol_data_widths(network, verbose=verbose)
     for flow in traffic_model.traffic_flows:
@@ -186,7 +202,9 @@ def resolve_traffic_model(traffic_model: Traffic, network: Network,
         if init_xy in xy_addr_map:
             flow.initiator_addr = xy_addr_map[init_xy]
         else:
-            _log(verbose, f"Warning: No address found for initiator {init_xy} in flow '{flow.name}'")
+            _log(
+                verbose, f"Warning: No address found for initiator {init_xy} in flow '{flow.name}'"
+            )
         if ep_xy in xy_addr_map:
             flow.endpoint_addr = xy_addr_map[ep_xy]
         else:
@@ -205,12 +223,18 @@ def print_traffic_model(traffic_model: Traffic):
         print(f"    Initiator : {flow.initiator}  addr={init_addr_str}")
         print(f"    Endpoint  : {flow.endpoint}  addr={ep_addr_str}")
         print(f"    R/W       : {flow.rw}")
-        narrow_str = ", ".join(
-            f"(num={b.number}, len={b.length}, dw={b.data_width})" for b in flow.narrow_burst
-        ) or "none"
-        wide_str = ", ".join(
-            f"(num={b.number}, len={b.length}, dw={b.data_width})" for b in flow.wide_burst
-        ) or "none"
+        narrow_str = (
+            ", ".join(
+                f"(num={b.number}, len={b.length}, dw={b.data_width})" for b in flow.narrow_burst
+            )
+            or "none"
+        )
+        wide_str = (
+            ", ".join(
+                f"(num={b.number}, len={b.length}, dw={b.data_width})" for b in flow.wide_burst
+            )
+            or "none"
+        )
         print(f"    Narrow bursts : {narrow_str}")
         print(f"    Wide bursts   : {wide_str}")
     print("====================\n")
@@ -249,8 +273,10 @@ def _emit_jobs(jobs: str, outdir: Path, filename: str, idx: int):
 
 
 def gen_traffic_cfg(
-    cfg: Path, network: Network,
-    filename: str, outdir: Path,
+    cfg: Path,
+    network: Network,
+    filename: str,
+    outdir: Path,
     verbose: bool = False,
 ):
     """Create a traffic model from a traffic configuration file, then generate DMA jobs for all traffic streams and for the given network."""
@@ -271,8 +297,11 @@ def gen_traffic_cfg(
         wide_jobs = ""
         for burst in flow.wide_burst:
             if burst.data_width is None:
-                _log(verbose, f"Warning: No wide interface was detected, skipping wide burst "
-                              f"generation for traffic flow '{flow.name}'")
+                _log(
+                    verbose,
+                    f"Warning: No wide interface was detected, skipping wide burst "
+                    f"generation for traffic flow '{flow.name}'",
+                )
                 continue
             wide_length = burst.length * burst.data_width // 8
             wide_jobs += _gen_job_str(wide_length, src_addr, dst_addr) * burst.number
@@ -280,8 +309,11 @@ def gen_traffic_cfg(
         narrow_jobs = ""
         for burst in flow.narrow_burst:
             if burst.data_width is None:
-                _log(verbose, f"Warning: No narrow interface was detected, skipping narrow burst "
-                              f"generation for traffic flow '{flow.name}'")
+                _log(
+                    verbose,
+                    f"Warning: No narrow interface was detected, skipping narrow burst "
+                    f"generation for traffic flow '{flow.name}'",
+                )
                 continue
             narrow_length = burst.length * burst.data_width // 8
             narrow_jobs += _gen_job_str(narrow_length, src_addr, dst_addr) * burst.number
@@ -295,17 +327,24 @@ def gen_traffic_cfg(
 
 
 def gen_traffic_builtin(
-    traffic_type: str, network: Network,
-    filename: str, outdir: Path,
-    num_narrow_bursts: int, narrow_burst_length: int,
-    num_wide_bursts: int, wide_burst_length: int,
-    traffic_rw: str, verbose: bool = False,
+    traffic_type: str,
+    network: Network,
+    filename: str,
+    outdir: Path,
+    num_narrow_bursts: int,
+    narrow_burst_length: int,
+    num_wide_bursts: int,
+    wide_burst_length: int,
+    traffic_rw: str,
+    verbose: bool = False,
 ):
     """Generate DMA job files for a built-in traffic pattern. Unlike `gen_traffic_cfg`, this does not require a dedicated traffic configuration file."""
 
     if traffic_type not in MESH_TRAFFIC_TYPES:
-        raise ValueError(f"Unknown traffic type: '{traffic_type}'. "
-                          f"Supported types: {', '.join(MESH_TRAFFIC_TYPES)}")
+        raise ValueError(
+            f"Unknown traffic type: '{traffic_type}'. "
+            f"Supported types: {', '.join(MESH_TRAFFIC_TYPES)}"
+        )
 
     num_x, num_y = _mesh_dims(network)
     xy_addr_map = _xy_addr_map(network)
@@ -323,9 +362,7 @@ def gen_traffic_builtin(
         for y in range(num_y):
             local_addr = addr(x, y)
             wide_length = wide_burst_length * wide_dw // 8 if wide_dw is not None else None
-            narrow_length = (
-                narrow_burst_length * narrow_dw // 8 if narrow_dw is not None else None
-            )
+            narrow_length = narrow_burst_length * narrow_dw // 8 if narrow_dw is not None else None
             if traffic_type == "hbm":
                 # Tile x=0 are the HBM channels; each core reads/writes the channel of its
                 # y coordinate.
@@ -396,14 +433,17 @@ def gen_traffic_builtin(
                 accesses = [(addr(num_x // 2, num_y // 2), traffic_rw, wide_length)]
             else:  # traffic_type == "matmul"
                 # access matrix A from HBM
-                accesses = [(addr(-1, y), "read", None if wide_length is None else wide_length // 2)]
+                accesses = [
+                    (addr(-1, y), "read", None if wide_length is None else wide_length // 2)
+                ]
                 # access matrix B from HBM
                 for i in range(num_y):
                     length = None if wide_length is None else (wide_length // 2) // num_y
                     accesses += [(addr(-1, (y + i) % num_y), "read", length)]
                 # writeback of matrix C to HBM
-                accesses += [(addr(-1, y), "write",
-                              None if wide_length is None else wide_length // 4)]
+                accesses += [
+                    (addr(-1, y), "write", None if wide_length is None else wide_length // 4)
+                ]
 
             wide_jobs = ""
             narrow_jobs = ""

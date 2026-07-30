@@ -37,6 +37,7 @@ class Link(BaseModel, ABC):
     def render_ports(self):
         """Declare the ports of the link."""
 
+
 class AxiLink(Link):
     """Link class to describe a AxiLink."""
 
@@ -71,6 +72,7 @@ class AxiLink(Link):
         ports.append(f"{direction} {self.req_type} {self.req_name()}")
         ports.append(f"{reverse_direction} {self.rsp_type} {self.rsp_name()}")
         return ports
+
 
 class NarrowWideLink(Link):
     """Link class to describe a NarrowWidelink."""
@@ -127,20 +129,24 @@ class NarrowWideLink(Link):
             )
         return ports
 
+
 class NarrowWideVCLink(NarrowWideLink):
-    '''Link class to describe a NarrowWideVCLink.'''
+    """Link class to describe a NarrowWideVCLink."""
 
     @classmethod
     def render_link_typedefs(cls) -> str:
         """Render the typedefs of the protocol."""
         string = ""
         for phys_ch in cls.channel_mapping:
-            struct_dict = {"valid": "logic",
-                           "credit_v": "logic",
-                           "credit_id": "vc_id_t",
-                           phys_ch: f"floo_{phys_ch}_chan_t"}
+            struct_dict = {
+                "valid": "logic",
+                "credit_v": "logic",
+                "credit_id": "vc_id_t",
+                phys_ch: f"floo_{phys_ch}_chan_t",
+            }
             string += sv_struct_typedef(f"floo_vc_{phys_ch}_t", struct_dict)
         return string
+
 
 class NarrowLink(Link):
     """
@@ -164,17 +170,20 @@ class NarrowLink(Link):
         """Declare the ports of the link."""
         raise NotImplementedError
 
+
 class NarrowVCLink(NarrowLink):
-    '''Link class to describe a NarrowVCLink.'''
+    """Link class to describe a NarrowVCLink."""
 
     @classmethod
     def render_link_typedefs(cls) -> str:
         """Render the typedefs of the protocol."""
         string = ""
         for phys_ch in cls.channel_mapping:
-            struct_dict = {"valid": "logic",
-                           "credit_v": "logic",
-                           "credit_id": "vc_id_t",
-                           phys_ch: f"floo_{phys_ch}_chan_t"}
+            struct_dict = {
+                "valid": "logic",
+                "credit_v": "logic",
+                "credit_id": "vc_id_t",
+                phys_ch: f"floo_{phys_ch}_chan_t",
+            }
             string += sv_struct_typedef(f"floo_vc_{phys_ch}_t", struct_dict)
         return string

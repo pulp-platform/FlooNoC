@@ -162,7 +162,7 @@ class Graph(nx.DiGraph):
         start, end = rng[0]
         step = 1 if end > start else -1
         for i in range(start, end + step, step):
-            if len (rng) == 1:
+            if len(rng) == 1:
                 node_name = f"{node}_{i}"
                 if self.has_node(node_name):
                     nodes.append(node_name)
@@ -241,25 +241,26 @@ class Graph(nx.DiGraph):
                     node = f"{name}_{i}"
                     self.add_node(node, type=node_type, arr_idx=(i,), arr_dim=array, obj=node_obj)
                     if i > 0 and connect:
-                        self.add_edge(node, f"{name}_{i-1}", type=edge_type, obj=edge_obj)
-                        self.add_edge(f"{name}_{i-1}", node, type=edge_type, obj=edge_obj)
+                        self.add_edge(node, f"{name}_{i - 1}", type=edge_type, obj=edge_obj)
+                        self.add_edge(f"{name}_{i - 1}", node, type=edge_type, obj=edge_obj)
             case [n, m]:
                 for i in range(n):
                     for j in range(m):
                         node = f"{name}_{i}_{j}"
-                        self.add_node(node, type=node_type, arr_idx=(i, j),
-                                      arr_dim=array, obj=node_obj)
+                        self.add_node(
+                            node, type=node_type, arr_idx=(i, j), arr_dim=array, obj=node_obj
+                        )
                         if i > 0 and connect:
                             self.add_edge(
                                 node,
-                                f"{name}_{i-1}_{j}",
+                                f"{name}_{i - 1}_{j}",
                                 type=edge_type,
                                 obj=edge_obj,
                                 src_dir=XYDirections.WEST.value,
                                 dst_dir=XYDirections.EAST.value,
                             )
                             self.add_edge(
-                                f"{name}_{i-1}_{j}",
+                                f"{name}_{i - 1}_{j}",
                                 node,
                                 type=edge_type,
                                 obj=edge_obj,
@@ -269,14 +270,14 @@ class Graph(nx.DiGraph):
                         if j > 0 and connect:
                             self.add_edge(
                                 node,
-                                f"{name}_{i}_{j-1}",
+                                f"{name}_{i}_{j - 1}",
                                 type=edge_type,
                                 obj=edge_obj,
                                 src_dir=XYDirections.SOUTH.value,
                                 dst_dir=XYDirections.NORTH.value,
                             )
                             self.add_edge(
-                                f"{name}_{i}_{j-1}",
+                                f"{name}_{i}_{j - 1}",
                                 node,
                                 type=edge_type,
                                 obj=edge_obj,

@@ -98,6 +98,4 @@ def parse_config(cls: type[T], config_file: Path) -> T:
             logger.error("Line %s, Column %s:", line, column)
             logger.error("...\n%s\n...", error_context)
             logger.error("Error: %s", error["msg"])
-        raise ConfigError(
-            f"{len(e.errors())} validation error(s) in '{config_file}'"
-        ) from e
+        raise ConfigError(f"{len(e.errors())} validation error(s) in '{config_file}'") from e
