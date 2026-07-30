@@ -50,7 +50,7 @@ class NetworkType(str, Enum):
         return self.value
 
 
-class Network(BaseModel):  # pylint: disable=too-many-public-methods
+class Network(BaseModel):
     """
     Network class to describe a network with routers and endpoints.
 
@@ -415,7 +415,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                         f"Network type {self.network_type} with VC routers is not supported yet"
                     )
 
-    def compile_routers(self): # pylint: disable=too-many-branches, too-many-locals
+    def compile_routers(self):
         """Infer the router type from the network."""
         for rt_name, rt_obj in self.graph.get_rt_nodes(with_name=True):
             dir_in_edges = self.graph.get_edges_to(rt_name,
@@ -896,7 +896,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         # Imported lazily so the optional 'viz' extra (matplotlib) is only
         # required when this feature is actually used. The CLI hides the
         # `visualize` command when matplotlib is unavailable.
-        import matplotlib.pyplot as plt  # pylint: disable=import-outside-toplevel
+        import matplotlib.pyplot as plt
 
         ni_nodes = self.graph.get_ni_nodes(with_obj=False, with_name=True)
         router_nodes = self.graph.get_rt_nodes(with_obj=False, with_name=True)

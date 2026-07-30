@@ -66,11 +66,6 @@ explicit = true
 [tool.pytest.ini_options]
 testpaths = ["floogen/tests"]
 
-[tool.pylint.format]
-max-line-length = 100
-jobs = 4
-suggestion-mode = "yes"
-
 [tool.ruff]
 line-length = 100
 
