@@ -124,9 +124,6 @@ def _ni_mesh_coord(network: Network, ni_name: str) -> tuple[int, int]:
     the coordinate from the adjacent router's array index and the link direction
     instead.
     """
-    if network.graph is None:
-        raise ValueError("Network graph has not been created")
-
     for neighbor in network.graph.neighbors(ni_name):
         if not network.graph.is_rt_node(neighbor):
             continue
@@ -150,14 +147,24 @@ def _ni_mesh_coord(network: Network, ni_name: str) -> tuple[int, int]:
 
 def _xy_addr_map(network: Network) -> dict[tuple[int, int], int]:
     """Build an XY-coordinate-to-base-address lookup from the physical mesh topology."""
-    if network.graph is None:
-        raise ValueError("Network graph has not been created")
-
     xy_addr_map: dict[tuple[int, int], int] = {}
     for ni_name, ni in network.graph.get_ni_nodes(with_name=True):
         if getattr(ni, "addr_range", None):
             xy_addr_map[_ni_mesh_coord(network, ni_name)] = ni.addr_range[0].start
     return xy_addr_map
+
+
+def _mesh_dims(network: Network) -> tuple[int, int]:
+    """Return the `(x, y)` dimensions of the network's router mesh.
+
+    `Router.array` is optional and may describe a 1D array, but traffic generation is only
+    defined for a 2D mesh, so reject anything else with a readable error.
+    """
+    match network.routers[0].array:
+        case (num_x, num_y):
+            return num_x, num_y
+        case _:
+            raise ValueError("Traffic generation requires a 2D mesh of routers")
 
 
 def resolve_traffic_model(traffic_model: Traffic, network: Network,
@@ -251,7 +258,7 @@ def gen_traffic_cfg(  # pylint: disable=too-many-arguments, too-many-positional-
     traffic_model = resolve_traffic_model(traffic_model, network, verbose=verbose)
     if verbose:
         print_traffic_model(traffic_model)
-    floonoc_num_y = network.routers[0].array[1]
+    _, floonoc_num_y = _mesh_dims(network)
     for flow in traffic_model.traffic_flows:
         local_addr = flow.initiator_addr
         ext_addr = flow.endpoint_addr
@@ -267,7 +274,7 @@ def gen_traffic_cfg(  # pylint: disable=too-many-arguments, too-many-positional-
                 _log(verbose, f"Warning: No wide interface was detected, skipping wide burst "
                               f"generation for traffic flow '{flow.name}'")
                 continue
-            wide_length = burst.length * burst.data_width / 8
+            wide_length = burst.length * burst.data_width // 8
             wide_jobs += _gen_job_str(wide_length, src_addr, dst_addr) * burst.number
 
         narrow_jobs = ""
@@ -276,7 +283,7 @@ def gen_traffic_cfg(  # pylint: disable=too-many-arguments, too-many-positional-
                 _log(verbose, f"Warning: No narrow interface was detected, skipping narrow burst "
                               f"generation for traffic flow '{flow.name}'")
                 continue
-            narrow_length = burst.length * burst.data_width / 8
+            narrow_length = burst.length * burst.data_width // 8
             narrow_jobs += _gen_job_str(narrow_length, src_addr, dst_addr) * burst.number
 
         x, y = flow.initiator[0], flow.initiator[1]
@@ -300,7 +307,7 @@ def gen_traffic_builtin(  # pylint: disable=too-many-arguments, too-many-positio
         raise ValueError(f"Unknown traffic type: '{traffic_type}'. "
                           f"Supported types: {', '.join(MESH_TRAFFIC_TYPES)}")
 
-    num_x, num_y = network.routers[0].array[0], network.routers[0].array[1]
+    num_x, num_y = _mesh_dims(network)
     xy_addr_map = _xy_addr_map(network)
     proto_dw = _protocol_data_widths(network, verbose=verbose)
     narrow_dw = proto_dw.get("narrow")
@@ -315,8 +322,10 @@ def gen_traffic_builtin(  # pylint: disable=too-many-arguments, too-many-positio
     for x in range(num_x):
         for y in range(num_y):
             local_addr = addr(x, y)
-            wide_length = wide_burst_length * wide_dw / 8 if wide_dw is not None else None
-            narrow_length = narrow_burst_length * narrow_dw / 8 if narrow_dw is not None else None
+            wide_length = wide_burst_length * wide_dw // 8 if wide_dw is not None else None
+            narrow_length = (
+                narrow_burst_length * narrow_dw // 8 if narrow_dw is not None else None
+            )
             if traffic_type == "hbm":
                 # Tile x=0 are the HBM channels; each core reads/writes the channel of its
                 # y coordinate.

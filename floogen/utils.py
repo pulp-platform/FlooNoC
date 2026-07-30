@@ -23,7 +23,7 @@ def cdiv(x: float, y: float) -> int:
     Returns:
         int: Ceiling of x / y.
     """
-    return -(-x // y)
+    return int(-(-x // y))
 
 
 def clog2(x: float) -> int:

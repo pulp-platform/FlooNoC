@@ -154,7 +154,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
         """Return the link edges."""
         return self.get_edges(filters=[self.is_link_edge], with_obj=with_obj, with_name=with_name)
 
-    def get_nodes_from_range(self, node: str, rng: list[tuple[int]]):
+    def get_nodes_from_range(self, node: str, rng: list[tuple[int, int]]):
         """Return the nodes from the range."""
         nodes = []
         if len(rng) == 0:
@@ -226,7 +226,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
     def add_nodes_as_array(
         self,
         name: str,
-        array: tuple[int],
+        array: tuple[int] | tuple[int, int],
         node_type: str,
         *,
         edge_type: str = "",

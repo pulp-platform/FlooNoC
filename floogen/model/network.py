@@ -6,9 +6,10 @@
 
 import pathlib
 from enum import Enum
+from typing import Any
 
 import networkx as nx
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from floogen.model.connection import ConnectionDesc
 from floogen.model.endpoint import Endpoint, EndpointDesc
@@ -68,8 +69,8 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     endpoints: list[EndpointDesc]
     routers: list[RouterDesc]
     connections: list[ConnectionDesc]
-    graph: Graph | None = None
     routing: Routing
+    graph: Graph = Field(default_factory=Graph)
 
     def create_network(self):
         """Initialize the network as a graph."""
@@ -463,7 +464,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             assert non_dir_in_edges == []
             assert non_dir_out_edges == []
 
-            router_dict = {
+            router_dict: dict[str, Any] = {
                 "name": rt_name,
                 "incoming": incoming,
                 "outgoing": outgoing,
@@ -595,9 +596,9 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             )[0]
             match self.network_type:
                 case "axi":
-                    self.graph.set_node_obj(ni_name, AxiNI(**ni_dict))
+                    self.graph.set_node_obj(ni_name, AxiNI.model_validate(ni_dict))
                 case "narrow-wide":
-                    self.graph.set_node_obj(ni_name, NarrowWideAxiNI(**ni_dict))
+                    self.graph.set_node_obj(ni_name, NarrowWideAxiNI.model_validate(ni_dict))
 
     def gen_routing_info(self):
         """Wrapper function to generate all the routing info for the network,
@@ -638,7 +639,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 out_link = self.graph.get_edge_obj(out_edge)
                 out_idx = rt.outgoing.index(out_link)
                 dest = SimpleId(id=out_idx)
-                addr_range = AddrRange(start=ni.id.id, size=1)
+                addr_range = AddrRange.from_start_size(ni.id.id, 1)
                 routing_table.append(RouteMapRule(dest=dest, addr_range=addr_range, desc=ni.name))
 
             # Add routing table to the router
@@ -706,27 +707,35 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 rule_name = ni.endpoint.name
                 if addr_range.desc is not None:
                     rule_name += f"_{addr_range.desc}"
-                addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, en_collective=addr_range.en_collective, desc=rule_name)
+                addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, desc=rule_name)
                 addr_table.append(addr_rule)
         return RouteMap(name="sam", rules=addr_table)
 
     def gen_collective_sam(self):
         """Generate the collective system address map, which contains additional mask
         information for collective endpoints."""
+        if self.routing.sam is None:
+            raise ValueError("System address map has not been generated")
         addr_table = []
         for addr_rule in self.routing.sam.rules:
             mask_fields = {}
             if addr_rule.addr_range.en_collective:
-                arr_dim = addr_rule.addr_range.arr_dim
-                arr_x_bits = clog2(arr_dim[0])
-                arr_y_bits = clog2(arr_dim[1])
-                mask_offset_y = clog2(addr_rule.addr_range.size)
-                mask_fields = {
-                    "mask_len": (arr_x_bits, arr_y_bits),
-                    "mask_offset": (mask_offset_y + arr_y_bits, mask_offset_y),
-                    "base_id": (addr_rule.dest.x - addr_rule.addr_range.arr_idx[0],
-                                addr_rule.dest.y - addr_rule.addr_range.arr_idx[1]),
-                }
+                match (addr_rule.addr_range.arr_dim, addr_rule.addr_range.arr_idx,
+                       addr_rule.dest):
+                    case ((dim_x, dim_y), (idx_x, idx_y), Coord() as dest):
+                        arr_x_bits = clog2(dim_x)
+                        arr_y_bits = clog2(dim_y)
+                        mask_offset_y = clog2(addr_rule.addr_range.size)
+                        mask_fields = {
+                            "mask_len": (arr_x_bits, arr_y_bits),
+                            "mask_offset": (mask_offset_y + arr_y_bits, mask_offset_y),
+                            "base_id": (dest.x - idx_x, dest.y - idx_y),
+                        }
+                    case _:
+                        raise ValueError(
+                            f"Collective address range '{addr_rule.desc}' requires a 2D "
+                            "endpoint array with mesh coordinates"
+                        )
             addr_table.append(RouteMapRuleCollective(**addr_rule.model_dump(), **mask_fields))
         return RouteMap(name="collective_sam", rules=addr_table)
 
@@ -771,6 +780,10 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 if prot.type == "wide" and prot.direction == "input"), None)
             wide_out_prot = next((prot for prot in self.protocols
                 if prot.type == "wide" and prot.direction == "output"), None)
+            if narrow_in_prot is None or wide_in_prot is None:
+                raise ValueError(
+                    "A `narrow-wide` network requires both a narrow and a wide input protocol"
+                )
             string += AXI4.render_cfg("AxiCfgN", narrow_in_prot, narrow_out_prot)
             string += AXI4.render_cfg("AxiCfgW", wide_in_prot, wide_out_prot)
 
@@ -785,6 +798,8 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         else:
             in_prot = next((prot for prot in self.protocols if prot.direction == "input"), None)
             out_prot = next((prot for prot in self.protocols if prot.direction == "output"), None)
+            if in_prot is None:
+                raise ValueError("An `axi` network requires an input protocol")
             string += AXI4.render_cfg("AxiCfg", in_prot, out_prot)
             string += AxiLink.render_typedefs(in_prot.type_name(), "AxiCfg")
         return string
@@ -868,13 +883,15 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     def render_sam_idx_enum(self):
         """Render the system address map index enum in the generated code."""
+        if self.routing.sam is None:
+            raise ValueError("System address map has not been generated")
         fields_dict = {}
         for i, rule in enumerate(reversed(self.routing.sam.rules)):
             rule_desc = f"{rule.render_desc()}_sam_idx"
             fields_dict[rule_desc] = i
         return sv_enum_typedef(name="sam_idx_e", fields_dict=fields_dict)
 
-    def visualize(self, savefig=True, filename: pathlib.Path = "network.png"):
+    def visualize(self, savefig=True, filename: pathlib.Path = pathlib.Path("network.png")):
         """Visualize the network graph."""
         # Imported lazily so the optional 'viz' extra (matplotlib) is only
         # required when this feature is actually used. The CLI hides the

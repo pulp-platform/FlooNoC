@@ -13,7 +13,6 @@ requires-python = ">=3.10"
 authors = [{ name = "Tim Fischer", email = "fischeti@iis.ee.ethz.ch" }]
 classifiers = [
   "Programming Language :: Python :: 3.10",
-  "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
   "Development Status :: 4 - Beta",
@@ -43,12 +42,13 @@ floogen = "floogen.cli:main"
 dev = [
     "pytest",
     "ruff",
+    "ty",
     "mkdocstrings-python>=2.0.1",
     "zensical",
 ]
 
 [build-system]
-requires = ["uv_build>=0.9.2,<0.10.0"]
+requires = ["uv_build>=0.9.2,<0.13.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
@@ -72,3 +72,11 @@ suggestion-mode = "yes"
 
 [tool.ruff]
 line-length = 100
+
+[tool.ty.terminal]
+error-on-warning = true
+
+[tool.ty.src]
+# `util/` holds standalone helper scripts with their own optional dependencies
+# (e.g. pygame) that are not part of the distributed package.
+include = ["floogen"]

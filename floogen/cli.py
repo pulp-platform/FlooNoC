@@ -6,20 +6,31 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 import argparse
+import sys
 from importlib.metadata import version
-from importlib.resources import files
 from importlib.util import find_spec
 from pathlib import Path
+from typing import TypedDict
 
 from mako.template import Template
 
-from floogen.config_parser import parse_config
+from floogen.config_parser import ConfigError, parse_config
 from floogen.model.network import Network
 from floogen.model.traffic import MESH_TRAFFIC_TYPES, gen_traffic_builtin, gen_traffic_cfg
 from floogen.query import handle_query
 from floogen.utils import verible_format
 
-tpl_dir = files("floogen") / "templates"
+tpl_dir = Path(__file__).parent / "templates"
+
+
+class RenderKwargs(TypedDict, total=False):
+    """Keyword arguments forwarded to `render_template`."""
+
+    outdir: Path | None
+    format_output: bool
+    verible_fmt_bin: str | None
+    verible_fmt_args: str | None
+
 
 def render_template(context: dict, tpl: Path,
                     outdir: Path | None = None, file_name: str | None = None,
@@ -270,7 +281,13 @@ def main():
         parser.print_help()
         return 0
 
-    network = parse_config(Network, args.config)
+    try:
+        network = parse_config(Network, args.config)
+    except ConfigError as e:
+        # `parse_config` has already reported the individual problems in detail; a traceback
+        # would only bury them.
+        print(f"floogen: {e}", file=sys.stderr)
+        return 1
 
     network.create_network()
     network.compile_network()
@@ -280,7 +297,7 @@ def main():
     context = {"noc": network}
 
     # Additional render arguments
-    render_kwargs = {"outdir": args.outdir}
+    render_kwargs: RenderKwargs = {"outdir": args.outdir}
 
     # Command specific render arguments
     match args.command:
@@ -324,10 +341,13 @@ def main():
         case "rdl":
             context["rdl_as_mem"] = args.as_mem
             context["rdl_memwidth"] = args.memwidth
-            groups = network.routing.sam.distinct_groups() or [None]
+            sam = network.routing.sam
+            if sam is None:
+                raise ValueError("System address map has not been generated")
+            groups = sam.distinct_groups() or [None]
             for group in groups:
                 suffix = f"_{group}" if group else ""
-                context["sam"] = network.routing.sam.filter_by_group(group) if group else network.routing.sam
+                context["sam"] = sam.filter_by_group(group) if group else sam
                 context["suffix"] = suffix
                 render_template(context,
                     tpl=tpl_dir / "floo_addrmap.rdl.mako",

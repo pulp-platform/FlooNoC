@@ -57,14 +57,26 @@ def get_file_location(
 T = TypeVar("T", bound=BaseModel)
 
 
-def parse_config(cls: type[T], config_file: Path) -> T | None:
-    """Parses a configuration file and returns a validated model."""
+class ConfigError(Exception):
+    """Raised when a configuration file cannot be parsed or validated.
+
+    The specific problems are reported through `logger` before this is raised, so callers
+    should report only this exception's message rather than a traceback.
+    """
+
+
+def parse_config(cls: type[T], config_file: Path) -> T:
+    """Parses a configuration file and returns a validated model.
+
+    Raises:
+        ConfigError: If the file is not valid YAML or does not validate against `cls`.
+    """
     with config_file.open() as file:
         try:
             config_data = ruamel.yaml.YAML(typ="rt").load(file)
         except YAMLError as e:
             logger.error("Error while parsing config_file:\n %s", e)
-            return None
+            raise ConfigError(f"Could not parse '{config_file}' as YAML") from e
 
     try:
         return cls.model_validate(config_data)
@@ -86,4 +98,6 @@ def parse_config(cls: type[T], config_file: Path) -> T | None:
             logger.error("Line %s, Column %s:", line, column)
             logger.error("...\n%s\n...", error_context)
             logger.error("Error: %s", error["msg"])
-        return None
+        raise ConfigError(
+            f"{len(e.errors())} validation error(s) in '{config_file}'"
+        ) from e

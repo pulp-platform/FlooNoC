@@ -9,7 +9,6 @@ from typing import Annotated, TypeVar
 from pydantic import BaseModel, StringConstraints
 
 from floogen.utils import (
-    snake_to_camel,
     sv_param_decl,
     sv_struct_render,
     sv_struct_typedef,
@@ -34,6 +33,10 @@ class ProtocolDesc(BaseModel):
     type: Annotated[str, StringConstraints(pattern=r"narrow|wide")] | None = None
     direction: str | None = None
 
+    def render_port(self, pkg_name="", prefix="") -> list[str]:
+        """Render the port of the protocol."""
+        raise NotImplementedError
+
 
 class AXI4(ProtocolDesc):
     """AXI4 protocol class.
@@ -55,15 +58,6 @@ class AXI4(ProtocolDesc):
     def type_name(self, prefix="") -> str:
         """Return the full name of the protocol."""
         return "_".join(filter(None, [prefix, self.type_prefix, self.name]))
-
-    def render_params(self) -> str:
-        """Render the parameters of the protocol."""
-        cfull_name = snake_to_camel(self.full_name())
-        string = sv_param_decl(cfull_name + "AddrWidth", self.addr_width)
-        string += sv_param_decl(cfull_name + "DataWidth", self.data_width)
-        string += sv_param_decl(cfull_name + "IdWidth", self.id_width)
-        string += sv_param_decl(cfull_name + "UserWidth", self.user_width)
-        return string + "\n"
 
     def render_typedefs(self, prefix="", ignored_user_fields=None) -> str:
         """Render the typedefs of the protocol."""
@@ -138,7 +132,7 @@ class AXI4Bus(AXI4):
 
     def _idx_to_sv_idx(self):
         """Convert the array to a SystemVerilog array."""
-        if self.arr_idx is not None:
+        if self.arr_idx is not None and self.arr_dim is not None:
             string = ""
             for idx, val in zip(self.arr_idx, self.arr_dim):
                 if val != 1:

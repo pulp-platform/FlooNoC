@@ -18,6 +18,11 @@ from floogen.utils import (
     sv_typedef,
 )
 
+# The width fields on `Routing` are filled in by `Network.gen_routing_info()`, which sets
+# exactly the ones the configured routing algorithm needs. Reading them before that is a
+# programming error rather than a config error.
+_NOT_GENERATED = "Routing widths are only available after `gen_routing_info()`"
+
 
 class RouteAlgo(Enum):
     """Routing algorithm enum.
@@ -370,16 +375,18 @@ class AddrRange(BaseModel):
     Attributes:
         start (int): Absolute start address of the range.
         end (int): Absolute end address of the range.
-        size (int): Size of the address range.
         base (Optional[int]): Base address used for calculating ranges in endpoint arrays.
         en_collective (bool): If true, marks this range as a multicast/collective destination.
+
+    `size` is additionally accepted as an *input* key in place of `start` or `end`, but is
+    not stored as a field - it is normalised away into `end` and read back through the
+    derived `size` property.
     """
 
-    model_config = ConfigDict(extra="forbid", validate_assignement=True)
+    model_config = ConfigDict(extra="forbid")
 
     start: int = Field(ge=0)
     end: int = Field(ge=0)
-    size: int
     base: int | None = None
     arr_idx: tuple[int, ...] | None = None
     arr_dim: tuple[int, ...] | None = None
@@ -392,6 +399,27 @@ class AddrRange(BaseModel):
 
     def __str__(self):
         return f"[{self.start:X}:{self.end:X}]"
+
+    @property
+    def size(self) -> int:
+        """Size of the address range.
+
+        Derived rather than stored: every accepted input shape defines the range as
+        `end - start`, so keeping a separate field would only add state to hold in sync.
+        `size` remains a valid *input* key - see `validate_input` - it is simply
+        normalised away into `end`.
+        """
+        return self.end - self.start
+
+    @classmethod
+    def from_start_size(cls, start: int, size: int, **kwargs) -> "AddrRange":
+        """Create a range from a start address and a size."""
+        return cls.model_validate({"start": start, "size": size, **kwargs})
+
+    @classmethod
+    def from_base_size(cls, base: int, size: int, **kwargs) -> "AddrRange":
+        """Create a range from an array base address and a per-element size."""
+        return cls.model_validate({"base": base, "size": size, **kwargs})
 
     @field_validator("rdl_addrmap_grp", mode="before")
     @classmethod
@@ -409,6 +437,8 @@ class AddrRange(BaseModel):
             # while a `TypeError` would escape as an unhandled exception.
             raise ValueError("Invalid address range specification")  # noqa: TRY004
         addr_dict = {k: v for k, v in self.items() if v is not None}
+        # Normalise every accepted input shape to `start`/`end`. `size` is derived from
+        # those two (see the `size` property), so it is consumed here rather than stored.
         match addr_dict:
             case {"size": size, "base": base, "arr_idx": arr_idx}:
                 match arr_idx:
@@ -416,9 +446,10 @@ class AddrRange(BaseModel):
                         addr_dict["start"] = base + size * m
                         addr_dict["end"] = addr_dict["start"] + size
                     case (m, n):
-                        if addr_dict["arr_dim"] is None:
+                        arr_dim = addr_dict.get("arr_dim")
+                        if arr_dim is None:
                             raise ValueError("Array dimension must be specified for 2D arrays")
-                        addr_dict["start"] = base + size * (m * addr_dict["arr_dim"][1] + n)
+                        addr_dict["start"] = base + size * (m * arr_dim[1] + n)
                         addr_dict["end"] = addr_dict["start"] + size
                     case _:
                         raise ValueError("Invalid array index specification")
@@ -429,11 +460,12 @@ class AddrRange(BaseModel):
                 if end - start != size:
                     raise ValueError("Invalid address range specification")
             case {"start": start, "end": end}:
-                addr_dict["size"] = end - start
+                pass
             case {"start": start, "size": size}:
                 addr_dict["end"] = start + size
             case _:
                 raise ValueError("Invalid address range specification")
+        addr_dict.pop("size", None)
         return addr_dict
 
     @model_validator(mode="after")
@@ -449,15 +481,17 @@ class AddrRange(BaseModel):
 
     def set_arr(self, arr_idx, arr_dim):
         """Update the address range with the given index."""
+        # `size` is derived from `start`/`end`, so it has to be read before either moves.
+        size = self.size
         self.arr_idx = arr_idx
         self.arr_dim = arr_dim
         if self.base is not None:
             match arr_idx:
                 case (m,):
-                    self.start = self.base + self.size * m
+                    self.start = self.base + size * m
                 case (m, n):
-                    self.start = self.base + self.size * (m * arr_dim[1] + n)
-            self.end = self.start + self.size
+                    self.start = self.base + size * (m * arr_dim[1] + n)
+            self.end = self.start + size
         else:
             raise ValueError("Address range base not set")
         return self
@@ -494,6 +528,8 @@ class RouteMapRule(BaseModel):
 
     def render_desc(self):
         '''Render the description of the routing rule.'''
+        if self.desc is None:
+            raise ValueError(f"Routing rule {self} has no description to render")
         rule_desc = self.desc
         match self.addr_range.arr_idx:
             case (m,):
@@ -553,8 +589,7 @@ class RouteMapRuleCollective(RouteMapRule):
             "end_addr": f"{aw}'h{self.addr_range.end:0{cdiv(aw,4)}x}",
         }
 
-        # Non-collective nodes don't need any mask information
-        if self.mask_offset is None:
+        if self.mask_offset is None or self.mask_len is None or self.base_id is None:
             struct_fields["idx"]["mask_x"] = {"default": "'0"}
             struct_fields["idx"]["mask_y"] = {"default": "'0"}
         else:
@@ -611,6 +646,8 @@ class RouteTable(BaseModel):
         """Sort by destination and fill in missing entries."""
         self.routes = sorted(self.routes, key=lambda x: x.id)
         for i, route in enumerate(self.routes):
+            if not isinstance(route.id, SimpleId):
+                raise ValueError("Route tables require `SimpleId` destinations")  # noqa: TRY004
             if i != route.id.id:
                 self.routes.insert(i, RouteRule(route=None, id=SimpleId(id=i)))
         return self.routes.reverse()
@@ -690,9 +727,6 @@ class RouteMap(BaseModel):
             while i < len(ranges) - 1:
                 if ranges[i].addr_range.end == ranges[i + 1].addr_range.start:
                     ranges[i].addr_range.end = ranges[i + 1].addr_range.end
-                    ranges[i].addr_range.size = (
-                        ranges[i].addr_range.end - ranges[i].addr_range.start
-                    )
                     del ranges[i + 1]
                 else:
                     i += 1
@@ -911,20 +945,28 @@ class Routing(BaseModel):
         string += sv_param_decl("UseIdTable", bool_to_sv(self.use_id_table), dtype="bit")
         match (self.route_algo):
             case RouteAlgo.XY | RouteAlgo.YX:
+                if self.num_x_bits is None or self.num_y_bits is None:
+                    raise ValueError(_NOT_GENERATED)
                 string += sv_param_decl("NumXBits", self.num_x_bits)
                 string += sv_param_decl("NumYBits", self.num_y_bits)
             case RouteAlgo.ID:
+                if self.num_id_bits is None:
+                    raise ValueError(_NOT_GENERATED)
                 string += sv_param_decl("NumIdBits", self.num_id_bits)
             case _:
                 pass
 
         if self.route_algo in (RouteAlgo.XY, RouteAlgo.YX):
+            if self.addr_offset_bits is None or self.num_x_bits is None:
+                raise ValueError(_NOT_GENERATED)
             string += sv_param_decl("XYAddrOffsetX", self.addr_offset_bits)
             string += sv_param_decl("XYAddrOffsetY", self.addr_offset_bits + self.num_x_bits)
         else:
             string += sv_param_decl("XYAddrOffsetX", 0)
             string += sv_param_decl("XYAddrOffsetY", 0)
         if self.route_algo == RouteAlgo.ID and not self.use_id_table:
+            if self.addr_offset_bits is None:
+                raise ValueError(_NOT_GENERATED)
             string += sv_param_decl("IdAddrOffset", self.addr_offset_bits)
         else:
             string += sv_param_decl("IdAddrOffset", 0)
@@ -973,14 +1015,25 @@ class Routing(BaseModel):
 
     def render_route_cfg(self, name) -> str:
         """Render the SystemVerilog routing configuration."""
+        xy_addr_offset_x, xy_addr_offset_y, id_addr_offset = 0, 0, 0
+        if self.route_algo in (RouteAlgo.XY, RouteAlgo.YX):
+            if self.addr_offset_bits is None or self.num_x_bits is None:
+                raise ValueError(_NOT_GENERATED)
+            xy_addr_offset_x = self.addr_offset_bits
+            xy_addr_offset_y = self.addr_offset_bits + self.num_x_bits
+        elif self.route_algo == RouteAlgo.ID and not self.use_id_table:
+            if self.addr_offset_bits is None:
+                raise ValueError(_NOT_GENERATED)
+            id_addr_offset = self.addr_offset_bits
+        if self.sam is None:
+            raise ValueError("System address map has not been generated")
+
         fields = {
             "RouteAlgo": self.route_algo.value,
             "UseIdTable": bool_to_sv(self.use_id_table),
-            "XYAddrOffsetX": self.addr_offset_bits if self.route_algo in (RouteAlgo.XY, RouteAlgo.YX) else 0,
-            "XYAddrOffsetY": self.addr_offset_bits + self.num_x_bits if
-                                self.route_algo in (RouteAlgo.XY, RouteAlgo.YX) else 0,
-            "IdAddrOffset": self.addr_offset_bits if
-                                self.route_algo == RouteAlgo.ID and not self.use_id_table else 0,
+            "XYAddrOffsetX": xy_addr_offset_x,
+            "XYAddrOffsetY": xy_addr_offset_y,
+            "IdAddrOffset": id_addr_offset,
             "NumSamRules": len(self.sam),
             "NumRoutes": self.num_endpoints if self.route_algo == RouteAlgo.SRC else 0,
             "CollectiveCfg": self.collective.get_collective_cfg,
