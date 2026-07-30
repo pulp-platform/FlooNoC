@@ -6,6 +6,7 @@
 
 import pathlib
 from enum import Enum
+from typing import Any
 
 import networkx as nx
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -463,7 +464,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             assert non_dir_in_edges == []
             assert non_dir_out_edges == []
 
-            router_dict = {
+            router_dict: dict[str, Any] = {
                 "name": rt_name,
                 "incoming": incoming,
                 "outgoing": outgoing,
@@ -706,7 +707,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 rule_name = ni.endpoint.name
                 if addr_range.desc is not None:
                     rule_name += f"_{addr_range.desc}"
-                addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, en_collective=addr_range.en_collective, desc=rule_name)
+                addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, desc=rule_name)
                 addr_table.append(addr_rule)
         return RouteMap(name="sam", rules=addr_table)
 
