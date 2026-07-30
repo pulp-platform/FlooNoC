@@ -22,7 +22,7 @@ package floo_pkg;
     /// source itself (i.e. the network interfaces). The route is encoded
     /// as a sequence of router ports that the packet should traverse. At
     /// every router hop, a port is popped from the route list. The routes
-    /// need to be passed to the network interfaces `route_table_i`, whic
+    /// need to be passed to the network interfaces `route_table_i`, which
     /// is a table of routes that can be indexed with the destination ID.
     /// This algorithm is mainly useful for smaller networks with fewer
     /// hops where the encoding size of the route does not become too large.
@@ -56,7 +56,7 @@ package floo_pkg;
 
   /// The types of Reorder Buffers (RoBs) that can be used in the network interface
   typedef enum logic [1:0] {
-    /// The most performant but also most complex RoB, which supports reodering
+    /// The most performant but also most complex RoB, which supports reordering
     /// of responses. This reorder buffer retains the out-of-order nature of
     /// AXI transactions with different IDs. Supports multiple outstanding
     /// transactions and bursts.
@@ -191,8 +191,8 @@ package floo_pkg;
   /// transfers required to implement these macro collective.
   /// This is the type the top-level user can set [Frontend]
   typedef struct packed {
-    bit EnNarrowMulticast;  /// Enable multicast transcation support on the narrow router
-    bit EnWideMulticast;    /// Enable multicast transcation support on the wide router
+    bit EnNarrowMulticast;  /// Enable multicast transaction support on the narrow router
+    bit EnWideMulticast;    /// Enable multicast transaction support on the wide router
     bit EnLsbAnd;           /// Enable LSB and operation support
     bit EnFpAdd;            /// Enable FP addition support
     bit EnFpMul;            /// Enable FP multiplier support
@@ -213,7 +213,7 @@ package floo_pkg;
   /// For instance a system featuring FlooNoC with multicast support
   /// needs partial support for parallel reduction, EnCollectB = true
   /// but EnLsbAnd = false. This level of granularity is hidden to the
-  /// top-lvel user, and it's used internally by the NoC [Backend]
+  /// top-level user, and it's used internally by the NoC [Backend]
   typedef struct packed {
     bit EnMulticast;  // Multicast communication
     bit EnLsbAnd;     // AND Connect the LSB of the payload
@@ -228,7 +228,7 @@ package floo_pkg;
     bit EnIntMaxS;    // Atomic Max (signed)
     bit EnIntMaxU;    // Atomic Max (unsigned)
     bit EnSelectAW;   // Select first incoming AW flit
-    bit EnCollectB;   // Collect B responses for AXI transmisison
+    bit EnCollectB;   // Collect B responses for AXI transmission
   } collect_op_be_cfg_t;
 
   typedef logic [3:0] collect_op_t;
@@ -297,11 +297,11 @@ package floo_pkg;
     /// Number of outstanding transactions per txnID. Only used if
     /// `RoBType == NormalRoB`.
     int unsigned MaxTxnsPerId;
-    /// The type of Reoder Buffer (RoB) that is used for B responses.
+    /// The type of Reorder Buffer (RoB) that is used for B responses.
     rob_type_e BRoBType;
     /// The depth of the RoB for B responses. Only used if `BRoBType != NoRoB`.
     int unsigned BRoBSize;
-    /// The type of Reoder Buffer (RoB) that is used for R responses.
+    /// The type of Reorder Buffer (RoB) that is used for R responses.
     rob_type_e RRoBType;
     /// The depth of the RoB for R responses. Only used if `RRoBType != NoRoB`.
     int unsigned RRoBSize;

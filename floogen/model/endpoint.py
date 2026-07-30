@@ -12,7 +12,7 @@ from floogen.model.routing import AddrRange, Coord, SimpleId
 
 class EndpointDesc(BaseModel):
     """
-    Endpoint class to describe an endpoint with adress ranges and configuration parameters.
+    Endpoint class to describe an endpoint with address ranges and configuration parameters.
 
     Attributes:
         name (str): Unique identifier for the endpoint. Used in connection definitions.
@@ -112,7 +112,7 @@ class EndpointDesc(BaseModel):
 
 
 class Endpoint(EndpointDesc):
-    """Endpoint class to describe an endpoint with adress ranges and configuration parameters."""
+    """Endpoint class to describe an endpoint with address ranges and configuration parameters."""
 
     mgr_ports: list[ProtocolDesc] = []
     sbr_ports: list[ProtocolDesc] = []

@@ -82,7 +82,7 @@ module floo_output_arbiter import floo_pkg::*;
 
   // Arbitrate reductions
   if (EnParallelReduction) begin: gen_parallel_reduction
-    // Var to sparate Non-Slave ports if they have to go to the reduction arbiter!
+    // Var to separate Non-Slave ports if they have to go to the reduction arbiter!
     flit_t [NumParallelRedRoutes-1:0]    parallel_red_data;
     logic [NumParallelRedRoutes-1:0]     parallel_red_valid;
     logic [NumParallelRedRoutes-1:0]     parallel_red_ready;

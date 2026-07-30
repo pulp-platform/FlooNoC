@@ -10,7 +10,7 @@ import networkx as nx
 from floogen.model.routing import XYDirections
 
 
-class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
+class Graph(nx.DiGraph):
     """Network graph class."""
 
     def __init__(self):
@@ -39,7 +39,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
     def add_edge_bidir(self, u_of_edge: str, v_of_edge: str, **attr):
         """Add a bidirectional edge to the graph."""
         self.add_edge(u_of_edge, v_of_edge, **attr)
-        self.add_edge(v_of_edge, u_of_edge, **attr)  # pylint: disable=arguments-out-of-order
+        self.add_edge(v_of_edge, u_of_edge, **attr)
 
     def get_node_obj(self, node):
         """Return the node object."""
@@ -198,7 +198,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
         node_obj=None,
         edge_obj=None,
         connect=True,
-    ):  # pylint: disable=too-many-arguments
+    ):
         """Add nodes as a tree."""
         if lvl == len(tree):
             return
@@ -233,7 +233,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
         node_obj=None,
         edge_obj=None,
         connect=True,
-    ):  # pylint: disable=too-many-arguments
+    ):
         """Add nodes as an array."""
         match array:
             case [n]:

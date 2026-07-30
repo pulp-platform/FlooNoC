@@ -38,6 +38,7 @@ We provide detailed guides for both the hardware IPs (FlooNoC) and the generatio
 
 * [View Hardware Docs ➔](https://pulp-platform.github.io/FlooNoC/floonoc/overview/) Learn how to simulate and integrate the SystemVerilog IPs.
 * [View Generator Docs ➔](https://pulp-platform.github.io/FlooNoC/floogen/overview/) Learn how to install the tool and generate custom network topologies.
+* [Contributing ➔](https://pulp-platform.github.io/FlooNoC/contributing/) Set up the git hooks and learn which checks run on a pull request.
 
 ## 💡 Design Principles
 _FlooNoC_ is built on five key principles to achieve high bandwidth and low latency:

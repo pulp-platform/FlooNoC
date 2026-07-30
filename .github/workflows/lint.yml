@@ -36,24 +36,22 @@ jobs:
         fail_on_error: true
         reviewdog_reporter: github-check
 
-  ########
-  # Ruff #
-  ########
-  ruff:
+  #########
+  # Hooks #
+  #########
+  # Runs the pre-commit hooks from `.pre-commit-config.yaml`, which cover `ruff`
+  # and `ty` as well as whitespace, YAML/TOML and REUSE header checks. This makes
+  # the checks identical for contributors who have the hooks installed locally
+  # and those who have not.
+  hooks:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: astral-sh/ruff-action@v4.1.0
-
-  ######
-  # ty #
-  ######
-  ty:
-    runs-on: ubuntu-latest
+    env:
+      # Report `ruff` violations as inline annotations.
+      RUFF_OUTPUT_FORMAT: github
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: astral-sh/setup-uv@v8.3.2
-      - run: uv run --all-extras ty check
+      - run: uv run prek run --all-files --show-diff-on-failure
 
   #########
   # REUSE #

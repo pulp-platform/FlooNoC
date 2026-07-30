@@ -66,7 +66,7 @@ def handle_query(network, expr):
     env.update({k: ConfigNS(v) for k, v in data.items()})
 
     try:
-        result = eval(expr, {"__builtins__": {}}, env) # pylint: disable=eval-used
+        result = eval(expr, {"__builtins__": {}}, env)
         print(result)
     except (SyntaxError, NameError, TypeError, ValueError) as e:
         print(f"Query evaluation error: {e}")

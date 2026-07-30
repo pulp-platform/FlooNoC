@@ -335,7 +335,7 @@ module floo_rob #(
 
     if (ax_valid_i && st_ax_gnt) begin
       // Check if this is the second or more transaction for this ID
-      // In that case, the entry in the ID status tabe is already valid
+      // In that case, the entry in the ID status table is already valid
       if (!ax_rob_req_o) begin
         ax_valid_o = 1'b1;
         if (ax_ready_i) begin
@@ -349,7 +349,7 @@ module floo_rob #(
           st_ax_push = 1'b1;
           // Mark the entries in the reorder buffer as occupied
           // Only the last entry is set to 1 which is enough, since
-          // the free buffer size is just calcluated with a leading-zero-counter
+          // the free buffer size is just calculated with a leading-zero-counter
           rob_alloc_d[rob_next_free_idx + ax_len_i] = 1'b1;
         end
       end

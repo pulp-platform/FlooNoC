@@ -32,7 +32,7 @@ In _FlooNoC_ the header consists of the following fields:
 | `axi_ch` | `axi_ch_e`[^2] | Chimney | Used by the Chimney to encode the type of packet e.g. which AXI channel |
 | `rob_req` | `logic` | Chimney | Flag to signal that the flit might need to be reordered in the Chimney |
 | `rob_idx` | `rob_idx_t` | Chimney | The index into the reorder buffer of the Chimney |
-| `atop` | `logic` | Chimney | Flag to signal that the flit is an ATOP flit and can bypass the reodering logic. |
+| `atop` | `logic` | Chimney | Flag to signal that the flit is an ATOP flit and can bypass the reordering logic. |
 
 !!! info "Additional fields"
 

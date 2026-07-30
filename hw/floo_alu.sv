@@ -25,7 +25,7 @@ package floo_alu_pkg;
   // | UINT32     | 32 bit |
   // | INT64      | 64 bit |
   // | UINT64     | 64 bit |
-  // *NOTE:* Add new formats only at the end of the enumeration for backwards compatibilty!
+  // *NOTE:* Add new formats only at the end of the enumeration for backwards compatibility!
   localparam int unsigned NumIntFormats = 8;
   localparam int unsigned IntFormatBits = $clog2(NumIntFormats);
 
@@ -170,7 +170,7 @@ module floo_reduction_alu import floo_pkg::*; #() (
     endcase
   end
 
-  // Instanciate the ALU
+  // Instantiate the ALU
   floo_alu_top #(
     .tag_t                (logic),
     .CutOutput            (1'b1),

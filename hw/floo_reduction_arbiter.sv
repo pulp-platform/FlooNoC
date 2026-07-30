@@ -46,7 +46,7 @@ module floo_reduction_arbiter import floo_pkg::*;
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi, AxiCfg)
   `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi_in, AxiCfg, hdr_t)
 
-  // We calculte the different reduction in parallel and select the result at the output
+  // We calculate the different reduction in parallel and select the result at the output
   flit_t data_forward_flit;
   flit_t data_collectB;
   flit_t data_LSBAnd;
@@ -160,7 +160,7 @@ module floo_reduction_arbiter import floo_pkg::*;
 
   // Select which parallel operation to output
   always_comb begin
-    // Assign inital value
+    // Assign initial value
     data_o = '0;
     case ({incoming_red_op, 1'b1})
       {SelectAW, CollectOpCfg.EnLsbAnd}:  data_o = data_forward_flit;

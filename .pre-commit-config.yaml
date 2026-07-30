@@ -1,0 +1,71 @@
+# Copyright 2026 ETH Zurich and University of Bologna.
+# Solderpad Hardware License, Version 0.51, see LICENSE for details.
+# SPDX-License-Identifier: SHL-0.51
+
+# Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
+
+# Hooks are managed with `prek` (https://prek.j178.dev), a drop-in replacement
+# for `pre-commit`. `prek` is part of the `dev` dependency group, so no separate
+# installation is needed:
+#
+#   uv run prek install --allow-missing-config --hook-type pre-commit --hook-type pre-push
+#
+# `--allow-missing-config` keeps commits working on branches that predate this
+# file, e.g. when checking out an older pull request.
+#
+# The same hooks run on every pull request, see `.github/workflows/lint.yml`.
+# `ruff`, `ty`, `reuse`, `typos` and `pytest` run as local hooks through `uv` so
+# that their versions come from `uv.lock` instead of a second, independently
+# pinned copy. Upstream `pre-commit` can run this configuration too, but it will
+# not have `prek`'s native hook implementations.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # `docs/img` holds Inkscape exports, which keep re-adding the whitespace.
+      - id: trailing-whitespace
+        exclude: ^docs/img/
+      - id: end-of-file-fixer
+        exclude: ^docs/img/
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --force-exclude
+        language: system
+        # `jupyter` is needed for `util/dma_experiments_result_analysis.ipynb`,
+        # which `ruff` lints as well.
+        types_or: [python, pyi, jupyter]
+        require_serial: true
+      - id: ty
+        name: ty check
+        entry: uv run --all-extras ty check
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false
+      - id: pytest
+        name: pytest
+        entry: uv run -m pytest -q
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false
+        stages: [pre-push]
+      - id: reuse-lint-file
+        name: reuse lint-file
+        entry: uv run reuse lint-file
+        language: system
+        require_serial: true
+      # Waivers live in `_typos.toml`.
+      - id: typos
+        name: typos
+        entry: uv run typos --force-exclude
+        language: system
+        types: [text]

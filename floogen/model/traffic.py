@@ -8,7 +8,7 @@
 
 - traffic configuration files describing traffic streams between
   endpoints identified by their XY coordinates (see `gen_traffic_cfg`);
-- built-in traffic patterns (see `gen_traffic_builtin`), requiring no 
+- built-in traffic patterns (see `gen_traffic_builtin`), requiring no
   dedicated traffic configuration file.
 """
 
@@ -248,9 +248,9 @@ def _emit_jobs(jobs: str, outdir: Path, filename: str, idx: int):
     (outdir / f"{filename}_{idx}.txt").write_text(jobs, encoding="utf-8")
 
 
-def gen_traffic_cfg(  # pylint: disable=too-many-arguments, too-many-positional-arguments
-    cfg: Path, network: Network, 
-    filename: str, outdir: Path, 
+def gen_traffic_cfg(
+    cfg: Path, network: Network,
+    filename: str, outdir: Path,
     verbose: bool = False,
 ):
     """Create a traffic model from a traffic configuration file, then generate DMA jobs for all traffic streams and for the given network."""
@@ -294,15 +294,15 @@ def gen_traffic_cfg(  # pylint: disable=too-many-arguments, too-many-positional-
         _log(verbose, f"Emitted narrow job with index {idx + 100} (x: {x}, y: {y})")
 
 
-def gen_traffic_builtin(  # pylint: disable=too-many-arguments, too-many-positional-arguments
+def gen_traffic_builtin(
     traffic_type: str, network: Network,
     filename: str, outdir: Path,
     num_narrow_bursts: int, narrow_burst_length: int,
-    num_wide_bursts: int, wide_burst_length: int, 
-    traffic_rw: str, verbose: bool = False, 
+    num_wide_bursts: int, wide_burst_length: int,
+    traffic_rw: str, verbose: bool = False,
 ):
     """Generate DMA job files for a built-in traffic pattern. Unlike `gen_traffic_cfg`, this does not require a dedicated traffic configuration file."""
-    # pylint: disable=too-many-locals, too-many-branches, too-many-statements
+
     if traffic_type not in MESH_TRAFFIC_TYPES:
         raise ValueError(f"Unknown traffic type: '{traffic_type}'. "
                           f"Supported types: {', '.join(MESH_TRAFFIC_TYPES)}")
