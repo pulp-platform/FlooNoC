@@ -60,6 +60,10 @@ repos:
         name: reuse lint-file
         entry: uv run reuse lint-file
         language: system
+        # `reuse` needs ~0.5s to start up and parallelizes internally, so one
+        # process for all files is much faster than the default batching into
+        # one process per core (4.9s -> 1.1s over the whole repository).
+        require_serial: true
       # Waivers live in `_typos.toml`. Deliberately without `--write-changes`:
       # `typos` also rewrites identifiers, where its guesses can be wrong (e.g.
       # `inport` -> `import`), so corrections are left to the author.
