@@ -46,6 +46,7 @@ dev = [
     "mkdocstrings-python>=2.0.1",
     "zensical",
     "reuse[charset-normalizer]>=6.2.0",
+    "prek>=0.4.11",
 ]
 
 [build-system]

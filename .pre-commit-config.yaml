@@ -5,15 +5,19 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 # Hooks are managed with `prek` (https://prek.j178.dev), a drop-in replacement
-# for `pre-commit`. Either tool can run this configuration:
+# for `pre-commit`. `prek` is part of the `dev` dependency group, so no separate
+# installation is needed:
 #
-#   prek install --allow-missing-config --hook-type pre-commit --hook-type pre-push
+#   uv run prek install --allow-missing-config --hook-type pre-commit --hook-type pre-push
 #
 # `--allow-missing-config` keeps commits working on branches that predate this
 # file, e.g. when checking out an older pull request.
 #
-# `ruff`, `ty` and `pytest` run as local hooks through `uv` so that their
-# versions come from `uv.lock` instead of a second, independently pinned copy.
+# The same hooks run on every pull request, see `.github/workflows/lint.yml`.
+# `ruff`, `ty`, `reuse` and `pytest` run as local hooks through `uv` so that
+# their versions come from `uv.lock` instead of a second, independently pinned
+# copy. Upstream `pre-commit` can run this configuration too, but it will not
+# have `prek`'s native hook implementations.
 #
 # A spell-check hook is deliberately not enabled yet; it needs the `_typos.toml`
 # waiver file to avoid rewriting hardware terms such as `inport`. Once that has
@@ -40,11 +44,6 @@ repos:
       - id: mixed-line-ending
         args: [--fix=lf]
 
-  - repo: https://github.com/fsfe/reuse-tool
-    rev: v6.2.0
-    hooks:
-      - id: reuse-lint-file
-
   - repo: local
     hooks:
       - id: ruff-check
@@ -66,3 +65,7 @@ repos:
         types_or: [python, pyi]
         pass_filenames: false
         stages: [pre-push]
+      - id: reuse-lint-file
+        name: reuse lint-file
+        entry: uv run reuse lint-file
+        language: system
