@@ -45,6 +45,14 @@ repos:
         # which `ruff` lints as well.
         types_or: [python, pyi, jupyter]
         require_serial: true
+      # Runs after `ruff check`, since lint fixes can change code structure that
+      # the formatter then cleans up.
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format --force-exclude
+        language: system
+        types_or: [python, pyi, jupyter]
+        require_serial: true
       - id: ty
         name: ty check
         entry: uv run --all-extras ty check
