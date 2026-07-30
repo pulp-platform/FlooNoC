@@ -14,19 +14,10 @@
 # file, e.g. when checking out an older pull request.
 #
 # The same hooks run on every pull request, see `.github/workflows/lint.yml`.
-# `ruff`, `ty`, `reuse` and `pytest` run as local hooks through `uv` so that
-# their versions come from `uv.lock` instead of a second, independently pinned
-# copy. Upstream `pre-commit` can run this configuration too, but it will not
-# have `prek`'s native hook implementations.
-#
-# A spell-check hook is deliberately not enabled yet; it needs the `_typos.toml`
-# waiver file to avoid rewriting hardware terms such as `inport`. Once that has
-# landed on `main`, add:
-#
-#   - repo: https://github.com/crate-ci/typos
-#     rev: v1.48.0
-#     hooks:
-#       - id: typos
+# `ruff`, `ty`, `reuse`, `typos` and `pytest` run as local hooks through `uv` so
+# that their versions come from `uv.lock` instead of a second, independently
+# pinned copy. Upstream `pre-commit` can run this configuration too, but it will
+# not have `prek`'s native hook implementations.
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -69,3 +60,13 @@ repos:
         name: reuse lint-file
         entry: uv run reuse lint-file
         language: system
+      # Waivers live in `_typos.toml`. Deliberately without `--write-changes`:
+      # `typos` also rewrites identifiers, where its guesses can be wrong (e.g.
+      # `inport` -> `import`), so corrections are left to the author.
+      # `types: [text]` keeps it away from the images, which it would otherwise
+      # scan for typos once filenames are passed explicitly.
+      - id: typos
+        name: typos
+        entry: uv run typos --force-exclude
+        language: system
+        types: [text]
