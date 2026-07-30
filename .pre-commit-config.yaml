@@ -41,7 +41,9 @@ repos:
         name: ruff check
         entry: uv run ruff check --force-exclude
         language: system
-        types_or: [python, pyi]
+        # `jupyter` is needed for `util/dma_experiments_result_analysis.ipynb`,
+        # which `ruff` lints as well.
+        types_or: [python, pyi, jupyter]
         require_serial: true
       - id: ty
         name: ty check

@@ -21,6 +21,18 @@ updates:
       python-deps:
         patterns: ["*"]
 
+  # Hook repositories pinned by `rev` in .pre-commit-config.yaml. The hooks that
+  # run through `uv` are covered by the `uv` ecosystem above instead.
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    groups:
+      pre-commit-hooks:
+        patterns: ["*"]
+
   # GitHub Actions used in .github/workflows
   - package-ecosystem: "github-actions"
     directory: "/"
