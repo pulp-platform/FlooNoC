@@ -1,0 +1,68 @@
+# Copyright 2026 ETH Zurich and University of Bologna.
+# Solderpad Hardware License, Version 0.51, see LICENSE for details.
+# SPDX-License-Identifier: SHL-0.51
+
+# Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
+
+# Hooks are managed with `prek` (https://prek.j178.dev), a drop-in replacement
+# for `pre-commit`. Either tool can run this configuration:
+#
+#   prek install --allow-missing-config --hook-type pre-commit --hook-type pre-push
+#
+# `--allow-missing-config` keeps commits working on branches that predate this
+# file, e.g. when checking out an older pull request.
+#
+# `ruff`, `ty` and `pytest` run as local hooks through `uv` so that their
+# versions come from `uv.lock` instead of a second, independently pinned copy.
+#
+# A spell-check hook is deliberately not enabled yet; it needs the `_typos.toml`
+# waiver file to avoid rewriting hardware terms such as `inport`. Once that has
+# landed on `main`, add:
+#
+#   - repo: https://github.com/crate-ci/typos
+#     rev: v1.48.0
+#     hooks:
+#       - id: typos
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # `docs/img` holds Inkscape exports, which keep re-adding the whitespace.
+      - id: trailing-whitespace
+        exclude: ^docs/img/
+      - id: end-of-file-fixer
+        exclude: ^docs/img/
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  - repo: https://github.com/fsfe/reuse-tool
+    rev: v6.2.0
+    hooks:
+      - id: reuse-lint-file
+
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      - id: ty
+        name: ty check
+        entry: uv run --all-extras ty check
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false
+      - id: pytest
+        name: pytest
+        entry: uv run -m pytest -q
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false
+        stages: [pre-push]
