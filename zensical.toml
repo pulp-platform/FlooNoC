@@ -71,7 +71,7 @@ nav = [
     {"Integration" = [
         "integration/integration.md"
     ]},
-    {"Contributing" = "contributing.md"},
+    {"Contributing" = "CONTRIBUTING.md"},
     {"Changelog" = "CHANGELOG.md"}
 ]
 
