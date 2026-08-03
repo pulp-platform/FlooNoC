@@ -105,15 +105,15 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
       valid_o[vc_arb_idx] = vc_arb_req_out;
     end
 
-    rr_arb_tree #(
+    cc_rr_arb_tree #(
       .NumIn      ( NumVirtChannels ),
-      .DataType   ( flit_t          ),
+      .data_t   ( flit_t          ),
       .AxiVldRdy  ( 1'b0            ), // fischeti: Don't think that applies
       .LockIn     ( 1'b0            )
     ) i_rr_vc_arbiter (
       .clk_i    ( clk_i             ),
       .rst_ni   ( rst_ni            ),
-      .flush_i  ( 1'b0              ),
+      .clr_i    ( 1'b0              ),
       .rr_i     ( '0                ),
       .req_i    ( vc_arb_req_in     ),
       .gnt_o    ( ready_o           ),
@@ -126,7 +126,7 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
 
   if (VcImpl == VcCredit) begin: gen_credit
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_vc_credits
-      credit_counter #(
+      cc_credit_counter #(
         .NumCredits(NumCredits)
       ) i_vc_credit_counter (
         .clk_i            ( clk_i                     ),

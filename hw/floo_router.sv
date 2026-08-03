@@ -61,7 +61,7 @@ module floo_router
   /// Only used for `XYRouting`, tie to '0 otherwise
   input  id_t                                        xy_id_i,
   /// Only used for `IdTable` routing, tie to '0 otherwise
-  input  addr_rule_t [floo_iomsb(NumAddrRules):0]              id_route_map_i,
+  input  addr_rule_t [cc_pkg::iomsb(NumAddrRules):0]           id_route_map_i,
   /// Input channels
   input  logic  [NumInput-1:0][NumVirtChannels-1:0]  valid_i,
   output logic  [NumInput-1:0][NumVirtChannels-1:0]  ready_o,
@@ -116,7 +116,7 @@ module floo_router
   for (genvar in = 0; in < NumInput; in++) begin : gen_input
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_input
 
-      logic [cf_math_pkg::idx_width(NumPhysChannels)-1:0] in_p;
+      logic [cc_pkg::idx_width(NumPhysChannels)-1:0] in_p;
       if (NumPhysChannels == 1) begin : gen_single_phys
         assign in_p = '0;
       end else if (NumPhysChannels == NumVirtChannels) begin : gen_virt_eq_phys
@@ -126,13 +126,13 @@ module floo_router
       end
 
       (* ungroup *)
-      stream_fifo_optimal_wrap #(
+      cc_stream_fifo_optimal_wrap #(
         .Depth  ( InFifoDepth ),
-        .type_t ( flit_t      )
+        .data_t ( flit_t      )
       ) i_stream_fifo (
         .clk_i      ( clk_i         ),
         .rst_ni     ( rst_ni        ),
-        .testmode_i ( test_enable_i ),
+        .clr_i      ( 1'b0  ),
         .flush_i    ( 1'b0  ),
         .usage_o    (       ),
         .data_i     ( data_i  [in][in_p] ),
@@ -192,7 +192,7 @@ module floo_router
 
   // Vars to separate reductions with only one member
   logic [NumInput-1:0][NumVirtChannels-1:0][NumInput-1:0] red_expected_in_route;
-  logic [NumInput-1:0][NumVirtChannels-1:0][$clog2(NumInput):0] red_how_many_participants;
+  logic [NumInput-1:0][NumVirtChannels-1:0][$clog2(NumInput+1)-1:0] red_how_many_participants;
   logic [NumInput-1:0][NumVirtChannels-1:0] red_single_member, offload_reduction;
 
   // If we support offload reduction and a reduction is detected then we split the signal and forward it to the reduction
@@ -214,9 +214,10 @@ module floo_router
         );
 
         // onehot decoding of the input direction
-        // bypass the reduction if only on  e input member is selected (if none is selected then bypass too [should never occur but to avoid deadlocks])
-        popcount #(
-          .INPUT_WIDTH (NumInput)
+        // bypass the reduction if only one input member is selected
+        // (if none is selected then bypass too [should never occurred but to avoid deadlocks])
+        cc_popcount #(
+          .InputWidth  (NumInput)
         ) i_red_list_counter (
           .data_i       (red_expected_in_route[in][v]),
           .popcount_o   (red_how_many_participants[in][v])
@@ -228,8 +229,8 @@ module floo_router
         // Output 1: reduction
         assign offload_reduction[in][v] = (~red_single_member[in][v]) &
                             (is_seq_reduction_op(in_routed_data[in][v].hdr.collective_op));
-        stream_demux #(
-          .N_OUP              (2)
+        cc_stream_demux #(
+          .NumOup             (2)
         ) i_stream_demux (
           .inp_valid_i        (in_valid[in][v]),
           .inp_ready_o        (in_ready[in][v]),
@@ -447,13 +448,13 @@ module floo_router
 
       if (OutFifoDepth > 0) begin : gen_out_fifo
         (* ungroup *)
-        stream_fifo_optimal_wrap #(
+        cc_stream_fifo_optimal_wrap #(
           .Depth  ( OutFifoDepth  ),
-          .type_t ( flit_t        )
+          .data_t ( flit_t        )
         ) i_stream_fifo (
           .clk_i      ( clk_i         ),
           .rst_ni     ( rst_ni        ),
-          .testmode_i ( test_enable_i ),
+          .clr_i      ( 1'b0          ),
           .flush_i    ( 1'b0          ),
           .usage_o    (               ),
           .data_i     ( out_data          [out][v] ),

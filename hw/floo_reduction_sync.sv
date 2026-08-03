@@ -44,8 +44,8 @@ module floo_reduction_sync import floo_pkg::*;
 
   end
 
-  stream_join_dynamic #(
-    .N_INP ( NumRoutes )
+  cc_stream_join_dynamic #(
+    .NumInp ( NumRoutes )
   ) i_stream_join_dynamic (
     .inp_valid_i   ( filtered_valid_in      ),
     .inp_ready_o   ( ready_o             ),

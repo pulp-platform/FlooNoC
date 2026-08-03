@@ -335,7 +335,6 @@ module floo_nw_join #(
   ) i_axi_mux (
     .clk_i,
     .rst_ni,
-    .test_i      ( test_enable_i ),
     .slv_reqs_i  ( {axi_narrow_req_uw_conv, axi_wide_req_uw_conv} ),
     .slv_resps_o ( {axi_narrow_rsp_uw_conv, axi_wide_rsp_uw_conv} ),
     .mst_req_o   ( axi_out_req ),

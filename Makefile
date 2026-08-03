@@ -34,6 +34,7 @@ BENDER_FLAGS += -t test
 BENDER_FLAGS += -t floo_test
 BENDER_FLAGS += -t snitch_cluster
 BENDER_FLAGS += -t idma_test
+BENDER_FLAGS += -t cc_no_deprecated
 
 WORK 	 		?= work
 TB_DUT 			?= tb_floo_router
@@ -179,15 +180,18 @@ clean-spyglass:
 ###################
 
 PD_REMOTE ?= git@iis-git.ee.ethz.ch:axi-noc/floo_noc_pd.git
-PD_BRANCH ?= af870b4530a67d906fc48f341937821285ccb151
+PD_BRANCH ?= b234a3de3b5f8be0ad7b2a6880792c3b6a63039c
 PD_DIR = $(FLOO_ROOT)/pd
 
-.PHONY: init-pd
+.PHONY: init-pd update-pd-commit
 
 init-pd:
 	rm -rf $(PD_DIR)
 	git clone $(PD_REMOTE) $(PD_DIR)
 	cd $(PD_DIR) && git checkout $(PD_BRANCH)
+
+update-pd-commit:
+	sed -i 's/^PD_BRANCH ?= .*/PD_BRANCH ?= $(shell git -C $(PD_DIR) rev-parse HEAD)/' $(firstword $(MAKEFILE_LIST))
 
 -include $(PD_DIR)/pd.mk
 

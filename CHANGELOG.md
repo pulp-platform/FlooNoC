@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+#### Hardware
+- Bump and adapt RTL to latest `common_cells v2.0.0-beta.3` and bump related IPs: `axi`, `axi_riscv_atomics`, `idma` and `FPnew`
+
 ## [0.8.4] - 2026-06-30
 
 ### Added
