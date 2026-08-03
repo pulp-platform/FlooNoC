@@ -18,7 +18,7 @@ module floo_nw_router
   parameter axi_cfg_t AxiCfgN                       = '0,
   /// Config of the wide AXI interfaces (see axi_cfg_t for details)
   parameter axi_cfg_t AxiCfgW                       = '0,
-  /// Legacy routing algorithm parameter for both Req and Rsp channels
+  /// Global routing algorithm
   parameter route_algo_e RouteAlgo                  = XYRouting,
   /// Routing algorithm for the narrow/wide request channel.
   parameter route_algo_e ReqRouteAlgo                = RouteAlgo,
@@ -250,10 +250,9 @@ module floo_nw_router
   );
 
 
-  // Wide write and wide read either share a single crossbar (virtual-channel
-  // or undecoupled case, where they must use the same routing algorithm), or
-  // they are physically decoupled onto two independent crossbars, each free
-  // to pick its own routing algorithm.
+  // Split reda and write channels for wide router to support mixed XY/YX routing.
+  // When Vitual Channels are used, a single router instance is used
+  // and therefore the routing algorithm must be the same for both read and write streams.
   if (WideRwDecouple != Phys) begin: gen_single_wide_router
     floo_router #(
       .NumRoutes            ( NumRoutes                 ),
@@ -398,7 +397,7 @@ module floo_nw_router
     );
   end
 
-  // Req and rsp algr can be different only when no VCs ae enabled in teh wide router
+  // Req and rsp algorithms can be different only when no VCs are enabled in the wide router
   `ASSERT_INIT(NwRouteAlgoMismatch, (WideRwDecouple == Phys) ||
       (ReqRouteAlgo == RspRouteAlgo))
 
