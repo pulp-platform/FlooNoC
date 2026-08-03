@@ -954,13 +954,11 @@ class Routing(BaseModel):
 
     @model_validator(mode="after")
     def validate_mirrored_route_algo(self):
-        """`XY_MIRRORED`/`YX_MIRRORED` supported ony when wide channel is physically decoupled."""
+        """`XY_MIRRORED`/`YX_MIRRORED` require a physically decoupled wide channel."""
         if self.route_algo in (RouteAlgo.XY_MIRRORED, RouteAlgo.YX_MIRRORED) and (
             self.decouple_rw != WideRwDecouple.PHYS
         ):
-            raise ValueError(
-                f"`route_algo: {self.route_algo}` requires `decouple_rw: Phys` "
-            )
+            raise ValueError(f"`route_algo: {self.route_algo}` requires `decouple_rw: Phys` ")
         return self
 
     @field_validator("decouple_rw", mode="before")
@@ -998,6 +996,8 @@ class Routing(BaseModel):
         string += sv_param_decl("UseIdTable", bool_to_sv(self.use_id_table), dtype="bit")
         match self.route_algo:
             case _ if self.route_algo.is_dor_algo:
+                if self.num_x_bits is None or self.num_y_bits is None:
+                    raise ValueError(_NOT_GENERATED)
                 string += sv_param_decl("NumXBits", self.num_x_bits)
                 string += sv_param_decl("NumYBits", self.num_y_bits)
             case RouteAlgo.ID:
@@ -1008,6 +1008,8 @@ class Routing(BaseModel):
                 pass
 
         if self.route_algo.is_dor_algo:
+            if self.addr_offset_bits is None or self.num_x_bits is None:
+                raise ValueError(_NOT_GENERATED)
             string += sv_param_decl("XYAddrOffsetX", self.addr_offset_bits)
             string += sv_param_decl("XYAddrOffsetY", self.addr_offset_bits + self.num_x_bits)
         else:
@@ -1066,7 +1068,7 @@ class Routing(BaseModel):
     def render_route_cfg(self, name) -> str:
         """Render the SystemVerilog routing configuration."""
         xy_addr_offset_x, xy_addr_offset_y, id_addr_offset = 0, 0, 0
-        if self.route_algo in (RouteAlgo.XY, RouteAlgo.YX):
+        if self.route_algo.is_dor_algo:
             if self.addr_offset_bits is None or self.num_x_bits is None:
                 raise ValueError(_NOT_GENERATED)
             xy_addr_offset_x = self.addr_offset_bits
@@ -1081,11 +1083,9 @@ class Routing(BaseModel):
         fields = {
             "RouteAlgo": self.route_algo.value,
             "UseIdTable": bool_to_sv(self.use_id_table),
-            "XYAddrOffsetX": self.addr_offset_bits if self.route_algo.is_dor_algo else 0,
-            "XYAddrOffsetY": self.addr_offset_bits + self.num_x_bits if
-                                self.route_algo.is_dor_algo else 0,
-            "IdAddrOffset": self.addr_offset_bits if
-                                self.route_algo == RouteAlgo.ID and not self.use_id_table else 0,
+            "XYAddrOffsetX": xy_addr_offset_x,
+            "XYAddrOffsetY": xy_addr_offset_y,
+            "IdAddrOffset": id_addr_offset,
             "NumSamRules": len(self.sam),
             "NumRoutes": self.num_endpoints if self.route_algo == RouteAlgo.SRC else 0,
             "CollectiveCfg": self.collective.get_collective_cfg,

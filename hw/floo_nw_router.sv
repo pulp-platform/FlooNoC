@@ -273,8 +273,8 @@ module floo_nw_router
   );
 
 
-  // Split reda and write channels for wide router to support mixed XY/YX routing.
-  // When Vitual Channels are used, a single router instance is used
+  // Split read and write channels for wide router to support mixed XY/YX routing.
+  // When Virtual Channels are used, a single router instance is used
   // and therefore the routing algorithm must be the same for both read and write streams.
   if (WideRwDecouple != Phys) begin: gen_single_wide_router
     floo_router #(
