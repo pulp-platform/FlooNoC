@@ -8,6 +8,7 @@
 `include "axi/typedef.svh"
 `include "floo_noc/typedef.svh"
 `include "common_cells/registers.svh"
+`include "common_cells/assertions.svh"
 
 /// Wrapper of a multi-link router for narrow and wide links
 module floo_nw_router
@@ -17,7 +18,11 @@ module floo_nw_router
   parameter axi_cfg_t AxiCfgN                       = '0,
   /// Config of the wide AXI interfaces (see axi_cfg_t for details)
   parameter axi_cfg_t AxiCfgW                       = '0,
-  /// Routing algorithm
+  /// Routing algorithm. `XYRoutingMirrored`/`YXRoutingMirrored` select
+  /// different algorithms for the request and response paths (also reused
+  /// for the wide-write/wide-read crossbars respectively); they are only
+  /// legal when `WideRwDecouple == Phys`, since otherwise there is only a
+  /// single, shared wide crossbar that can use just one algorithm.
   parameter route_algo_e RouteAlgo                  = XYRouting,
   /// Number of input/output ports
   parameter int unsigned NumRoutes                  = 0,
@@ -89,6 +94,9 @@ module floo_nw_router
 
   localparam int unsigned NumWidePhysChannels = (WideRwDecouple == Phys) ? 2 : 1;
   localparam int unsigned NumWideVirtChannels = (WideRwDecouple == None) ? 1 : 2;
+
+  localparam route_algo_e ReqRouteAlgo = route_algo_req(RouteAlgo);
+  localparam route_algo_e RspRouteAlgo = route_algo_rsp(RouteAlgo);
 
   typedef logic [AxiCfgN.AddrWidth-1:0] axi_addr_t;
   typedef logic [AxiCfgN.InIdWidth-1:0] axi_narrow_in_id_t;
@@ -176,7 +184,7 @@ module floo_nw_router
     .NumVirtChannels      ( 1                         ),
     .InFifoDepth          ( InFifoDepth               ),
     .OutFifoDepth         ( OutFifoDepth              ),
-    .RouteAlgo            ( RouteAlgo                 ),
+    .RouteAlgo            ( ReqRouteAlgo              ),
     .XYRouteOpt           ( XYRouteOpt                ),
     .NumAddrRules         ( NumAddrRules              ),
     .NoLoopback           ( NoLoopback                ),
@@ -215,7 +223,7 @@ module floo_nw_router
     .NumVirtChannels      ( 1                       ),
     .InFifoDepth          ( InFifoDepth             ),
     .OutFifoDepth         ( OutFifoDepth            ),
-    .RouteAlgo            ( RouteAlgo               ),
+    .RouteAlgo            ( RspRouteAlgo            ),
     .XYRouteOpt           ( XYRouteOpt              ),
     .NumAddrRules         ( NumAddrRules            ),
     .NoLoopback           ( NoLoopback              ),
@@ -245,43 +253,155 @@ module floo_nw_router
   );
 
 
-  floo_router #(
-    .NumRoutes            ( NumRoutes                 ),
-    .NumPhysChannels      ( NumWidePhysChannels       ),
-    .NumVirtChannels      ( NumWideVirtChannels       ),
-    .InFifoDepth          ( InFifoDepth               ),
-    .OutFifoDepth         ( OutFifoDepth              ),
-    .RouteAlgo            ( RouteAlgo                 ),
-    .XYRouteOpt           ( XYRouteOpt                ),
-    .NumAddrRules         ( NumAddrRules              ),
-    .NoLoopback           ( NoLoopback                ),
-    .VcImpl               ( VcImpl                    ),
-    .CollectiveCfg        ( CollectiveWideCfg         ),
-    .RedCfg               ( CollectiveCfg.WideRedCfg  ),
-    .AxiCfgOffload        ( AxiCfgW                   ),
-    .AxiCfgParallel       ( '0                        ),
-    .id_t                 ( id_t                      ),
-    .addr_rule_t          ( addr_rule_t               ),
-    .flit_t               ( floo_wide_generic_flit_t  ),
-    .hdr_t                ( hdr_t                     ),
-    .red_req_t            ( red_wide_req_t          ),
-    .red_rsp_t            ( red_wide_rsp_t          )
-  ) i_wide_req_floo_router (
-    .clk_i,
-    .rst_ni,
-    .test_enable_i,
-    .xy_id_i                  ( id_i                          ),
-    .id_route_map_i,
-    .valid_i        ( wide_valid_in   ),
-    .ready_o        ( wide_ready_out  ),
-    .data_i         ( wide_in         ),
-    .credit_i       ( wide_credit_in  ),
-    .valid_o        ( wide_valid_out  ),
-    .ready_i        ( wide_ready_in   ),
-    .data_o         ( wide_out        ),
-    .credit_o       ( wide_credit_out ),
-    .offload_req_o  ( offload_wide_req_o ),
-    .offload_rsp_i  ( offload_wide_rsp_i )
-  );
+  // Split read and write channels for wide router to support mixed XY/YX routing.
+  // When Virtual Channels are used, a single router instance is used
+  // and therefore the routing algorithm must be the same for both read and write streams.
+  if (WideRwDecouple != Phys) begin: gen_single_wide_router
+    floo_router #(
+      .NumRoutes            ( NumRoutes                 ),
+      .NumPhysChannels      ( NumWidePhysChannels       ),
+      .NumVirtChannels      ( NumWideVirtChannels       ),
+      .InFifoDepth          ( InFifoDepth               ),
+      .OutFifoDepth         ( OutFifoDepth              ),
+      .RouteAlgo            ( ReqRouteAlgo              ),
+      .XYRouteOpt           ( XYRouteOpt                ),
+      .NumAddrRules         ( NumAddrRules              ),
+      .NoLoopback           ( NoLoopback                ),
+      .VcImpl               ( VcImpl                    ),
+      .CollectiveCfg        ( CollectiveWideCfg         ),
+      .RedCfg               ( CollectiveCfg.WideRedCfg  ),
+      .AxiCfgOffload        ( AxiCfgW                   ),
+      .AxiCfgParallel       ( '0                        ),
+      .id_t                 ( id_t                      ),
+      .addr_rule_t          ( addr_rule_t               ),
+      .flit_t               ( floo_wide_generic_flit_t  ),
+      .hdr_t                ( hdr_t                     ),
+      .red_req_t            ( red_wide_req_t          ),
+      .red_rsp_t            ( red_wide_rsp_t          )
+    ) i_wide_req_floo_router (
+      .clk_i,
+      .rst_ni,
+      .test_enable_i,
+      .xy_id_i        ( id_i            ),
+      .id_route_map_i,
+      .valid_i        ( wide_valid_in   ),
+      .ready_o        ( wide_ready_out  ),
+      .data_i         ( wide_in         ),
+      .credit_i       ( wide_credit_in  ),
+      .valid_o        ( wide_valid_out  ),
+      .ready_i        ( wide_ready_in   ),
+      .data_o         ( wide_out        ),
+      .credit_o       ( wide_credit_out ),
+      .offload_req_o  ( offload_wide_req_o ),
+      .offload_rsp_i  ( offload_wide_rsp_i )
+    );
+  end else begin: gen_decouple_wide_router
+    logic [NumRoutes-1:0] wide_wr_valid_in, wide_wr_ready_out, wide_wr_credit_out;
+    logic [NumRoutes-1:0] wide_wr_valid_out, wide_wr_ready_in, wide_wr_credit_in;
+    floo_wide_chan_t [NumRoutes-1:0] wide_wr_data_in, wide_wr_data_out;
+
+    logic [NumRoutes-1:0] wide_rd_valid_in, wide_rd_ready_out, wide_rd_credit_out;
+    logic [NumRoutes-1:0] wide_rd_valid_out, wide_rd_ready_in, wide_rd_credit_in;
+    floo_wide_chan_t [NumRoutes-1:0] wide_rd_data_in, wide_rd_data_out;
+
+    for (genvar i = 0; i < NumRoutes; i++) begin : gen_wide_split_io
+      assign wide_wr_valid_in[i]       = wide_valid_in[i][Write];
+      assign wide_wr_data_in[i]        = wide_in[i][Write];
+      assign wide_wr_credit_in[i]      = wide_credit_in[i][Write];
+      assign wide_valid_out[i][Write]  = wide_wr_valid_out[i];
+      assign wide_out[i][Write]        = wide_wr_data_out[i];
+      assign wide_credit_out[i][Write] = wide_wr_credit_out[i];
+      assign wide_wr_ready_in[i]       = wide_ready_in[i][Write];
+      assign wide_ready_out[i][Write]  = wide_wr_ready_out[i];
+
+      assign wide_rd_valid_in[i]       = wide_valid_in[i][Read];
+      assign wide_rd_data_in[i]        = wide_in[i][Read];
+      assign wide_rd_credit_in[i]      = wide_credit_in[i][Read];
+      assign wide_valid_out[i][Read]   = wide_rd_valid_out[i];
+      assign wide_out[i][Read]         = wide_rd_data_out[i];
+      assign wide_credit_out[i][Read]  = wide_rd_credit_out[i];
+      assign wide_rd_ready_in[i]       = wide_ready_in[i][Read];
+      assign wide_ready_out[i][Read]   = wide_rd_ready_out[i];
+    end
+
+    floo_router #(
+      .NumRoutes            ( NumRoutes                 ),
+      .NumPhysChannels      ( 1                         ),
+      .NumVirtChannels      ( 1                         ),
+      .InFifoDepth          ( InFifoDepth               ),
+      .OutFifoDepth         ( OutFifoDepth              ),
+      .RouteAlgo            ( ReqRouteAlgo              ),
+      .XYRouteOpt           ( XYRouteOpt                ),
+      .NumAddrRules         ( NumAddrRules              ),
+      .NoLoopback           ( NoLoopback                ),
+      .VcImpl               ( VcImpl                    ),
+      .CollectiveCfg        ( CollectiveWideCfg         ),
+      .RedCfg               ( CollectiveCfg.WideRedCfg  ),
+      .AxiCfgOffload        ( AxiCfgW                   ),
+      .AxiCfgParallel       ( '0                        ),
+      .id_t                 ( id_t                      ),
+      .addr_rule_t          ( addr_rule_t               ),
+      .flit_t               ( floo_wide_generic_flit_t  ),
+      .hdr_t                ( hdr_t                     ),
+      .red_req_t            ( red_wide_req_t          ),
+      .red_rsp_t            ( red_wide_rsp_t          )
+    ) i_wide_req_floo_router (
+      .clk_i,
+      .rst_ni,
+      .test_enable_i,
+      .xy_id_i        ( id_i               ),
+      .id_route_map_i,
+      .valid_i        ( wide_wr_valid_in   ),
+      .ready_o        ( wide_wr_ready_out  ),
+      .data_i         ( wide_wr_data_in    ),
+      .credit_i       ( wide_wr_credit_in  ),
+      .valid_o        ( wide_wr_valid_out  ),
+      .ready_i        ( wide_wr_ready_in   ),
+      .data_o         ( wide_wr_data_out   ),
+      .credit_o       ( wide_wr_credit_out ),
+      .offload_req_o  ( offload_wide_req_o ),
+      .offload_rsp_i  ( offload_wide_rsp_i )
+    );
+
+    floo_router #(
+      .NumRoutes            ( NumRoutes                 ),
+      .NumPhysChannels      ( 1                         ),
+      .NumVirtChannels      ( 1                         ),
+      .InFifoDepth          ( InFifoDepth               ),
+      .OutFifoDepth         ( OutFifoDepth              ),
+      .RouteAlgo            ( RspRouteAlgo              ),
+      .XYRouteOpt           ( XYRouteOpt                ),
+      .NumAddrRules         ( NumAddrRules              ),
+      .NoLoopback           ( NoLoopback                ),
+      .VcImpl               ( VcImpl                    ),
+      .CollectiveCfg        ( '0                        ),
+      .AxiCfgOffload        ( '0                        ),
+      .AxiCfgParallel       ( '0                        ),
+      .id_t                 ( id_t                      ),
+      .addr_rule_t          ( addr_rule_t               ),
+      .flit_t               ( floo_wide_generic_flit_t  ),
+      .hdr_t                ( hdr_t                     )
+    ) i_wide_rsp_floo_router (
+      .clk_i,
+      .rst_ni,
+      .test_enable_i,
+      .xy_id_i                  ( id_i                          ),
+      .id_route_map_i,
+      .valid_i        ( wide_rd_valid_in   ),
+      .ready_o        ( wide_rd_ready_out  ),
+      .data_i         ( wide_rd_data_in    ),
+      .credit_i       ( wide_rd_credit_in  ),
+      .valid_o        ( wide_rd_valid_out  ),
+      .ready_i        ( wide_rd_ready_in   ),
+      .data_o         ( wide_rd_data_out   ),
+      .credit_o       ( wide_rd_credit_out ),
+      .offload_req_o  (                    ), // Reduction not supported on wide rsp channels
+      .offload_rsp_i  ( '0                 )
+    );
+  end
+
+  // Req and rsp algorithms can be different only when no VCs are enabled in the wide router
+  `ASSERT_INIT(NwRouteAlgoMismatch, (WideRwDecouple == Phys) ||
+      (ReqRouteAlgo == RspRouteAlgo))
 
 endmodule

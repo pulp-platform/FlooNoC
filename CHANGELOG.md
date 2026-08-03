@@ -9,7 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 ### Changed
 
 #### Hardware
+- Add `XYRoutingMirrored` and `YXRoutingMirrored` algorithms to support mixed `req/rsp` algorithms.
+
 - Bump and adapt RTL to latest `common_cells v2.0.0-beta.3` and bump related IPs: `axi`, `axi_riscv_atomics`, `idma` and `FPnew`
+
+#### FlooGen
+- Add mixed `req/rsp` algorithm support.
 
 ## [0.8.4] - 2026-06-30
 

@@ -1053,8 +1053,7 @@ module floo_nw_chimney
           (en_wide_collective(CollectOpCfg) && Ch == WideAw)) begin : gen_req_id_mask
         // Evaluate the ID Mask according to the info read from the SAM through the flooo_id_translation module
         if (RouteCfg.UseIdTable &&
-            (RouteCfg.RouteAlgo == floo_pkg::XYRouting ||
-             RouteCfg.RouteAlgo == floo_pkg::YXRouting)) begin: gen_collecttive_idtable
+            floo_pkg::is_dor_algo(RouteCfg.RouteAlgo)) begin: gen_collecttive_idtable
           assign x_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel[ch].len))
                                     << x_mask_sel[ch].offset);
           assign y_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel[ch].len))
@@ -1062,8 +1061,7 @@ module floo_nw_chimney
           assign mask_id[ch].x = (axi_req_user[ch] & x_addr_mask[ch]) >> x_mask_sel[ch].offset;
           assign mask_id[ch].y = (axi_req_user[ch] & y_addr_mask[ch]) >> y_mask_sel[ch].offset;
           assign mask_id[ch].port_id = '0;
-        end else if (RouteCfg.RouteAlgo == floo_pkg::XYRouting ||
-                     RouteCfg.RouteAlgo == floo_pkg::YXRouting) begin: gen_collective_noidtable
+        end else if (floo_pkg::is_dor_algo(RouteCfg.RouteAlgo)) begin: gen_collective_noidtable
           assign mask_id[ch].x = axi_req_user[ch][RouteCfg.XYAddrOffsetX +: $bits(id_out[ch].x)];
           assign mask_id[ch].y = axi_req_user[ch][RouteCfg.XYAddrOffsetY +: $bits(id_out[ch].y)];
           assign mask_id[ch].port_id = '0;

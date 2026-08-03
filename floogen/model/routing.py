@@ -32,15 +32,26 @@ class RouteAlgo(Enum):
         YX: Dimension-ordered YX routing algorithm.
         ID: Routing algorithm based on router ID tables.
         SRC: Source-based routing algorithm.
+        XY_MIRRORED: Request path uses `XY`, response uses `YX`
+        YX_MIRRORED: Request path uses `YX`, response uses `XY`
     """
 
     XY = "XYRouting"
     YX = "YXRouting"
     ID = "IdTable"
     SRC = "SourceRouting"
+    XY_MIRRORED = "XYRoutingMirrored"
+    YX_MIRRORED = "YXRoutingMirrored"
 
     def __str__(self):
         return f"{self.name}"
+
+    @property
+    def is_dor_algo(self) -> bool:
+        """True for any dimension-ordered routing algorithm (`XY`, `YX`, or
+        one of the mirrored variants), i.e. any algorithm that needs XY
+        coordinates rather than a routing table or a route list."""
+        return self in (RouteAlgo.XY, RouteAlgo.YX, RouteAlgo.XY_MIRRORED, RouteAlgo.YX_MIRRORED)
 
 
 class WideRwDecouple(Enum):
@@ -941,6 +952,15 @@ class Routing(BaseModel):
             v = RouteAlgo[v]
         return v
 
+    @model_validator(mode="after")
+    def validate_mirrored_route_algo(self):
+        """`XY_MIRRORED`/`YX_MIRRORED` require a physically decoupled wide channel."""
+        if self.route_algo in (RouteAlgo.XY_MIRRORED, RouteAlgo.YX_MIRRORED) and (
+            self.decouple_rw != WideRwDecouple.PHYS
+        ):
+            raise ValueError(f"`route_algo: {self.route_algo}` requires `decouple_rw: Phys` ")
+        return self
+
     @field_validator("decouple_rw", mode="before")
     @classmethod
     def validate_decouple_rw(cls, v):
@@ -961,15 +981,11 @@ class Routing(BaseModel):
 
     @model_validator(mode="after")
     def validate_collective_route_algo(self):
-        """Collective operations are supported with XY routing only."""
-        if (
-            self.en_collective
-            and self.route_algo != RouteAlgo.XY
-            and self.route_algo != RouteAlgo.YX
-        ):
+        """Collective operations are supported with dimension-ordered routing only."""
+        if self.en_collective and not self.route_algo.is_dor_algo:
             raise ValueError(
-                "Collective operations are only supported with XY routing algorithm, "
-                f"but got {self.route_algo}"
+                "Collective operations are only supported with dimension-ordered routing "
+                f"algorithms, but got {self.route_algo}"
             )
         return self
 
@@ -979,7 +995,7 @@ class Routing(BaseModel):
         string += sv_param_decl("RouteAlgo", self.route_algo.value, dtype="route_algo_e")
         string += sv_param_decl("UseIdTable", bool_to_sv(self.use_id_table), dtype="bit")
         match self.route_algo:
-            case RouteAlgo.XY | RouteAlgo.YX:
+            case _ if self.route_algo.is_dor_algo:
                 if self.num_x_bits is None or self.num_y_bits is None:
                     raise ValueError(_NOT_GENERATED)
                 string += sv_param_decl("NumXBits", self.num_x_bits)
@@ -991,7 +1007,7 @@ class Routing(BaseModel):
             case _:
                 pass
 
-        if self.route_algo in (RouteAlgo.XY, RouteAlgo.YX):
+        if self.route_algo.is_dor_algo:
             if self.addr_offset_bits is None or self.num_x_bits is None:
                 raise ValueError(_NOT_GENERATED)
             string += sv_param_decl("XYAddrOffsetX", self.addr_offset_bits)
@@ -1014,7 +1030,7 @@ class Routing(BaseModel):
         if self.port_id_bits > 0:
             string += sv_typedef("port_id_t", array_size=self.port_id_bits)
         match self.route_algo:
-            case RouteAlgo.XY | RouteAlgo.YX:
+            case _ if self.route_algo.is_dor_algo:
                 string += sv_typedef("x_bits_t", array_size=self.num_x_bits)
                 string += sv_typedef("y_bits_t", array_size=self.num_y_bits)
                 id_fields = {"x": "x_bits_t", "y": "y_bits_t"}
@@ -1052,7 +1068,7 @@ class Routing(BaseModel):
     def render_route_cfg(self, name) -> str:
         """Render the SystemVerilog routing configuration."""
         xy_addr_offset_x, xy_addr_offset_y, id_addr_offset = 0, 0, 0
-        if self.route_algo in (RouteAlgo.XY, RouteAlgo.YX):
+        if self.route_algo.is_dor_algo:
             if self.addr_offset_bits is None or self.num_x_bits is None:
                 raise ValueError(_NOT_GENERATED)
             xy_addr_offset_x = self.addr_offset_bits

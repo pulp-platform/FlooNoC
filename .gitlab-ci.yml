@@ -54,6 +54,9 @@ compile-meshes:
     matrix:
       - DUT: [axi_mesh, nw_mesh]
         ROUTE_ALGO: [xy, yx, src, id]
+      # Mixed per-channel XY/YX routing is only supported on the narrow-wide router
+      - DUT: [nw_mesh]
+        ROUTE_ALGO: [mixed]
   script:
     - uv run floogen rtl -c floogen/examples/${DUT}_${ROUTE_ALGO}.yml -o generated --no-format
     # Compile the network
@@ -93,6 +96,11 @@ run-traffic-builtin:
     matrix:
       - DUT: [axi_mesh, nw_mesh]
         ROUTE_ALGO: [xy, yx, src, id]
+        TRAFFIC_TYPE: [uniform, hbm, shuffle, hotspot]
+        TRAFFIC_RW: [read, write]
+      # Mixed per-channel XY/YX routing is only supported on the narrow-wide router
+      - DUT: [nw_mesh]
+        ROUTE_ALGO: [mixed]
         TRAFFIC_TYPE: [uniform, hbm, shuffle, hotspot]
         TRAFFIC_RW: [read, write]
   script:

@@ -149,6 +149,18 @@ class Network(BaseModel):
         return self
 
     @model_validator(mode="after")
+    def validate_mirrored_route_algo_network_type(self):
+        """`XY_MIRRORED`/`YX_MIRRORED` supported only with `narrow-wide` networks."""
+        if self.routing.route_algo in (RouteAlgo.XY_MIRRORED, RouteAlgo.YX_MIRRORED) and (
+            self.network_type != "narrow-wide"
+        ):
+            raise ValueError(
+                f"`route_algo: {self.routing.route_algo}` is only supported for "
+                "`narrow-wide` networks"
+            )
+        return self
+
+    @model_validator(mode="after")
     def validate_collective_endpoints(self):
         """Check that collective endpoints and collective routing are consistent."""
         has_collective_eps = any(ep.is_collective_ep() for ep in self.endpoints)
@@ -346,7 +358,7 @@ class Network(BaseModel):
         """Infer the id type from the network."""
         # Add XY coordinates to the nodes
         match self.routing.route_algo:
-            case RouteAlgo.XY | RouteAlgo.YX:
+            case _ if self.routing.route_algo.is_dor_algo:
                 # 1st stage: Get all router nodes
                 for node_name, node in self.graph.get_rt_nodes(with_name=True):
                     x, y = self.graph.get_node_arr_idx(node_name)
@@ -479,7 +491,7 @@ class Network(BaseModel):
                 "degree": num_edges,
                 "route_algo": self.routing.route_algo,
             }
-            if self.routing.route_algo in (RouteAlgo.XY, RouteAlgo.YX):
+            if self.routing.route_algo.is_dor_algo:
                 router_dict["id"] = self.graph.get_node_id(rt_name)
             match self.network_type:
                 case "axi":
@@ -618,7 +630,7 @@ class Network(BaseModel):
             )
         self.routing.num_id_bits = clog2(len(self.graph.get_ni_nodes()))
         match self.routing.route_algo:
-            case RouteAlgo.XY | RouteAlgo.YX:
+            case _ if self.routing.route_algo.is_dor_algo:
                 for info, value in self.gen_xy_routing_info().items():
                     setattr(self.routing, info, value)
             case RouteAlgo.ID:

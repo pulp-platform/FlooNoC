@@ -252,10 +252,8 @@ module floo_router
     assign red_expected_in_route = '0;
   end
 
-  // TODO(lleone): For the moment we don't support reduction with only one virtual channel.
-  // This requirement could be relaxed in the future if the wide req router is split between
-  // AR/W and R channels.
-  // To have reduction support, VC0 must be used for the reduction traffic
+  // To support reduction, there is need for virtual channels,
+  // or decoupled write/read streams to avoid deadlock.
 
   // Reduction logic
   if(EnSequentialReduction) begin : gen_reduction_logic
