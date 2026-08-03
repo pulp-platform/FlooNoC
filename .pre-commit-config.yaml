@@ -19,6 +19,12 @@
 # pinned copy. Upstream `pre-commit` can run this configuration too, but it will
 # not have `prek`'s native hook implementations.
 
+# `pd` is a placeholder that `make init-pd` replaces with the (closed-source)
+# physical design repository, which carries its own linting rules and license
+# headers. Only the checked-in dummy `pd/Bender.yml` would ever be linted here,
+# and the separate `reuse` CI job still covers it.
+exclude: ^pd/
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
