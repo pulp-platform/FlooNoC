@@ -95,28 +95,8 @@ module floo_nw_router
   localparam int unsigned NumWidePhysChannels = (WideRwDecouple == Phys) ? 2 : 1;
   localparam int unsigned NumWideVirtChannels = (WideRwDecouple == None) ? 1 : 2;
 
-  // Decode `RouteAlgo` into the concrete algorithm used by the
-  // request/wide-write and response/wide-read sub-routers. The mirrored
-  // variants swap XY/YX between the two; every other algorithm (including
-  // `IdTable`/`SourceRouting`) is used unchanged on both.
-  function automatic route_algo_e req_route_algo(route_algo_e algo);
-    unique case (algo)
-      XYRoutingMirrored: return XYRouting;
-      YXRoutingMirrored: return YXRouting;
-      default:           return algo;
-    endcase
-  endfunction
-
-  function automatic route_algo_e rsp_route_algo(route_algo_e algo);
-    unique case (algo)
-      XYRoutingMirrored: return YXRouting;
-      YXRoutingMirrored: return XYRouting;
-      default:           return algo;
-    endcase
-  endfunction
-
-  localparam route_algo_e ReqRouteAlgo = req_route_algo(RouteAlgo);
-  localparam route_algo_e RspRouteAlgo = rsp_route_algo(RouteAlgo);
+  localparam route_algo_e ReqRouteAlgo = route_algo_req(RouteAlgo);
+  localparam route_algo_e RspRouteAlgo = route_algo_rsp(RouteAlgo);
 
   typedef logic [AxiCfgN.AddrWidth-1:0] axi_addr_t;
   typedef logic [AxiCfgN.InIdWidth-1:0] axi_narrow_in_id_t;

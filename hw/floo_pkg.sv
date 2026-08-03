@@ -56,6 +56,24 @@ package floo_pkg;
            algo == XYRoutingMirrored || algo == YXRoutingMirrored;
   endfunction
 
+  /// Concrete routing algorithm used by request-like paths for a possibly mirrored algorithm.
+  function automatic route_algo_e route_algo_req(route_algo_e algo);
+    unique case (algo)
+      XYRoutingMirrored: return XYRouting;
+      YXRoutingMirrored: return YXRouting;
+      default:           return algo;
+    endcase
+  endfunction
+
+  /// Concrete routing algorithm used by response-like paths for a possibly mirrored algorithm.
+  function automatic route_algo_e route_algo_rsp(route_algo_e algo);
+    unique case (algo)
+      XYRoutingMirrored: return YXRouting;
+      YXRoutingMirrored: return XYRouting;
+      default:           return algo;
+    endcase
+  endfunction
+
   /// The directions in a 2D mesh network, mainly useful for indexing
   /// multi-directional arrays. If a router has more than one local
   /// port, the additional ports can be defined as `Eject+p`, where `p`
