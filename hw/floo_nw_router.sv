@@ -18,12 +18,12 @@ module floo_nw_router
   parameter axi_cfg_t AxiCfgN                       = '0,
   /// Config of the wide AXI interfaces (see axi_cfg_t for details)
   parameter axi_cfg_t AxiCfgW                       = '0,
-  /// Global routing algorithm
+  /// Routing algorithm. `XYRoutingMirrored`/`YXRoutingMirrored` select
+  /// different algorithms for the request and response paths (also reused
+  /// for the wide-write/wide-read crossbars respectively); they are only
+  /// legal when `WideRwDecouple == Phys`, since otherwise there is only a
+  /// single, shared wide crossbar that can use just one algorithm.
   parameter route_algo_e RouteAlgo                  = XYRouting,
-  /// Routing algorithm for the narrow/wide request channel.
-  parameter route_algo_e ReqRouteAlgo                = RouteAlgo,
-  /// Routing algorithm for the narrow/wide response channel
-  parameter route_algo_e RspRouteAlgo                = RouteAlgo,
   /// Number of input/output ports
   parameter int unsigned NumRoutes                  = 0,
   /// Number of input ports
@@ -94,6 +94,29 @@ module floo_nw_router
 
   localparam int unsigned NumWidePhysChannels = (WideRwDecouple == Phys) ? 2 : 1;
   localparam int unsigned NumWideVirtChannels = (WideRwDecouple == None) ? 1 : 2;
+
+  // Decode `RouteAlgo` into the concrete algorithm used by the
+  // request/wide-write and response/wide-read sub-routers. The mirrored
+  // variants swap XY/YX between the two; every other algorithm (including
+  // `IdTable`/`SourceRouting`) is used unchanged on both.
+  function automatic route_algo_e req_route_algo(route_algo_e algo);
+    unique case (algo)
+      XYRoutingMirrored: return XYRouting;
+      YXRoutingMirrored: return YXRouting;
+      default:           return algo;
+    endcase
+  endfunction
+
+  function automatic route_algo_e rsp_route_algo(route_algo_e algo);
+    unique case (algo)
+      XYRoutingMirrored: return YXRouting;
+      YXRoutingMirrored: return XYRouting;
+      default:           return algo;
+    endcase
+  endfunction
+
+  localparam route_algo_e ReqRouteAlgo = req_route_algo(RouteAlgo);
+  localparam route_algo_e RspRouteAlgo = rsp_route_algo(RouteAlgo);
 
   typedef logic [AxiCfgN.AddrWidth-1:0] axi_addr_t;
   typedef logic [AxiCfgN.InIdWidth-1:0] axi_narrow_in_id_t;

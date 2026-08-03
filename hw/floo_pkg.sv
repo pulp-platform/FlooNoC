@@ -10,7 +10,7 @@
 package floo_pkg;
 
   /// Currently Supported Routing Algorithms
-  typedef enum logic[1:0] {
+  typedef enum logic[2:0] {
     /// `IdTable` routing uses a table of routing rules to determine to
     /// which output port a packet should be routed, based on the
     /// destination ID encoded in the header of the flit. Every router
@@ -38,8 +38,23 @@ package floo_pkg;
     XYRouting,
     /// `YXRouting` is identical to `XYRouting` but resolves the Y dimension first,
     /// then the X dimension.
-    YXRouting
+    YXRouting,
+    /// `XYRoutingMirrored` is only meaningful for `floo_nw_router`: the
+    /// narrow/wide-write request path uses `XYRouting`, while the
+    /// narrow/wide-read response path uses `YXRouting`. Only legal when the
+    /// wide channel is physically decoupled (`WideRwDecouple == Phys`).
+    XYRoutingMirrored,
+    /// `YXRoutingMirrored` is the mirror image of `XYRoutingMirrored`: the
+    /// request path uses `YXRouting`, the response path uses `XYRouting`.
+    YXRoutingMirrored
   } route_algo_e;
+
+  /// True for any dimension-ordered routing algorithm (`XYRouting`,
+  /// `YXRouting`, or one of the mirrored variants).
+  function automatic bit is_xy_family(route_algo_e algo);
+    return algo == XYRouting || algo == YXRouting ||
+           algo == XYRoutingMirrored || algo == YXRoutingMirrored;
+  endfunction
 
   /// The directions in a 2D mesh network, mainly useful for indexing
   /// multi-directional arrays. If a router has more than one local

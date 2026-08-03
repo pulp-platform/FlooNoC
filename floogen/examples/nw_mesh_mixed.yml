@@ -3,13 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 name: nw_mesh
-description: "NW mesh configuration with mixed XY/YX routing per channel for FlooGen"
+description: "NW mesh configuration with mirrored (XY req / YX rsp) routing for FlooGen"
 network_type: "narrow-wide"
 
 routing:
-  route_algo:
-    req: "XY"
-    rsp: "YX"
+  route_algo: "XY_MIRRORED"
   decouple_rw: "Phys"
   use_id_table: true
 
