@@ -135,12 +135,12 @@ The generated RTL must be placed under `generated`, as referenced by `Bender.yml
 
 ### Compiling Testbenches
 
-Then, you can compile and run the generated testbenches as described above, with additional Bender flags to include the generated files:
+Then, you can compile and run the generated testbenches as described above. Setting `TB_DUT` automatically adds the Bender flags needed to include the generated files:
 
 === "QuestaSim"
 
     ```bash
-    make compile-vsim EXTRA_BENDER_FLAGS="-t <mesh>"
+    make compile-vsim TB_DUT=tb_floo_<mesh>
     ```
 
 === "VCS"
@@ -241,7 +241,7 @@ You can run the generated testbenches with:
 === "QuestaSim"
 
     ```bash
-    make run-vsim TB_DUT=tb_floo_<mesh> EXTRA_BENDER_FLAGS="-t <mesh>"
+    make run-vsim TB_DUT=tb_floo_<mesh>
     ```
 === "VCS"
 
