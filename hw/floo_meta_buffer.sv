@@ -219,7 +219,7 @@ module floo_meta_buffer #(
   // NoC addr/mask to AXI addr/mask conversion
   localparam int unsigned AddrWidth = $bits(addr_t);
   if (EnCollective && RouteCfg.UseIdTable &&
-      floo_pkg::is_xy_family(RouteCfg.RouteAlgo))
+      floo_pkg::is_dor_algo(RouteCfg.RouteAlgo))
   begin : gen_mcast_table_conversion
     id_t out, in_mask, in_id;
     mask_sel_t x_mask_sel, y_mask_sel;

@@ -51,7 +51,7 @@ package floo_pkg;
 
   /// True for any dimension-ordered routing algorithm (`XYRouting`,
   /// `YXRouting`, or one of the mirrored variants).
-  function automatic bit is_xy_family(route_algo_e algo);
+  function automatic bit is_dor_algo(route_algo_e algo);
     return algo == XYRouting || algo == YXRouting ||
            algo == XYRoutingMirrored || algo == YXRoutingMirrored;
   endfunction

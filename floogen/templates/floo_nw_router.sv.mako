@@ -64,7 +64,7 @@ ${wide_type} [${len(router.outgoing)-1}:0] ${router.name}_wide_out;
   % endif
 % endfor
 
-% if router.route_algo.is_xy_family:
+% if router.route_algo.is_dor_algo:
   localparam id_t ${router.name.upper()}_ID = ${offset_xy_id.render()};
 % endif
 
@@ -105,7 +105,7 @@ floo_nw_router #(
   .clk_i,
   .rst_ni,
   .test_enable_i,
-% if router.route_algo.is_xy_family:
+% if router.route_algo.is_dor_algo:
   .id_i (${router.name.upper()}_ID),
 % else:
   .id_i ('0),

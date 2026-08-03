@@ -349,7 +349,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         """Infer the id type from the network."""
         # Add XY coordinates to the nodes
         match self.routing.route_algo:
-            case _ if self.routing.route_algo.is_xy_family:
+            case _ if self.routing.route_algo.is_dor_algo:
                 # 1st stage: Get all router nodes
                 for node_name, node in self.graph.get_rt_nodes(with_name=True):
                     x, y = self.graph.get_node_arr_idx(node_name)
@@ -472,7 +472,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 "degree": num_edges,
                 "route_algo": self.routing.route_algo,
             }
-            if self.routing.route_algo.is_xy_family:
+            if self.routing.route_algo.is_dor_algo:
                 router_dict["id"] = self.graph.get_node_id(rt_name)
             match self.network_type:
                 case "axi":
@@ -611,7 +611,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             )
         self.routing.num_id_bits = clog2(len(self.graph.get_ni_nodes()))
         match self.routing.route_algo:
-            case _ if self.routing.route_algo.is_xy_family:
+            case _ if self.routing.route_algo.is_dor_algo:
                 for info, value in self.gen_xy_routing_info().items():
                     setattr(self.routing, info, value)
             case RouteAlgo.ID:

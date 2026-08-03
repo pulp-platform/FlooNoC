@@ -44,7 +44,7 @@ class RouteAlgo(Enum):
         return f"{self.name}"
 
     @property
-    def is_xy_family(self) -> bool:
+    def is_dor_algo(self) -> bool:
         """True for any dimension-ordered routing algorithm (`XY`, `YX`, or
         one of the mirrored variants), i.e. any algorithm that needs XY
         coordinates rather than a routing table or a route list."""
@@ -919,10 +919,10 @@ class Routing(BaseModel):
 
     @model_validator(mode="after")
     def validate_collective_route_algo(self):
-        """Collective operations are supported with XY-family routing only."""
-        if self.en_collective and not self.route_algo.is_xy_family:
+        """Collective operations are supported with dimension-ordered routing only."""
+        if self.en_collective and not self.route_algo.is_dor_algo:
             raise ValueError(
-                "Collective operations are only supported with XY-family routing "
+                "Collective operations are only supported with dimension-ordered routing "
                 f"algorithms, but got {self.route_algo}"
             )
         return self
@@ -932,7 +932,7 @@ class Routing(BaseModel):
         string += sv_param_decl("RouteAlgo", self.route_algo.value, dtype="route_algo_e")
         string += sv_param_decl("UseIdTable", bool_to_sv(self.use_id_table), dtype="bit")
         match self.route_algo:
-            case _ if self.route_algo.is_xy_family:
+            case _ if self.route_algo.is_dor_algo:
                 string += sv_param_decl("NumXBits", self.num_x_bits)
                 string += sv_param_decl("NumYBits", self.num_y_bits)
             case RouteAlgo.ID:
@@ -940,7 +940,7 @@ class Routing(BaseModel):
             case _:
                 pass
 
-        if self.route_algo.is_xy_family:
+        if self.route_algo.is_dor_algo:
             string += sv_param_decl("XYAddrOffsetX", self.addr_offset_bits)
             string += sv_param_decl("XYAddrOffsetY", self.addr_offset_bits + self.num_x_bits)
         else:
@@ -959,7 +959,7 @@ class Routing(BaseModel):
         if self.port_id_bits > 0:
             string += sv_typedef("port_id_t", array_size=self.port_id_bits)
         match self.route_algo:
-            case _ if self.route_algo.is_xy_family:
+            case _ if self.route_algo.is_dor_algo:
                 string += sv_typedef("x_bits_t", array_size=self.num_x_bits)
                 string += sv_typedef("y_bits_t", array_size=self.num_y_bits)
                 id_fields = {"x": "x_bits_t", "y": "y_bits_t"}
@@ -998,9 +998,9 @@ class Routing(BaseModel):
         fields = {
             "RouteAlgo": self.route_algo.value,
             "UseIdTable": bool_to_sv(self.use_id_table),
-            "XYAddrOffsetX": self.addr_offset_bits if self.route_algo.is_xy_family else 0,
+            "XYAddrOffsetX": self.addr_offset_bits if self.route_algo.is_dor_algo else 0,
             "XYAddrOffsetY": self.addr_offset_bits + self.num_x_bits if
-                                self.route_algo.is_xy_family else 0,
+                                self.route_algo.is_dor_algo else 0,
             "IdAddrOffset": self.addr_offset_bits if
                                 self.route_algo == RouteAlgo.ID and not self.use_id_table else 0,
             "NumSamRules": len(self.sam),
