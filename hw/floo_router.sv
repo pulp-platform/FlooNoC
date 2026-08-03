@@ -214,7 +214,8 @@ module floo_router
         );
 
         // onehot decoding of the input direction
-        // bypass the reduction if only on  e input member is selected (if none is selected then bypass too [should never occure but to avoid deadlocks])
+        // bypass the reduction if only one input member is selected
+        // (if none is selected then bypass too [should never occurred but to avoid deadlocks])
         cc_popcount #(
           .InputWidth  (NumInput)
         ) i_red_list_counter (
