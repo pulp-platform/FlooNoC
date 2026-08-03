@@ -154,9 +154,9 @@ module floo_rob #(
 
   assign rob_next_free_idx = RoBSize - rob_free_space;
 
-  lzc #(
-    .WIDTH  ( RoBSize ),
-    .MODE   ( 1'b1    )
+  cc_lzc #(
+    .Width  ( RoBSize ),
+    .Mode   ( cc_pkg::LZC_LEADING_ZERO_CNT )
   ) i_lzc (
     .in_i     ( rob_alloc_q     ),
     .cnt_o    ( rob_free_space  ),
@@ -335,7 +335,7 @@ module floo_rob #(
 
     if (ax_valid_i && st_ax_gnt) begin
       // Check if this is the second or more transaction for this ID
-      // In that case, the entry in the ID status tabe is already valid
+      // In that case, the entry in the ID status table is already valid
       if (!ax_rob_req_o) begin
         ax_valid_o = 1'b1;
         if (ax_ready_i) begin
@@ -349,7 +349,7 @@ module floo_rob #(
           st_ax_push = 1'b1;
           // Mark the entries in the reorder buffer as occupied
           // Only the last entry is set to 1 which is enough, since
-          // the free buffer size is just calcluated with a leading-zero-counter
+          // the free buffer size is just calculated with a leading-zero-counter
           rob_alloc_d[rob_next_free_idx + ax_len_i] = 1'b1;
         end
       end
@@ -447,14 +447,13 @@ module floo_rob_status_table #(
 
   end
 
-  fifo_v3 #(
-    .DEPTH  ( MaxTxnsPerId  ),
-    .dtype  ( fifo_data_t   )
+  cc_fifo #(
+    .Depth  ( MaxTxnsPerId  ),
+    .data_t  ( fifo_data_t   )
   ) i_status_table_fifo [NumIds-1:0] (
     .clk_i,
     .rst_ni,
     .push_i     ( fifo_push     ),
-    .testmode_i ( 1'b0          ),
     .flush_i    ( 1'b0          ),
     .data_i     ( fifo_data_in  ),
     .pop_i      ( fifo_pop      ),

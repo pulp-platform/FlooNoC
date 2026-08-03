@@ -6,24 +6,41 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 import argparse
-from pathlib import Path
-from importlib.resources import files
+import sys
 from importlib.metadata import version
 from importlib.util import find_spec
+from pathlib import Path
+from typing import TypedDict
 
 from mako.template import Template
 
-from floogen.config_parser import parse_config
-from floogen.query import handle_query
+from floogen.config_parser import ConfigError, parse_config
 from floogen.model.network import Network
+from floogen.model.traffic import MESH_TRAFFIC_TYPES, gen_traffic_builtin, gen_traffic_cfg
+from floogen.query import handle_query
 from floogen.utils import verible_format
 
-tpl_dir = files("floogen") / "templates"
+tpl_dir = Path(__file__).parent / "templates"
 
-def render_template(context: dict, tpl: Path,
-                    outdir: Path = None, file_name: str = None,
-                    format_output: bool=False, verible_fmt_bin: str = None,
-                    verible_fmt_args: str = None):
+
+class RenderKwargs(TypedDict, total=False):
+    """Keyword arguments forwarded to `render_template`."""
+
+    outdir: Path | None
+    format_output: bool
+    verible_fmt_bin: str | None
+    verible_fmt_args: str | None
+
+
+def render_template(
+    context: dict,
+    tpl: Path,
+    outdir: Path | None = None,
+    file_name: str | None = None,
+    format_output: bool = False,
+    verible_fmt_bin: str | None = None,
+    verible_fmt_args: str | None = None,
+):
     """Render a template, format if requested and write to file or print to stdout."""
     if not tpl.exists():
         # Search in the internal template directory if the template exists there
@@ -52,15 +69,23 @@ def build_parser() -> argparse.ArgumentParser:
     # Parser that holds all common options
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument(
-        "-c", "--config", type=Path, required=True,
-        help="Path to the configuration file."
+        "-c", "--config", type=Path, required=True, help="Path to the configuration file."
     )
     common.add_argument(
-        "-o", "--outdir", type=Path, required=False,
+        "-o",
+        "--outdir",
+        type=Path,
+        required=False,
         help=(
             "Path to the output directory of the generated output files. "
             "If not specified, the files are printed to stdout."
         ),
+    )
+    common.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Print detailed information about what the tool is doing.",
     )
 
     # Parser for SystemVerilog formatting options
@@ -87,7 +112,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--name",
         type=str,
         default=None,
-        help="Override the module/package name and prefix for generated files."
+        help="Override the module/package name and prefix for generated files.",
     )
 
     # Top-level parser
@@ -172,6 +197,72 @@ def build_parser() -> argparse.ArgumentParser:
             help="Visualize the network graph.",
         )
 
+    # floogen traffic generation
+    p_traffic = subparsers.add_parser(
+        "traffic",
+        parents=[common],
+        add_help=True,
+        help="Generate DMA job files from a traffic configuration file.",
+    )
+    p_traffic_src = p_traffic.add_mutually_exclusive_group(required=True)
+    p_traffic_src.add_argument(
+        "--traffic-cfg",
+        dest="traffic_cfg",
+        type=Path,
+        help="Path to the traffic configuration file.",
+    )
+    p_traffic_src.add_argument(
+        "--traffic-type",
+        dest="traffic_type",
+        type=str,
+        choices=MESH_TRAFFIC_TYPES,
+        help="Generate a built-in traffic pattern, not requiring any dedicated traffic configuration file. "
+        "Available types: " + ", ".join(MESH_TRAFFIC_TYPES) + ".",
+    )
+    p_traffic.add_argument(
+        "--traffic-name",
+        dest="traffic_name",
+        type=str,
+        default=None,
+        help="Base name of the emitted job files. Defaults to the traffic configuration filename. ",
+    )
+    p_traffic.add_argument(
+        "--traffic-rw",
+        dest="traffic_rw",
+        type=str,
+        default="write",
+        choices=["read", "write"],
+        help="Read or write transaction, only used with --traffic-type.",
+    )
+    p_traffic.add_argument(
+        "--num-narrow-bursts",
+        dest="num_narrow_bursts",
+        type=int,
+        default=10,
+        help="Number of narrow bursts per node, only used with --traffic-type.",
+    )
+    p_traffic.add_argument(
+        "--num-wide-bursts",
+        dest="num_wide_bursts",
+        type=int,
+        default=100,
+        help="Number of wide bursts per node, only used with --traffic-type.",
+    )
+    p_traffic.add_argument(
+        "--narrow-burst-length",
+        dest="narrow_burst_length",
+        type=int,
+        default=1,
+        help="Narrow burst length, in beats, only used with --traffic-type.",
+    )
+    p_traffic.add_argument(
+        "--wide-burst-length",
+        dest="wide_burst_length",
+        type=int,
+        default=16,
+        help="Wide burst length, in beats, only used with --traffic-type.",
+    )
+
     # floogen query <key>
     p_query = subparsers.add_parser(
         "query",
@@ -198,7 +289,13 @@ def main():
         parser.print_help()
         return 0
 
-    network = parse_config(Network, args.config)
+    try:
+        network = parse_config(Network, args.config)
+    except ConfigError as e:
+        # `parse_config` has already reported the individual problems in detail; a traceback
+        # would only bury them.
+        print(f"floogen: {e}", file=sys.stderr)
+        return 1
 
     network.create_network()
     network.compile_network()
@@ -208,7 +305,7 @@ def main():
     context = {"noc": network}
 
     # Additional render arguments
-    render_kwargs = {"outdir": args.outdir}
+    render_kwargs: RenderKwargs = {"outdir": args.outdir}
 
     # Command specific render arguments
     match args.command:
@@ -219,28 +316,35 @@ def main():
             context["name"] = args.name or network.name
             pkg_file_name = f"floo_{args.name or network.name}_noc_pkg.sv"
             top_file_name = f"floo_{args.name or network.name}_noc.sv"
-
+        case "traffic":
+            traffic_outdir = args.outdir or Path("jobs")
+            default_traffic_name = args.traffic_cfg.stem if args.traffic_cfg else "mesh"
+            traffic_name = args.traffic_name or default_traffic_name
 
     match args.command:
         case "rtl":
-            render_template(context,
+            render_template(
+                context,
                 tpl=tpl_dir / "floo_noc_pkg.sv.mako",
                 file_name=pkg_file_name,
                 **render_kwargs,
             )
-            render_template(context,
+            render_template(
+                context,
                 tpl=tpl_dir / "floo_noc.sv.mako",
                 file_name=top_file_name,
                 **render_kwargs,
             )
         case "pkg":
-            render_template(context,
+            render_template(
+                context,
                 tpl=tpl_dir / "floo_noc_pkg.sv.mako",
                 file_name=pkg_file_name,
                 **render_kwargs,
             )
         case "top":
-            render_template(context,
+            render_template(
+                context,
                 tpl=tpl_dir / "floo_noc.sv.mako",
                 file_name=top_file_name,
                 **render_kwargs,
@@ -248,19 +352,24 @@ def main():
         case "rdl":
             context["rdl_as_mem"] = args.as_mem
             context["rdl_memwidth"] = args.memwidth
-            groups = network.routing.sam.distinct_groups() or [None]
+            sam = network.routing.sam
+            if sam is None:
+                raise ValueError("System address map has not been generated")
+            groups = sam.distinct_groups() or [None]
             for group in groups:
                 suffix = f"_{group}" if group else ""
-                context["sam"] = network.routing.sam.filter_by_group(group) if group else network.routing.sam
+                context["sam"] = sam.filter_by_group(group) if group else sam
                 context["suffix"] = suffix
-                render_template(context,
+                render_template(
+                    context,
                     tpl=tpl_dir / "floo_addrmap.rdl.mako",
                     file_name=f"{network.name}_addrmap{suffix}.rdl",
                     **render_kwargs,
                 )
         case "template":
             for tpl in args.template:
-                render_template(context,
+                render_template(
+                    context,
                     tpl=tpl,
                     **render_kwargs,
                 )
@@ -271,6 +380,24 @@ def main():
                 network.visualize(savefig=False)
         case "query":
             handle_query(network, args.query)
+        case "traffic":
+            if args.traffic_cfg:
+                gen_traffic_cfg(
+                    args.traffic_cfg, network, traffic_name, traffic_outdir, verbose=args.verbose
+                )
+            else:
+                gen_traffic_builtin(
+                    args.traffic_type,
+                    network,
+                    traffic_name,
+                    traffic_outdir,
+                    args.num_narrow_bursts,
+                    args.narrow_burst_length,
+                    args.num_wide_bursts,
+                    args.wide_burst_length,
+                    args.traffic_rw,
+                    verbose=args.verbose,
+                )
 
 
 if __name__ == "__main__":

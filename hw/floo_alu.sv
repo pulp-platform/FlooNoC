@@ -25,7 +25,7 @@ package floo_alu_pkg;
   // | UINT32     | 32 bit |
   // | INT64      | 64 bit |
   // | UINT64     | 64 bit |
-  // *NOTE:* Add new formats only at the end of the enumeration for backwards compatibilty!
+  // *NOTE:* Add new formats only at the end of the enumeration for backwards compatibility!
   localparam int unsigned NumIntFormats = 8;
   localparam int unsigned IntFormatBits = $clog2(NumIntFormats);
 
@@ -170,7 +170,7 @@ module floo_reduction_alu import floo_pkg::*; #() (
     endcase
   end
 
-  // Instanciate the ALU
+  // Instantiate the ALU
   floo_alu_top #(
     .tag_t                (logic),
     .CutOutput            (1'b1),
@@ -275,12 +275,13 @@ logic [31:0] max_res_32;
 
 // Input Cut to split the ALU from the rest of the system
 if (CutInput == 1'b1) begin : gen_input_cut
-  spill_register_flushable #(
-    .T                  (cut_input_t),
+  cc_spill_register_flushable #(
+    .data_t                  (cut_input_t),
     .Bypass             (1'b0)
   ) i_output_cut (
     .clk_i              (clk_i),
     .rst_ni             (rst_ni),
+    .clr_i              (1'b0),
     .valid_i            (in_valid_i),
     .flush_i            (flush_i),
     .ready_o            (in_ready_o),
@@ -365,12 +366,13 @@ assign status_d.is_zero = ~(|res_32);
 
 // introduce cut at output of ALU
 if (CutOutput == 1'b1) begin : gen_output_cut
-  spill_register_flushable #(
-    .T                  (cut_output_t),
+  cc_spill_register_flushable #(
+    .data_t                  (cut_output_t),
     .Bypass             (1'b0)
   ) i_output_cut (
     .clk_i              (clk_i),
     .rst_ni             (rst_ni),
+    .clr_i              (1'b0),
     .valid_i            (out_valid_d),
     .flush_i            (flush_i),
     .ready_o            (out_ready_d),

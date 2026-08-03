@@ -82,7 +82,7 @@ module floo_output_arbiter import floo_pkg::*;
 
   // Arbitrate reductions
   if (EnParallelReduction) begin: gen_parallel_reduction
-    // Var to sparate Non-Slave ports if they have to go to the reduction arbiter!
+    // Var to separate Non-Slave ports if they have to go to the reduction arbiter!
     flit_t [NumParallelRedRoutes-1:0]    parallel_red_data;
     logic [NumParallelRedRoutes-1:0]     parallel_red_valid;
     logic [NumParallelRedRoutes-1:0]     parallel_red_ready;
@@ -123,13 +123,14 @@ module floo_output_arbiter import floo_pkg::*;
 
     // Arbitrate between wormhole and reduction arbiter
     // Reductions have higher priority than unicasts (index 0)
-    stream_arbiter #(
-      .N_INP  (2),
-      .ARBITER("prio"),
-      .DATA_T (flit_t)
+    cc_stream_arbiter #(
+      .NumInp  (2),
+      .ArbMode (cc_pkg::ARB_PRIO),
+      .data_t  (flit_t)
     ) i_stream_arbiter (
       .clk_i,
       .rst_ni,
+      .clr_i      (1'b0),
       .inp_data_i ({unicast_data_out, reduce_data_out}),
       .inp_valid_i({unicast_valid_out, reduce_valid_out}),
       .inp_ready_o({unicast_ready_in, reduce_ready_in}),

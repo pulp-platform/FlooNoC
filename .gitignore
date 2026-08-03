@@ -47,6 +47,7 @@ docs/api/*
 docs/_rst/*
 docs/_build/*
 docs/CHANGELOG.md
+docs/CONTRIBUTING.md
 cover/*
 MANIFEST
 site
@@ -60,6 +61,7 @@ site
 Bender.lock
 Bender.local
 deps
+working_dir
 
 # Auto generated sources
 generated

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -6,19 +5,23 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 from enum import Enum
-from typing import Optional, List, Tuple, Union
 
-from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from floogen.utils import (
-    cdiv,
-    sv_param_decl,
-    sv_typedef,
-    sv_struct_typedef,
     bool_to_sv,
+    cdiv,
     snake_to_camel,
-    sv_struct_render
+    sv_param_decl,
+    sv_struct_render,
+    sv_struct_typedef,
+    sv_typedef,
 )
+
+# The width fields on `Routing` are filled in by `Network.gen_routing_info()`, which sets
+# exactly the ones the configured routing algorithm needs. Reading them before that is a
+# programming error rather than a config error.
+_NOT_GENERATED = "Routing widths are only available after `gen_routing_info()`"
 
 
 class RouteAlgo(Enum):
@@ -83,6 +86,7 @@ class VcImpl(Enum):
 
 class NarrowReductionOp(Enum):
     """Integer ALU reduction operations available on the narrow router."""
+
     Add = "Add"
     Mul = "Mul"
     MinS = "MinS"
@@ -93,6 +97,7 @@ class NarrowReductionOp(Enum):
 
 class WideReductionOp(Enum):
     """Floating-point reduction operations available on the wide router."""
+
     Add = "Add"
     Mul = "Mul"
     Min = "Min"
@@ -101,10 +106,11 @@ class WideReductionOp(Enum):
 
 class ReductionCfg(BaseModel):
     """Base reduction hardware configuration shared by narrow and wide channels."""
+
     model_config = ConfigDict(extra="forbid")
 
     rd_pipeline_depth: int = 0
-    cut_offload_intf:  bool = False
+    cut_offload_intf: bool = False
 
     @model_validator(mode="before")
     @classmethod
@@ -120,15 +126,14 @@ class ReductionCfg(BaseModel):
         """Return a dict representing ``reduction_cfg_t`` for sv_struct_render."""
         return {
             "RdPipelineDepth": self.rd_pipeline_depth,
-            "CutOffloadIntf":  bool_to_sv(self.cut_offload_intf),
+            "CutOffloadIntf": bool_to_sv(self.cut_offload_intf),
         }
 
 
 class NarrowReductionCfg(ReductionCfg):
     """Reduction configuration for the narrow link."""
-    ops: List[NarrowReductionOp] = Field(
-        default_factory=lambda: list(NarrowReductionOp)
-    )
+
+    ops: list[NarrowReductionOp] = Field(default_factory=lambda: list(NarrowReductionOp))
 
     @field_validator("ops", mode="before")
     @classmethod
@@ -140,9 +145,8 @@ class NarrowReductionCfg(ReductionCfg):
 
 class WideReductionCfg(ReductionCfg):
     """Reduction configuration for the wide link."""
-    ops: List[WideReductionOp] = Field(
-        default_factory=lambda: list(WideReductionOp)
-    )
+
+    ops: list[WideReductionOp] = Field(default_factory=lambda: list(WideReductionOp))
 
     @field_validator("ops", mode="before")
     @classmethod
@@ -176,10 +180,10 @@ class CollectiveCfg(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     en_narrow_multicast: bool = False
-    en_wide_multicast:   bool = False
-    en_barrier:          bool = False
-    en_narrow_reduction: Optional[NarrowReductionCfg] = None
-    en_wide_reduction:   Optional[WideReductionCfg] = None
+    en_wide_multicast: bool = False
+    en_barrier: bool = False
+    en_narrow_reduction: NarrowReductionCfg | None = None
+    en_wide_reduction: WideReductionCfg | None = None
 
     @field_validator("en_narrow_reduction", "en_wide_reduction", mode="before")
     @classmethod
@@ -189,12 +193,12 @@ class CollectiveCfg(BaseModel):
             return None
         return v
 
-    def _narrow_ops(self) -> List[NarrowReductionOp]:
+    def _narrow_ops(self) -> list[NarrowReductionOp]:
         if self.en_narrow_reduction is None:
             return []
         return self.en_narrow_reduction.ops
 
-    def _wide_ops(self) -> List[WideReductionOp]:
+    def _wide_ops(self) -> list[WideReductionOp]:
         if self.en_wide_reduction is None:
             return []
         return self.en_wide_reduction.ops
@@ -218,27 +222,31 @@ class CollectiveCfg(BaseModel):
         wide = self._wide_ops()
         return {
             "EnNarrowMulticast": bool_to_sv(self.en_narrow_multicast),
-            "EnWideMulticast":   bool_to_sv(self.en_wide_multicast),
-            "EnLsbAnd":          bool_to_sv(self.en_barrier),
-            "EnFpAdd":           bool_to_sv(WideReductionOp.Add in wide),
-            "EnFpMul":           bool_to_sv(WideReductionOp.Mul in wide),
-            "EnFpMin":           bool_to_sv(WideReductionOp.Min in wide),
-            "EnFpMax":           bool_to_sv(WideReductionOp.Max in wide),
-            "EnIntAdd":           bool_to_sv(NarrowReductionOp.Add in narrow),
-            "EnIntMul":           bool_to_sv(NarrowReductionOp.Mul in narrow),
-            "EnIntMinS":         bool_to_sv(NarrowReductionOp.MinS in narrow),
-            "EnIntMinU":         bool_to_sv(NarrowReductionOp.MinU in narrow),
-            "EnIntMaxS":         bool_to_sv(NarrowReductionOp.MaxS in narrow),
-            "EnIntMaxU":         bool_to_sv(NarrowReductionOp.MaxU in narrow),
+            "EnWideMulticast": bool_to_sv(self.en_wide_multicast),
+            "EnLsbAnd": bool_to_sv(self.en_barrier),
+            "EnFpAdd": bool_to_sv(WideReductionOp.Add in wide),
+            "EnFpMul": bool_to_sv(WideReductionOp.Mul in wide),
+            "EnFpMin": bool_to_sv(WideReductionOp.Min in wide),
+            "EnFpMax": bool_to_sv(WideReductionOp.Max in wide),
+            "EnIntAdd": bool_to_sv(NarrowReductionOp.Add in narrow),
+            "EnIntMul": bool_to_sv(NarrowReductionOp.Mul in narrow),
+            "EnIntMinS": bool_to_sv(NarrowReductionOp.MinS in narrow),
+            "EnIntMinU": bool_to_sv(NarrowReductionOp.MinU in narrow),
+            "EnIntMaxS": bool_to_sv(NarrowReductionOp.MaxS in narrow),
+            "EnIntMaxU": bool_to_sv(NarrowReductionOp.MaxU in narrow),
         }
 
     @property
     def get_collective_cfg(self) -> dict:
         """Return a dict representing ``collective_cfg_t`` for sv_struct_render."""
         return {
-            "OpCfg":      self._get_collective_op(),
-            "NarrRedCfg": self.en_narrow_reduction.get_reduction_cfg() if self.en_narrow_reduction else "RedDefaultCfg",
-            "WideRedCfg": self.en_wide_reduction.get_reduction_cfg() if self.en_wide_reduction else "RedDefaultCfg",
+            "OpCfg": self._get_collective_op(),
+            "NarrRedCfg": self.en_narrow_reduction.get_reduction_cfg()
+            if self.en_narrow_reduction
+            else "RedDefaultCfg",
+            "WideRedCfg": self.en_wide_reduction.get_reduction_cfg()
+            if self.en_wide_reduction
+            else "RedDefaultCfg",
         }
 
     def render_reduction_typedefs(self, cfg_n: str, cfg_w: str) -> str:
@@ -283,6 +291,7 @@ class XYDirections(Enum):
 
     def __int__(self):
         return self.value
+
 
 class SimpleId(BaseModel):
     """ID class."""
@@ -351,7 +360,7 @@ class Coord(BaseModel):
             return Coord(
                 x=coord_dict.get("x", 0),
                 y=coord_dict.get("y", 0),
-                port_id=coord_dict.get("port_id", 0)
+                port_id=coord_dict.get("port_id", 0),
             )
         return None
 
@@ -383,28 +392,51 @@ class AddrRange(BaseModel):
     Attributes:
         start (int): Absolute start address of the range.
         end (int): Absolute end address of the range.
-        size (int): Size of the address range.
         base (Optional[int]): Base address used for calculating ranges in endpoint arrays.
         en_collective (bool): If true, marks this range as a multicast/collective destination.
+
+    `size` is additionally accepted as an *input* key in place of `start` or `end`, but is
+    not stored as a field - it is normalised away into `end` and read back through the
+    derived `size` property.
     """
 
-    model_config = ConfigDict(extra="forbid", validate_assignement=True)
+    model_config = ConfigDict(extra="forbid")
 
     start: int = Field(ge=0)
     end: int = Field(ge=0)
-    size: int
-    base: Optional[int] = None
-    arr_idx: Optional[Tuple[int, ...]] = None
-    arr_dim: Optional[Tuple[int, ...]] = None
-    rdl_name: Optional[str] = None
-    rdl_as_mem: Optional[bool] = None
+    base: int | None = None
+    arr_idx: tuple[int, ...] | None = None
+    arr_dim: tuple[int, ...] | None = None
+    rdl_name: str | None = None
+    rdl_as_mem: bool | None = None
     en_collective: bool = False
-    desc: Optional[str] = None
-    rdl_addrmap_grp: Optional[List[str]] = None
+    desc: str | None = None
+    rdl_addrmap_grp: list[str] | None = None
     """One or more SystemRDL addrmap group tags this address range belongs to."""
 
     def __str__(self):
         return f"[{self.start:X}:{self.end:X}]"
+
+    @property
+    def size(self) -> int:
+        """Size of the address range.
+
+        Derived rather than stored: every accepted input shape defines the range as
+        `end - start`, so keeping a separate field would only add state to hold in sync.
+        `size` remains a valid *input* key - see `validate_input` - it is simply
+        normalised away into `end`.
+        """
+        return self.end - self.start
+
+    @classmethod
+    def from_start_size(cls, start: int, size: int, **kwargs) -> "AddrRange":
+        """Create a range from a start address and a size."""
+        return cls.model_validate({"start": start, "size": size, **kwargs})
+
+    @classmethod
+    def from_base_size(cls, base: int, size: int, **kwargs) -> "AddrRange":
+        """Create a range from an array base address and a per-element size."""
+        return cls.model_validate({"base": base, "size": size, **kwargs})
 
     @field_validator("rdl_addrmap_grp", mode="before")
     @classmethod
@@ -418,8 +450,12 @@ class AddrRange(BaseModel):
     def validate_input(self):
         """Validate the address range."""
         if not isinstance(self, dict):
-            raise ValueError("Invalid address range specification")
+            # `ValueError` on purpose: pydantic turns it into a `ValidationError`,
+            # while a `TypeError` would escape as an unhandled exception.
+            raise ValueError("Invalid address range specification")  # noqa: TRY004
         addr_dict = {k: v for k, v in self.items() if v is not None}
+        # Normalise every accepted input shape to `start`/`end`. `size` is derived from
+        # those two (see the `size` property), so it is consumed here rather than stored.
         match addr_dict:
             case {"size": size, "base": base, "arr_idx": arr_idx}:
                 match arr_idx:
@@ -427,9 +463,10 @@ class AddrRange(BaseModel):
                         addr_dict["start"] = base + size * m
                         addr_dict["end"] = addr_dict["start"] + size
                     case (m, n):
-                        if addr_dict["arr_dim"] is None:
+                        arr_dim = addr_dict.get("arr_dim")
+                        if arr_dim is None:
                             raise ValueError("Array dimension must be specified for 2D arrays")
-                        addr_dict["start"] = base + size * (m * addr_dict["arr_dim"][1] + n)
+                        addr_dict["start"] = base + size * (m * arr_dim[1] + n)
                         addr_dict["end"] = addr_dict["start"] + size
                     case _:
                         raise ValueError("Invalid array index specification")
@@ -440,11 +477,12 @@ class AddrRange(BaseModel):
                 if end - start != size:
                     raise ValueError("Invalid address range specification")
             case {"start": start, "end": end}:
-                addr_dict["size"] = end - start
+                pass
             case {"start": start, "size": size}:
                 addr_dict["end"] = start + size
             case _:
                 raise ValueError("Invalid address range specification")
+        addr_dict.pop("size", None)
         return addr_dict
 
     @model_validator(mode="after")
@@ -453,22 +491,22 @@ class AddrRange(BaseModel):
         if self.start >= self.end:
             raise ValueError("Address range start must be less than end")
         if self.rdl_name is not None and self.rdl_as_mem is True:
-            raise ValueError(
-                "AddrRange: 'rdl_name' and 'rdl_as_mem' are mutually exclusive"
-            )
+            raise ValueError("AddrRange: 'rdl_name' and 'rdl_as_mem' are mutually exclusive")
         return self
 
     def set_arr(self, arr_idx, arr_dim):
         """Update the address range with the given index."""
+        # `size` is derived from `start`/`end`, so it has to be read before either moves.
+        size = self.size
         self.arr_idx = arr_idx
         self.arr_dim = arr_dim
         if self.base is not None:
             match arr_idx:
                 case (m,):
-                    self.start = self.base + self.size * m
+                    self.start = self.base + size * m
                 case (m, n):
-                    self.start = self.base + self.size * (m * arr_dim[1] + n)
-            self.end = self.start + self.size
+                    self.start = self.base + size * (m * arr_dim[1] + n)
+            self.end = self.start + size
         else:
             raise ValueError("Address range base not set")
         return self
@@ -479,9 +517,9 @@ class RouteMapRule(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    dest: Union[SimpleId, Coord]
+    dest: SimpleId | Coord
     addr_range: AddrRange
-    desc: Optional[str] = None
+    desc: str | None = None
 
     def __str__(self):
         return f"{self.addr_range} -> {self.dest}"
@@ -494,17 +532,19 @@ class RouteMapRule(BaseModel):
         struct_fields = {
             "idx": self.dest.render(),
             "start_addr": self.addr_range.start,
-            "end_addr": self.addr_range.end
+            "end_addr": self.addr_range.end,
         }
         if aw is not None:
             # Routing table use simple integers, and don't have any address width
-            struct_fields["start_addr"] = f"{aw}'h{self.addr_range.start:0{cdiv(aw,4)}x}"
-            struct_fields["end_addr"] = f"{aw}'h{self.addr_range.end:0{cdiv(aw,4)}x}"
+            struct_fields["start_addr"] = f"{aw}'h{self.addr_range.start:0{cdiv(aw, 4)}x}"
+            struct_fields["end_addr"] = f"{aw}'h{self.addr_range.end:0{cdiv(aw, 4)}x}"
 
         return sv_struct_render(struct_fields)
 
     def render_desc(self):
-        '''Render the description of the routing rule.'''
+        """Render the description of the routing rule."""
+        if self.desc is None:
+            raise ValueError(f"Routing rule {self} has no description to render")
         rule_desc = self.desc
         match self.addr_range.arr_idx:
             case (m,):
@@ -527,7 +567,9 @@ class RouteMapRule(BaseModel):
                     "arr_dim": self.addr_range.arr_dim,
                 }
             ]
-        effective_as_mem = rdl_as_mem if self.addr_range.rdl_as_mem is None else self.addr_range.rdl_as_mem
+        effective_as_mem = (
+            rdl_as_mem if self.addr_range.rdl_as_mem is None else self.addr_range.rdl_as_mem
+        )
         if effective_as_mem:
             mementries = (self.addr_range.end - self.addr_range.start) // rdl_memwidth * 8
             mem_string = (
@@ -544,12 +586,13 @@ class RouteMapRule(BaseModel):
             ]
         return []
 
+
 class RouteMapRuleCollective(RouteMapRule):
     """Routing rule class for collective operations (multicast, reduction, barrier)."""
 
-    mask_offset: Optional[Tuple[int, int]] = None
-    mask_len: Optional[Tuple[int, int]] = None
-    base_id: Optional[Tuple[int, int]] = None
+    mask_offset: tuple[int, int] | None = None
+    mask_len: tuple[int, int] | None = None
+    base_id: tuple[int, int] | None = None
 
     def render(self, aw=None):
         """Render the SystemVerilog routing rule."""
@@ -560,17 +603,24 @@ class RouteMapRuleCollective(RouteMapRule):
         # where the `id` is the original `idx`
         struct_fields = {
             "idx": {"id": self.dest.render()},
-            "start_addr": f"{aw}'h{self.addr_range.start:0{cdiv(aw,4)}x}",
-            "end_addr": f"{aw}'h{self.addr_range.end:0{cdiv(aw,4)}x}",
+            "start_addr": f"{aw}'h{self.addr_range.start:0{cdiv(aw, 4)}x}",
+            "end_addr": f"{aw}'h{self.addr_range.end:0{cdiv(aw, 4)}x}",
         }
 
-        # Non-collective nodes don't need any mask information
-        if self.mask_offset is None:
+        if self.mask_offset is None or self.mask_len is None or self.base_id is None:
             struct_fields["idx"]["mask_x"] = {"default": "'0"}
             struct_fields["idx"]["mask_y"] = {"default": "'0"}
         else:
-            struct_fields["idx"]["mask_x"] = {"offset": self.mask_offset[0], "len": self.mask_len[0], "base_id": self.base_id[0]}
-            struct_fields["idx"]["mask_y"] = {"offset": self.mask_offset[1], "len": self.mask_len[1], "base_id": self.base_id[1]}
+            struct_fields["idx"]["mask_x"] = {
+                "offset": self.mask_offset[0],
+                "len": self.mask_len[0],
+                "base_id": self.base_id[0],
+            }
+            struct_fields["idx"]["mask_y"] = {
+                "offset": self.mask_offset[1],
+                "len": self.mask_len[1],
+                "base_id": self.base_id[1],
+            }
 
         return sv_struct_render(struct_fields)
 
@@ -578,9 +628,9 @@ class RouteMapRuleCollective(RouteMapRule):
 class RouteRule(BaseModel):
     """Routing rule class."""
 
-    route: Optional[List[Tuple[int, int]]]
-    id: Union[SimpleId, Coord]
-    desc: Optional[str] = None
+    route: list[tuple[int, int]] | None
+    id: SimpleId | Coord
+    desc: str | None = None
 
     def render(self, num_route_bits):
         """Render the SystemVerilog route."""
@@ -601,8 +651,8 @@ class RouteRule(BaseModel):
             raise ValueError("Not enough bits to encode the route")
         if route_bits_used < num_route_bits:
             if split_route:
-                return f"{num_route_bits-route_bits_used}'d0, " + route_str[:-2]
-            return f"{num_route_bits}'b{'0' * (num_route_bits-route_bits_used)}" + route_str
+                return f"{num_route_bits - route_bits_used}'d0, " + route_str[:-2]
+            return f"{num_route_bits}'b{'0' * (num_route_bits - route_bits_used)}" + route_str
         if split_route:
             return route_str[:-2]
         return f"{num_route_bits}'b" + route_str
@@ -612,7 +662,7 @@ class RouteTable(BaseModel):
     """Route Table class, which can hold the route entries to each destination"""
 
     name: str
-    routes: List[RouteRule]
+    routes: list[RouteRule]
 
     def __len__(self):
         return len(self.routes)
@@ -622,6 +672,8 @@ class RouteTable(BaseModel):
         """Sort by destination and fill in missing entries."""
         self.routes = sorted(self.routes, key=lambda x: x.id)
         for i, route in enumerate(self.routes):
+            if not isinstance(route.id, SimpleId):
+                raise ValueError("Route tables require `SimpleId` destinations")  # noqa: TRY004
             if i != route.id.id:
                 self.routes.insert(i, RouteRule(route=None, id=SimpleId(id=i)))
         return self.routes.reverse()
@@ -660,7 +712,7 @@ class RouteMap(BaseModel):
     or a routing table of a router."""
 
     name: str
-    rules: List[RouteMapRule]
+    rules: list[RouteMapRule]
 
     def __str__(self):
         return f"{self.rules}"
@@ -679,7 +731,7 @@ class RouteMap(BaseModel):
         for i in range(len(rules) - 1):
             if rules[i].addr_range.end > rules[i + 1].addr_range.start:
                 raise ValueError(
-                    f"Overlapping ranges: {rules[i].addr_range} and {rules[i+1].addr_range}\n \
+                    f"Overlapping ranges: {rules[i].addr_range} and {rules[i + 1].addr_range}\n \
                     {self.pprint()}"
                 )
         return self
@@ -701,9 +753,6 @@ class RouteMap(BaseModel):
             while i < len(ranges) - 1:
                 if ranges[i].addr_range.end == ranges[i + 1].addr_range.start:
                     ranges[i].addr_range.end = ranges[i + 1].addr_range.end
-                    ranges[i].addr_range.size = (
-                        ranges[i].addr_range.end - ranges[i].addr_range.start
-                    )
                     del ranges[i + 1]
                 else:
                     i += 1
@@ -723,7 +772,7 @@ class RouteMap(BaseModel):
         rules = self.rules.copy()
         # typedef of the address rule
         string += sv_param_decl(f"{snake_to_camel(self.name)}NumRules", len(rules)) + "\n"
-        addr_type = f"logic [{aw-1}:0]" if aw is not None else "id_t"
+        addr_type = f"logic [{aw - 1}:0]" if aw is not None else "id_t"
         effective_rule_type = self.rule_type()
         rule_type_dict = {}
         if not isinstance(rules[0], RouteMapRuleCollective):
@@ -735,11 +784,23 @@ class RouteMap(BaseModel):
                 # Router table: reuse the shared route_map_rule_t from the package
                 effective_rule_type = "route_map_rule_t"
         else:
-            rule_type_dict = {"offset": "int unsigned", "len": "int unsigned", "base_id": "int unsigned"}
+            rule_type_dict = {
+                "offset": "int unsigned",
+                "len": "int unsigned",
+                "base_id": "int unsigned",
+            }
             string += sv_struct_typedef("collective_mask_sel_t", rule_type_dict)
-            rule_type_dict = {"id": "id_t", "mask_x": "collective_mask_sel_t", "mask_y": "collective_mask_sel_t"}
+            rule_type_dict = {
+                "id": "id_t",
+                "mask_x": "collective_mask_sel_t",
+                "mask_y": "collective_mask_sel_t",
+            }
             string += sv_struct_typedef("collective_idx_t", rule_type_dict)
-            rule_type_dict = {"idx": "collective_idx_t", "start_addr": addr_type, "end_addr": addr_type}
+            rule_type_dict = {
+                "idx": "collective_idx_t",
+                "start_addr": addr_type,
+                "end_addr": addr_type,
+            }
             string += sv_struct_typedef(self.rule_type(), rule_type_dict)
 
         rules_str = ""
@@ -752,14 +813,14 @@ class RouteMap(BaseModel):
             return string
         for i, rule in enumerate(rules):
             rules_str += f"{rule.render(aw)}"
-            rules_str += ',' if i != len(rules) - 1 else ' '
+            rules_str += "," if i != len(rules) - 1 else " "
             if rule.desc is not None:
                 rules_str += f"// {snake_to_camel(rule.render_desc())}\n"
         string += sv_param_decl(
             f"{snake_to_camel(self.name)}",
             value="'{\n" + rules_str + "\n}",
             dtype=effective_rule_type,
-            array_size=f"{snake_to_camel(self.name)}NumRules-1"
+            array_size=f"{snake_to_camel(self.name)}NumRules-1",
         )
         return string
 
@@ -780,18 +841,18 @@ class RouteMap(BaseModel):
             if rule.desc is not None:
                 block_name = rule.desc
             rdl_setups.extend(rule.get_rdl(f"{block_name}", rdl_as_mem, rdl_memwidth))
-        newlist = sorted(rdl_setups, key=lambda d: d['start_addr'])
+        newlist = sorted(rdl_setups, key=lambda d: d["start_addr"])
         for item in newlist:
             string += f"  {item['rdl_name']} {item['instance_name']}"
-            match item['arr_dim']:
+            match item["arr_dim"]:
                 case (m,):
                     string += f"[{m}]"
                 case (m, n):
-                    string += f"[{m*n}]"
+                    string += f"[{m * n}]"
                 case _:
                     pass
             string += f" @0x{item['start_addr']:X}"
-            if item['arr_dim'] is not None:
+            if item["arr_dim"] is not None:
                 string += f" += 0x{item['size']:X}"
             string += ";\n"
         return string
@@ -803,14 +864,14 @@ class RouteMap(BaseModel):
         rdl_names = []
         for rule in rules:
             if rule.addr_range.rdl_name is not None:
-                rdl_names.append(rule.addr_range.rdl_name.split()[0].split('#')[0])
+                rdl_names.append(rule.addr_range.rdl_name.split()[0].split("#")[0])
         # uniquify the names
-        rdl_names = sorted(list(set(rdl_names)))
+        rdl_names = sorted(set(rdl_names))
         for rule in rdl_names:
-            string += f"`include \"{rule}.rdl\"\n"
+            string += f'`include "{rule}.rdl"\n'
         return string
 
-    def distinct_groups(self) -> List[str]:
+    def distinct_groups(self) -> list[str]:
         """Return the sorted list of distinct RDL addrmap groups used by any rule."""
         groups = set()
         for rule in self.rules:
@@ -820,8 +881,11 @@ class RouteMap(BaseModel):
 
     def filter_by_group(self, group: str) -> "RouteMap":
         """Return a new RouteMap with only rules in `group` (untagged rules included)."""
-        rules = [r for r in self.rules
-                 if not r.addr_range.rdl_addrmap_grp or group in r.addr_range.rdl_addrmap_grp]
+        rules = [
+            r
+            for r in self.rules
+            if not r.addr_range.rdl_addrmap_grp or group in r.addr_range.rdl_addrmap_grp
+        ]
         return RouteMap(name=self.name, rules=rules)
 
     def pprint(self):
@@ -845,25 +909,25 @@ class Routing(BaseModel):
 
     route_algo: RouteAlgo
     use_id_table: bool = True
-    sam: Optional[RouteMap] = None
+    sam: RouteMap | None = None
     """The system address map."""
-    table: Optional[RouteMap] = None
+    table: RouteMap | None = None
     """The routing table of the router."""
-    addr_offset_bits: Optional[int] = None
+    addr_offset_bits: int | None = None
     """The number of bits to decode the X and Y coordinates from the address. Only used if `use_id_table` is False and `route_algo` is XY."""
-    xy_id_offset: Optional[Union[SimpleId, Coord]] = None
+    xy_id_offset: SimpleId | Coord | None = None
     """A constant offset to add to the X and Y coordinates. Only used if `route_algo` is XY."""
-    num_endpoints: Optional[int] = None
+    num_endpoints: int | None = None
     """The number of endpoints in the network."""
-    num_id_bits: Optional[int] = None
+    num_id_bits: int | None = None
     """The number of bits to represent the ID. Only used if `route_algo` is ID or SRC."""
-    num_x_bits: Optional[int] = None
+    num_x_bits: int | None = None
     """The number of bits to represent the X coordinate. Only used if `route_algo` is XY."""
-    num_y_bits: Optional[int] = None
+    num_y_bits: int | None = None
     """The number of bits to represent the Y coordinate. Only used if `route_algo` is XY."""
-    num_route_bits: Optional[int] = None
+    num_route_bits: int | None = None
     """The number of bits to represent the route. Only used if `route_algo` is SRC."""
-    addr_width: Optional[int] = None
+    addr_width: int | None = None
     """The width of the address bus."""
     rob_idx_bits: int = 1
     port_id_bits: int = 1
@@ -871,7 +935,7 @@ class Routing(BaseModel):
     num_vc_id_bits: int = 0
     decouple_rw: WideRwDecouple = WideRwDecouple.NONE
     vc_impl: VcImpl = VcImpl.NAIVE
-    collective_sam: Optional[RouteMap] = None
+    collective_sam: RouteMap | None = None
     """The collective system address map. Only used if collective is enabled."""
     collective: CollectiveCfg = CollectiveCfg()
 
@@ -926,6 +990,7 @@ class Routing(BaseModel):
                 f"algorithms, but got {self.route_algo}"
             )
         return self
+
     def render_param_decl(self) -> str:
         """Render the SystemVerilog parameter declaration."""
         string = ""
@@ -936,6 +1001,8 @@ class Routing(BaseModel):
                 string += sv_param_decl("NumXBits", self.num_x_bits)
                 string += sv_param_decl("NumYBits", self.num_y_bits)
             case RouteAlgo.ID:
+                if self.num_id_bits is None:
+                    raise ValueError(_NOT_GENERATED)
                 string += sv_param_decl("NumIdBits", self.num_id_bits)
             case _:
                 pass
@@ -947,6 +1014,8 @@ class Routing(BaseModel):
             string += sv_param_decl("XYAddrOffsetX", 0)
             string += sv_param_decl("XYAddrOffsetY", 0)
         if self.route_algo == RouteAlgo.ID and not self.use_id_table:
+            if self.addr_offset_bits is None:
+                raise ValueError(_NOT_GENERATED)
             string += sv_param_decl("IdAddrOffset", self.addr_offset_bits)
         else:
             string += sv_param_decl("IdAddrOffset", 0)
@@ -989,12 +1058,26 @@ class Routing(BaseModel):
             if self.collective.en_collective:
                 return (
                     f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t,"
-                    f" id_t, collect_op_t)")
+                    f" id_t, collect_op_t)"
+                )
             return f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t)"
         return f"`FLOO_TYPEDEF_VC_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t, vc_id_t)"
 
     def render_route_cfg(self, name) -> str:
         """Render the SystemVerilog routing configuration."""
+        xy_addr_offset_x, xy_addr_offset_y, id_addr_offset = 0, 0, 0
+        if self.route_algo in (RouteAlgo.XY, RouteAlgo.YX):
+            if self.addr_offset_bits is None or self.num_x_bits is None:
+                raise ValueError(_NOT_GENERATED)
+            xy_addr_offset_x = self.addr_offset_bits
+            xy_addr_offset_y = self.addr_offset_bits + self.num_x_bits
+        elif self.route_algo == RouteAlgo.ID and not self.use_id_table:
+            if self.addr_offset_bits is None:
+                raise ValueError(_NOT_GENERATED)
+            id_addr_offset = self.addr_offset_bits
+        if self.sam is None:
+            raise ValueError("System address map has not been generated")
+
         fields = {
             "RouteAlgo": self.route_algo.value,
             "UseIdTable": bool_to_sv(self.use_id_table),

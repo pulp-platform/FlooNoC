@@ -61,7 +61,7 @@ module floo_router
   /// Only used for `XYRouting`, tie to '0 otherwise
   input  id_t                                        xy_id_i,
   /// Only used for `IdTable` routing, tie to '0 otherwise
-  input  addr_rule_t [floo_iomsb(NumAddrRules):0]              id_route_map_i,
+  input  addr_rule_t [cc_pkg::iomsb(NumAddrRules):0]           id_route_map_i,
   /// Input channels
   input  logic  [NumInput-1:0][NumVirtChannels-1:0]  valid_i,
   output logic  [NumInput-1:0][NumVirtChannels-1:0]  ready_o,
@@ -86,7 +86,7 @@ module floo_router
   localparam bit EnMultiCast = en_multicast_support(CollectiveCfg);
   localparam bit EnCollective = (EnSequentialReduction | EnParallelReduction | EnMultiCast);
 
-  // When a offloadable reduction is dedected then the data will be brunched off infront
+  // When a offloadable reduction is detected then the data will be brunched off infront
   // of the router crossbar. The reduction logic will reduce the incoming flits and deliver
   // a single flit instead. When finished the result will be merged as an extra port into
   // the output arbiter.
@@ -108,7 +108,7 @@ module floo_router
   logic  [NumInput-1:0][NumOutput-1:0] red_offload_route_selected;
   logic  [NumInput-1:0][NumInput-1:0] red_offload_expected_in_route_loopback;
 
-  // SIgnals top connect offload reduction logic to output virtual channel 0
+  // Signals to connect offload reduction logic to output virtual channel 0
   logic  [NumOutput-1:0] red_offload_valid_out, red_offload_ready_out;
   flit_t [NumOutput-1:0] red_offload_data_out;
 
@@ -116,7 +116,7 @@ module floo_router
   for (genvar in = 0; in < NumInput; in++) begin : gen_input
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_input
 
-      logic [cf_math_pkg::idx_width(NumPhysChannels)-1:0] in_p;
+      logic [cc_pkg::idx_width(NumPhysChannels)-1:0] in_p;
       if (NumPhysChannels == 1) begin : gen_single_phys
         assign in_p = '0;
       end else if (NumPhysChannels == NumVirtChannels) begin : gen_virt_eq_phys
@@ -126,13 +126,13 @@ module floo_router
       end
 
       (* ungroup *)
-      stream_fifo_optimal_wrap #(
+      cc_stream_fifo_optimal_wrap #(
         .Depth  ( InFifoDepth ),
-        .type_t ( flit_t      )
+        .data_t ( flit_t      )
       ) i_stream_fifo (
         .clk_i      ( clk_i         ),
         .rst_ni     ( rst_ni        ),
-        .testmode_i ( test_enable_i ),
+        .clr_i      ( 1'b0  ),
         .flush_i    ( 1'b0  ),
         .usage_o    (       ),
         .data_i     ( data_i  [in][in_p] ),
@@ -186,16 +186,16 @@ module floo_router
   logic  [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] red_route_selected;
   flit_t [NumInput-1:0][NumVirtChannels-1:0] red_data_in;
 
-  // Vars for the data comming from the reduction
+  // Vars for the data coming from the reduction
   logic  [NumOutput-1:0][NumVirtChannels-1:0] red_valid_out, red_ready_out;
   flit_t [NumOutput-1:0][NumVirtChannels-1:0] red_data_out;
 
   // Vars to separate reductions with only one member
   logic [NumInput-1:0][NumVirtChannels-1:0][NumInput-1:0] red_expected_in_route;
-  logic [NumInput-1:0][NumVirtChannels-1:0][$clog2(NumInput):0] red_how_many_participants;
+  logic [NumInput-1:0][NumVirtChannels-1:0][$clog2(NumInput+1)-1:0] red_how_many_participants;
   logic [NumInput-1:0][NumVirtChannels-1:0] red_single_member, offload_reduction;
 
-  // If we support offload reduction and a reduction is dedected then we split the signal and forward it to the reduction
+  // If we support offload reduction and a reduction is detected then we split the signal and forward it to the reduction
   if(EnSequentialReduction) begin : gen_offload_reduction_demux
     for (genvar in = 0; in < NumInput; in++) begin : gen_input
       for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_input
@@ -214,9 +214,10 @@ module floo_router
         );
 
         // onehot decoding of the input direction
-        // bypass the reduction if only on  e input member is selected (if none is selected then bypass too [should never occure but to avoid deadlocks])
-        popcount #(
-          .INPUT_WIDTH (NumInput)
+        // bypass the reduction if only one input member is selected
+        // (if none is selected then bypass too [should never occurred but to avoid deadlocks])
+        cc_popcount #(
+          .InputWidth  (NumInput)
         ) i_red_list_counter (
           .data_i       (red_expected_in_route[in][v]),
           .popcount_o   (red_how_many_participants[in][v])
@@ -228,8 +229,8 @@ module floo_router
         // Output 1: reduction
         assign offload_reduction[in][v] = (~red_single_member[in][v]) &
                             (is_seq_reduction_op(in_routed_data[in][v].hdr.collective_op));
-        stream_demux #(
-          .N_OUP              (2)
+        cc_stream_demux #(
+          .NumOup             (2)
         ) i_stream_demux (
           .inp_valid_i        (in_valid[in][v]),
           .inp_ready_o        (in_ready[in][v]),
@@ -388,7 +389,7 @@ module floo_router
     end
   end
 
-  // TODO (lleone): Move the folloiwng FF inside the multicast
+  // TODO (lleone): Move the following FF inside the multicast
   `FF(past_handshakes_q, past_handshakes_d, '0)
 
   // We merge the data from the reduction module as an additional input of our output arbiter.
@@ -410,7 +411,7 @@ module floo_router
     assign masked_ready = merged_ready;
   end
 
-  // Vars to handle the output of the arbiter and the optinal fifos
+  // Vars to handle the output of the arbiter and the optional fifos
   flit_t [NumOutput-1:0][NumVirtChannels-1:0] out_data, out_buffered_data;
   logic  [NumOutput-1:0][NumVirtChannels-1:0] out_valid, out_ready;
   logic  [NumOutput-1:0][NumVirtChannels-1:0] out_buffered_valid, out_buffered_ready;
@@ -445,13 +446,13 @@ module floo_router
 
       if (OutFifoDepth > 0) begin : gen_out_fifo
         (* ungroup *)
-        stream_fifo_optimal_wrap #(
+        cc_stream_fifo_optimal_wrap #(
           .Depth  ( OutFifoDepth  ),
-          .type_t ( flit_t        )
+          .data_t ( flit_t        )
         ) i_stream_fifo (
           .clk_i      ( clk_i         ),
           .rst_ni     ( rst_ni        ),
-          .testmode_i ( test_enable_i ),
+          .clr_i      ( 1'b0          ),
           .flush_i    ( 1'b0          ),
           .usage_o    (               ),
           .data_i     ( out_data          [out][v] ),

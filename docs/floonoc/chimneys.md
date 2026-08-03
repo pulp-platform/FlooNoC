@@ -19,14 +19,14 @@ Responses that arrive out-of-order are buffered in a reorder buffer (RoB) until 
 
 #### Stalling
 
-Another way to solve the ordering problem is to simply stall the injection of new requests into the network if the NI cannot guarantee that the responses will arrive in order. This approach is very simple to implement, and has a very small overhead, but it can lead to significant performance degredation in some cases. Luckily, there are some optimizations that the AXI NIs apply, which reduce the number of stalls. First, transactions to the same destination are always guaranteed to arrive in order (assuming a static routing algorithm is used in side the network). This means that the NI can inject multiple requests into the network, while the destination stays the same. Second, the ordering requirement only applies to transactions with the same `txnID`. Therefore, downstream components can also use different IDs to avoid ordering issues.
+Another way to solve the ordering problem is to simply stall the injection of new requests into the network if the NI cannot guarantee that the responses will arrive in order. This approach is very simple to implement, and has a very small overhead, but it can lead to significant performance degradation in some cases. Luckily, there are some optimizations that the AXI NIs apply, which reduce the number of stalls. First, transactions to the same destination are always guaranteed to arrive in order (assuming a static routing algorithm is used in side the network). This means that the NI can inject multiple requests into the network, while the destination stays the same. Second, the ordering requirement only applies to transactions with the same `txnID`. Therefore, downstream components can also use different IDs to avoid ordering issues.
 
 The AXI NIs of _FlooNoC_ offers both options, and there are different implementations that can be set with the `ChimneyCfg.RoBType` parameter. The following table shows the different options:
 
 | RoBType | Description |
 |---------|-------------|
 | `NoRoB` | No RoB, which stalls transactions of the same `txnID` going to different destinations until the previous transaction is completed. This is option is useful if the ordering of transactions is handled downstream, e.g. in the DMA by issuing AXI transactions with different `txnIDs`. The overhead of this RoB is very low, since it only requires counters for tracking the number of outstanding transactions of each `txnID`.|
-| `NormalRoB` |  The most performant but also most complex RoB, which supports reodering of responses. This reorder buffer retains the out-of-order nature of AXI transactions with different IDs. Supports multiple outstanding transactions and bursts |
+| `NormalRoB` |  The most performant but also most complex RoB, which supports reordering of responses. This reorder buffer retains the out-of-order nature of AXI transactions with different IDs. Supports multiple outstanding transactions and bursts |
 | `SimpleRoB` | Simpler FIFO-like RoB, which does not support reordering of responses with the same AXI `txnID`. Transactions with different `txnIDs` are effectively serialized. Supports multiple outstanding transactions but currently does not support burst transactions. Mainly useful for B-responses which are single transactions. |
 
 The selection of the RoB type depends on the endpoints that are attached to it. For instance, cores with narrower AXI interfaces might are less costly to reorder with a RoB, while DMAs with wider interfaces and burst requests might be prohibitively expensive to reorder. `FlooNoC` gives the option to specify the RoB type and size in the `ChimneyCfg` parameter. In AXI, both read and write response exist, for which different RoBs can be selected. For instance, the `B` response is very small and the cost of reordering it is quite low, which might not be true for the `R` responses.
@@ -53,7 +53,7 @@ In order to guarantee the correct ordering of AXI transactions, _FlooNoC_ does s
 
 ### Configuration
 
-Network interfaces are typically configued over the `ChimneyCfg` struct. For `nw_chimney`'s there is a configuration struct for narrow and wide data path each. The `ChimneyCfg` has the following configurations:
+Network interfaces are typically configured over the `ChimneyCfg` struct. For `nw_chimney`'s there is a configuration struct for narrow and wide data path each. The `ChimneyCfg` has the following configurations:
 
 
 | Field | Type | Description |
@@ -63,9 +63,9 @@ Network interfaces are typically configued over the `ChimneyCfg` struct. For `nw
 | `MaxTxns` | `int` | The number of both incoming and outgoing transactions that can be handled by the network interface. |
 | `MaxUniqueIds` | `int` | The number of unique transaction IDs that can be issued by the network to AXI subordinates downstream. By default the network interface issues with a single txnID, effectively serializing incoming transactions from all managers in the entire system. If multiple txnIDs are used, incoming transactions with different TxnIDs _might_ not be serialized. This is results in more complex logic in the network interfaces, but might be useful for downstream AXI networks that can handle out-of-order transactions. |
 | `MaxTxnsPerId` | `int` | Number of outstanding transactions per txnID. Only used if `RoBType == NormalRoB`. |
-| `BRoBType` | `rob_type_e` | The type of Reoder Buffer (RoB) that is used for B responses. |
+| `BRoBType` | `rob_type_e` | The type of Reorder Buffer (RoB) that is used for B responses. |
 | `BRoBSize` | `int` | The depth of the RoB for B responses. Only used if `BRoBType != NoRoB`. |
-| `RRoBType` | `rob_type_e` | The type of Reoder Buffer (RoB) that is used for R responses. |
+| `RRoBType` | `rob_type_e` | The type of Reorder Buffer (RoB) that is used for R responses. |
 | `RRoBSize` | `int` | The depth of the RoB for R responses. Only used if `RRoBType != NoRoB`. |
 | `CutAx` | `bit` | Whether to buffer incoming AXI requests at the network interface, to ease timing closure. |
 | `CutRsp` | `bit` | Whether to buffer incoming links at the network interface |

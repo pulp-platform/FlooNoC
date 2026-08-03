@@ -8,7 +8,7 @@ updates:
   - package-ecosystem: "uv"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     # Only update to versions that have been published for at least 7 days,
     # to avoid pulling in compromised releases that get yanked quickly.
     cooldown:
@@ -21,11 +21,23 @@ updates:
       python-deps:
         patterns: ["*"]
 
+  # Hook repositories pinned by `rev` in .pre-commit-config.yaml. The hooks that
+  # run through `uv` are covered by the `uv` ecosystem above instead.
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    groups:
+      pre-commit-hooks:
+        patterns: ["*"]
+
   # GitHub Actions used in .github/workflows
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     cooldown:
       default-days: 7
     groups:

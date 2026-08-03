@@ -58,8 +58,8 @@ module floo_reduction_unit
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi, AxiCfg)
   `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi_in, AxiCfg, hdr_t)
 
-  typedef logic [cf_math_pkg::idx_width(NumInputs)-1:0] input_sel_t;
-  typedef logic [cf_math_pkg::idx_width(NumOutputs)-1:0] out_select_t;
+  typedef logic [cc_pkg::idx_width(NumInputs)-1:0] input_sel_t;
+  typedef logic [cc_pkg::idx_width(NumOutputs)-1:0] out_select_t;
 
   typedef struct packed {
     collect_op_e     op;
@@ -115,9 +115,10 @@ module floo_reduction_unit
   /// Outgoing operands flow ///
   ///------------------------///
 
-  // Leading zero counter to chose the first valid operand
-  lzc #(
-    .WIDTH(NumInputs)
+  // Trailing zero counter to find the first valid operand (index of first set bit)
+  cc_lzc #(
+    .Width ( NumInputs                  ),
+    .Mode  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
   ) i_lzc_opn1 (
     .in_i     ( valid_i       ),
     .cnt_o    ( operand1_sel  ),
@@ -138,7 +139,7 @@ module floo_reduction_unit
     .ready_i          ( operands_ready_in       )
   );
 
-  // The first operand is always the one selected from the lzc module
+  // The first operand is always the one selected from the cc_lzc module
   assign operand1_flit = data_i[operand1_sel];
   assign incoming_op = data_i[operand1_sel].hdr.collective_op;
 
@@ -146,8 +147,9 @@ module floo_reduction_unit
   assign mask_operand1 = {NumInputs'(1)} << operand1_sel;
   assign mask_operand2 = in_mask_i[operand1_sel] & ~mask_operand1;
   // This zero counter is used to select the second operand looking at the input mask
-  lzc #(
-    .WIDTH(NumInputs)
+  cc_lzc #(
+    .Width ( NumInputs                  ),
+    .Mode  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
   ) i_lzc_opn2 (
     .in_i     ( mask_operand2 ),
     .cnt_o    ( operand2_sel  ),
@@ -159,8 +161,8 @@ module floo_reduction_unit
   // Stream demux to arbitrate between different functional units:
   // - Output 1: Offload unit
   // - Output 2: SelectAW unit
-  stream_demux #(
-    .N_OUP ( 2 )
+  cc_stream_demux #(
+    .NumOup ( 2 )
   ) i_operands_demux (
     .inp_valid_i   ( operands_valid_out     ),
     .inp_ready_o   ( operands_ready_in      ),
@@ -196,15 +198,15 @@ module floo_reduction_unit
 
   `FFLARNC(already_pushed_q, 1'b1, operands_valid_out && (~already_pushed_q),
            valid_operand_handshake, 1'b0, clk_i, rst_ni)
-  fifo_v3 #(
-      .FALL_THROUGH     (1'b1),
-      .dtype            (flit_t),
-      .DEPTH            (RedCfg.RdPipelineDepth+2)
+  cc_fifo #(
+      .FallThrough     (1'b1),
+      .data_t            (flit_t),
+      .Depth            (RedCfg.RdPipelineDepth+2)
   ) i_fifo_flit (
       .clk_i      (clk_i),
       .rst_ni     (rst_ni),
+      .clr_i      (1'b0),
       .flush_i    (1'b0),
-      .testmode_i (1'b0),
       .full_o     (),
       .empty_o    (),
       .usage_o    (),
@@ -214,15 +216,15 @@ module floo_reduction_unit
       .pop_i      (result_flit_valid_out & result_flit_ready_in) // pop on result handshake
   );
   // Fifo to store the output direction of the element during the FPU reduction
-  fifo_v3 #(
-      .FALL_THROUGH     (1'b1),
-      .DATA_WIDTH       (NumInputs),
-      .DEPTH            (RedCfg.RdPipelineDepth+2)
+  cc_fifo #(
+      .FallThrough     (1'b1),
+      .DataWidth        (NumInputs),
+      .Depth            (RedCfg.RdPipelineDepth+2)
   ) i_fifo_route_dir (
       .clk_i      (clk_i),
       .rst_ni     (rst_ni),
+      .clr_i      (1'b0),
       .flush_i    (1'b0),
-      .testmode_i (1'b0),
       .full_o     (),
       .empty_o    (), // Not needed, this fifo is always sinc with the flit one
       .usage_o    (),
@@ -234,12 +236,13 @@ module floo_reduction_unit
 
   // TODO (lleone): Create a REQ/RSP struct for the following interface
   // and replace all the spill registers with just one for REQ and one for RSP
-  spill_register #(
-        .T (red_intsr_t),
+  cc_spill_register #(
+        .data_t (red_intsr_t),
         .Bypass (!RedCfg.CutOffloadIntf)
   ) i_offload_cut_req (
         .clk_i,
         .rst_ni,
+        .clr_i    (1'b0),
         .data_i   (instr_out),
         .valid_i  (offload_operands_valid_out),
         .ready_o  (offload_operands_ready_in),
@@ -259,12 +262,13 @@ module floo_reduction_unit
   /// Incoming responses flow ///
   ///-------------------------///
 
-  spill_register #(
-        .T (reduction_data_t),
+  cc_spill_register #(
+        .data_t (reduction_data_t),
         .Bypass (!RedCfg.CutOffloadIntf)
   ) i_offload_cut_rsp (
         .clk_i,
         .rst_ni,
+        .clr_i    (1'b0),
         .data_i   (result_i),
         .valid_i  (result_valid_i),
         .ready_o  (result_ready_o),
@@ -287,9 +291,9 @@ module floo_reduction_unit
   ///-------------------------///
 
   assign result_mux_sel = metadata_flit_out.hdr.collective_op == SeqAW;
-  stream_mux #(
-    .DATA_T   ( flit_t ),
-    .N_INP    ( 2 )
+  cc_stream_mux #(
+    .data_t   ( flit_t ),
+    .NumInp   ( 2 )
   ) i_result_mux (
     .inp_data_i   ( {aw_out, result_flit_in}        ),
     .inp_valid_i  ( {aw_valid_out, result_valid_in} ),
@@ -300,17 +304,18 @@ module floo_reduction_unit
     .oup_ready_i  ( result_flit_ready_in            )
   );
 
-  // Output destination lzc
-  lzc #(
-    .WIDTH(NumOutputs)
+  // Output destination cc_lzc
+  cc_lzc #(
+    .Width ( NumOutputs                 ),
+    .Mode  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
   ) i_lzc_result_out (
     .in_i     ( metadata_route_out_dir  ),
     .cnt_o    ( out_select       ),
     .empty_o  (                  )
   );
 
-  stream_demux #(
-    .N_OUP ( NumOutputs )
+  cc_stream_demux #(
+    .NumOup ( NumOutputs )
   ) i_result_demux (
     .inp_valid_i   ( result_flit_valid_out  ),
     .inp_ready_o   ( result_flit_ready_in   ),

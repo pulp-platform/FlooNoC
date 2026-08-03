@@ -121,8 +121,18 @@ floo_nw_router #(
   .floo_rsp_i (${router.name}_rsp_in),
   .floo_wide_i (${router.name}_wide_in),
   .floo_wide_o (${router.name}_wide_out),
+% if network.routing.collective.en_narrow_reduction is not None:
+  .offload_narrow_req_o (offload_narrow_req_o[${offload_idx}]),
+  .offload_narrow_rsp_i (offload_narrow_rsp_i[${offload_idx}]),
+% else:
   .offload_narrow_req_o (),
   .offload_narrow_rsp_i ('0),
+% endif
+% if network.routing.collective.en_wide_reduction is not None:
+  .offload_wide_req_o (offload_wide_req_o[${offload_idx}]),
+  .offload_wide_rsp_i (offload_wide_rsp_i[${offload_idx}])
+% else:
   .offload_wide_req_o (),
   .offload_wide_rsp_i ('0)
+% endif
 );

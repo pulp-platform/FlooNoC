@@ -1,20 +1,18 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
+import logging
 from collections.abc import Mapping
 from pathlib import Path
-import logging
 from typing import TypeVar
 
-from pydantic import ValidationError, BaseModel
-
-from ruamel.yaml.comments import CommentedMap
-from ruamel.yaml import YAMLError
 import ruamel.yaml
+from pydantic import BaseModel, ValidationError
+from ruamel.yaml import YAMLError
+from ruamel.yaml.comments import CommentedMap
 
 logger = logging.getLogger(__name__)
 
@@ -59,14 +57,26 @@ def get_file_location(
 T = TypeVar("T", bound=BaseModel)
 
 
-def parse_config(cls: type[T], config_file: Path) -> T | None:
-    """Parses a configuration file and returns a validated model."""
+class ConfigError(Exception):
+    """Raised when a configuration file cannot be parsed or validated.
+
+    The specific problems are reported through `logger` before this is raised, so callers
+    should report only this exception's message rather than a traceback.
+    """
+
+
+def parse_config(cls: type[T], config_file: Path) -> T:
+    """Parses a configuration file and returns a validated model.
+
+    Raises:
+        ConfigError: If the file is not valid YAML or does not validate against `cls`.
+    """
     with config_file.open() as file:
         try:
             config_data = ruamel.yaml.YAML(typ="rt").load(file)
         except YAMLError as e:
             logger.error("Error while parsing config_file:\n %s", e)
-            return None
+            raise ConfigError(f"Could not parse '{config_file}' as YAML") from e
 
     try:
         return cls.model_validate(config_data)
@@ -88,4 +98,4 @@ def parse_config(cls: type[T], config_file: Path) -> T | None:
             logger.error("Line %s, Column %s:", line, column)
             logger.error("...\n%s\n...", error_context)
             logger.error("Error: %s", error["msg"])
-        return None
+        raise ConfigError(f"{len(e.errors())} validation error(s) in '{config_file}'") from e

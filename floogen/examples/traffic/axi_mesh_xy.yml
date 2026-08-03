@@ -1,0 +1,167 @@
+# Copyright 2026 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Author: Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
+
+traffic_flows:
+  - name: "cl_0_0_to_hbm_0_0"
+    initiator: [0, 0]
+    endpoint: [-1, 0]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 256
+    wide_burst:
+      number: 0
+      length: 256
+  - name: "cl_0_1_to_hbm_0_1"
+    initiator: [0, 1]
+    endpoint: [-1, 1]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 256
+    wide_burst:
+      number: 0
+      length: 256
+  - name: "cl_0_2_to_hbm_0_2"
+    initiator: [0, 2]
+    endpoint: [-1, 2]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 256
+    wide_burst:
+      number: 0
+      length: 256
+  - name: "cl_0_3_to_hbm_0_3"
+    initiator: [0, 3]
+    endpoint: [-1, 3]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 256
+    wide_burst:
+      number: 0
+      length: 256
+  - name: "cl_1_0_to_hbm_0_0"
+    initiator: [1, 0]
+    endpoint: [-1, 0]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 256
+    wide_burst:
+      number: 0
+      length: 256
+  - name: "cl_1_1_to_hbm_0_1"
+    initiator: [1, 1]
+    endpoint: [-1, 1]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 256
+    wide_burst:
+      number: 0
+      length: 256
+  - name: "cl_1_2_to_hbm_0_2"
+    initiator: [1, 2]
+    endpoint: [-1, 2]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 256
+    wide_burst:
+      number: 0
+      length: 256
+  - name: "cl_1_3_to_hbm_0_3"
+    initiator: [1, 3]
+    endpoint: [-1, 3]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 256
+    wide_burst:
+      number: 0
+      length: 256
+  - name: "cl_2_0_to_hbm_0_0"
+    initiator: [2, 0]
+    endpoint: [-1, 0]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 256
+    wide_burst:
+      number: 0
+      length: 256
+  - name: "cl_2_1_to_hbm_0_1"
+    initiator: [2, 1]
+    endpoint: [-1, 1]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 256
+    wide_burst:
+      number: 0
+      length: 256
+  - name: "cl_2_2_to_hbm_0_2"
+    initiator: [2, 2]
+    endpoint: [-1, 2]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 256
+    wide_burst:
+      number: 0
+      length: 256
+  - name: "cl_2_3_to_hbm_0_3"
+    initiator: [2, 3]
+    endpoint: [-1, 3]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 256
+    wide_burst:
+      number: 0
+      length: 256
+  - name: "cl_3_0_to_hbm_0_0"
+    initiator: [3, 0]
+    endpoint: [-1, 0]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 256
+    wide_burst:
+      number: 0
+      length: 256
+  - name: "cl_3_1_to_hbm_0_1"
+    initiator: [3, 1]
+    endpoint: [-1, 1]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 256
+    wide_burst:
+      number: 0
+      length: 256
+  - name: "cl_3_2_to_hbm_0_2"
+    initiator: [3, 2]
+    endpoint: [-1, 2]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 256
+    wide_burst:
+      number: 0
+      length: 256
+  - name: "cl_3_3_to_hbm_0_3"
+    initiator: [3, 3]
+    endpoint: [-1, 3]
+    rw: write
+    narrow_burst:
+      number: 4
+      length: 256
+    wide_burst:
+      number: 0
+      length: 256

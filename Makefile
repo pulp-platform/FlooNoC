@@ -34,38 +34,31 @@ BENDER_FLAGS += -t test
 BENDER_FLAGS += -t floo_test
 BENDER_FLAGS += -t snitch_cluster
 BENDER_FLAGS += -t idma_test
-BENDER_FLAGS := $(BENDER_FLAGS) $(EXTRA_BENDER_FLAGS)
+BENDER_FLAGS += -t cc_no_deprecated
 
 WORK 	 		?= work
-TB_DUT 		?= floo_noc_router_test
+TB_DUT 			?= tb_floo_router
 
-######################
-# Traffic Generation #
-######################
+ifeq ($(TB_DUT),tb_floo_nw_mesh)
+BENDER_FLAGS += -t nw_mesh
+endif
+ifeq ($(TB_DUT),tb_floo_axi_mesh)
+BENDER_FLAGS += -t axi_mesh
+endif
 
-TRAFFIC_GEN ?= util/gen_jobs.py
-TRAFFIC_TB ?= dma_mesh
-TRAFFIC_TYPE ?= random
-TRAFFIC_RW ?= read
-TRAFFIC_OUTDIR ?= hw/test/jobs
-
-.PHONY: jobs clean-jobs
-jobs: $(TRAFFIC_GEN)
-	mkdir -p $(TRAFFIC_OUTDIR)
-	$(TRAFFIC_GEN) --out_dir $(TRAFFIC_OUTDIR) --tb $(TRAFFIC_TB) --traffic_type $(TRAFFIC_TYPE) --rw $(TRAFFIC_RW)
-
-clean-jobs:
-	rm -rf $(TRAFFIC_OUTDIR)
+# Traffic simulation defaults.
+TRAFFIC_NAME 	?=
+TRAFFIC_OUTDIR 	?= $(FLOO_ROOT)/generated/jobs
 
 # Set the job name and directory if specified
-ifdef JOB_NAME
-VSIM_FLAGS += +JOB_NAME=$(JOB_NAME)
+ifdef TRAFFIC_NAME
+VSIM_FLAGS += +JOB_NAME=$(TRAFFIC_NAME)
 endif
 ifdef TRAFFIC_INJ_RATIO
 VSIM_FLAGS += +TRAFFIC_INJ_RATIO=$(TRAFFIC_INJ_RATIO)
 endif
-ifdef JOB_DIR
-VSIM_FLAGS += +JOB_DIR=$(JOB_DIR)
+ifdef TRAFFIC_OUTDIR
+VSIM_FLAGS += +JOB_DIR=$(TRAFFIC_OUTDIR)
 endif
 ifdef LOG_FILE
 VSIM_FLAGS += -l $(LOG_FILE)
@@ -100,9 +93,9 @@ endif
 
 scripts/compile_vsim.tcl: Bender.yml
 	mkdir -p scripts
-	echo 'set ROOT [file normalize [file dirname [info script]]/..]' > scripts/compile_vsim.tcl
-	$(BENDER) script vsim --vlog-arg="$(VLOG_ARGS)" $(BENDER_FLAGS) | grep -v "set ROOT" >> scripts/compile_vsim.tcl
-	echo >> scripts/compile_vsim.tcl
+	echo 'set ROOT [file normalize [file dirname [info script]]/..]' > $@
+	$(BENDER) script vsim --vlog-arg="$(VLOG_ARGS)" $(BENDER_FLAGS) | grep -v "set ROOT" >> $@
+	echo >> $@
 
 compile-vsim: scripts/compile_vsim.tcl
 	$(VSIM) -64 -c -do "source scripts/compile_vsim.tcl; quit"
@@ -187,15 +180,18 @@ clean-spyglass:
 ###################
 
 PD_REMOTE ?= git@iis-git.ee.ethz.ch:axi-noc/floo_noc_pd.git
-PD_BRANCH ?= 4eca55093f3f4589e186150023f29614964d39a0
+PD_BRANCH ?= b234a3de3b5f8be0ad7b2a6880792c3b6a63039c
 PD_DIR = $(FLOO_ROOT)/pd
 
-.PHONY: init-pd
+.PHONY: init-pd update-pd-commit
 
 init-pd:
 	rm -rf $(PD_DIR)
 	git clone $(PD_REMOTE) $(PD_DIR)
 	cd $(PD_DIR) && git checkout $(PD_BRANCH)
+
+update-pd-commit:
+	sed -i 's/^PD_BRANCH ?= .*/PD_BRANCH ?= $(shell git -C $(PD_DIR) rev-parse HEAD)/' $(firstword $(MAKEFILE_LIST))
 
 -include $(PD_DIR)/pd.mk
 
@@ -206,6 +202,6 @@ init-pd:
 .PHONY: all clean build
 
 all: compile-vsim run-sim-batch
-clean: clean-vsim clean-spyglass clean-jobs clean-sources clean-vcs
+clean: clean-vsim clean-spyglass clean-vcs
 build: compile-vsim
 run: run-vsim

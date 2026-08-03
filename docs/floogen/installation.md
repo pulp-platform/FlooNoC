@@ -41,12 +41,12 @@ If you just want to use the tool to generate networks, install it directly from 
         ```bash
         pip install floogen
         ```
-        
+
     3.  **Verify installation:**
         ```bash
         floogen --help
         ```
-        
+
 ---
 
 ## Install from Source
@@ -62,7 +62,7 @@ git clone https://github.com/pulp-platform/FlooNoC.git && cd FlooNoC
 === "uv"
 
     When using `uv` inside the repository, no manual installation step is strictly necessary. `uv` will automatically detect the project configuration.
-    
+
     ```bash
     uv run floogen --help
     ```
@@ -75,7 +75,7 @@ git clone https://github.com/pulp-platform/FlooNoC.git && cd FlooNoC
         python3 -m venv .venv
         source .venv/bin/activate
         ```
-    
+
     2.  **Install in editable mode**:
         ```bash
         pip install -e .
@@ -89,7 +89,7 @@ The documentation is built using [`zensical`](https://zensical.org/), which is d
     ```bash
     uv run zensical build
     ```
-    
+
     _The development dependencies are implicit in `uv` i.e. `uv run --group dev` is not necessary._
 
 === "pip"
@@ -98,12 +98,12 @@ The documentation is built using [`zensical`](https://zensical.org/), which is d
         python3 -m venv .venv
         source .venv/bin/activate
         ```
-        
+
     2.  **Install the development dependencies**:
         ```bash
         pip install .[dev]
         ```
-    
+
 If you want to serve the documentation locally for easier browsing, run:
 
 === "uv"

@@ -28,7 +28,7 @@ floogen rtl -c <config_file> -o <output_dir>
 
 **Common Options:**
 
-  * `-c, --config <file>`: Path to the YAML configuration file.
+  * `-c, --config <file>`: Path to the YAML NoC configuration file.
   * `-o, --outdir <dir>`: Directory where generated files will be written. If omitted, output is printed to stdout.
   * `--no-format`: Disable auto-formatting (e.g., Verible) of the generated SystemVerilog.
 
@@ -140,3 +140,42 @@ Renders custom, user-provided Mako templates using the *FlooGen* network model. 
 ```bash
 floogen template -c <config_file> --template <template_file> -o <output_dir>
 ```
+
+-----
+
+### `traffic`
+
+Generates DMA **job files** for simulating synthetic traffic loads in RTL simulation. These can be read by the DMA test nodes to drive AXI transactions over the NoC. The network model (`-c <config_file>`) provides the topology, address map, and protocol data widths, so the same traffic description adapts automatically to different NoC configurations.
+
+traffic is currently generated either via:
+
+1. A **traffic configuration file** (`--traffic-cfg`), which explicitly describes the traffic flows between endpoints.
+2. A **built-in mesh traffic pattern** (`--traffic-type`), which does not require a dedicated traffic configuration file.
+
+**Usage:**
+
+```bash
+# Generating traffic using traffic configuration files
+floogen traffic -c <config_file> --traffic-cfg <traffic_file> -o <output_dir>
+
+#  Generating traffic using built-in mesh traffic patterns
+floogen traffic -c <config_file> --traffic-type <pattern> --traffic-rw <read|write> -o <output_dir>
+```
+
+**Common Options:**
+
+  * `-c, --config <file>`: Path to the network (topology) YAML configuration file.
+  * `-o, --outdir <dir>`: Directory where the job files are written. Defaults to `jobs`.
+  * `--traffic-name <name>`: Base name of the emitted job files. Defaults to the traffic configuration's file stem (`--traffic`) or `mesh` (`--traffic-type`).
+  * `-v, --verbose`: Print detailed information about what the tool is doing (the resolved traffic model, emitted job indices, and any warnings). Without it, generation is silent.
+
+**Mode-specific Options:**
+
+  * `--traffic-cfg <file>`: Path to the traffic configuration file (see the [traffic configuration format](../floonoc/getting_started.md#traffic-configuration-file)).
+  * `--traffic-type <pattern>`: Name of the built-in traffic pattern to generate (e.g. `hbm`, `uniform`, `shuffle`). See the [full list of patterns](../floonoc/getting_started.md#built-in-mesh-traffic-patterns).
+  * `--traffic-rw <read|write>`: Direction of the built-in traffic pattern (default: `write`). Only used with `--traffic-type`.
+  * `--num-narrow-bursts <n>` / `--num-wide-bursts <n>`: Number of narrow/wide bursts generated per node (defaults: `10` / `100`). Only used with `--traffic-type`.
+  * `--narrow-burst-length <n>` / `--wide-burst-length <n>`: Narrow/wide burst length in beats (defaults: `1` / `16`). Only used with `--traffic-type`.
+
+!!! note
+    The emitted files are named `<traffic_name>_<idx>.txt` for wide traffic and `<traffic_name>_<idx+100>.txt` for narrow traffic, where `idx = x * num_y + y` is the linear index of the initiator node at mesh coordinate `(x, y)`. For a network without a wide protocol (e.g. a single-AXI mesh), wide bursts are skipped and only the narrow job files carry transfers.

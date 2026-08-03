@@ -49,7 +49,7 @@ module floo_axi_router #(
   input  id_t id_i,
   /// Routing table
   /// (only used for `RouteAlgo == IdTable`)
-  input  addr_rule_t [floo_pkg::floo_iomsb(NumAddrRules):0] id_route_map_i,
+  input  addr_rule_t [cc_pkg::iomsb(NumAddrRules):0] id_route_map_i,
   /// Input and output links
   input   floo_req_t [NumInputs-1:0] floo_req_i,
   input   floo_rsp_t [NumOutputs-1:0] floo_rsp_i,
@@ -63,7 +63,7 @@ module floo_axi_router #(
   typedef logic [AxiCfg.DataWidth-1:0] axi_data_t;
   typedef logic [AxiCfg.DataWidth/8-1:0] axi_strb_t;
 
-  // (Re-) definitons of `axi_in` and `floo` types, for transport
+  // (Re-) definitions of `axi_in` and `floo` types, for transport
   `AXI_TYPEDEF_ALL_CT(axi, axi_req_t, axi_rsp_t, axi_addr_t, axi_in_id_t,
                       axi_data_t, axi_strb_t, axi_user_t)
   `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi, AxiCfg, hdr_t)

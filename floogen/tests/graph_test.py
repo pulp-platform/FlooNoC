@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -6,6 +5,7 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 import pytest
+
 from floogen.model.graph import Graph
 
 
@@ -248,6 +248,7 @@ def test_get_nodes_from_range3(graph):
     nodes = graph.get_nodes_from_range("A", [(0, 3)])
     assert nodes == ["A_0", "A_1", "A_2", "A_3"]
 
+
 def test_get_nodes_from_range4(graph):
     """Test getting all nodes from a range"""
     graph.add_node("A_0", type="router")
@@ -257,6 +258,7 @@ def test_get_nodes_from_range4(graph):
     nodes = graph.get_nodes_from_range("A", [(2, 1)])
     assert nodes == ["A_2", "A_1"]
 
+
 def test_get_nodes_from_range_fail1(graph):
     """Test getting all nodes from a range"""
     graph.add_node("A_0", type="router")
@@ -265,6 +267,7 @@ def test_get_nodes_from_range_fail1(graph):
     graph.add_node("A_3", type="router")
     with pytest.raises(ValueError):
         graph.get_nodes_from_range("A", [(0, 1), (0, 1)])
+
 
 def test_get_nodes_from_range_fail2(graph):
     """Test getting all nodes from a range"""
@@ -332,6 +335,7 @@ def test_add_nodes_as_array1(graph):
         assert graph.has_node(node)
         assert graph.is_rt_node(node)
         assert graph.get_node_arr_idx(node) == idx
+
     def assert_edge(edge):
         assert graph.has_edge(*edge)
         assert graph.is_link_edge(edge)

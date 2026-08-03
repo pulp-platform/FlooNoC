@@ -46,7 +46,7 @@ module floo_reduction_arbiter import floo_pkg::*;
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi, AxiCfg)
   `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi_in, AxiCfg, hdr_t)
 
-  // We calculte the different reduction in parallel and select the result at the output
+  // We calculate the different reduction in parallel and select the result at the output
   flit_t data_forward_flit;
   flit_t data_collectB;
   flit_t data_LSBAnd;
@@ -62,7 +62,7 @@ module floo_reduction_arbiter import floo_pkg::*;
   logic [NumRoutes-1:0]                 red_valid_in;
   logic [NumRoutes-1:0][NumRoutes-1:0]  ready_out;
 
-  typedef logic [cf_math_pkg::idx_width(NumRoutes)-1:0] arb_idx_t;
+  typedef logic [cc_pkg::idx_width(NumRoutes)-1:0] arb_idx_t;
   arb_idx_t input_sel;
 
   assign ready_o = ready_out[input_sel];
@@ -96,9 +96,10 @@ module floo_reduction_arbiter import floo_pkg::*;
     );
   end
 
-  // Use a leading zero counter to find the first valid reduction input
-  lzc #(
-    .WIDTH(NumRoutes)
+  // Use a trailing zero counter to find the first valid reduction input
+  cc_lzc #(
+    .Width ( NumRoutes                  ),
+    .Mode  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
   ) i_lzc (
     .in_i  ( red_valid_in ),
     .cnt_o ( input_sel    ),
@@ -160,7 +161,7 @@ module floo_reduction_arbiter import floo_pkg::*;
 
   // Select which parallel operation to output
   always_comb begin
-    // Assign inital value
+    // Assign initial value
     data_o = '0;
     case ({incoming_red_op, 1'b1})
       {SelectAW, CollectOpCfg.EnLsbAnd}:  data_o = data_forward_flit;

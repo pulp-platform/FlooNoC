@@ -1,12 +1,12 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from typing import ClassVar, List, Union, Dict
 from abc import ABC, abstractmethod
+from typing import ClassVar
+
 from pydantic import BaseModel
 
 from floogen.utils import sv_struct_typedef
@@ -19,15 +19,15 @@ class Link(BaseModel, ABC):
     """
 
     description: str = ""
-    source: Union[str, List[str]]
-    dest: Union[str, List[str]]
+    source: str | list[str]
+    dest: str | list[str]
     source_type: str
     dest_type: str
     is_bidirectional: bool = False
     is_array: bool = False
-    array: list = None
+    array: list | None = None
 
-    channel_mapping: ClassVar[Dict] = {}
+    channel_mapping: ClassVar[dict] = {}
 
     @abstractmethod
     def declare(self):
@@ -36,6 +36,7 @@ class Link(BaseModel, ABC):
     @abstractmethod
     def render_ports(self):
         """Declare the ports of the link."""
+
 
 class AxiLink(Link):
     """Link class to describe a AxiLink."""
@@ -71,6 +72,7 @@ class AxiLink(Link):
         ports.append(f"{direction} {self.req_type} {self.req_name()}")
         ports.append(f"{reverse_direction} {self.rsp_type} {self.rsp_name()}")
         return ports
+
 
 class NarrowWideLink(Link):
     """Link class to describe a NarrowWidelink."""
@@ -127,20 +129,24 @@ class NarrowWideLink(Link):
             )
         return ports
 
+
 class NarrowWideVCLink(NarrowWideLink):
-    '''Link class to describe a NarrowWideVCLink.'''
+    """Link class to describe a NarrowWideVCLink."""
 
     @classmethod
     def render_link_typedefs(cls) -> str:
         """Render the typedefs of the protocol."""
         string = ""
         for phys_ch in cls.channel_mapping:
-            struct_dict = {"valid": "logic",
-                           "credit_v": "logic",
-                           "credit_id": "vc_id_t",
-                           phys_ch: f"floo_{phys_ch}_chan_t"}
+            struct_dict = {
+                "valid": "logic",
+                "credit_v": "logic",
+                "credit_id": "vc_id_t",
+                phys_ch: f"floo_{phys_ch}_chan_t",
+            }
             string += sv_struct_typedef(f"floo_vc_{phys_ch}_t", struct_dict)
         return string
+
 
 class NarrowLink(Link):
     """
@@ -148,7 +154,7 @@ class NarrowLink(Link):
     configuration parameters.
     """
 
-    channel_mapping: ClassVar[Dict] = {
+    channel_mapping: ClassVar[dict] = {
         "req": {"axi": ["aw", "w", "ar"]},
         "rsp": {"axi": ["b", "r"]},
     }
@@ -164,17 +170,20 @@ class NarrowLink(Link):
         """Declare the ports of the link."""
         raise NotImplementedError
 
+
 class NarrowVCLink(NarrowLink):
-    '''Link class to describe a NarrowVCLink.'''
+    """Link class to describe a NarrowVCLink."""
 
     @classmethod
     def render_link_typedefs(cls) -> str:
         """Render the typedefs of the protocol."""
         string = ""
         for phys_ch in cls.channel_mapping:
-            struct_dict = {"valid": "logic",
-                           "credit_v": "logic",
-                           "credit_id": "vc_id_t",
-                           phys_ch: f"floo_{phys_ch}_chan_t"}
+            struct_dict = {
+                "valid": "logic",
+                "credit_v": "logic",
+                "credit_id": "vc_id_t",
+                phys_ch: f"floo_{phys_ch}_chan_t",
+            }
             string += sv_struct_typedef(f"floo_vc_{phys_ch}_t", struct_dict)
         return string

@@ -25,7 +25,7 @@ module floo_nw_vc_chimney #(
   /// Atomic operation support, currently only implemented for
   /// the narrow network!
   parameter bit AtopSupport                      = 1'b1,
-  /// Maximum number of oustanding Atomic transactions,
+  /// Maximum number of outstanding Atomic transactions,
   /// must be smaller or equal to 2**`AxiCfgN.OutIdWidth`-1 since
   /// Every atomic transactions needs to have a unique ID
   /// and one ID is reserved for non-atomic transactions
@@ -147,7 +147,7 @@ module floo_nw_vc_chimney #(
   typedef logic [AxiCfgW.DataWidth-1:0] axi_wide_data_t;
   typedef logic [AxiCfgW.DataWidth/8-1:0] axi_wide_strb_t;
 
-  // (Re-) definitons of `axi_in` and `floo` types, for transport
+  // (Re-) definitions of `axi_in` and `floo` types, for transport
   `AXI_TYPEDEF_ALL_CT(axi_narrow, axi_narrow_req_t, axi_narrow_rsp_t, axi_addr_t,
       axi_narrow_in_id_t, axi_narrow_data_t, axi_narrow_strb_t, axi_narrow_user_t)
   `AXI_TYPEDEF_ALL_CT(axi_wide, axi_wide_req_t, axi_wide_rsp_t, axi_addr_t,
@@ -1216,7 +1216,7 @@ module floo_nw_vc_chimney #(
       end else begin
         floo_req_vc_id =
           {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_req_vc_selection_id[floo_req_pref_vc_id]};
-        // need the assigned vc_id to be the preffered one if not last or wormhole
+        // need the assigned vc_id to be the preferred one if not last or wormhole
         floo_req_o.valid  = floo_req_vc_selection_v[floo_req_pref_vc_id] & floo_req_arb_v
             & (FixedWormholeVC==1 | ~(~floo_req_arb_sel_hdr.last | floo_req_wh_valid) |
             (floo_req_vc_id == floo_req_pref_vc_id));
@@ -1244,7 +1244,7 @@ module floo_nw_vc_chimney #(
       end else begin
         floo_rsp_vc_id =
           {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_rsp_vc_selection_id[floo_rsp_pref_vc_id]};
-        // need the assigned vc_id to be the preffered one if not last or wormhole
+        // need the assigned vc_id to be the preferred one if not last or wormhole
         floo_rsp_o.valid  = floo_rsp_vc_selection_v[floo_rsp_pref_vc_id] & floo_rsp_arb_v
             & (FixedWormholeVC==1 | ~(~floo_rsp_arb_sel_hdr.last | floo_rsp_wh_valid) |
             (floo_rsp_vc_id == floo_rsp_pref_vc_id));
@@ -1272,7 +1272,7 @@ module floo_nw_vc_chimney #(
       end else begin
         floo_wide_vc_id =
           {{($bits(vc_id_t)-NumVCWidth){1'b0}}, floo_wide_vc_selection_id[floo_wide_pref_vc_id]};
-        // need the assigned vc_id to be the preffered one if not last or wormhole
+        // need the assigned vc_id to be the preferred one if not last or wormhole
         floo_wide_o.valid  = floo_wide_vc_selection_v[floo_wide_pref_vc_id] & floo_wide_arb_v
             & (FixedWormholeVC==1 | ~(~floo_wide_arb_sel_hdr.last | floo_wide_wh_valid) |
             (floo_wide_vc_id == floo_wide_pref_vc_id));
