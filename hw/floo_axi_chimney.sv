@@ -23,7 +23,7 @@ module floo_axi_chimney
   parameter floo_pkg::route_cfg_t RouteCfg  = floo_pkg::RouteDefaultCfg,
   /// Atomic operation support
   parameter bit AtopSupport                 = 1'b1,
-  /// Maximum number of oustanding Atomic transactions,
+  /// Maximum number of outstanding Atomic transactions,
   /// must be smaller or equal to 2**AxiOutIdWidth-1 since
   /// Every atomic transactions needs to have a unique ID
   /// and one ID is reserved for non-atomic transactions
@@ -51,7 +51,7 @@ module floo_axi_chimney
   parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam   = '0,
   /// SAM Index type to support multicast info
   parameter type sam_idx_t                              = id_t,
-  /// Struct consisting of offset and len to speficy the position of the mask bits
+  /// Struct consisting of offset and len to specify the position of the mask bits
   /// (only used if `EnMultiCast && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
   parameter type mask_sel_t                             = logic,
   /// AXI manager request channel type
@@ -111,7 +111,7 @@ module floo_axi_chimney
   typedef logic [AxiCfg.DataWidth-1:0] axi_data_t;
   typedef logic [AxiCfg.DataWidth/8-1:0] axi_strb_t;
 
-  // (Re-) definitons of `axi_in` and `floo` types, for transport
+  // (Re-) definitions of `axi_in` and `floo` types, for transport
   `AXI_TYPEDEF_ALL_CT(axi, axi_req_t, axi_rsp_t, axi_addr_t, axi_in_id_t,
                       axi_data_t, axi_strb_t, axi_user_t)
   `AXI_TYPEDEF_AW_CHAN_T(axi_out_aw_chan_t, axi_addr_t, axi_out_id_t, axi_user_t)

@@ -27,7 +27,7 @@ module floo_rr_arbiter #(
     assign grant_id_o = '0;
   end else begin: gen_gt1_inputs
 
-    logic [NumInputs-1:0] reodered_req, reordered_selected_req;
+    logic [NumInputs-1:0] reordered_req, reordered_selected_req;
     logic [NumInputs*2-1:0] left_rotate_helper, right_rotate_helper;
     logic [NumInputs-1:0] dereordered_selected_req;
     logic [InIdxWidth-1:0] round_ptr_q, round_ptr_d;
@@ -38,10 +38,10 @@ module floo_rr_arbiter #(
 
     // rotade left
     assign left_rotate_helper = {req_i, req_i} << round_ptr_q;
-    assign reodered_req = left_rotate_helper[NumInputs*2-1-:NumInputs];
+    assign reordered_req = left_rotate_helper[NumInputs*2-1-:NumInputs];
 
-    //isolate rightmost 1 bit: reodered_req & (-reodered_req)
-    assign reordered_selected_req = reodered_req & (~reodered_req + 1'b1);
+    //isolate rightmost 1 bit: reordered_req & (-reordered_req)
+    assign reordered_selected_req = reordered_req & (~reordered_req + 1'b1);
 
     //rotate back: circular rotate by NumInputs - round_ptr_q
     assign round_ptr_q_comp = NumInputs - round_ptr_q;

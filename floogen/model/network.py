@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -6,22 +5,34 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 import pathlib
-from typing import Optional, List
 from enum import Enum
+from typing import Any
 
 import networkx as nx
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from floogen.model.routing import Routing, RouteAlgo, RouteMapRule, RouteRule, RouteMap, RouteTable, RouteMapRuleCollective, WideRwDecouple
-from floogen.model.routing import Coord, SimpleId, AddrRange, XYDirections
-from floogen.model.graph import Graph
-from floogen.model.endpoint import EndpointDesc, Endpoint
-from floogen.model.router import RouterDesc, NarrowWideRouter, AxiRouter
 from floogen.model.connection import ConnectionDesc
-from floogen.model.link import NarrowWideLink, NarrowWideVCLink, AxiLink
-from floogen.model.network_interface import NarrowWideAxiNI, AxiNI
+from floogen.model.endpoint import Endpoint, EndpointDesc
+from floogen.model.graph import Graph
+from floogen.model.link import AxiLink, NarrowWideLink, NarrowWideVCLink
+from floogen.model.network_interface import AxiNI, NarrowWideAxiNI
 from floogen.model.protocol import AXI4, AXI4Bus
-from floogen.utils import clog2, sv_enum_typedef, sv_param_decl, snake_to_camel
+from floogen.model.router import AxiRouter, NarrowWideRouter, RouterDesc
+from floogen.model.routing import (
+    AddrRange,
+    Coord,
+    RouteAlgo,
+    RouteMap,
+    RouteMapRule,
+    RouteMapRuleCollective,
+    RouteRule,
+    RouteTable,
+    Routing,
+    SimpleId,
+    WideRwDecouple,
+    XYDirections,
+)
+from floogen.utils import clog2, snake_to_camel, sv_enum_typedef, sv_param_decl
 
 
 class NetworkType(str, Enum):
@@ -39,7 +50,7 @@ class NetworkType(str, Enum):
         return self.value
 
 
-class Network(BaseModel):  # pylint: disable=too-many-public-methods
+class Network(BaseModel):
     """
     Network class to describe a network with routers and endpoints.
 
@@ -52,14 +63,14 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
     name: str
-    description: Optional[str]
+    description: str | None
     network_type: NetworkType
-    protocols: List[AXI4]
-    endpoints: List[EndpointDesc]
-    routers: List[RouterDesc]
-    connections: List[ConnectionDesc]
-    graph: Optional[Graph] = None
+    protocols: list[AXI4]
+    endpoints: list[EndpointDesc]
+    routers: list[RouterDesc]
+    connections: list[ConnectionDesc]
     routing: Routing
+    graph: Graph = Field(default_factory=Graph)
 
     def create_network(self):
         """Initialize the network as a graph."""
@@ -102,30 +113,32 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
     def validate_protocols(self):
         """Check that names are unique and parameters are compatible."""
         # Check that address width is unique among all protocols
-        if len(set(prot.addr_width for prot in self.protocols)) != 1:
+        if len({prot.addr_width for prot in self.protocols}) != 1:
             raise ValueError("All protocols must have the same address width")
         if self.network_type == "narrow-wide":
             # Check that `narrow` and `wide` protocols have the same data width
-            if len(set(prot.data_width for prot in self.protocols if prot.type == "narrow")) != 1:
+            if len({prot.data_width for prot in self.protocols if prot.type == "narrow"}) != 1:
                 raise ValueError("All `narrow` protocols must have the same data width")
-            if len(set(prot.data_width for prot in self.protocols if prot.type == "wide")) != 1:
+            if len({prot.data_width for prot in self.protocols if prot.type == "wide"}) != 1:
                 raise ValueError("All `wide` protocols must have the same data width")
             # Check that `narrow` and `wide` protocols have the same user width
             if not self.routing.en_collective:
-                if len(set(prot.user_width for prot in self.protocols if prot.type == "narrow")) != 1:
+                if len({prot.user_width for prot in self.protocols if prot.type == "narrow"}) != 1:
                     raise ValueError("All `narrow` protocols must have the same user width")
-                if len(set(prot.user_width for prot in self.protocols if prot.type == "wide")) != 1:
+                if len({prot.user_width for prot in self.protocols if prot.type == "wide"}) != 1:
                     raise ValueError("All `wide` protocols must have the same user width")
             # Check that `type` is defined when using `narrow-wide` network
-            if any(prot.type not in ["narrow", "wide"] for prot in self.protocols) and \
-                "narrow-wide" in self.network_type:
+            if (
+                any(prot.type not in ["narrow", "wide"] for prot in self.protocols)
+                and "narrow-wide" in self.network_type
+            ):
                 raise ValueError("Protocols must define `type` for `narrow-wide` networks")
         else:
             # Check that data width is the same among all protocols
-            if len(set(prot.data_width for prot in self.protocols)) != 1:
+            if len({prot.data_width for prot in self.protocols}) != 1:
                 raise ValueError("All protocols must have the same data width")
             # Check that user width is the same among all protocols
-            if len(set(prot.user_width for prot in self.protocols)) != 1:
+            if len({prot.user_width for prot in self.protocols}) != 1:
                 raise ValueError("All protocols must have the same user width")
         return self
 
@@ -141,14 +154,10 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         has_collective_eps = any(ep.is_collective_ep() for ep in self.endpoints)
 
         if has_collective_eps and not self.routing.en_collective:
-            raise ValueError(
-                "Collective endpoints found but collective is not enabled in routing"
-            )
+            raise ValueError("Collective endpoints found but collective is not enabled in routing")
 
         if self.routing.en_collective and not has_collective_eps:
-            raise ValueError(
-                "Collective routing is enabled but no endpoint is collective-capable"
-            )
+            raise ValueError("Collective routing is enabled but no endpoint is collective-capable")
 
         return self
 
@@ -327,11 +336,11 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
             # Add edges between the nodes
             for src, dst in zip(srcs, dsts):
-                self.graph.add_edge(src, dst, type="link",
-                                    src_dir=con.src_dir, dst_dir=con.dst_dir)
+                self.graph.add_edge(src, dst, type="link", src_dir=con.src_dir, dst_dir=con.dst_dir)
                 if con.bidirectional:
-                    self.graph.add_edge(dst, src, type="link",
-                                        src_dir=con.dst_dir, dst_dir=con.src_dir)
+                    self.graph.add_edge(
+                        dst, src, type="link", src_dir=con.dst_dir, dst_dir=con.src_dir
+                    )
 
     def compile_ids(self):
         """Infer the id type from the network."""
@@ -404,17 +413,25 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                         f"Network type {self.network_type} with VC routers is not supported yet"
                     )
 
-    def compile_routers(self): # pylint: disable=too-many-branches, too-many-locals
+    def compile_routers(self):
         """Infer the router type from the network."""
         for rt_name, rt_obj in self.graph.get_rt_nodes(with_name=True):
-            dir_in_edges = self.graph.get_edges_to(rt_name,
-                filters=[lambda e: self.graph.edges[e]["dst_dir"] is not None], with_name=True)
-            dir_out_edges = self.graph.get_edges_from(rt_name,
-                filters=[lambda e: self.graph.edges[e]["src_dir"] is not None], with_name=True)
-            non_dir_in_edges = self.graph.get_edges_to(rt_name,
-                filters=[lambda e: self.graph.edges[e]["dst_dir"] is None])
-            non_dir_out_edges = self.graph.get_edges_from(rt_name,
-                filters=[lambda e: self.graph.edges[e]["src_dir"] is None])
+            dir_in_edges = self.graph.get_edges_to(
+                rt_name,
+                filters=[lambda e: self.graph.edges[e]["dst_dir"] is not None],
+                with_name=True,
+            )
+            dir_out_edges = self.graph.get_edges_from(
+                rt_name,
+                filters=[lambda e: self.graph.edges[e]["src_dir"] is not None],
+                with_name=True,
+            )
+            non_dir_in_edges = self.graph.get_edges_to(
+                rt_name, filters=[lambda e: self.graph.edges[e]["dst_dir"] is None]
+            )
+            non_dir_out_edges = self.graph.get_edges_from(
+                rt_name, filters=[lambda e: self.graph.edges[e]["src_dir"] is None]
+            )
             if rt_obj.degree is not None:
                 num_edges = rt_obj.degree
             else:
@@ -426,17 +443,19 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 in_dir = self.graph.edges[edge]["dst_dir"]
                 if incoming[in_dir] is not None:
                     raise ValueError(
-                        f"Trying to set incoming link #{in_dir} of {rt_name} " +
-                        f"to ({edge[0]} -> {edge[1]}), already taken by " +
-                        f"({incoming[in_dir].source} -> {incoming[in_dir].dest})")
+                        f"Trying to set incoming link #{in_dir} of {rt_name} "
+                        + f"to ({edge[0]} -> {edge[1]}), already taken by "
+                        + f"({incoming[in_dir].source} -> {incoming[in_dir].dest})"
+                    )
                 incoming[in_dir] = edge_obj
             for edge, edge_obj in dir_out_edges:
                 out_dir = self.graph.edges[edge]["src_dir"]
                 if outgoing[out_dir] is not None:
                     raise ValueError(
-                        f"Trying to set outgoing link #{out_dir} of {rt_name} " +
-                        f"to ({edge[0]} -> {edge[1]}), already taken by " +
-                        f"({outgoing[out_dir].source} -> {outgoing[out_dir].dest})")
+                        f"Trying to set outgoing link #{out_dir} of {rt_name} "
+                        + f"to ({edge[0]} -> {edge[1]}), already taken by "
+                        + f"({outgoing[out_dir].source} -> {outgoing[out_dir].dest})"
+                    )
                 outgoing[out_dir] = edge_obj
             # Second, add the undirected edges to in_dir_edges and out_dir_edges edges
             for i, in_edge in enumerate(incoming):
@@ -453,7 +472,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             assert non_dir_in_edges == []
             assert non_dir_out_edges == []
 
-            router_dict = {
+            router_dict: dict[str, Any] = {
                 "name": rt_name,
                 "incoming": incoming,
                 "outgoing": outgoing,
@@ -585,9 +604,9 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
             )[0]
             match self.network_type:
                 case "axi":
-                    self.graph.set_node_obj(ni_name, AxiNI(**ni_dict))
+                    self.graph.set_node_obj(ni_name, AxiNI.model_validate(ni_dict))
                 case "narrow-wide":
-                    self.graph.set_node_obj(ni_name, NarrowWideAxiNI(**ni_dict))
+                    self.graph.set_node_obj(ni_name, NarrowWideAxiNI.model_validate(ni_dict))
 
     def gen_routing_info(self):
         """Wrapper function to generate all the routing info for the network,
@@ -628,7 +647,7 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 out_link = self.graph.get_edge_obj(out_edge)
                 out_idx = rt.outgoing.index(out_link)
                 dest = SimpleId(id=out_idx)
-                addr_range = AddrRange(start=ni.id.id, size=1)
+                addr_range = AddrRange.from_start_size(ni.id.id, 1)
                 routing_table.append(RouteMapRule(dest=dest, addr_range=addr_range, desc=ni.name))
 
             # Add routing table to the router
@@ -696,27 +715,34 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
                 rule_name = ni.endpoint.name
                 if addr_range.desc is not None:
                     rule_name += f"_{addr_range.desc}"
-                addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, en_collective=addr_range.en_collective, desc=rule_name)
+                addr_rule = RouteMapRule(dest=dest, addr_range=addr_range, desc=rule_name)
                 addr_table.append(addr_rule)
         return RouteMap(name="sam", rules=addr_table)
 
     def gen_collective_sam(self):
         """Generate the collective system address map, which contains additional mask
         information for collective endpoints."""
+        if self.routing.sam is None:
+            raise ValueError("System address map has not been generated")
         addr_table = []
         for addr_rule in self.routing.sam.rules:
             mask_fields = {}
             if addr_rule.addr_range.en_collective:
-                arr_dim = addr_rule.addr_range.arr_dim
-                arr_x_bits = clog2(arr_dim[0])
-                arr_y_bits = clog2(arr_dim[1])
-                mask_offset_y = clog2(addr_rule.addr_range.size)
-                mask_fields = {
-                    "mask_len": (arr_x_bits, arr_y_bits),
-                    "mask_offset": (mask_offset_y + arr_y_bits, mask_offset_y),
-                    "base_id": (addr_rule.dest.x - addr_rule.addr_range.arr_idx[0],
-                                addr_rule.dest.y - addr_rule.addr_range.arr_idx[1]),
-                }
+                match (addr_rule.addr_range.arr_dim, addr_rule.addr_range.arr_idx, addr_rule.dest):
+                    case ((dim_x, dim_y), (idx_x, idx_y), Coord() as dest):
+                        arr_x_bits = clog2(dim_x)
+                        arr_y_bits = clog2(dim_y)
+                        mask_offset_y = clog2(addr_rule.addr_range.size)
+                        mask_fields = {
+                            "mask_len": (arr_x_bits, arr_y_bits),
+                            "mask_offset": (mask_offset_y + arr_y_bits, mask_offset_y),
+                            "base_id": (dest.x - idx_x, dest.y - idx_y),
+                        }
+                    case _:
+                        raise ValueError(
+                            f"Collective address range '{addr_rule.desc}' requires a 2D "
+                            "endpoint array with mesh coordinates"
+                        )
             addr_table.append(RouteMapRuleCollective(**addr_rule.model_dump(), **mask_fields))
         return RouteMap(name="collective_sam", rules=addr_table)
 
@@ -753,28 +779,62 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         """Render the protocol configuration structs."""
         string = ""
         if self.network_type == "narrow-wide":
-            narrow_in_prot = next((prot for prot in self.protocols
-                if prot.type == "narrow" and prot.direction == "input"), None)
-            narrow_out_prot = next((prot for prot in self.protocols
-                if prot.type == "narrow" and prot.direction == "output"), None)
-            wide_in_prot = next((prot for prot in self.protocols
-                if prot.type == "wide" and prot.direction == "input"), None)
-            wide_out_prot = next((prot for prot in self.protocols
-                if prot.type == "wide" and prot.direction == "output"), None)
+            narrow_in_prot = next(
+                (
+                    prot
+                    for prot in self.protocols
+                    if prot.type == "narrow" and prot.direction == "input"
+                ),
+                None,
+            )
+            narrow_out_prot = next(
+                (
+                    prot
+                    for prot in self.protocols
+                    if prot.type == "narrow" and prot.direction == "output"
+                ),
+                None,
+            )
+            wide_in_prot = next(
+                (
+                    prot
+                    for prot in self.protocols
+                    if prot.type == "wide" and prot.direction == "input"
+                ),
+                None,
+            )
+            wide_out_prot = next(
+                (
+                    prot
+                    for prot in self.protocols
+                    if prot.type == "wide" and prot.direction == "output"
+                ),
+                None,
+            )
+            if narrow_in_prot is None or wide_in_prot is None:
+                raise ValueError(
+                    "A `narrow-wide` network requires both a narrow and a wide input protocol"
+                )
             string += AXI4.render_cfg("AxiCfgN", narrow_in_prot, narrow_out_prot)
             string += AXI4.render_cfg("AxiCfgW", wide_in_prot, wide_out_prot)
 
             vc_num, phy_num = {
                 WideRwDecouple.PHYS: (2, 2),
-                WideRwDecouple.VC:   (2, 1),
+                WideRwDecouple.VC: (2, 1),
             }.get(self.routing.decouple_rw, (None, None))
             string += NarrowWideLink.render_typedefs(
-                narrow_in_prot.type_name(), wide_in_prot.type_name(), "AxiCfgN", "AxiCfgW",
-                vc_num, phy_num
+                narrow_in_prot.type_name(),
+                wide_in_prot.type_name(),
+                "AxiCfgN",
+                "AxiCfgW",
+                vc_num,
+                phy_num,
             )
         else:
             in_prot = next((prot for prot in self.protocols if prot.direction == "input"), None)
             out_prot = next((prot for prot in self.protocols if prot.direction == "output"), None)
+            if in_prot is None:
+                raise ValueError("An `axi` network requires an input protocol")
             string += AXI4.render_cfg("AxiCfg", in_prot, out_prot)
             string += AxiLink.render_typedefs(in_prot.type_name(), "AxiCfg")
         return string
@@ -807,11 +867,10 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
         sorted_ni_list = sorted(
             self.graph.get_ni_nodes(),
             key=lambda ni: self.graph.get_node_id(node_obj=ni),
-            reverse=True
+            reverse=True,
         )
         for ni in sorted_ni_list:
-            string += ni.table.render(
-                num_route_bits=self.routing.num_route_bits, no_decl=True)
+            string += ni.table.render(num_route_bits=self.routing.num_route_bits, no_decl=True)
             string += ",\n"
         string = "'{\n" + string[:-2] + "}\n"
         return sv_param_decl(
@@ -858,18 +917,20 @@ class Network(BaseModel):  # pylint: disable=too-many-public-methods
 
     def render_sam_idx_enum(self):
         """Render the system address map index enum in the generated code."""
+        if self.routing.sam is None:
+            raise ValueError("System address map has not been generated")
         fields_dict = {}
         for i, rule in enumerate(reversed(self.routing.sam.rules)):
             rule_desc = f"{rule.render_desc()}_sam_idx"
             fields_dict[rule_desc] = i
         return sv_enum_typedef(name="sam_idx_e", fields_dict=fields_dict)
 
-    def visualize(self, savefig=True, filename: pathlib.Path = "network.png"):
+    def visualize(self, savefig=True, filename: pathlib.Path = pathlib.Path("network.png")):
         """Visualize the network graph."""
         # Imported lazily so the optional 'viz' extra (matplotlib) is only
         # required when this feature is actually used. The CLI hides the
         # `visualize` command when matplotlib is unavailable.
-        import matplotlib.pyplot as plt  # pylint: disable=import-outside-toplevel
+        import matplotlib.pyplot as plt
 
         ni_nodes = self.graph.get_ni_nodes(with_obj=False, with_name=True)
         router_nodes = self.graph.get_rt_nodes(with_obj=False, with_name=True)

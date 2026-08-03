@@ -1,18 +1,16 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from typing import List, Tuple
 
 import networkx as nx
 
 from floogen.model.routing import XYDirections
 
 
-class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
+class Graph(nx.DiGraph):
     """Network graph class."""
 
     def __init__(self):
@@ -41,7 +39,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
     def add_edge_bidir(self, u_of_edge: str, v_of_edge: str, **attr):
         """Add a bidirectional edge to the graph."""
         self.add_edge(u_of_edge, v_of_edge, **attr)
-        self.add_edge(v_of_edge, u_of_edge, **attr)  # pylint: disable=arguments-out-of-order
+        self.add_edge(v_of_edge, u_of_edge, **attr)
 
     def get_node_obj(self, node):
         """Return the node object."""
@@ -156,7 +154,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
         """Return the link edges."""
         return self.get_edges(filters=[self.is_link_edge], with_obj=with_obj, with_name=with_name)
 
-    def get_nodes_from_range(self, node: str, rng: List[Tuple[int]]):
+    def get_nodes_from_range(self, node: str, rng: list[tuple[int, int]]):
         """Return the nodes from the range."""
         nodes = []
         if len(rng) == 0:
@@ -164,7 +162,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
         start, end = rng[0]
         step = 1 if end > start else -1
         for i in range(start, end + step, step):
-            if len (rng) == 1:
+            if len(rng) == 1:
                 node_name = f"{node}_{i}"
                 if self.has_node(node_name):
                     nodes.append(node_name)
@@ -174,7 +172,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
                 nodes.extend(self.get_nodes_from_range(f"{node}_{i}", rng[1:]))
         return nodes
 
-    def get_nodes_from_idx(self, node: str, idx: List[int]):
+    def get_nodes_from_idx(self, node: str, idx: list[int]):
         """Return the nodes from the index."""
         node_name = f"{node}_{'_'.join([str(i) for i in idx])}"
         if self.has_node(node_name):
@@ -192,7 +190,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
     def add_nodes_as_tree(
         self,
         parent: str,
-        tree: List[int],
+        tree: list[int],
         node_type: str,
         edge_type: str,
         *,
@@ -200,7 +198,7 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
         node_obj=None,
         edge_obj=None,
         connect=True,
-    ):  # pylint: disable=too-many-arguments
+    ):
         """Add nodes as a tree."""
         if lvl == len(tree):
             return
@@ -228,14 +226,14 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
     def add_nodes_as_array(
         self,
         name: str,
-        array: Tuple[int],
+        array: tuple[int] | tuple[int, int],
         node_type: str,
         *,
         edge_type: str = "",
         node_obj=None,
         edge_obj=None,
         connect=True,
-    ):  # pylint: disable=too-many-arguments
+    ):
         """Add nodes as an array."""
         match array:
             case [n]:
@@ -243,25 +241,26 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
                     node = f"{name}_{i}"
                     self.add_node(node, type=node_type, arr_idx=(i,), arr_dim=array, obj=node_obj)
                     if i > 0 and connect:
-                        self.add_edge(node, f"{name}_{i-1}", type=edge_type, obj=edge_obj)
-                        self.add_edge(f"{name}_{i-1}", node, type=edge_type, obj=edge_obj)
+                        self.add_edge(node, f"{name}_{i - 1}", type=edge_type, obj=edge_obj)
+                        self.add_edge(f"{name}_{i - 1}", node, type=edge_type, obj=edge_obj)
             case [n, m]:
                 for i in range(n):
                     for j in range(m):
                         node = f"{name}_{i}_{j}"
-                        self.add_node(node, type=node_type, arr_idx=(i, j),
-                                      arr_dim=array, obj=node_obj)
+                        self.add_node(
+                            node, type=node_type, arr_idx=(i, j), arr_dim=array, obj=node_obj
+                        )
                         if i > 0 and connect:
                             self.add_edge(
                                 node,
-                                f"{name}_{i-1}_{j}",
+                                f"{name}_{i - 1}_{j}",
                                 type=edge_type,
                                 obj=edge_obj,
                                 src_dir=XYDirections.WEST.value,
                                 dst_dir=XYDirections.EAST.value,
                             )
                             self.add_edge(
-                                f"{name}_{i-1}_{j}",
+                                f"{name}_{i - 1}_{j}",
                                 node,
                                 type=edge_type,
                                 obj=edge_obj,
@@ -271,14 +270,14 @@ class Graph(nx.DiGraph):  # pylint: disable=too-many-public-methods
                         if j > 0 and connect:
                             self.add_edge(
                                 node,
-                                f"{name}_{i}_{j-1}",
+                                f"{name}_{i}_{j - 1}",
                                 type=edge_type,
                                 obj=edge_obj,
                                 src_dir=XYDirections.SOUTH.value,
                                 dst_dir=XYDirections.NORTH.value,
                             )
                             self.add_edge(
-                                f"{name}_{i}_{j-1}",
+                                f"{name}_{i}_{j - 1}",
                                 node,
                                 type=edge_type,
                                 obj=edge_obj,

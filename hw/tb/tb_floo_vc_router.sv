@@ -465,7 +465,7 @@ module tb_floo_vc_router;
 
   initial begin : main_test_bench
   @(posedge rst_n)
-  fork : start_send_and_recieve_threads
+  fork : start_send_and_receive_threads
     forever
         apply_all_inputs();
     forever

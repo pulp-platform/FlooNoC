@@ -147,7 +147,7 @@ channels) (https://github.com/pulp-platform/FlooNoC/pull/169)
 - Multiple configuration structs were introduced to enable a more flexible and non-verbose configuration of the FlooNoC modules. (https://github.com/pulp-platform/FlooNoC/pull/65)
   - The `AxiCfg` describes all the necessary parameters needed for the type definitions of a bidirectional AXI interface
   - The `RouteCfg` describes all the necessary routing information parameters required by the chimneys.
-  - The `ChimneyCfg` describes all other parameters for the data path of the chimney (e.g. Mgr/Sbr port enable, number of oustanding transactions, RoB types & sizes, etc.)
+  - The `ChimneyCfg` describes all other parameters for the data path of the chimney (e.g. Mgr/Sbr port enable, number of outstanding transactions, RoB types & sizes, etc.)
 - The `floo_test_pkg` now defines default configurations for all the new configuration structs that are used by the testbenches. (https://github.com/pulp-platform/FlooNoC/pull/65)
 - Add `floo_axi_router` module, which is a wrapper similar to the `floo_nw_router` but for single-AXI configurations, and can be used in conjunction with `floo_axi_chimney`. (https://github.com/pulp-platform/FlooNoC/pull/69)
 - `floo_nw_join` now also allows to convert to a narrow AXI interface, which is useful for accessing peripherals for instance.
@@ -177,7 +177,7 @@ channels) (https://github.com/pulp-platform/FlooNoC/pull/169)
 - Added default spill registers for outgoing AW requests in the chimneys. This is necessary since AXI allows to wait for AW *and* W to be valid before asserting the ready. AW and W beats are sent over the same channel, so this might lead to deadlocks otherwise. (https://github.com/pulp-platform/FlooNoC/pull/89)
 
 #### FlooGen
-- The link typedefs are now renderd with the macros in `typedef.svh` instead of rendering them in pure SystemVerilog. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- The link typedefs are now rendered with the macros in `typedef.svh` instead of rendering them in pure SystemVerilog. (https://github.com/pulp-platform/FlooNoC/pull/65)
 - The template files were renamed to use the more concise `nw` naming scheme. (https://github.com/pulp-platform/FlooNoC/pull/65)
 - The generated modules and packages of _FlooGen_ are now named `floo_*_noc` resp. `floo_*_noc_pkg` which is more consistent since all other modules have the `floo_*` prefix. (https://github.com/pulp-platform/FlooNoC/pull/65)
 - The `protocols` schema was adapted a bit to be more intuitive. (https://github.com/pulp-platform/FlooNoC/pull/65)
@@ -189,15 +189,15 @@ channels) (https://github.com/pulp-platform/FlooNoC/pull/169)
 - The system address map `Sam` is now sorted correctly and can be indexed with `ep_id_e` values. (https://github.com/pulp-platform/FlooNoC/pull/72)
 - `id_offset` was renamed to `xy_id_offset`, since this is now only applicable in `XYRouting` networks. An ID offset does not make sense for other types of routing algorithms. The use of `id_offset` is anyway not recommended anymore, since the direction of the connections can be specified in the `connections` schema. (https://github.com/pulp-platform/FlooNoC/pull/72)
 - Endpoint names in the `ep_id_e` enum, which are created as 2D arrays now have clearer naming scheme by prefixing them with `X` and `Y`. (https://github.com/pulp-platform/FlooNoC/pull/90)
-- The package and the top-module of the generated network are now seperated into its own modules `floo_*_noc.sv` and `floo_*_noc_pkg.sv`. (https://github.com/pulp-platform/FlooNoC/pull/110)
+- The package and the top-module of the generated network are now separated into its own modules `floo_*_noc.sv` and `floo_*_noc_pkg.sv`. (https://github.com/pulp-platform/FlooNoC/pull/110)
 - The `--only-pkg` and `-only-top` flags were added to the _FlooGen_ CLI to omit the generation of the package resp. the top-module. (https://github.com/pulp-platform/FlooNoC/pull/110)
 - If `--outdir` resp. `-o` is not specified _FlooGen_ will print the generated files to stdout instead of writing them to a file. (https://github.com/pulp-platform/FlooNoC/pull/110)
 
 ### Fixed
 
-- A bug in the calcuation of the RoB offset in `floo_rob` was fixed. Previously, the allocation and the write process used the same counter in bursts for offset calculation, which resulted in wrong offsets. (https://github.com/pulp-platform/FlooNoC/pull/65)
+- A bug in the calculation of the RoB offset in `floo_rob` was fixed. Previously, the allocation and the write process used the same counter in bursts for offset calculation, which resulted in wrong offsets. (https://github.com/pulp-platform/FlooNoC/pull/65)
 - Routers with `XYRouting` do now use the global `id_offset`, which was previously not accounted for (or had to be specified manually). (https://github.com/pulp-platform/FlooNoC/pull/72)
-- Fixed elaboration errors in the chimneys that occured. (https://github.com/pulp-platform/FlooNoC/pull/75)
+- Fixed elaboration errors in the chimneys that occurred. (https://github.com/pulp-platform/FlooNoC/pull/75)
 - Fixed Synopsys DC elaboration error due to concatenation in `id_i` port connection of chimneys and routers. (https://github.com/pulp-platform/FlooNoC/pull/103)
 - Undriven signals in `floo_meta_buffer` if `AtopSupport` is disabled. (https://github.com/pulp-platform/FlooNoC/pull/89)
 
@@ -218,7 +218,7 @@ channels) (https://github.com/pulp-platform/FlooNoC/pull/169)
 
 ### Added
 
-- Support for source-based routing algorithm in routers, chimnyes and `floogen`. The route is encoded in the header as a `route_t` field, and each router consumes a couple of bits to determine the output ports. In the chimney, a two-stage encoder was added to first determine the destination ID of the request, and then retrive the pre-computed route to that destination from a table. The `floogen` configuration was extended to support the new routing algorithm, and it will also generate the necessary tables for the chimneys.
+- Support for source-based routing algorithm in routers, chimnyes and `floogen`. The route is encoded in the header as a `route_t` field, and each router consumes a couple of bits to determine the output ports. In the chimney, a two-stage encoder was added to first determine the destination ID of the request, and then retrieve the pre-computed route to that destination from a table. The `floogen` configuration was extended to support the new routing algorithm, and it will also generate the necessary tables for the chimneys.
 - Chimneys now support multiple AXI IDs for non-atomic transactions by specifying the `MaxUniqueids` parameter. This will mitigate ordering of transactions from initially different IDs or endpoints at the expense of some complexity in the `meta_buffer` which then uses `id_queue` to store the meta information required to return responses.
 - The conversion from req/rsp with different ID widths from/to NoC has been moved from the chimneys to the `floo_meta_buffer` module.
 - Added virtual channel router `floo_vc_router` and corresponding `floo_vc_narrow_wide_chimney`. Currently only supports XY-Routing and mesh topologies.
@@ -247,7 +247,7 @@ channels) (https://github.com/pulp-platform/FlooNoC/pull/169)
 - The `id_offset` should not be correctly applied in the system address map. Before it resulted in negative coordinates.
 - The `axi_ch_e` types now have an explicit bitwidth. Previously, this caused issues during elaboration since a 32-bit integer was used as a type.
 - Fixed a typedef in `floo_vc_arbiter` when setting `NumVirtChannels` to 1, that caused issue when compiling with Verilator.
-- Fixes issue that the routing table was not renderred when `IdTable` was used as the routing algorithm.
+- Fixes issue that the routing table was not rendered when `IdTable` was used as the routing algorithm.
 
 ### Removed
 
@@ -301,12 +301,12 @@ channels) (https://github.com/pulp-platform/FlooNoC/pull/169)
 
 - the exported include folder of the `floo` package is moved to `hw/include`.
 - The `LICENSE` file was updated to reflect that the project uses the `Solderpad Hardware License Version 2.1` for all `hw` files and the `Apache License 2.0` for software related files.
-- The directory was restructured to accomodate the new `floogen` framework. The `src` was renamed to `hw`, which contains only SystemVerilog code. Test modules and testbenches were also moved to `hw/test` and `hw/tb` respectively. The same holds true for wave files, which are now located in `hw/tb/wave`.
+- The directory was restructured to accommodate the new `floogen` framework. The `src` was renamed to `hw`, which contains only SystemVerilog code. Test modules and testbenches were also moved to `hw/test` and `hw/tb` respectively. The same holds true for wave files, which are now located in `hw/tb/wave`.
 - The SV packages `floo_axi_pkg` and `floo_narrow_wide_pkg` are now generated by `floogen`. The configuration files were moved to the `floogen/examples` folder, and were aligned with the new `floogen` configuration format, that is written in `YAML` instead of `hjson`.
 - Reworked the python dependencies to use `pyproject.toml` instead of `requirements.txt`. Furthermore, the python requirement was bumped to `3.10` due to `floogen` (which makes heavy use of the newer `match` syntax)
 - Removed `xy_id_i` ports from AXI chimneys in favor of a generic `id_i` port for both `IdTable` and `XYRouting`
 - Changed auto-generated package configuration schema. The `header` field is replaced in favor of a `routing` field that better represents the information needed for routing.
-- `XYRouting` now also supports a routing table similar to the `IdTable` routing table. Before the destination was determined based on a couple of bits in the address. This however did not allow for a lot of flexibility and requires a larger addres width.
+- `XYRouting` now also supports a routing table similar to the `IdTable` routing table. Before the destination was determined based on a couple of bits in the address. This however did not allow for a lot of flexibility and requires a larger address width.
 
 ### Fixed
 

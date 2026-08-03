@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -6,16 +5,16 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 
-from typing import Optional, List, ClassVar, Tuple, Union
-from importlib.resources import files, as_file
 from abc import ABC, abstractmethod
+from importlib.resources import as_file, files
+from typing import ClassVar
 
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from mako.lookup import Template
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
-from floogen.model.routing import RouteMap, SimpleId, Coord, RouteAlgo
-from floogen.model.link import Link
 import floogen.templates
+from floogen.model.link import Link
+from floogen.model.routing import Coord, RouteAlgo, RouteMap, SimpleId
 
 
 class RouterDesc(BaseModel):
@@ -33,11 +32,11 @@ class RouterDesc(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str
-    array: Optional[Union[Tuple[int], Tuple[int, int]]] = None
-    tree: Optional[List[int]] = None
-    xy_id_offset: Optional[Union[SimpleId, Coord]] = None
-    auto_connect: Optional[bool] = True
-    degree: Optional[int] = None
+    array: tuple[int] | tuple[int, int] | None = None
+    tree: list[int] | None = None
+    xy_id_offset: SimpleId | Coord | None = None
+    auto_connect: bool | None = True
+    degree: int | None = None
 
     @field_validator("array", mode="before")
     @classmethod
@@ -61,16 +60,17 @@ class RouterDesc(BaseModel):
         """Convert dict to Coord object."""
         return Coord.from_dict(v)
 
+
 class Router(BaseModel, ABC):
     """Abstract router class of an actual router"""
 
     name: str
-    incoming: List[Optional[Link]]
-    outgoing: List[Optional[Link]]
+    incoming: list[Link | None]
+    outgoing: list[Link | None]
     degree: int
     route_algo: RouteAlgo
-    table: Optional[RouteMap] = None
-    id: Optional[Coord] = None
+    table: RouteMap | None = None
+    id: Coord | None = None
 
     @abstractmethod
     def render(self):
@@ -80,31 +80,33 @@ class Router(BaseModel, ABC):
     def check_links(self):
         """Check if the number of links is correct."""
         if len(self.incoming) != self.degree:
-            raise ValueError(f"Router {self.name} has {self.incoming} " +
-                             f"incoming links but should have {self.degree}")
+            raise ValueError(
+                f"Router {self.name} has {self.incoming} "
+                + f"incoming links but should have {self.degree}"
+            )
         if len(self.outgoing) != self.degree:
-            raise ValueError(f"Router {self.name} has {self.outgoing} " +
-                             f"outgoing links but should have {self.degree}")
+            raise ValueError(
+                f"Router {self.name} has {self.outgoing} "
+                + f"outgoing links but should have {self.degree}"
+            )
         return self
+
 
 class AxiRouter(Router):
     """Router class to describe a single-AXI router"""
 
-    with as_file(
-        files(floogen.templates).joinpath("floo_axi_router.sv.mako")
-    ) as _tpl_path:
+    with as_file(files(floogen.templates).joinpath("floo_axi_router.sv.mako")) as _tpl_path:
         _tpl: ClassVar = Template(filename=str(_tpl_path))
 
     def render(self, **kwargs):
         """Declare the router in the generated code."""
         return self._tpl.render(router=self, **kwargs) + "\n"
 
+
 class NarrowWideRouter(Router):
     """Router class to describe a narrow-wide router"""
 
-    with as_file(
-        files(floogen.templates).joinpath("floo_nw_router.sv.mako")
-    ) as _tpl_path:
+    with as_file(files(floogen.templates).joinpath("floo_nw_router.sv.mako")) as _tpl_path:
         _tpl: ClassVar = Template(filename=str(_tpl_path))
 
     def render(self, **kwargs):

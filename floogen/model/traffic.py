@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2026 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -9,14 +8,13 @@
 
 - traffic configuration files describing traffic streams between
   endpoints identified by their XY coordinates (see `gen_traffic_cfg`);
-- built-in traffic patterns (see `gen_traffic_builtin`), requiring no 
+- built-in traffic patterns (see `gen_traffic_builtin`), requiring no
   dedicated traffic configuration file.
 """
 
 import math
 import random
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 import ruamel.yaml
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
@@ -27,12 +25,24 @@ from floogen.utils import clog2
 
 # Built-in, mesh-wide algorithmic traffic patterns supported by `gen_traffic_builtin`.
 MESH_TRAFFIC_TYPES = [
-    "hbm", "uniform", "onehop", "bit_complement", "bit_reverse", "bit_rotation",
-    "neighbor", "shuffle", "transpose", "tornado", "hotspot", "hotspot_boundary", "matmul",
+    "hbm",
+    "uniform",
+    "onehop",
+    "bit_complement",
+    "bit_reverse",
+    "bit_rotation",
+    "neighbor",
+    "shuffle",
+    "transpose",
+    "tornado",
+    "hotspot",
+    "hotspot_boundary",
+    "matmul",
 ]
 
 # Seeded for reproducibility of the `uniform` traffic pattern.
 random.seed(42)
+
 
 def _log(verbose: bool, msg: str):
     """Print `msg` only when verbose output is enabled."""
@@ -53,7 +63,7 @@ class Burst(BaseModel):
     length: int
 
     # Resolved using FlooNoC model
-    data_width: Optional[int] = None
+    data_width: int | None = None
 
 
 class TrafficStream(BaseModel):
@@ -69,11 +79,11 @@ class TrafficStream(BaseModel):
     """
 
     name: str
-    initiator: List[int]
-    endpoint: List[int]
+    initiator: list[int]
+    endpoint: list[int]
     rw: str
-    narrow_burst: List[Burst]
-    wide_burst: List[Burst]
+    narrow_burst: list[Burst]
+    wide_burst: list[Burst]
 
     @field_validator("narrow_burst", "wide_burst", mode="before")
     @classmethod
@@ -84,15 +94,15 @@ class TrafficStream(BaseModel):
         return v
 
     # Resolved using FlooNoC model
-    initiator_addr: Optional[int] = None
-    endpoint_addr: Optional[int] = None
+    initiator_addr: int | None = None
+    endpoint_addr: int | None = None
 
 
 class Traffic(BaseModel):
     """Traffic class describing how different traffic streams interact in the FlooNoC system."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
-    traffic_flows: List[TrafficStream]
+    traffic_flows: list[TrafficStream]
 
 
 def parse_traffic_cfg(cfg: Path) -> Traffic:
@@ -105,19 +115,22 @@ def parse_traffic_cfg(cfg: Path) -> Traffic:
         raise ValueError(f"Error while validating traffic configuration '{cfg}': {e}") from e
 
 
-def _protocol_data_widths(network: Network, verbose: bool = False) -> Dict[str, int]:
+def _protocol_data_widths(network: Network, verbose: bool = False) -> dict[str, int]:
     """Map protocol type (`"narrow"`/`"wide"`) to data width, resolved from the FlooNoC model."""
-    proto_dw: Dict[str, int] = {}
+    proto_dw: dict[str, int] = {}
     for p in network.protocols:
         if p.type is None:
-            _log(verbose, f"Warning: Protocol '{p.name}' does not have a type, please provide a "
-                          f"type in the FlooNoC configuration: '{network.name}'")
+            _log(
+                verbose,
+                f"Warning: Protocol '{p.name}' does not have a type, please provide a "
+                f"type in the FlooNoC configuration: '{network.name}'",
+            )
             continue
         proto_dw.setdefault(p.type, p.data_width)
     return proto_dw
 
 
-def _ni_mesh_coord(network: Network, ni_name: str) -> Tuple[int, int]:
+def _ni_mesh_coord(network: Network, ni_name: str) -> tuple[int, int]:
     """Infer an NI's mesh coordinate from its router connection.
 
     Traffic configurations identify nodes by their physical mesh coordinates. Those
@@ -126,9 +139,6 @@ def _ni_mesh_coord(network: Network, ni_name: str) -> Tuple[int, int]:
     the coordinate from the adjacent router's array index and the link direction
     instead.
     """
-    if network.graph is None:
-        raise ValueError("Network graph has not been created")
-
     for neighbor in network.graph.neighbors(ni_name):
         if not network.graph.is_rt_node(neighbor):
             continue
@@ -150,20 +160,31 @@ def _ni_mesh_coord(network: Network, ni_name: str) -> Tuple[int, int]:
     raise ValueError(f"Cannot infer a mesh coordinate for network interface '{ni_name}'")
 
 
-def _xy_addr_map(network: Network) -> Dict[Tuple[int, int], int]:
+def _xy_addr_map(network: Network) -> dict[tuple[int, int], int]:
     """Build an XY-coordinate-to-base-address lookup from the physical mesh topology."""
-    if network.graph is None:
-        raise ValueError("Network graph has not been created")
-
-    xy_addr_map: Dict[Tuple[int, int], int] = {}
+    xy_addr_map: dict[tuple[int, int], int] = {}
     for ni_name, ni in network.graph.get_ni_nodes(with_name=True):
         if getattr(ni, "addr_range", None):
             xy_addr_map[_ni_mesh_coord(network, ni_name)] = ni.addr_range[0].start
     return xy_addr_map
 
 
-def resolve_traffic_model(traffic_model: Traffic, network: Network,
-                          verbose: bool = False) -> Traffic:
+def _mesh_dims(network: Network) -> tuple[int, int]:
+    """Return the `(x, y)` dimensions of the network's router mesh.
+
+    `Router.array` is optional and may describe a 1D array, but traffic generation is only
+    defined for a 2D mesh, so reject anything else with a readable error.
+    """
+    match network.routers[0].array:
+        case (num_x, num_y):
+            return num_x, num_y
+        case _:
+            raise ValueError("Traffic generation requires a 2D mesh of routers")
+
+
+def resolve_traffic_model(
+    traffic_model: Traffic, network: Network, verbose: bool = False
+) -> Traffic:
     """Resolve burst data widths and initiator/endpoint addresses using the FlooNoC model."""
     proto_dw = _protocol_data_widths(network, verbose=verbose)
     for flow in traffic_model.traffic_flows:
@@ -181,7 +202,9 @@ def resolve_traffic_model(traffic_model: Traffic, network: Network,
         if init_xy in xy_addr_map:
             flow.initiator_addr = xy_addr_map[init_xy]
         else:
-            _log(verbose, f"Warning: No address found for initiator {init_xy} in flow '{flow.name}'")
+            _log(
+                verbose, f"Warning: No address found for initiator {init_xy} in flow '{flow.name}'"
+            )
         if ep_xy in xy_addr_map:
             flow.endpoint_addr = xy_addr_map[ep_xy]
         else:
@@ -200,12 +223,18 @@ def print_traffic_model(traffic_model: Traffic):
         print(f"    Initiator : {flow.initiator}  addr={init_addr_str}")
         print(f"    Endpoint  : {flow.endpoint}  addr={ep_addr_str}")
         print(f"    R/W       : {flow.rw}")
-        narrow_str = ", ".join(
-            f"(num={b.number}, len={b.length}, dw={b.data_width})" for b in flow.narrow_burst
-        ) or "none"
-        wide_str = ", ".join(
-            f"(num={b.number}, len={b.length}, dw={b.data_width})" for b in flow.wide_burst
-        ) or "none"
+        narrow_str = (
+            ", ".join(
+                f"(num={b.number}, len={b.length}, dw={b.data_width})" for b in flow.narrow_burst
+            )
+            or "none"
+        )
+        wide_str = (
+            ", ".join(
+                f"(num={b.number}, len={b.length}, dw={b.data_width})" for b in flow.wide_burst
+            )
+            or "none"
+        )
         print(f"    Narrow bursts : {narrow_str}")
         print(f"    Wide bursts   : {wide_str}")
     print("====================\n")
@@ -243,9 +272,11 @@ def _emit_jobs(jobs: str, outdir: Path, filename: str, idx: int):
     (outdir / f"{filename}_{idx}.txt").write_text(jobs, encoding="utf-8")
 
 
-def gen_traffic_cfg(  # pylint: disable=too-many-arguments, too-many-positional-arguments
-    cfg: Path, network: Network, 
-    filename: str, outdir: Path, 
+def gen_traffic_cfg(
+    cfg: Path,
+    network: Network,
+    filename: str,
+    outdir: Path,
     verbose: bool = False,
 ):
     """Create a traffic model from a traffic configuration file, then generate DMA jobs for all traffic streams and for the given network."""
@@ -253,7 +284,7 @@ def gen_traffic_cfg(  # pylint: disable=too-many-arguments, too-many-positional-
     traffic_model = resolve_traffic_model(traffic_model, network, verbose=verbose)
     if verbose:
         print_traffic_model(traffic_model)
-    floonoc_num_y = network.routers[0].array[1]
+    _, floonoc_num_y = _mesh_dims(network)
     for flow in traffic_model.traffic_flows:
         local_addr = flow.initiator_addr
         ext_addr = flow.endpoint_addr
@@ -266,19 +297,25 @@ def gen_traffic_cfg(  # pylint: disable=too-many-arguments, too-many-positional-
         wide_jobs = ""
         for burst in flow.wide_burst:
             if burst.data_width is None:
-                _log(verbose, f"Warning: No wide interface was detected, skipping wide burst "
-                              f"generation for traffic flow '{flow.name}'")
+                _log(
+                    verbose,
+                    f"Warning: No wide interface was detected, skipping wide burst "
+                    f"generation for traffic flow '{flow.name}'",
+                )
                 continue
-            wide_length = burst.length * burst.data_width / 8
+            wide_length = burst.length * burst.data_width // 8
             wide_jobs += _gen_job_str(wide_length, src_addr, dst_addr) * burst.number
 
         narrow_jobs = ""
         for burst in flow.narrow_burst:
             if burst.data_width is None:
-                _log(verbose, f"Warning: No narrow interface was detected, skipping narrow burst "
-                              f"generation for traffic flow '{flow.name}'")
+                _log(
+                    verbose,
+                    f"Warning: No narrow interface was detected, skipping narrow burst "
+                    f"generation for traffic flow '{flow.name}'",
+                )
                 continue
-            narrow_length = burst.length * burst.data_width / 8
+            narrow_length = burst.length * burst.data_width // 8
             narrow_jobs += _gen_job_str(narrow_length, src_addr, dst_addr) * burst.number
 
         x, y = flow.initiator[0], flow.initiator[1]
@@ -289,20 +326,27 @@ def gen_traffic_cfg(  # pylint: disable=too-many-arguments, too-many-positional-
         _log(verbose, f"Emitted narrow job with index {idx + 100} (x: {x}, y: {y})")
 
 
-def gen_traffic_builtin(  # pylint: disable=too-many-arguments, too-many-positional-arguments
-    traffic_type: str, network: Network,
-    filename: str, outdir: Path,
-    num_narrow_bursts: int, narrow_burst_length: int,
-    num_wide_bursts: int, wide_burst_length: int, 
-    traffic_rw: str, verbose: bool = False, 
+def gen_traffic_builtin(
+    traffic_type: str,
+    network: Network,
+    filename: str,
+    outdir: Path,
+    num_narrow_bursts: int,
+    narrow_burst_length: int,
+    num_wide_bursts: int,
+    wide_burst_length: int,
+    traffic_rw: str,
+    verbose: bool = False,
 ):
     """Generate DMA job files for a built-in traffic pattern. Unlike `gen_traffic_cfg`, this does not require a dedicated traffic configuration file."""
-    # pylint: disable=too-many-locals, too-many-branches, too-many-statements
-    if traffic_type not in MESH_TRAFFIC_TYPES:
-        raise ValueError(f"Unknown traffic type: '{traffic_type}'. "
-                          f"Supported types: {', '.join(MESH_TRAFFIC_TYPES)}")
 
-    num_x, num_y = network.routers[0].array[0], network.routers[0].array[1]
+    if traffic_type not in MESH_TRAFFIC_TYPES:
+        raise ValueError(
+            f"Unknown traffic type: '{traffic_type}'. "
+            f"Supported types: {', '.join(MESH_TRAFFIC_TYPES)}"
+        )
+
+    num_x, num_y = _mesh_dims(network)
     xy_addr_map = _xy_addr_map(network)
     proto_dw = _protocol_data_widths(network, verbose=verbose)
     narrow_dw = proto_dw.get("narrow")
@@ -317,8 +361,8 @@ def gen_traffic_builtin(  # pylint: disable=too-many-arguments, too-many-positio
     for x in range(num_x):
         for y in range(num_y):
             local_addr = addr(x, y)
-            wide_length = wide_burst_length * wide_dw / 8 if wide_dw is not None else None
-            narrow_length = narrow_burst_length * narrow_dw / 8 if narrow_dw is not None else None
+            wide_length = wide_burst_length * wide_dw // 8 if wide_dw is not None else None
+            narrow_length = narrow_burst_length * narrow_dw // 8 if narrow_dw is not None else None
             if traffic_type == "hbm":
                 # Tile x=0 are the HBM channels; each core reads/writes the channel of its
                 # y coordinate.
@@ -389,14 +433,17 @@ def gen_traffic_builtin(  # pylint: disable=too-many-arguments, too-many-positio
                 accesses = [(addr(num_x // 2, num_y // 2), traffic_rw, wide_length)]
             else:  # traffic_type == "matmul"
                 # access matrix A from HBM
-                accesses = [(addr(-1, y), "read", None if wide_length is None else wide_length // 2)]
+                accesses = [
+                    (addr(-1, y), "read", None if wide_length is None else wide_length // 2)
+                ]
                 # access matrix B from HBM
                 for i in range(num_y):
                     length = None if wide_length is None else (wide_length // 2) // num_y
                     accesses += [(addr(-1, (y + i) % num_y), "read", length)]
                 # writeback of matrix C to HBM
-                accesses += [(addr(-1, y), "write",
-                              None if wide_length is None else wide_length // 4)]
+                accesses += [
+                    (addr(-1, y), "write", None if wide_length is None else wide_length // 4)
+                ]
 
             wide_jobs = ""
             narrow_jobs = ""

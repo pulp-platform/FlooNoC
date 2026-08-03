@@ -92,7 +92,7 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
       assign vc_arb_req_in = valid_i & ready_i;
     end
 
-    // A credit is taken only after handshake has occured
+    // A credit is taken only after handshake has occurred
     assign credit_handshake = valid_o & ready_o;
 
     // The arbitration tree only accepts a single grant signal. Therefore,

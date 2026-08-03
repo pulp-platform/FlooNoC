@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2023 ETH Zurich and University of Bologna.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -8,10 +7,9 @@
 import math
 import shutil
 import subprocess
-from typing import Union, List
 
 
-def cdiv(x: Union[int, float], y: Union[int, float]) -> int:
+def cdiv(x: float, y: float) -> int:
     """Compute the ceiling of x / y.
 
     Examples:
@@ -25,10 +23,10 @@ def cdiv(x: Union[int, float], y: Union[int, float]) -> int:
     Returns:
         int: Ceiling of x / y.
     """
-    return -(-x // y)
+    return int(-(-x // y))
 
 
-def clog2(x: Union[int, float]) -> int:
+def clog2(x: float) -> int:
     """Returns the ceiling of log2(x).
 
     Examples:
@@ -119,15 +117,15 @@ def int_to_hex(value: int, width: int) -> str:
     Returns:
         str: Hex string representation of the integer.
     """
-    return f"{width}'h{value:0{width//4}x}"
+    return f"{width}'h{value:0{width // 4}x}"
 
 
 def sv_param_decl(
     name: str,
-    value: Union[int, str],
+    value: int | str,
     ptype: str = "localparam",
     dtype: str = "int unsigned",
-    array_size: Union[int, str, List[Union[int, str]]] = None,
+    array_size: int | str | list[int | str] | None = None,
 ) -> str:
     """Declare a SystemVerilog parameter.
 
@@ -148,9 +146,10 @@ def sv_param_decl(
         str: SystemVerilog parameter declaration.
     """
     assert ptype in ["localparam", "parameter"]
+
     def _array_fmt(size):
         if isinstance(size, int):
-            return f"[{size-1}:0]"
+            return f"[{size - 1}:0]"
         return f"[{size}:0]"
 
     if array_size is None:
@@ -163,7 +162,7 @@ def sv_param_decl(
     raise ValueError("array_size must be int, str, or list.")
 
 
-def sv_typedef(name: str, dtype: str = "logic", array_size: int = None) -> str:
+def sv_typedef(name: str, dtype: str = "logic", array_size: int | None = None) -> str:
     """Declare a SystemVerilog typedef.
 
     Examples:
@@ -181,7 +180,7 @@ def sv_typedef(name: str, dtype: str = "logic", array_size: int = None) -> str:
     assert array_size is None or isinstance(array_size, int)
     if array_size is None:
         return f"typedef {dtype} {name};\n"
-    return f"typedef {dtype}[{array_size-1}:0] {name};\n"
+    return f"typedef {dtype}[{array_size - 1}:0] {name};\n"
 
 
 def sv_struct_typedef(name: str, fields: dict, union=False) -> str:
@@ -195,24 +194,25 @@ def sv_struct_typedef(name: str, fields: dict, union=False) -> str:
     typedef += f"}} {name};\n\n"
     return typedef
 
+
 def sv_struct_render(fields: dict) -> str:
     """
-        Declare a SystemVerilog struct based on a (nested) dictionary,
-        where they keys of the dictionary are the field names, and the values are
-        the actual values to assign.
+    Declare a SystemVerilog struct based on a (nested) dictionary,
+    where they keys of the dictionary are the field names, and the values are
+    the actual values to assign.
 
-        Example:
-            fields = {'field1': '3'd0',
-                      'field2': {'subfield1': 'some_signal',
-                                 'subfield2': 'SomeParam'}}
-            sv_struct_render(fields) ->
-            '{
-                field1: 3'd0,
-                field2: '{
-                    subfield1: some_signal,
-                    subfield2: SomeParam
-                },
-            }'
+    Example:
+        fields = {'field1': '3'd0',
+                  'field2': {'subfield1': 'some_signal',
+                             'subfield2': 'SomeParam'}}
+        sv_struct_render(fields) ->
+        '{
+            field1: 3'd0,
+            field2: '{
+                subfield1: some_signal,
+                subfield2: SomeParam
+            },
+        }'
     """
     decl = "'{"
     for field, value in fields.items():
@@ -222,7 +222,10 @@ def sv_struct_render(fields: dict) -> str:
         decl += f"    {field}: {value},\n"
     return decl[:-2] + "}"
 
-def sv_enum_typedef(name: str, fields_dict: dict=None, fields_list: list=None) -> str:
+
+def sv_enum_typedef(
+    name: str, fields_dict: dict | None = None, fields_list: list | None = None
+) -> str:
     """Declare a SystemVerilog enum typedef.
 
     Examples:
@@ -247,13 +250,13 @@ def sv_enum_typedef(name: str, fields_dict: dict=None, fields_list: list=None) -
     """
     if fields_dict is not None:
         bitwidth = clog2(max(fields_dict.values()) + 1)
-        typedef = f"typedef enum logic[{bitwidth-1}:0] {{\n"
+        typedef = f"typedef enum logic[{bitwidth - 1}:0] {{\n"
         for field, value in fields_dict.items():
             typedef += f"    {snake_to_camel(field)} = {value},\n"
         typedef = typedef[:-2] + f"}} {name};\n\n"
     elif fields_list is not None:
         bitwidth = clog2(len(fields_list))
-        typedef = f"typedef enum logic[{bitwidth-1}:0] {{\n"
+        typedef = f"typedef enum logic[{bitwidth - 1}:0] {{\n"
         for i, field in enumerate(fields_list):
             typedef += f"    {snake_to_camel(field)} = {i},\n"
         typedef += f"}} {name};\n\n"

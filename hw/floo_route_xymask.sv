@@ -36,11 +36,11 @@ module floo_route_xymask import floo_pkg::*; #(
   input  flit_t                         channel_i,
   // The current XY-coordinate of the router
   input  id_t                           xy_id_i,
-  // The calculated onehot maks for the multicast/reduction
+  // The calculated onehot mask for the multicast/reduction
   output logic [NumRoutes-1:0]          route_sel_o
 );
 
-  // General Concept: In XY-Routing all flits travel first in X - direction until they arrive at the columne of the destination
+  // General Concept: In XY-Routing all flits travel first in X - direction until they arrive at the column of the destination
   //                  and then travel in Y direction until they reach the destination. In the Multicast case we have to forward
   //                  them until the "most far away" x/y position (dst_id_max) determint by the mask!
 
@@ -84,7 +84,7 @@ module floo_route_xymask import floo_pkg::*; #(
   id_t src_id;
   id_t mask;
 
-  // Var to hold the maxium distribution distance for both source and destination
+  // Var to hold the maximum distribution distance for both source and destination
   id_t dst_id_max, dst_id_min;
   id_t src_id_max, src_id_min;
 
@@ -94,7 +94,7 @@ module floo_route_xymask import floo_pkg::*; #(
   logic x_matched_expected_input;
   logic y_matched_expected_input;
 
-  // Signal assigments
+  // Signal assignments
   assign dst_id = channel_i.hdr.dst_id;
   assign src_id = channel_i.hdr.src_id;
   assign mask = channel_i.hdr.collective_mask;
@@ -210,7 +210,7 @@ module floo_route_xymask import floo_pkg::*; #(
         // XY: collect along X first, then along Y
 
         // In the case of an reduction we want to collect the source responses first in the x direction.
-        // e.g. the North / South can only be selected if we are in the correct dst columne.
+        // e.g. the North / South can only be selected if we are in the correct dst column.
         // We expect a packet from the north if the current y id is higher/equal as the destination but still
         // inside the expected maximum range of the source reduction. Same for the South!
         if(xy_id_i.x == dst_id.x) begin
@@ -268,7 +268,7 @@ module floo_route_xymask import floo_pkg::*; #(
     end
   end
 
-  // Eiter assign the expected input or the output depending on the Mode
+  // Either assign the expected input or the output depending on the Mode
   assign route_sel_o = (FwdMode) ? route_output : route_expected_input;
 
   // We only support five input/output routes

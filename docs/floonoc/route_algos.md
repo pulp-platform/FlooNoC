@@ -8,7 +8,7 @@ One of the main design principles of _FlooNoC_ is that it is flexible and can su
 
 1. **Table-based routing**: A routing algorithm where the selection of port is based on a table that is provided to the router.
 
-All of those routing algorithms are static respectively deterministic. While dynanmic routing algorithms might feature better performance since it can adapt to changing network conditions, they are also more complex to implement and might introduce deadlocks. Furthermore, _FlooNoC_ uses the deterministic routing assumption of the network to guarante the correct ordering of AXI transactions. For instance, _FlooNoC_ relies on the fact that flits from the same source and channel to the same destination remain ordered, which is not given in dynamic routing algorithms.
+All of those routing algorithms are static respectively deterministic. While dynanmic routing algorithms might feature better performance since it can adapt to changing network conditions, they are also more complex to implement and might introduce deadlocks. Furthermore, _FlooNoC_ uses the deterministic routing assumption of the network to guarantee the correct ordering of AXI transactions. For instance, _FlooNoC_ relies on the fact that flits from the same source and channel to the same destination remain ordered, which is not given in dynamic routing algorithms.
 
 ## Dimension-ordered (DOR)
 
@@ -56,7 +56,7 @@ A router usually has 5 ports (4 for the cardinal directions and one local port),
     The header of a flit is different for source-based routing compared to the other routing algorithms. Instead of encoding the destination id (`dst_id`) as a node ID (of type `id_t`), the destination id is encoded as a route (`route_t`). The source id (`src_id`) is still encoded as a node ID, since the source node generally does not know the route back to itself from the destination. Instead it provides the `src_id`, which can be translated back to a route by the destination node.
 
 
-The implementation of this routing algorithm is also very simple, since every router _consumes_ a port from the route encoding, which means it simply shifts the route encoding by the number of bits that is required to encode the number of possible ports. This way, a router does not neet to be aware of how many hops a flit has already passed, since it can simply look at the first bits of the route encoding to determine the next port.
+The implementation of this routing algorithm is also very simple, since every router _consumes_ a port from the route encoding, which means it simply shifts the route encoding by the number of bits that is required to encode the number of possible ports. This way, a router does not need to be aware of how many hops a flit has already passed, since it can simply look at the first bits of the route encoding to determine the next port.
 
 ### Advantages
 

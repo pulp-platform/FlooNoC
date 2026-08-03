@@ -35,7 +35,7 @@ module floo_nw_router
   /// Disables loopback connections
   parameter bit          NoLoopback                 = 1'b1,
   /// Enable decoupling between Read and Write WIDE channels using virtual or
-  /// physical channels: assumed that write transactions are alwasy on VC0.
+  /// physical channels: assumed that write transactions are always on VC0.
   parameter wide_rw_decouple_e WideRwDecouple       = None,
   parameter vc_impl_e VcImpl                        = VcNaive,
   /// Parameter to define which type of collective operation support
@@ -100,7 +100,7 @@ module floo_nw_router
   typedef logic [AxiCfgW.DataWidth-1:0] axi_wide_data_t;
   typedef logic [AxiCfgW.DataWidth/8-1:0] axi_wide_strb_t;
 
-  // (Re-) definitons of `axi_in` and `floo` types, for transport
+  // (Re-) definitions of `axi_in` and `floo` types, for transport
   `AXI_TYPEDEF_ALL_CT(axi_narrow, axi_narrow_req_t, axi_narrow_rsp_t, axi_addr_t,
       axi_narrow_in_id_t, axi_narrow_data_t, axi_narrow_strb_t, axi_narrow_user_t)
   `AXI_TYPEDEF_ALL_CT(axi_wide, axi_wide_req_t, axi_wide_rsp_t, axi_addr_t,
@@ -153,7 +153,7 @@ module floo_nw_router
     assign floo_wide_o[i].wide = wide_out[i];
   end
 
-  // Generation of credit based conenctions only when necessary
+  // Generation of credit based connections only when necessary
   if (VcImpl == VcCredit) begin: gen_credit_connections
     // Narrow links credit connections
     for (genvar i = 0; i < NumInputs; i++) begin: gen_credit_req

@@ -37,7 +37,7 @@ module floo_nw_vc_router
   parameter int FixedWormholeVC             = 1,
   parameter int WormholeVCId    [NumPorts]  = {0,1,0,2,0}, // as seen from output port
   parameter int WormholeVCDepth             = 3,
-  parameter int AllowOverflowFromDeeperVC   = 1, //overriden if AllowVCOverflow is 0
+  parameter int AllowOverflowFromDeeperVC   = 1, //overridden if AllowVCOverflow is 0
   parameter int UpdateRRArbIfNotSent        = 0,
   parameter int SingleStage                 = 0, // 0: standard 2 stage, 1: single stage
 
@@ -79,7 +79,7 @@ module floo_nw_vc_router
   typedef logic [AxiCfgW.DataWidth-1:0] axi_wide_data_t;
   typedef logic [AxiCfgW.DataWidth/8-1:0] axi_wide_strb_t;
 
-  // (Re-) definitons of `axi_in` and `floo` types, for transport
+  // (Re-) definitions of `axi_in` and `floo` types, for transport
   `AXI_TYPEDEF_ALL_CT(axi_narrow, axi_narrow_req_t, axi_narrow_rsp_t, axi_addr_t,
       axi_narrow_in_id_t, axi_narrow_data_t, axi_narrow_strb_t, axi_narrow_user_t)
   `AXI_TYPEDEF_ALL_CT(axi_wide, axi_wide_req_t, axi_wide_rsp_t, axi_addr_t,
