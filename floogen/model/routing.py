@@ -5,9 +5,11 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 from enum import Enum
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, BeforeValidator, Field, field_validator, model_validator
 
+from floogen.model.config import ConfigEnum, ConfigModel, OneOrMany
 from floogen.utils import (
     bool_to_sv,
     cdiv,
@@ -24,7 +26,7 @@ from floogen.utils import (
 _NOT_GENERATED = "Routing widths are only available after `gen_routing_info()`"
 
 
-class RouteAlgo(Enum):
+class RouteAlgo(ConfigEnum):
     """Routing algorithm enum.
 
     Attributes:
@@ -54,7 +56,7 @@ class RouteAlgo(Enum):
         return self in (RouteAlgo.XY, RouteAlgo.YX, RouteAlgo.XY_MIRRORED, RouteAlgo.YX_MIRRORED)
 
 
-class WideRwDecouple(Enum):
+class WideRwDecouple(ConfigEnum):
     """Read/write decoupling mode for the wide link (mirrors wide_rw_decouple_e in floo_pkg).
 
     NONE  — shared wide link, no decoupling (default)
@@ -66,11 +68,22 @@ class WideRwDecouple(Enum):
     VC = "Vc"
     PHYS = "Phys"
 
+    @classmethod
+    def _missing_(cls, value):
+        """`decouple_rw: true/false` is shorthand for the physical / disabled modes."""
+        if isinstance(value, bool):
+            return cls.PHYS if value else cls.NONE
+        return super()._missing_(value)
+
+    @classmethod
+    def _json_schema_values(cls):
+        return [*super()._json_schema_values(), False, True]
+
     def __str__(self):
         return self.value
 
 
-class VcImpl(Enum):
+class VcImpl(ConfigEnum):
     """Virtual channel implementation enum (mirrors vc_impl_e in floo_pkg).
 
     Only relevant when ``decouple_rw == WideRwDecouple.VC``.
@@ -84,7 +97,7 @@ class VcImpl(Enum):
         return self.value
 
 
-class NarrowReductionOp(Enum):
+class NarrowReductionOp(ConfigEnum):
     """Integer ALU reduction operations available on the narrow router."""
 
     Add = "Add"
@@ -95,7 +108,7 @@ class NarrowReductionOp(Enum):
     MaxU = "MaxU"
 
 
-class WideReductionOp(Enum):
+class WideReductionOp(ConfigEnum):
     """Floating-point reduction operations available on the wide router."""
 
     Add = "Add"
@@ -104,10 +117,8 @@ class WideReductionOp(Enum):
     Max = "Max"
 
 
-class ReductionCfg(BaseModel):
+class ReductionCfg(ConfigModel):
     """Base reduction hardware configuration shared by narrow and wide channels."""
-
-    model_config = ConfigDict(extra="forbid")
 
     rd_pipeline_depth: int = 0
     cut_offload_intf: bool = False
@@ -135,28 +146,14 @@ class NarrowReductionCfg(ReductionCfg):
 
     ops: list[NarrowReductionOp] = Field(default_factory=lambda: list(NarrowReductionOp))
 
-    @field_validator("ops", mode="before")
-    @classmethod
-    def _parse_ops(cls, v):
-        if isinstance(v, list):
-            return [NarrowReductionOp[x] if isinstance(x, str) else x for x in v]
-        return v
-
 
 class WideReductionCfg(ReductionCfg):
     """Reduction configuration for the wide link."""
 
     ops: list[WideReductionOp] = Field(default_factory=lambda: list(WideReductionOp))
 
-    @field_validator("ops", mode="before")
-    @classmethod
-    def _parse_ops(cls, v):
-        if isinstance(v, list):
-            return [WideReductionOp[x] if isinstance(x, str) else x for x in v]
-        return v
 
-
-class CollectiveCfg(BaseModel):
+class CollectiveCfg(ConfigModel):
     """User-facing collective operation configuration.
 
     The five high-level knobs map to ``collective_cfg_t`` in `floo_pkg`.
@@ -176,8 +173,6 @@ class CollectiveCfg(BaseModel):
         - **`[Add, Mul, ...]`**: Only the listed operations enabled, default hardware configuration
         - **`{ops: [...], rd_pipeline_depth: N, cut_offload_intf: true}`**: Full per-channel control
     """
-
-    model_config = ConfigDict(extra="forbid")
 
     en_narrow_multicast: bool = False
     en_wide_multicast: bool = False
@@ -293,7 +288,24 @@ class XYDirections(Enum):
         return self.value
 
 
-class SimpleId(BaseModel):
+def _as_direction(v: Any) -> Any:
+    """Resolve a direction name (`North`, `Eject`, ...) to its port index."""
+    if isinstance(v, str):
+        return XYDirections[v.upper()].value
+    return v
+
+
+PortDirection = Annotated[
+    int,
+    BeforeValidator(
+        _as_direction,
+        json_schema_input_type=int | Literal["North", "East", "South", "West", "Eject"],
+    ),
+]
+"""A router port, given either as an index or as a direction name."""
+
+
+class SimpleId(ConfigModel):
     """ID class."""
 
     id: int
@@ -328,11 +340,15 @@ class SimpleId(BaseModel):
         return f"[{self.id}]"
 
 
-class Coord(BaseModel):
-    """2D coordinate class."""
+class Coord(ConfigModel):
+    """2D coordinate class.
 
-    x: int
-    y: int
+    `x` and `y` default to 0 so that a partial offset (e.g. `{x: 2}`) is accepted
+    wherever a coordinate is read from a config file.
+    """
+
+    x: int = 0
+    y: int = 0
     port_id: int = 0
 
     def __hash__(self):
@@ -352,17 +368,6 @@ class Coord(BaseModel):
         if self.x == other.x:
             return self.port_id < other.port_id
         return False
-
-    @staticmethod
-    def from_dict(coord_dict: dict):
-        """Create a Coord object from a dictionary."""
-        if isinstance(coord_dict, dict):
-            return Coord(
-                x=coord_dict.get("x", 0),
-                y=coord_dict.get("y", 0),
-                port_id=coord_dict.get("port_id", 0),
-            )
-        return None
 
     def render(self, as_index=False):
         """Render the SystemVerilog coordinate."""
@@ -386,7 +391,7 @@ class Coord(BaseModel):
         raise ValueError("Invalid neighbor")
 
 
-class AddrRange(BaseModel):
+class AddrRange(ConfigModel):
     """Address range class.
 
     Attributes:
@@ -400,8 +405,6 @@ class AddrRange(BaseModel):
     derived `size` property.
     """
 
-    model_config = ConfigDict(extra="forbid")
-
     start: int = Field(ge=0)
     end: int = Field(ge=0)
     base: int | None = None
@@ -411,7 +414,7 @@ class AddrRange(BaseModel):
     rdl_as_mem: bool | None = None
     en_collective: bool = False
     desc: str | None = None
-    rdl_addrmap_grp: list[str] | None = None
+    rdl_addrmap_grp: OneOrMany[str] | None = None
     """One or more SystemRDL addrmap group tags this address range belongs to."""
 
     def __str__(self):
@@ -437,14 +440,6 @@ class AddrRange(BaseModel):
     def from_base_size(cls, base: int, size: int, **kwargs) -> "AddrRange":
         """Create a range from an array base address and a per-element size."""
         return cls.model_validate({"base": base, "size": size, **kwargs})
-
-    @field_validator("rdl_addrmap_grp", mode="before")
-    @classmethod
-    def rdl_addrmap_grp_to_list(cls, v):
-        """Convert a single group name to a list."""
-        if isinstance(v, str):
-            return [v]
-        return v
 
     @model_validator(mode="before")
     def validate_input(self):
@@ -514,8 +509,6 @@ class AddrRange(BaseModel):
 
 class RouteMapRule(BaseModel):
     """Routing rule class."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     dest: SimpleId | Coord
     addr_range: AddrRange
@@ -676,7 +669,8 @@ class RouteTable(BaseModel):
                 raise ValueError("Route tables require `SimpleId` destinations")  # noqa: TRY004
             if i != route.id.id:
                 self.routes.insert(i, RouteRule(route=None, id=SimpleId(id=i)))
-        return self.routes.reverse()
+        self.routes.reverse()
+        return self
 
     def render(self, num_route_bits, no_decl=False):
         """Render the SystemVerilog route table."""
@@ -894,9 +888,14 @@ class RouteMap(BaseModel):
             print(rule)
 
 
-class Routing(BaseModel):
+class RoutingDesc(ConfigModel):
     """
-    The class that holds essentially all the routing information needed.
+    The routing section of a configuration file.
+
+    This holds only what a configuration declares. The widths and address maps that
+    `Network.gen_routing_info()` derives from the elaborated graph live on
+    [`Routing`][floogen.model.routing.Routing], which extends this class, so that a
+    configuration cannot set them and the two are not confused for one another.
 
     Attributes:
         route_algo (RouteAlgo): This determines the routing algorithm to use. You can find more information about the different routing algorithms in the [routing algorithms documentation](../../floonoc/route_algos.md).
@@ -905,52 +904,22 @@ class Routing(BaseModel):
         collective (CollectiveCfg): Collective operation configuration (multicast, barrier, reduction).
     """
 
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
-
     route_algo: RouteAlgo
     use_id_table: bool = True
-    sam: RouteMap | None = None
-    """The system address map."""
-    table: RouteMap | None = None
-    """The routing table of the router."""
-    addr_offset_bits: int | None = None
-    """The number of bits to decode the X and Y coordinates from the address. Only used if `use_id_table` is False and `route_algo` is XY."""
-    xy_id_offset: SimpleId | Coord | None = None
-    """A constant offset to add to the X and Y coordinates. Only used if `route_algo` is XY."""
-    num_endpoints: int | None = None
-    """The number of endpoints in the network."""
-    num_id_bits: int | None = None
-    """The number of bits to represent the ID. Only used if `route_algo` is ID or SRC."""
-    num_x_bits: int | None = None
-    """The number of bits to represent the X coordinate. Only used if `route_algo` is XY."""
-    num_y_bits: int | None = None
-    """The number of bits to represent the Y coordinate. Only used if `route_algo` is XY."""
-    num_route_bits: int | None = None
-    """The number of bits to represent the route. Only used if `route_algo` is SRC."""
-    addr_width: int | None = None
-    """The width of the address bus."""
     rob_idx_bits: int = 1
     port_id_bits: int = 1
     """The number of bits to represent the local port ID."""
     num_vc_id_bits: int = 0
-    decouple_rw: WideRwDecouple = WideRwDecouple.NONE
-    vc_impl: VcImpl = VcImpl.NAIVE
-    collective_sam: RouteMap | None = None
-    """The collective system address map. Only used if collective is enabled."""
-    collective: CollectiveCfg = CollectiveCfg()
+    decouple_rw: WideRwDecouple | None = None
+    """Read/write decoupling of the wide link. Left unset, no `WideRwDecouple` parameter is emitted and the hardware default applies."""
+    vc_impl: VcImpl | None = None
+    """Virtual channel implementation. Left unset, no `VcImpl` parameter is emitted and the hardware default applies."""
+    collective: CollectiveCfg = Field(default_factory=CollectiveCfg)
 
     @property
     def en_collective(self) -> bool:
         """True when any collective feature is enabled (multicast, barrier, or reduction)."""
         return self.collective.en_collective
-
-    @field_validator("route_algo", mode="before")
-    @classmethod
-    def validate_route_algo(cls, v):
-        """Validate the routing algorithm."""
-        if isinstance(v, str):
-            v = RouteAlgo[v]
-        return v
 
     @model_validator(mode="after")
     def validate_mirrored_route_algo(self):
@@ -961,24 +930,6 @@ class Routing(BaseModel):
             raise ValueError(f"`route_algo: {self.route_algo}` requires `decouple_rw: Phys` ")
         return self
 
-    @field_validator("decouple_rw", mode="before")
-    @classmethod
-    def validate_decouple_rw(cls, v):
-        """Accept bool (False→NONE) or string/enum name."""
-        if isinstance(v, bool):
-            return WideRwDecouple.NONE if not v else WideRwDecouple.PHYS
-        if isinstance(v, str):
-            return WideRwDecouple[v.upper()]
-        return v
-
-    @field_validator("vc_impl", mode="before")
-    @classmethod
-    def validate_vc_impl(cls, v):
-        """Accept both enum members and string names."""
-        if isinstance(v, str):
-            v = VcImpl[v.upper()]
-        return v
-
     @model_validator(mode="after")
     def validate_collective_route_algo(self):
         """Collective operations are supported with dimension-ordered routing only."""
@@ -988,6 +939,42 @@ class Routing(BaseModel):
                 f"algorithms, but got {self.route_algo}"
             )
         return self
+
+
+class Routing(RoutingDesc):
+    """A `RoutingDesc` together with everything `Network.gen_routing_info()` derives.
+
+    Constructed once the graph is elaborated, so `sam`, `addr_width` and the endpoint
+    counts are always present. The remaining widths stay optional because which of them
+    exists is decided by `route_algo`; `render_*` raises if one is read that the
+    configured algorithm never produces.
+    """
+
+    addr_width: int
+    """The width of the address bus, taken from the network's protocols."""
+    num_endpoints: int
+    """The number of endpoints in the network."""
+    num_id_bits: int
+    """The number of bits to represent the ID."""
+    sam: RouteMap
+    """The system address map."""
+    collective_sam: RouteMap | None = None
+    """The collective system address map. Only used if collective is enabled."""
+    addr_offset_bits: int | None = None
+    """The number of bits to decode the X and Y coordinates from the address. Only used if `use_id_table` is False and `route_algo` is XY."""
+    xy_id_offset: SimpleId | Coord | None = None
+    """A constant offset to add to the X and Y coordinates. Only used if `route_algo` is XY."""
+    num_x_bits: int | None = None
+    """The number of bits to represent the X coordinate. Only used if `route_algo` is XY."""
+    num_y_bits: int | None = None
+    """The number of bits to represent the Y coordinate. Only used if `route_algo` is XY."""
+    num_route_bits: int | None = None
+    """The number of bits to represent the route. Only used if `route_algo` is SRC."""
+
+    @classmethod
+    def from_desc(cls, desc: RoutingDesc, **generated) -> "Routing":
+        """Build the elaborated routing from its configuration and the derived values."""
+        return cls(**dict(desc), **generated)
 
     def render_param_decl(self) -> str:
         """Render the SystemVerilog parameter declaration."""
@@ -1077,8 +1064,6 @@ class Routing(BaseModel):
             if self.addr_offset_bits is None:
                 raise ValueError(_NOT_GENERATED)
             id_addr_offset = self.addr_offset_bits
-        if self.sam is None:
-            raise ValueError("System address map has not been generated")
 
         fields = {
             "RouteAlgo": self.route_algo.value,
@@ -1093,10 +1078,14 @@ class Routing(BaseModel):
         return sv_param_decl(name, sv_struct_render(fields), dtype="route_cfg_t")
 
     def render_vc_impl(self) -> str:
-        """Render WideRwDecouple and VcImpl localparam declarations."""
+        """Render WideRwDecouple and VcImpl localparam declarations.
+
+        Only emitted when the configuration asked for them, so that a network that says
+        nothing about either keeps the hardware defaults.
+        """
         s = ""
-        if "decouple_rw" in self.model_fields_set:
+        if self.decouple_rw is not None:
             s += sv_param_decl("WideRwDecouple", str(self.decouple_rw), dtype="wide_rw_decouple_e")
-        if "vc_impl" in self.model_fields_set:
+        if self.vc_impl is not None:
             s += sv_param_decl("VcImpl", str(self.vc_impl), dtype="vc_impl_e")
         return s

@@ -43,6 +43,7 @@ dev = [
     "pytest",
     "ruff",
     "ty",
+    "jsonschema",
     "mkdocstrings-python>=2.0.1",
     "zensical",
     "reuse[charset-normalizer]>=6.2.0",

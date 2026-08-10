@@ -9,8 +9,10 @@ from enum import Enum
 from typing import Any
 
 import networkx as nx
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
+from floogen.model.config import ConfigModel
 from floogen.model.connection import ConnectionDesc
 from floogen.model.endpoint import Endpoint, EndpointDesc
 from floogen.model.graph import Graph
@@ -28,6 +30,7 @@ from floogen.model.routing import (
     RouteRule,
     RouteTable,
     Routing,
+    RoutingDesc,
     SimpleId,
     WideRwDecouple,
     XYDirections,
@@ -50,7 +53,7 @@ class NetworkType(str, Enum):
         return self.value
 
 
-class Network(BaseModel):
+class Network(ConfigModel):
     """
     Network class to describe a network with routers and endpoints.
 
@@ -60,7 +63,8 @@ class Network(BaseModel):
         network_type (NetworkType): Specifies the type of network that is being generated. See the [`NetworkType`][floogen.model.network.NetworkType] enum for supported options.
     """
 
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
+    # `graph` holds a `networkx.DiGraph`, which pydantic cannot build a validator for.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     name: str
     description: str | None
@@ -69,8 +73,10 @@ class Network(BaseModel):
     endpoints: list[EndpointDesc]
     routers: list[RouterDesc]
     connections: list[ConnectionDesc]
-    routing: Routing
-    graph: Graph = Field(default_factory=Graph)
+    routing: RoutingDesc
+    graph: SkipJsonSchema[Graph] = Field(default_factory=Graph)
+    """Elaboration state rather than configuration: built by `create_network()` and
+    omitted from the JSON schema, which describes the configuration file only."""
 
     def create_network(self):
         """Initialize the network as a graph."""
@@ -140,12 +146,6 @@ class Network(BaseModel):
             # Check that user width is the same among all protocols
             if len({prot.user_width for prot in self.protocols}) != 1:
                 raise ValueError("All protocols must have the same user width")
-        return self
-
-    @model_validator(mode="after")
-    def set_addr_width(self):
-        """Set the address width of the network."""
-        self.routing.addr_width = self.protocols[0].addr_width
         return self
 
     @model_validator(mode="after")
@@ -620,30 +620,56 @@ class Network(BaseModel):
                 case "narrow-wide":
                     self.graph.set_node_obj(ni_name, NarrowWideAxiNI.model_validate(ni_dict))
 
+    @property
+    def routing_info(self) -> Routing:
+        """The elaborated routing, once `gen_routing_info()` has produced it."""
+        if not isinstance(self.routing, Routing):
+            # `ValueError` to match the other "not generated yet" errors in the model.
+            raise ValueError(  # noqa: TRY004
+                "Routing info is only available after `gen_routing_info()`"
+            )
+        return self.routing
+
     def gen_routing_info(self):
-        """Wrapper function to generate all the routing info for the network,
-        for a specific routing algorithm."""
-        self.routing.num_endpoints = len(self.graph.get_ni_nodes())
-        if self.routing.num_endpoints == 0:
+        """Elaborate `routing` into a `Routing`, deriving the widths and address maps.
+
+        Everything the configuration cannot know - how many endpoints there are, how
+        wide the coordinates have to be, what the system address map looks like - is
+        computed from the graph here and folded into a single `Routing`.
+        """
+        num_endpoints = len(self.graph.get_ni_nodes())
+        if num_endpoints == 0:
             raise ValueError(
                 "No endpoints found in the network. Use the `only_pkg` flag for package generation."
             )
-        self.routing.num_id_bits = clog2(len(self.graph.get_ni_nodes()))
+        generated: dict[str, Any] = {
+            "addr_width": self.protocols[0].addr_width,
+            "num_endpoints": num_endpoints,
+            "num_id_bits": clog2(num_endpoints),
+        }
+        if self.routing.route_algo.is_dor_algo:
+            generated |= self.gen_xy_routing_info()
+        elif self.routing.route_algo not in (RouteAlgo.ID, RouteAlgo.SRC):
+            raise NotImplementedError(
+                f"Routing algorithm {self.routing.route_algo} is not supported yet"
+            )
+
+        self.routing = Routing.from_desc(
+            self.routing,
+            **generated,
+            sam=self.gen_sam(generated.get("xy_id_offset")),
+        )
+
+        # These fill in the per-algorithm remainder, and need the elaborated widths.
         match self.routing.route_algo:
-            case _ if self.routing.route_algo.is_dor_algo:
-                for info, value in self.gen_xy_routing_info().items():
-                    setattr(self.routing, info, value)
             case RouteAlgo.ID:
                 self.gen_router_tables()
             case RouteAlgo.SRC:
                 self.gen_routes()
             case _:
-                raise NotImplementedError(
-                    f"Routing algorithm {self.routing.route_algo} is not supported yet"
-                )
-        self.routing.sam = self.gen_sam()
+                pass
         if self.routing.en_collective:
-            self.routing.collective_sam = self.gen_collective_sam()
+            self.routing_info.collective_sam = self.gen_collective_sam()
         # Provide the routing info to the network interfaces
         for ni in self.graph.get_ni_nodes():
             ni.routing = self.routing
@@ -684,7 +710,7 @@ class Network(BaseModel):
 
     def gen_routes(self):
         """Generates the routes for source-based routing."""
-        self.routing.num_route_bits = 0
+        self.routing_info.num_route_bits = 0
         for ni_src in self.graph.get_ni_nodes():
             routes = []
             for ni_dst in self.graph.get_ni_nodes():
@@ -711,18 +737,21 @@ class Network(BaseModel):
                     max_route_bits += num_port_bits
                 rule = RouteRule(route=port_lst, id=ni_dst.id, desc=f"-> {ni_dst.name}")
                 routes.append(rule)
-                self.routing.num_route_bits = max(self.routing.num_route_bits, max_route_bits)
+                self.routing_info.num_route_bits = max(
+                    self.routing_info.num_route_bits, max_route_bits
+                )
             ni_src.table = RouteTable(name=ni_src.name + "_table", routes=routes)
 
-    def gen_sam(self):
+    def gen_sam(self, xy_id_offset=None):
         """Generate the system address map, which is used by the network interfaces
-        to determine the destination of a packet based on the address."""
+        to determine the destination of a packet based on the address.
+        """
         addr_table = []
         ni_sbr_nodes = reversed([ni for ni in self.graph.get_ni_nodes() if ni.is_sbr()])
         for ni in ni_sbr_nodes:
             dest = ni.id
-            if self.routing.xy_id_offset is not None:
-                dest -= self.routing.xy_id_offset
+            if xy_id_offset is not None:
+                dest -= xy_id_offset
             for _, addr_range in enumerate(ni.addr_range):
                 rule_name = ni.endpoint.name
                 if addr_range.desc is not None:
@@ -734,10 +763,8 @@ class Network(BaseModel):
     def gen_collective_sam(self):
         """Generate the collective system address map, which contains additional mask
         information for collective endpoints."""
-        if self.routing.sam is None:
-            raise ValueError("System address map has not been generated")
         addr_table = []
-        for addr_rule in self.routing.sam.rules:
+        for addr_rule in self.routing_info.sam.rules:
             mask_fields = {}
             if addr_rule.addr_range.en_collective:
                 match (addr_rule.addr_range.arr_dim, addr_rule.addr_range.arr_idx, addr_rule.dest):
@@ -882,7 +909,7 @@ class Network(BaseModel):
             reverse=True,
         )
         for ni in sorted_ni_list:
-            string += ni.table.render(num_route_bits=self.routing.num_route_bits, no_decl=True)
+            string += ni.table.render(num_route_bits=self.routing_info.num_route_bits, no_decl=True)
             string += ",\n"
         string = "'{\n" + string[:-2] + "}\n"
         return sv_param_decl(
@@ -929,10 +956,8 @@ class Network(BaseModel):
 
     def render_sam_idx_enum(self):
         """Render the system address map index enum in the generated code."""
-        if self.routing.sam is None:
-            raise ValueError("System address map has not been generated")
         fields_dict = {}
-        for i, rule in enumerate(reversed(self.routing.sam.rules)):
+        for i, rule in enumerate(reversed(self.routing_info.sam.rules)):
             rule_desc = f"{rule.render_desc()}_sam_idx"
             fields_dict[rule_desc] = i
         return sv_enum_typedef(name="sam_idx_e", fields_dict=fields_dict)
@@ -952,3 +977,11 @@ class Network(BaseModel):
             plt.savefig(filename)
         else:
             plt.show()
+
+
+def config_json_schema() -> dict[str, Any]:
+    """Return the JSON schema of a FlooGen configuration file."""
+    schema = Network.model_json_schema()
+    schema["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+    schema["title"] = "FlooGen network configuration"
+    return schema

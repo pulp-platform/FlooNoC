@@ -83,10 +83,10 @@ floo_nw_router #(
   .NumAddrRules (${len(router.table.rules)}),
   .addr_rule_t (route_map_rule_t),
 % endif
-% if "decouple_rw" in network.routing.model_fields_set:
+% if network.routing.decouple_rw is not None:
   .WideRwDecouple(WideRwDecouple),
 % endif
-% if "vc_impl" in network.routing.model_fields_set:
+% if network.routing.vc_impl is not None:
   .VcImpl(VcImpl),
 % endif
   .CollectiveCfg(RouteCfg.CollectiveCfg),

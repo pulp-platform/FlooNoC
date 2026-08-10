@@ -24,8 +24,6 @@ class Link(BaseModel, ABC):
     source_type: str
     dest_type: str
     is_bidirectional: bool = False
-    is_array: bool = False
-    array: list | None = None
 
     channel_mapping: ClassVar[dict] = {}
 

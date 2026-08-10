@@ -13,6 +13,7 @@ Connections are defined under the `connections` list in the configuration file.
       show_root_full_path: false
       show_bases: false
       members: []
+      inherited_members: false
       show_source: false
       show_signature: false
 

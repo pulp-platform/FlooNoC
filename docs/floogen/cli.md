@@ -131,6 +131,44 @@ floogen query -c <config_file> "endpoints.my_cluster.addr_range.base"
 
 -----
 
+### `schema`
+
+Emits a [JSON Schema](https://json-schema.org) describing the configuration file format, generated from the same models that validate it. Editors that understand JSON Schema use it to complete field names and flag mistakes as you type, rather than at generation time.
+
+This is the one command that takes no `-c/--config`: it describes the shape of a configuration rather than reading one.
+
+**Usage:**
+
+```bash
+# Print the schema to stdout
+floogen schema
+
+# Write floogen.schema.json into a directory
+floogen schema -o <output_dir>
+```
+
+To use it in VS Code, generate the schema and point the [YAML extension](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml) at it in `.vscode/settings.json`:
+
+```json
+{
+  "yaml.schemas": {
+    "./floogen.schema.json": "**/*.yml"
+  }
+}
+```
+
+Alternatively, reference it from the configuration file itself with a modeline, which works in any editor backed by the YAML language server:
+
+```yaml
+# yaml-language-server: $schema=./floogen.schema.json
+name: my_noc
+```
+
+!!! note
+    The schema lists the canonical spelling of each enum member, both by name (`XY`) and by value (`XYRouting`). _FlooGen_ itself also matches these case-insensitively, so a configuration using a different case still generates correctly even though the editor flags it.
+
+-----
+
 ### `template`
 
 Renders custom, user-provided Mako templates using the *FlooGen* network model. This allows you to generate auxiliary files (e.g., C headers, documentation, verification scripts) that are not part of the core *FlooNoC* distribution.

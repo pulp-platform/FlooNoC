@@ -4,13 +4,14 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import Field, model_validator
 
+from floogen.model.config import ArrayDims, ConfigModel, OneOrMany
 from floogen.model.protocol import ProtocolDesc
 from floogen.model.routing import AddrRange, Coord, SimpleId
 
 
-class EndpointDesc(BaseModel):
+class EndpointDesc(ConfigModel):
     """
     Endpoint class to describe an endpoint with address ranges and configuration parameters.
 
@@ -24,39 +25,15 @@ class EndpointDesc(BaseModel):
         sbr_port_protocol (Optional[List[str]]): List of protocol names (defined in `protocols`) that this endpoint uses to receive requests (Subordinate role).
     """
 
-    model_config = ConfigDict(extra="forbid")
-
     name: str
     description: str | None = ""
-    array: tuple[int] | tuple[int, int] | None = None
+    array: ArrayDims | None = None
     num: int | None = None
     """The total number of endpoints based on the `array` configuration."""
-    addr_range: list[AddrRange] = []
+    addr_range: OneOrMany[AddrRange] = Field(default_factory=list)
     xy_id_offset: SimpleId | Coord | None = None
     mgr_port_protocol: list[str] | None = None
     sbr_port_protocol: list[str] | None = None
-
-    @field_validator("array", mode="before")
-    @classmethod
-    def int_to_tuple(cls, v):
-        """Convert int to tuple."""
-        if isinstance(v, int):
-            return (v,)
-        return v
-
-    @field_validator("xy_id_offset", mode="before")
-    @classmethod
-    def dict_to_coord_obj(cls, v):
-        """Convert dict to Coord object."""
-        return Coord.from_dict(v)
-
-    @field_validator("addr_range", mode="before")
-    @classmethod
-    def addr_range_to_list(cls, v):
-        """Convert single AddrRange to list."""
-        if not isinstance(v, list):
-            return [v]
-        return v
 
     @model_validator(mode="after")
     def check_addr_range(self):
@@ -113,15 +90,8 @@ class EndpointDesc(BaseModel):
 class Endpoint(EndpointDesc):
     """Endpoint class to describe an endpoint with address ranges and configuration parameters."""
 
-    mgr_ports: list[ProtocolDesc] = []
-    sbr_ports: list[ProtocolDesc] = []
-
-    @classmethod
-    def from_desc(
-        cls, desc: EndpointDesc, mgr_ports: list[ProtocolDesc], sbr_ports: list[ProtocolDesc]
-    ):
-        """Create an endpoint from a description."""
-        return cls(**desc.model_dump(), mgr_ports=mgr_ports, sbr_ports=sbr_ports)
+    mgr_ports: list[ProtocolDesc] = Field(default_factory=list)
+    sbr_ports: list[ProtocolDesc] = Field(default_factory=list)
 
     def render_ports(self, pkg_name=""):
         """Render the ports of the endpoint."""

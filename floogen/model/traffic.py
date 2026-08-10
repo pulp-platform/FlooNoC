@@ -17,8 +17,9 @@ import random
 from pathlib import Path
 
 import ruamel.yaml
-from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
+from pydantic import ValidationError
 
+from floogen.model.config import ConfigModel, OneOrMany
 from floogen.model.network import Network
 from floogen.model.routing import XYDirections
 from floogen.utils import clog2
@@ -50,7 +51,7 @@ def _log(verbose: bool, msg: str):
         print(msg)
 
 
-class Burst(BaseModel):
+class Burst(ConfigModel):
     """Group of bursts with the same length and data width.
 
     Attributes:
@@ -66,7 +67,7 @@ class Burst(BaseModel):
     data_width: int | None = None
 
 
-class TrafficStream(BaseModel):
+class TrafficStream(ConfigModel):
     """Traffic stream between an initiator and an endpoint.
 
     Attributes:
@@ -82,26 +83,17 @@ class TrafficStream(BaseModel):
     initiator: list[int]
     endpoint: list[int]
     rw: str
-    narrow_burst: list[Burst]
-    wide_burst: list[Burst]
-
-    @field_validator("narrow_burst", "wide_burst", mode="before")
-    @classmethod
-    def wrap_single_burst(cls, v):
-        """Accept a single burst dict as well as a list."""
-        if isinstance(v, dict):
-            return [v]
-        return v
+    narrow_burst: OneOrMany[Burst]
+    wide_burst: OneOrMany[Burst]
 
     # Resolved using FlooNoC model
     initiator_addr: int | None = None
     endpoint_addr: int | None = None
 
 
-class Traffic(BaseModel):
+class Traffic(ConfigModel):
     """Traffic class describing how different traffic streams interact in the FlooNoC system."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
     traffic_flows: list[TrafficStream]
 
 

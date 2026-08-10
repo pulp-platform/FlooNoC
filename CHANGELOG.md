@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ## [Unreleased]
 
+### Added
+
+#### FlooGen
+- New `floogen schema` command, emitting a JSON schema of the configuration file so editors can complete field names and flag mistakes while a configuration is written. See the [CLI documentation](docs/floogen/cli.md) for how to wire it up.
+
 ### Changed
 
 #### Hardware
@@ -15,6 +20,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 #### FlooGen
 - Add mixed `req/rsp` algorithm support.
+- Unknown keys in the `protocols` section are now rejected instead of silently ignored, so a misspelled field name reports an error at its line and column rather than falling back to the default.
+- Fields that _FlooGen_ derives during elaboration - `sam`, `num_x_bits`, `num_y_bits`, `num_route_bits`, `num_endpoints`, `addr_offset_bits`, `xy_id_offset` and `addr_width` - are no longer accepted under `routing:`. Setting one now reports an error rather than being overwritten or ignored during elaboration.
+- Enum-valued keys such as `route_algo`, `vc_impl` and `decouple_rw` now match case-insensitively, so `route_algo: xy` is accepted alongside `route_algo: XY`.
+- Custom templates that test whether `decouple_rw`/`vc_impl` were configured must use `noc.routing.decouple_rw is not None` instead of `"decouple_rw" in noc.routing.model_fields_set`. The generated output is unchanged.
+
+### Fixed
+
+#### FlooGen
+- An `xy_id_offset` given as a plain value (e.g. `xy_id_offset: 5`) was silently discarded, and a misspelled coordinate key (e.g. `X` instead of `x`) silently left that axis at 0. Both are now validation errors, and the `SimpleId` form of `xy_id_offset` is usable again.
 
 ## [0.8.4] - 2026-06-30
 
