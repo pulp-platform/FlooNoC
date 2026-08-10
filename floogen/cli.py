@@ -129,7 +129,7 @@ def build_parser() -> argparse.ArgumentParser:
         version=f"%(prog)s {version('floogen')}",
     )
 
-    subparsers = parser.add_subparsers(dest="command")
+    subparsers = parser.add_subparsers(dest="command", metavar="")
 
     # floogen rtl -> pkg + top
     subparsers.add_parser(
