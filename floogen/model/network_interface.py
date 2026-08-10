@@ -24,8 +24,6 @@ class NetworkInterface(BaseModel):
     endpoint: EndpointDesc
     description: str = ""
     routing: RoutingDesc
-    """Holds the configuration until `Network.gen_routing_info()` swaps in the
-    elaborated `Routing`, which is what the templates end up rendering from."""
     table: RouteMap | None = None
     id: SimpleId | Coord | None = None
     uid: SimpleId | None = None

@@ -622,12 +622,7 @@ class Network(ConfigModel):
 
     @property
     def routing_info(self) -> Routing:
-        """The elaborated routing, once `gen_routing_info()` has produced it.
-
-        Reading a derived width before then is a programming error rather than a
-        configuration error, so this reports it in one place instead of every
-        `render_*` having to re-check.
-        """
+        """The elaborated routing, once `gen_routing_info()` has produced it."""
         if not isinstance(self.routing, Routing):
             # `ValueError` to match the other "not generated yet" errors in the model.
             raise ValueError(  # noqa: TRY004
@@ -750,9 +745,6 @@ class Network(ConfigModel):
     def gen_sam(self, xy_id_offset=None):
         """Generate the system address map, which is used by the network interfaces
         to determine the destination of a packet based on the address.
-
-        `xy_id_offset` is passed in rather than read back off `routing`, because this
-        runs while the elaborated `Routing` is still being assembled.
         """
         addr_table = []
         ni_sbr_nodes = reversed([ni for ni in self.graph.get_ni_nodes() if ni.is_sbr()])
@@ -988,11 +980,7 @@ class Network(ConfigModel):
 
 
 def config_json_schema() -> dict[str, Any]:
-    """Return the JSON schema of a FlooGen configuration file.
-
-    Editors that understand JSON schema (through `yaml-language-server`, for example)
-    use this to validate a configuration and complete field names as it is written.
-    """
+    """Return the JSON schema of a FlooGen configuration file."""
     schema = Network.model_json_schema()
     schema["$schema"] = "https://json-schema.org/draft/2020-12/schema"
     schema["title"] = "FlooGen network configuration"
