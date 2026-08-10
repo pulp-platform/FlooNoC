@@ -4,9 +4,9 @@
 #
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, model_validator
 
-from floogen.model.config import ConfigModel
+from floogen.model.config import ArrayDims, ConfigModel, OneOrMany
 from floogen.model.protocol import ProtocolDesc
 from floogen.model.routing import AddrRange, Coord, SimpleId
 
@@ -27,29 +27,13 @@ class EndpointDesc(ConfigModel):
 
     name: str
     description: str | None = ""
-    array: tuple[int] | tuple[int, int] | None = None
+    array: ArrayDims | None = None
     num: int | None = None
     """The total number of endpoints based on the `array` configuration."""
-    addr_range: list[AddrRange] = Field(default_factory=list)
+    addr_range: OneOrMany[AddrRange] = Field(default_factory=list)
     xy_id_offset: SimpleId | Coord | None = None
     mgr_port_protocol: list[str] | None = None
     sbr_port_protocol: list[str] | None = None
-
-    @field_validator("array", mode="before")
-    @classmethod
-    def int_to_tuple(cls, v):
-        """Convert int to tuple."""
-        if isinstance(v, int):
-            return (v,)
-        return v
-
-    @field_validator("addr_range", mode="before")
-    @classmethod
-    def addr_range_to_list(cls, v):
-        """Convert single AddrRange to list."""
-        if not isinstance(v, list):
-            return [v]
-        return v
 
     @model_validator(mode="after")
     def check_addr_range(self):

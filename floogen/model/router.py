@@ -10,10 +10,10 @@ from importlib.resources import as_file, files
 from typing import ClassVar
 
 from mako.lookup import Template
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, model_validator
 
 import floogen.templates
-from floogen.model.config import ConfigModel
+from floogen.model.config import ArrayDims, ConfigModel, OneOrMany
 from floogen.model.link import Link
 from floogen.model.routing import Coord, RouteAlgo, RouteMap, SimpleId
 
@@ -31,27 +31,11 @@ class RouterDesc(ConfigModel):
     """
 
     name: str
-    array: tuple[int] | tuple[int, int] | None = None
-    tree: list[int] | None = None
+    array: ArrayDims | None = None
+    tree: OneOrMany[int] | None = None
     xy_id_offset: SimpleId | Coord | None = None
     auto_connect: bool | None = True
     degree: int | None = None
-
-    @field_validator("array", mode="before")
-    @classmethod
-    def array_int_to_tuple(cls, v):
-        """Convert array to tuple if it is an int"""
-        if isinstance(v, int):
-            return (v,)
-        return v
-
-    @field_validator("tree", mode="before")
-    @classmethod
-    def tree_int_to_tuple(cls, v):
-        """Convert tree to tuple if it is an int"""
-        if isinstance(v, int):
-            return (v,)
-        return v
 
 
 class Router(BaseModel, ABC):

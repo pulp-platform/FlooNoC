@@ -8,7 +8,7 @@ from enum import Enum
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from floogen.model.config import ConfigModel
+from floogen.model.config import ConfigEnum, ConfigModel, OneOrMany
 from floogen.utils import (
     bool_to_sv,
     cdiv,
@@ -25,7 +25,7 @@ from floogen.utils import (
 _NOT_GENERATED = "Routing widths are only available after `gen_routing_info()`"
 
 
-class RouteAlgo(Enum):
+class RouteAlgo(ConfigEnum):
     """Routing algorithm enum.
 
     Attributes:
@@ -55,7 +55,7 @@ class RouteAlgo(Enum):
         return self in (RouteAlgo.XY, RouteAlgo.YX, RouteAlgo.XY_MIRRORED, RouteAlgo.YX_MIRRORED)
 
 
-class WideRwDecouple(Enum):
+class WideRwDecouple(ConfigEnum):
     """Read/write decoupling mode for the wide link (mirrors wide_rw_decouple_e in floo_pkg).
 
     NONE  — shared wide link, no decoupling (default)
@@ -67,11 +67,18 @@ class WideRwDecouple(Enum):
     VC = "Vc"
     PHYS = "Phys"
 
+    @classmethod
+    def _missing_(cls, value):
+        """`decouple_rw: true/false` is shorthand for the physical / disabled modes."""
+        if isinstance(value, bool):
+            return cls.PHYS if value else cls.NONE
+        return super()._missing_(value)
+
     def __str__(self):
         return self.value
 
 
-class VcImpl(Enum):
+class VcImpl(ConfigEnum):
     """Virtual channel implementation enum (mirrors vc_impl_e in floo_pkg).
 
     Only relevant when ``decouple_rw == WideRwDecouple.VC``.
@@ -85,7 +92,7 @@ class VcImpl(Enum):
         return self.value
 
 
-class NarrowReductionOp(Enum):
+class NarrowReductionOp(ConfigEnum):
     """Integer ALU reduction operations available on the narrow router."""
 
     Add = "Add"
@@ -96,7 +103,7 @@ class NarrowReductionOp(Enum):
     MaxU = "MaxU"
 
 
-class WideReductionOp(Enum):
+class WideReductionOp(ConfigEnum):
     """Floating-point reduction operations available on the wide router."""
 
     Add = "Add"
@@ -134,25 +141,11 @@ class NarrowReductionCfg(ReductionCfg):
 
     ops: list[NarrowReductionOp] = Field(default_factory=lambda: list(NarrowReductionOp))
 
-    @field_validator("ops", mode="before")
-    @classmethod
-    def _parse_ops(cls, v):
-        if isinstance(v, list):
-            return [NarrowReductionOp[x] if isinstance(x, str) else x for x in v]
-        return v
-
 
 class WideReductionCfg(ReductionCfg):
     """Reduction configuration for the wide link."""
 
     ops: list[WideReductionOp] = Field(default_factory=lambda: list(WideReductionOp))
-
-    @field_validator("ops", mode="before")
-    @classmethod
-    def _parse_ops(cls, v):
-        if isinstance(v, list):
-            return [WideReductionOp[x] if isinstance(x, str) else x for x in v]
-        return v
 
 
 class CollectiveCfg(ConfigModel):
@@ -399,7 +392,7 @@ class AddrRange(ConfigModel):
     rdl_as_mem: bool | None = None
     en_collective: bool = False
     desc: str | None = None
-    rdl_addrmap_grp: list[str] | None = None
+    rdl_addrmap_grp: OneOrMany[str] | None = None
     """One or more SystemRDL addrmap group tags this address range belongs to."""
 
     def __str__(self):
@@ -425,14 +418,6 @@ class AddrRange(ConfigModel):
     def from_base_size(cls, base: int, size: int, **kwargs) -> "AddrRange":
         """Create a range from an array base address and a per-element size."""
         return cls.model_validate({"base": base, "size": size, **kwargs})
-
-    @field_validator("rdl_addrmap_grp", mode="before")
-    @classmethod
-    def rdl_addrmap_grp_to_list(cls, v):
-        """Convert a single group name to a list."""
-        if isinstance(v, str):
-            return [v]
-        return v
 
     @model_validator(mode="before")
     def validate_input(self):
@@ -929,14 +914,6 @@ class Routing(ConfigModel):
         """True when any collective feature is enabled (multicast, barrier, or reduction)."""
         return self.collective.en_collective
 
-    @field_validator("route_algo", mode="before")
-    @classmethod
-    def validate_route_algo(cls, v):
-        """Validate the routing algorithm."""
-        if isinstance(v, str):
-            v = RouteAlgo[v]
-        return v
-
     @model_validator(mode="after")
     def validate_mirrored_route_algo(self):
         """`XY_MIRRORED`/`YX_MIRRORED` require a physically decoupled wide channel."""
@@ -945,24 +922,6 @@ class Routing(ConfigModel):
         ):
             raise ValueError(f"`route_algo: {self.route_algo}` requires `decouple_rw: Phys` ")
         return self
-
-    @field_validator("decouple_rw", mode="before")
-    @classmethod
-    def validate_decouple_rw(cls, v):
-        """Accept bool (False→NONE) or string/enum name."""
-        if isinstance(v, bool):
-            return WideRwDecouple.NONE if not v else WideRwDecouple.PHYS
-        if isinstance(v, str):
-            return WideRwDecouple[v.upper()]
-        return v
-
-    @field_validator("vc_impl", mode="before")
-    @classmethod
-    def validate_vc_impl(cls, v):
-        """Accept both enum members and string names."""
-        if isinstance(v, str):
-            v = VcImpl[v.upper()]
-        return v
 
     @model_validator(mode="after")
     def validate_collective_route_algo(self):

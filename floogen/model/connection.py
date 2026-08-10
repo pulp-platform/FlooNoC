@@ -7,7 +7,7 @@
 
 from pydantic import field_validator, model_validator
 
-from floogen.model.config import ConfigModel
+from floogen.model.config import ConfigModel, OneOrMany
 from floogen.model.routing import XYDirections
 
 
@@ -32,22 +32,14 @@ class ConnectionDesc(ConfigModel):
     dst: str
     src_range: list[tuple[int, int]] | None = None
     dst_range: list[tuple[int, int]] | None = None
-    src_idx: list[int] | None = None
-    dst_idx: list[int] | None = None
+    src_idx: OneOrMany[int] | None = None
+    dst_idx: OneOrMany[int] | None = None
     src_lvl: int | None = None
     dst_lvl: int | None = None
     dst_dir: int | None = None
     src_dir: int | None = None
     allow_multi: bool | None = False
     bidirectional: bool | None = True
-
-    @field_validator("src_idx", "dst_idx", mode="before")
-    @classmethod
-    def int_to_list(cls, v):
-        """Convert int to list."""
-        if isinstance(v, int):
-            return [v]
-        return v
 
     @model_validator(mode="after")
     def check_indexing(self):

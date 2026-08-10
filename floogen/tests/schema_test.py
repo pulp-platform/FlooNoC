@@ -13,10 +13,21 @@ rather than rejected, plus validators that returned the wrong thing.
 import pytest
 from pydantic import ValidationError
 
+from floogen.model.connection import ConnectionDesc
 from floogen.model.endpoint import EndpointDesc
 from floogen.model.protocol import AXI4
 from floogen.model.router import RouterDesc
-from floogen.model.routing import Coord, RouteRule, RouteTable, SimpleId
+from floogen.model.routing import (
+    AddrRange,
+    Coord,
+    RouteAlgo,
+    RouteRule,
+    RouteTable,
+    Routing,
+    SimpleId,
+    VcImpl,
+    WideRwDecouple,
+)
 
 
 def test_route_table_model_validate_returns_a_model():
@@ -76,3 +87,78 @@ def test_unknown_protocol_field_is_rejected():
                 "userwidth": 8,
             }
         )
+
+
+# --- shared coercions (`OneOrMany`, `ArrayDims`, `ConfigEnum`) ------------------------
+#
+# These go through `model_validate` rather than `__init__`, because that is the path a
+# YAML config actually takes. It is also the honest one to test: the shorthand spellings
+# widen what validation accepts, not what the declared field type is, so passing a bare
+# `int` to a `list[int]` field is a type error at a statically-checked call site.
+
+
+@pytest.mark.parametrize("model", [EndpointDesc, RouterDesc])
+def test_array_accepts_bare_int(model):
+    """`array: 4` is shorthand for `array: [4]`."""
+    assert model.model_validate({"name": "n", "array": 4}).array == (4,)
+    assert model.model_validate({"name": "n", "array": [4, 2]}).array == (4, 2)
+
+
+def test_tree_accepts_bare_int():
+    assert RouterDesc.model_validate({"name": "n", "tree": 3}).tree == [3]
+    assert RouterDesc.model_validate({"name": "n", "tree": [3, 2]}).tree == [3, 2]
+
+
+def test_addr_range_accepts_a_single_mapping():
+    """A lone address range need not be wrapped in a list."""
+    ep = EndpointDesc.model_validate(
+        {"name": "n", "sbr_port_protocol": ["p"], "addr_range": {"start": 0, "end": 16}}
+    )
+    assert ep.addr_range == [AddrRange(start=0, end=16)]
+
+
+def test_rdl_addrmap_grp_accepts_a_single_name():
+    rng = AddrRange.model_validate({"start": 0, "end": 16, "rdl_addrmap_grp": "grp"})
+    assert rng.rdl_addrmap_grp == ["grp"]
+
+
+def test_connection_idx_accepts_bare_int():
+    con = ConnectionDesc.model_validate({"src": "a", "dst": "b", "src_idx": 1, "dst_idx": [2, 3]})
+    assert con.src_idx == [1]
+    assert con.dst_idx == [2, 3]
+
+
+def test_optional_list_fields_stay_none_when_omitted():
+    """The list coercion must not turn an absent value into `[None]`."""
+    assert AddrRange(start=0, end=16).rdl_addrmap_grp is None
+    assert ConnectionDesc(src="a", dst="b").src_idx is None
+
+
+@pytest.mark.parametrize("value", ["XY", "xy", "XYRouting"])
+def test_route_algo_accepts_name_and_value(value):
+    assert Routing(route_algo=value).route_algo is RouteAlgo.XY
+
+
+def test_route_algo_rejects_unknown_name():
+    with pytest.raises(ValidationError):
+        Routing(route_algo="Diagonal")
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("Phys", WideRwDecouple.PHYS),
+        ("PHYS", WideRwDecouple.PHYS),
+        ("vc", WideRwDecouple.VC),
+        (True, WideRwDecouple.PHYS),
+        (False, WideRwDecouple.NONE),
+    ],
+)
+def test_decouple_rw_spellings(value, expected):
+    """The bool shorthand and the name/value spellings all still resolve."""
+    assert Routing(route_algo="XY", decouple_rw=value).decouple_rw is expected
+
+
+@pytest.mark.parametrize("value", ["preempt", "PREEMPT", "VcPreemptValid"])
+def test_vc_impl_spellings(value):
+    assert Routing(route_algo="XY", vc_impl=value).vc_impl is VcImpl.PREEMPT

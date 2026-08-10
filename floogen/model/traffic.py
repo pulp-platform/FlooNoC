@@ -17,9 +17,9 @@ import random
 from pathlib import Path
 
 import ruamel.yaml
-from pydantic import ValidationError, field_validator
+from pydantic import ValidationError
 
-from floogen.model.config import ConfigModel
+from floogen.model.config import ConfigModel, OneOrMany
 from floogen.model.network import Network
 from floogen.model.routing import XYDirections
 from floogen.utils import clog2
@@ -83,16 +83,8 @@ class TrafficStream(ConfigModel):
     initiator: list[int]
     endpoint: list[int]
     rw: str
-    narrow_burst: list[Burst]
-    wide_burst: list[Burst]
-
-    @field_validator("narrow_burst", "wide_burst", mode="before")
-    @classmethod
-    def wrap_single_burst(cls, v):
-        """Accept a single burst dict as well as a list."""
-        if isinstance(v, dict):
-            return [v]
-        return v
+    narrow_burst: OneOrMany[Burst]
+    wide_burst: OneOrMany[Burst]
 
     # Resolved using FlooNoC model
     initiator_addr: int | None = None
