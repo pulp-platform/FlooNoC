@@ -6,8 +6,9 @@
 
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
+from floogen.model.config import ConfigModel
 from floogen.utils import (
     bool_to_sv,
     cdiv,
@@ -104,10 +105,8 @@ class WideReductionOp(Enum):
     Max = "Max"
 
 
-class ReductionCfg(BaseModel):
+class ReductionCfg(ConfigModel):
     """Base reduction hardware configuration shared by narrow and wide channels."""
-
-    model_config = ConfigDict(extra="forbid")
 
     rd_pipeline_depth: int = 0
     cut_offload_intf: bool = False
@@ -156,7 +155,7 @@ class WideReductionCfg(ReductionCfg):
         return v
 
 
-class CollectiveCfg(BaseModel):
+class CollectiveCfg(ConfigModel):
     """User-facing collective operation configuration.
 
     The five high-level knobs map to ``collective_cfg_t`` in `floo_pkg`.
@@ -176,8 +175,6 @@ class CollectiveCfg(BaseModel):
         - **`[Add, Mul, ...]`**: Only the listed operations enabled, default hardware configuration
         - **`{ops: [...], rd_pipeline_depth: N, cut_offload_intf: true}`**: Full per-channel control
     """
-
-    model_config = ConfigDict(extra="forbid")
 
     en_narrow_multicast: bool = False
     en_wide_multicast: bool = False
@@ -293,7 +290,7 @@ class XYDirections(Enum):
         return self.value
 
 
-class SimpleId(BaseModel):
+class SimpleId(ConfigModel):
     """ID class."""
 
     id: int
@@ -328,11 +325,15 @@ class SimpleId(BaseModel):
         return f"[{self.id}]"
 
 
-class Coord(BaseModel):
-    """2D coordinate class."""
+class Coord(ConfigModel):
+    """2D coordinate class.
 
-    x: int
-    y: int
+    `x` and `y` default to 0 so that a partial offset (e.g. `{x: 2}`) is accepted
+    wherever a coordinate is read from a config file.
+    """
+
+    x: int = 0
+    y: int = 0
     port_id: int = 0
 
     def __hash__(self):
@@ -352,17 +353,6 @@ class Coord(BaseModel):
         if self.x == other.x:
             return self.port_id < other.port_id
         return False
-
-    @staticmethod
-    def from_dict(coord_dict: dict):
-        """Create a Coord object from a dictionary."""
-        if isinstance(coord_dict, dict):
-            return Coord(
-                x=coord_dict.get("x", 0),
-                y=coord_dict.get("y", 0),
-                port_id=coord_dict.get("port_id", 0),
-            )
-        return None
 
     def render(self, as_index=False):
         """Render the SystemVerilog coordinate."""
@@ -386,7 +376,7 @@ class Coord(BaseModel):
         raise ValueError("Invalid neighbor")
 
 
-class AddrRange(BaseModel):
+class AddrRange(ConfigModel):
     """Address range class.
 
     Attributes:
@@ -399,8 +389,6 @@ class AddrRange(BaseModel):
     not stored as a field - it is normalised away into `end` and read back through the
     derived `size` property.
     """
-
-    model_config = ConfigDict(extra="forbid")
 
     start: int = Field(ge=0)
     end: int = Field(ge=0)
@@ -514,8 +502,6 @@ class AddrRange(BaseModel):
 
 class RouteMapRule(BaseModel):
     """Routing rule class."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     dest: SimpleId | Coord
     addr_range: AddrRange
@@ -676,7 +662,8 @@ class RouteTable(BaseModel):
                 raise ValueError("Route tables require `SimpleId` destinations")  # noqa: TRY004
             if i != route.id.id:
                 self.routes.insert(i, RouteRule(route=None, id=SimpleId(id=i)))
-        return self.routes.reverse()
+        self.routes.reverse()
+        return self
 
     def render(self, num_route_bits, no_decl=False):
         """Render the SystemVerilog route table."""
@@ -894,7 +881,7 @@ class RouteMap(BaseModel):
             print(rule)
 
 
-class Routing(BaseModel):
+class Routing(ConfigModel):
     """
     The class that holds essentially all the routing information needed.
 
@@ -904,8 +891,6 @@ class Routing(BaseModel):
         rob_idx_bits (int): The number of bits to allocate for the `rob_idx` field in the packet header. This is only relevant if reordering buffers are used in the network.
         collective (CollectiveCfg): Collective operation configuration (multicast, barrier, reduction).
     """
-
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
     route_algo: RouteAlgo
     use_id_table: bool = True

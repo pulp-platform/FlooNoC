@@ -12,6 +12,7 @@ Protocols are defined under the `protocols` list in the configuration file. Each
       show_root_full_path: false
       show_bases: false
       members: []
+      inherited_members: false
       show_source: false
       show_signature: false
 
@@ -23,6 +24,7 @@ Protocols are defined under the `protocols` list in the configuration file. Each
       show_bases: false
       inherited_members: false
       members: []
+      inherited_members: false
       show_source: false
       show_signature: false
 

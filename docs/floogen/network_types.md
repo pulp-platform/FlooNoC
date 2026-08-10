@@ -15,6 +15,7 @@ network_type: "axi"
       show_root_full_path: false
       show_bases: false
       members: false
+      inherited_members: false
       show_source: false
       show_signature: false
 
@@ -25,5 +26,6 @@ network_type: "axi"
       show_root_full_path: false
       show_bases: false
       members: false
+      inherited_members: false
       show_source: false
       show_signature: false

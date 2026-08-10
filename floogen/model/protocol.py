@@ -6,8 +6,9 @@
 
 from typing import Annotated, TypeVar
 
-from pydantic import BaseModel, StringConstraints
+from pydantic import StringConstraints
 
+from floogen.model.config import ConfigModel
 from floogen.utils import (
     sv_param_decl,
     sv_struct_render,
@@ -16,7 +17,7 @@ from floogen.utils import (
 )
 
 
-class ProtocolDesc(BaseModel):
+class ProtocolDesc(ConfigModel):
     """Protocol class to describe a protocol.
 
     Attributes:

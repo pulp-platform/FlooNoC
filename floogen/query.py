@@ -6,10 +6,12 @@
 
 import sys
 
+from pydantic import BaseModel
+
 
 def handle_query(network, expr):
     """Safely evaluates an expression within the context of the network."""
-    data = network.dict() if hasattr(network, "dict") else network.__dict__
+    data = network.model_dump() if isinstance(network, BaseModel) else network.__dict__
 
     class ConfigNS:
         """Namespace for configuration data to allow attribute access."""

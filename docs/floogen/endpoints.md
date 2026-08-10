@@ -13,6 +13,7 @@ Endpoints are defined under the `endpoints` list in the configuration file.
       show_root_full_path: false
       show_bases: false
       members: []
+      inherited_members: false
       show_source: false
       show_signature: false
 
@@ -26,6 +27,7 @@ If an endpoint acts as a Subordinate (i.e., it receives requests), it must defin
       show_root_toc_entry: false
       show_bases: false
       members: []
+      inherited_members: false
       show_source: false
       show_signature: false
 

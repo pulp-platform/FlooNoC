@@ -17,8 +17,9 @@ import random
 from pathlib import Path
 
 import ruamel.yaml
-from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
+from pydantic import ValidationError, field_validator
 
+from floogen.model.config import ConfigModel
 from floogen.model.network import Network
 from floogen.model.routing import XYDirections
 from floogen.utils import clog2
@@ -50,7 +51,7 @@ def _log(verbose: bool, msg: str):
         print(msg)
 
 
-class Burst(BaseModel):
+class Burst(ConfigModel):
     """Group of bursts with the same length and data width.
 
     Attributes:
@@ -66,7 +67,7 @@ class Burst(BaseModel):
     data_width: int | None = None
 
 
-class TrafficStream(BaseModel):
+class TrafficStream(ConfigModel):
     """Traffic stream between an initiator and an endpoint.
 
     Attributes:
@@ -98,10 +99,9 @@ class TrafficStream(BaseModel):
     endpoint_addr: int | None = None
 
 
-class Traffic(BaseModel):
+class Traffic(ConfigModel):
     """Traffic class describing how different traffic streams interact in the FlooNoC system."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
     traffic_flows: list[TrafficStream]
 
 

@@ -9,8 +9,9 @@ from enum import Enum
 from typing import Any
 
 import networkx as nx
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
+from floogen.model.config import ConfigModel
 from floogen.model.connection import ConnectionDesc
 from floogen.model.endpoint import Endpoint, EndpointDesc
 from floogen.model.graph import Graph
@@ -50,7 +51,7 @@ class NetworkType(str, Enum):
         return self.value
 
 
-class Network(BaseModel):
+class Network(ConfigModel):
     """
     Network class to describe a network with routers and endpoints.
 
@@ -60,7 +61,8 @@ class Network(BaseModel):
         network_type (NetworkType): Specifies the type of network that is being generated. See the [`NetworkType`][floogen.model.network.NetworkType] enum for supported options.
     """
 
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
+    # `graph` holds a `networkx.DiGraph`, which pydantic cannot generate a schema for.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     name: str
     description: str | None

@@ -15,6 +15,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 #### FlooGen
 - Add mixed `req/rsp` algorithm support.
+- Config models now share a common `ConfigModel` base, which applies `extra="forbid"` to every model parsed from a configuration file. Unknown keys in the `protocols` section are now reported as validation errors instead of being silently ignored.
+
+### Fixed
+
+#### FlooGen
+- `RouteTable.model_validate()` returned `None` instead of the validated model.
+- A non-mapping `xy_id_offset` (e.g. `xy_id_offset: 5`) was silently discarded, and a misspelled coordinate key (e.g. `X` instead of `x`) silently defaulted that axis to 0. Both are now validation errors, and the `SimpleId` form of `xy_id_offset` is reachable again.
 
 ## [0.8.4] - 2026-06-30
 

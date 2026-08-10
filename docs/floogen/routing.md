@@ -14,6 +14,7 @@ routing:
       show_root_toc_entry: false
       show_bases: false
       members: false
+      inherited_members: false
       show_source: false
       show_signature: false
 

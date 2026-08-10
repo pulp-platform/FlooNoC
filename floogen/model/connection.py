@@ -5,12 +5,13 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import field_validator, model_validator
 
+from floogen.model.config import ConfigModel
 from floogen.model.routing import XYDirections
 
 
-class ConnectionDesc(BaseModel):
+class ConnectionDesc(ConfigModel):
     """Connection class to describe a connection between routers and endpoints.
 
     Attributes:
@@ -25,8 +26,6 @@ class ConnectionDesc(BaseModel):
         allow_multi (Optional[bool]): Allows multiple connections to/from the same port (useful for complex topologies).
         description (Optional[str]): Optional description of the connection.
     """
-
-    model_config = ConfigDict(extra="forbid")
 
     description: str | None = ""
     src: str

@@ -10,14 +10,15 @@ from importlib.resources import as_file, files
 from typing import ClassVar
 
 from mako.lookup import Template
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 import floogen.templates
+from floogen.model.config import ConfigModel
 from floogen.model.link import Link
 from floogen.model.routing import Coord, RouteAlgo, RouteMap, SimpleId
 
 
-class RouterDesc(BaseModel):
+class RouterDesc(ConfigModel):
     """Router class to describe (arrays of) a router
 
     Attributes:
@@ -28,8 +29,6 @@ class RouterDesc(BaseModel):
         auto_connect (Optional[bool]): If true and `array` is specified, FlooGen automatically generates mesh connections (North, East, South, West) between the routers.
         xy_id_offset (Optional[Union[SimpleId, Coord]]): Offsets for XY coordinates or IDs, used to manually adjust the logical position of the routers in the network.
     """
-
-    model_config = ConfigDict(extra="forbid")
 
     name: str
     array: tuple[int] | tuple[int, int] | None = None
@@ -53,12 +52,6 @@ class RouterDesc(BaseModel):
         if isinstance(v, int):
             return (v,)
         return v
-
-    @field_validator("xy_id_offset", mode="before")
-    @classmethod
-    def dict_to_coord_obj(cls, v):
-        """Convert dict to Coord object."""
-        return Coord.from_dict(v)
 
 
 class Router(BaseModel, ABC):
