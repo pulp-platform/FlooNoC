@@ -26,7 +26,7 @@ routing:
       rd_pipeline_depth: 5
       cut_offload_intf: true
   # decouple_rw: Phys
-  vc_impl: preempt
+  vc_impl: PREEMPT
 
 protocols:
   - name: "narrow_in"

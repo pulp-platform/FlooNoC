@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Add mixed `req/rsp` algorithm support.
 - Config models now share a common `ConfigModel` base, which applies `extra="forbid"` to every model parsed from a configuration file. Unknown keys in the `protocols` section are now reported as validation errors instead of being silently ignored.
 
+- Add a `floogen schema` command that emits a JSON schema of the configuration file, for editor completion and validation. See the [CLI documentation](docs/floogen/cli.md) for how to wire it up.
+- Input shorthands (`array: 4`, `dst_dir: Eject`, `route_algo: XY`) are now declared on the fields themselves, so the generated schema accepts everything the parser does.
+
 ### Fixed
 
 #### FlooGen

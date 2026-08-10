@@ -10,6 +10,7 @@ from typing import Any
 
 import networkx as nx
 from pydantic import ConfigDict, Field, field_validator, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
 from floogen.model.config import ConfigModel
 from floogen.model.connection import ConnectionDesc
@@ -61,7 +62,7 @@ class Network(ConfigModel):
         network_type (NetworkType): Specifies the type of network that is being generated. See the [`NetworkType`][floogen.model.network.NetworkType] enum for supported options.
     """
 
-    # `graph` holds a `networkx.DiGraph`, which pydantic cannot generate a schema for.
+    # `graph` holds a `networkx.DiGraph`, which pydantic cannot build a validator for.
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     name: str
@@ -72,7 +73,9 @@ class Network(ConfigModel):
     routers: list[RouterDesc]
     connections: list[ConnectionDesc]
     routing: Routing
-    graph: Graph = Field(default_factory=Graph)
+    graph: SkipJsonSchema[Graph] = Field(default_factory=Graph)
+    """Elaboration state rather than configuration: built by `create_network()` and
+    omitted from the JSON schema, which describes the configuration file only."""
 
     def create_network(self):
         """Initialize the network as a graph."""
@@ -954,3 +957,15 @@ class Network(ConfigModel):
             plt.savefig(filename)
         else:
             plt.show()
+
+
+def config_json_schema() -> dict[str, Any]:
+    """Return the JSON schema of a FlooGen configuration file.
+
+    Editors that understand JSON schema (through `yaml-language-server`, for example)
+    use this to validate a configuration and complete field names as it is written.
+    """
+    schema = Network.model_json_schema()
+    schema["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+    schema["title"] = "FlooGen network configuration"
+    return schema

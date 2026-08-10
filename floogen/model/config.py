@@ -52,6 +52,24 @@ class ConfigEnum(Enum):
             return cls.__members__.get(value) or cls.__members__.get(value.upper())
         return None
 
+    @classmethod
+    def _json_schema_values(cls) -> list[Any]:
+        """The spellings a configuration file may use, for the generated JSON schema."""
+        return sorted({m.name for m in cls} | {m.value for m in cls})
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        """Advertise the accepted names alongside the values.
+
+        Pydantic derives `enum` from the member *values*, which would reject the
+        by-name spellings that `_missing_` resolves and that most configs actually use.
+        Only the canonical spellings are listed; `_missing_` additionally accepts them
+        case-insensitively.
+        """
+        json_schema = handler.resolve_ref_schema(handler(core_schema))
+        json_schema["enum"] = cls._json_schema_values()
+        return json_schema
+
 
 def _as_list(v: Any) -> Any:
     """Wrap a lone item in a list. `None` is passed through so optional fields stay unset."""

@@ -6,6 +6,7 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 import argparse
+import json
 import sys
 from importlib.metadata import version
 from importlib.util import find_spec
@@ -15,12 +16,14 @@ from typing import TypedDict
 from mako.template import Template
 
 from floogen.config_parser import ConfigError, parse_config
-from floogen.model.network import Network
+from floogen.model.network import Network, config_json_schema
 from floogen.model.traffic import MESH_TRAFFIC_TYPES, gen_traffic_builtin, gen_traffic_cfg
 from floogen.query import handle_query
 from floogen.utils import verible_format
 
 tpl_dir = Path(__file__).parent / "templates"
+
+SCHEMA_FILE_NAME = "floogen.schema.json"
 
 
 class RenderKwargs(TypedDict, total=False):
@@ -276,6 +279,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Key to query in the configuration.",
     )
 
+    # floogen schema
+    # Deliberately not built on `common`: this describes the shape of a configuration
+    # file rather than reading one, so `--config` would make no sense.
+    p_schema = subparsers.add_parser(
+        "schema",
+        add_help=True,
+        help="Emit the JSON schema of the configuration file, for editor validation.",
+    )
+    p_schema.add_argument(
+        "-o",
+        "--outdir",
+        type=Path,
+        required=False,
+        help=(
+            f"Directory to write '{SCHEMA_FILE_NAME}' to. "
+            "If not specified, the schema is printed to stdout."
+        ),
+    )
+
     return parser
 
 
@@ -287,6 +309,16 @@ def main():
 
     if args.command is None:
         parser.print_help()
+        return 0
+
+    # Handled before the config is read, since it does not need one.
+    if args.command == "schema":
+        schema = json.dumps(config_json_schema(), indent=2) + "\n"
+        if args.outdir:
+            args.outdir.mkdir(parents=True, exist_ok=True)
+            (args.outdir / SCHEMA_FILE_NAME).write_text(schema, encoding="utf-8")
+        else:
+            print(schema, end="")
         return 0
 
     try:

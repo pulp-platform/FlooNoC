@@ -5,8 +5,9 @@
 # Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
 from enum import Enum
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, BeforeValidator, Field, field_validator, model_validator
 
 from floogen.model.config import ConfigEnum, ConfigModel, OneOrMany
 from floogen.utils import (
@@ -73,6 +74,10 @@ class WideRwDecouple(ConfigEnum):
         if isinstance(value, bool):
             return cls.PHYS if value else cls.NONE
         return super()._missing_(value)
+
+    @classmethod
+    def _json_schema_values(cls):
+        return [*super()._json_schema_values(), False, True]
 
     def __str__(self):
         return self.value
@@ -281,6 +286,23 @@ class XYDirections(Enum):
 
     def __int__(self):
         return self.value
+
+
+def _as_direction(v: Any) -> Any:
+    """Resolve a direction name (`North`, `Eject`, ...) to its port index."""
+    if isinstance(v, str):
+        return XYDirections[v.upper()].value
+    return v
+
+
+PortDirection = Annotated[
+    int,
+    BeforeValidator(
+        _as_direction,
+        json_schema_input_type=int | Literal["North", "East", "South", "West", "Eject"],
+    ),
+]
+"""A router port, given either as an index or as a direction name."""
 
 
 class SimpleId(ConfigModel):

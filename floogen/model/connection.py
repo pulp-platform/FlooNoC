@@ -8,7 +8,7 @@
 from pydantic import field_validator, model_validator
 
 from floogen.model.config import ConfigModel, OneOrMany
-from floogen.model.routing import XYDirections
+from floogen.model.routing import PortDirection
 
 
 class ConnectionDesc(ConfigModel):
@@ -36,8 +36,8 @@ class ConnectionDesc(ConfigModel):
     dst_idx: OneOrMany[int] | None = None
     src_lvl: int | None = None
     dst_lvl: int | None = None
-    dst_dir: int | None = None
-    src_dir: int | None = None
+    dst_dir: PortDirection | None = None
+    src_dir: PortDirection | None = None
     allow_multi: bool | None = False
     bidirectional: bool | None = True
 
@@ -49,14 +49,6 @@ class ConnectionDesc(ConfigModel):
         if self.dst_idx and self.dst_lvl:
             raise ValueError("dst_idx and dst_lvl are mutually exclusive")
         return self
-
-    @field_validator("src_dir", "dst_dir", mode="before")
-    @classmethod
-    def str_to_int(cls, v):
-        """Convert str to int."""
-        if isinstance(v, str):
-            return XYDirections[v.upper()].value
-        return v
 
     @field_validator("bidirectional", mode="after")
     @classmethod
