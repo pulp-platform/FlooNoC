@@ -14,7 +14,7 @@ import floogen.templates
 from floogen.model.endpoint import EndpointDesc
 from floogen.model.link import AxiLink, NarrowWideLink
 from floogen.model.protocol import AXI4
-from floogen.model.routing import AddrRange, Coord, RouteMap, Routing, SimpleId
+from floogen.model.routing import AddrRange, Coord, RouteMap, RoutingDesc, SimpleId
 
 
 class NetworkInterface(BaseModel):
@@ -23,7 +23,9 @@ class NetworkInterface(BaseModel):
     name: str
     endpoint: EndpointDesc
     description: str = ""
-    routing: Routing
+    routing: RoutingDesc
+    """Holds the configuration until `Network.gen_routing_info()` swaps in the
+    elaborated `Routing`, which is what the templates end up rendering from."""
     table: RouteMap | None = None
     id: SimpleId | Coord | None = None
     uid: SimpleId | None = None

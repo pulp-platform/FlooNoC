@@ -19,6 +19,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 - Add a `floogen schema` command that emits a JSON schema of the configuration file, for editor completion and validation. See the [CLI documentation](docs/floogen/cli.md) for how to wire it up.
 - Input shorthands (`array: 4`, `dst_dir: Eject`, `route_algo: XY`) are now declared on the fields themselves, so the generated schema accepts everything the parser does.
+- Split `Routing` into `RoutingDesc` (what a configuration declares) and `Routing` (that plus everything `gen_routing_info()` derives). Derived fields such as `sam`, `num_x_bits` and `num_endpoints` are no longer accepted in a configuration file, and are non-optional once elaborated. Templates are unaffected: `noc.routing.*` still resolves to the elaborated routing.
+- `decouple_rw` and `vc_impl` now default to unset (`None`) rather than being tracked through `model_fields_set`. Behaviour is unchanged - neither localparam is emitted unless the configuration asks for one - but it no longer depends on pydantic's "was this field explicitly set" bookkeeping. Custom templates checking `"decouple_rw" in noc.routing.model_fields_set` should use `noc.routing.decouple_rw is not None`.
+- `floogen/examples/collective.yml` uses the canonical `vc_impl: PREEMPT` spelling.
 
 ### Fixed
 

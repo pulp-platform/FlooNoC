@@ -384,9 +384,7 @@ def main():
         case "rdl":
             context["rdl_as_mem"] = args.as_mem
             context["rdl_memwidth"] = args.memwidth
-            sam = network.routing.sam
-            if sam is None:
-                raise ValueError("System address map has not been generated")
+            sam = network.routing_info.sam
             groups = sam.distinct_groups() or [None]
             for group in groups:
                 suffix = f"_{group}" if group else ""

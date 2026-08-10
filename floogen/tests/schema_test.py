@@ -10,24 +10,32 @@ These cover input shapes that used to be accepted (and silently misinterpreted)
 rather than rejected, plus validators that returned the wrong thing.
 """
 
+import pathlib
+
 import pytest
 from pydantic import ValidationError
 
+from floogen.config_parser import parse_config
 from floogen.model.connection import ConnectionDesc
 from floogen.model.endpoint import EndpointDesc
+from floogen.model.network import Network
 from floogen.model.protocol import AXI4
 from floogen.model.router import RouterDesc
 from floogen.model.routing import (
     AddrRange,
     Coord,
     RouteAlgo,
+    RouteMap,
     RouteRule,
     RouteTable,
     Routing,
+    RoutingDesc,
     SimpleId,
     VcImpl,
     WideRwDecouple,
 )
+
+EXAMPLE = pathlib.Path(__file__).parents[1] / "examples" / "axi_mesh_xy.yml"
 
 
 def test_route_table_model_validate_returns_a_model():
@@ -136,12 +144,12 @@ def test_optional_list_fields_stay_none_when_omitted():
 
 @pytest.mark.parametrize("value", ["XY", "xy", "XYRouting"])
 def test_route_algo_accepts_name_and_value(value):
-    assert Routing(route_algo=value).route_algo is RouteAlgo.XY
+    assert RoutingDesc(route_algo=value).route_algo is RouteAlgo.XY
 
 
 def test_route_algo_rejects_unknown_name():
     with pytest.raises(ValidationError):
-        Routing(route_algo="Diagonal")
+        RoutingDesc(route_algo="Diagonal")
 
 
 @pytest.mark.parametrize(
@@ -156,9 +164,68 @@ def test_route_algo_rejects_unknown_name():
 )
 def test_decouple_rw_spellings(value, expected):
     """The bool shorthand and the name/value spellings all still resolve."""
-    assert Routing(route_algo="XY", decouple_rw=value).decouple_rw is expected
+    assert RoutingDesc(route_algo="XY", decouple_rw=value).decouple_rw is expected
 
 
 @pytest.mark.parametrize("value", ["preempt", "PREEMPT", "VcPreemptValid"])
 def test_vc_impl_spellings(value):
-    assert Routing(route_algo="XY", vc_impl=value).vc_impl is VcImpl.PREEMPT
+    assert RoutingDesc(route_algo="XY", vc_impl=value).vc_impl is VcImpl.PREEMPT
+
+
+# --- config vs. elaborated routing ---------------------------------------------------
+
+
+def test_generated_routing_fields_are_not_configurable():
+    """`sam`, the widths and the endpoint counts are derived, not declared."""
+    for field in ("sam", "num_x_bits", "num_endpoints", "addr_width", "num_route_bits"):
+        assert field not in RoutingDesc.model_fields
+        with pytest.raises(ValidationError):
+            RoutingDesc.model_validate({"route_algo": "XY", field: 1})
+
+
+def test_routing_info_is_unavailable_before_elaboration():
+    """Reading a derived width too early names the cause instead of returning `None`."""
+    network = parse_config(Network, EXAMPLE)
+    with pytest.raises(ValueError, match="gen_routing_info"):
+        _ = network.routing_info
+
+
+def test_routing_info_is_available_after_elaboration():
+    network = parse_config(Network, EXAMPLE)
+    network.create_network()
+    network.compile_network()
+    network.gen_routing_info()
+
+    routing = network.routing_info
+    assert isinstance(routing, Routing)
+    # Derived values are non-optional once elaborated, so no caller has to re-check.
+    assert routing.num_endpoints > 0
+    assert routing.addr_width == network.protocols[0].addr_width
+    assert len(routing.sam) > 0
+    # ... and the configuration it was built from is carried over unchanged.
+    assert routing.route_algo is RouteAlgo.XY
+    assert routing.use_id_table is True
+
+
+def test_unset_decouple_rw_emits_no_localparam():
+    """`decouple_rw`/`vc_impl` are only rendered when the config asked for them."""
+    desc = RoutingDesc(route_algo=RouteAlgo.XY)
+    assert desc.decouple_rw is None
+    assert desc.vc_impl is None
+    routing = Routing.from_desc(
+        desc, addr_width=32, num_endpoints=1, num_id_bits=1, sam=RouteMap(name="sam", rules=[])
+    )
+    assert routing.render_vc_impl() == ""
+
+
+def test_set_decouple_rw_emits_localparam():
+    routing = Routing.from_desc(
+        RoutingDesc(route_algo=RouteAlgo.XY, decouple_rw="Phys", vc_impl="PREEMPT"),
+        addr_width=32,
+        num_endpoints=1,
+        num_id_bits=1,
+        sam=RouteMap(name="sam", rules=[]),
+    )
+    rendered = routing.render_vc_impl()
+    assert "WideRwDecouple" in rendered
+    assert "VcImpl" in rendered

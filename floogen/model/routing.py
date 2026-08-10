@@ -888,9 +888,14 @@ class RouteMap(BaseModel):
             print(rule)
 
 
-class Routing(ConfigModel):
+class RoutingDesc(ConfigModel):
     """
-    The class that holds essentially all the routing information needed.
+    The routing section of a configuration file.
+
+    This holds only what a configuration declares. The widths and address maps that
+    `Network.gen_routing_info()` derives from the elaborated graph live on
+    [`Routing`][floogen.model.routing.Routing], which extends this class, so that a
+    configuration cannot set them and the two are not confused for one another.
 
     Attributes:
         route_algo (RouteAlgo): This determines the routing algorithm to use. You can find more information about the different routing algorithms in the [routing algorithms documentation](../../floonoc/route_algos.md).
@@ -901,35 +906,15 @@ class Routing(ConfigModel):
 
     route_algo: RouteAlgo
     use_id_table: bool = True
-    sam: RouteMap | None = None
-    """The system address map."""
-    table: RouteMap | None = None
-    """The routing table of the router."""
-    addr_offset_bits: int | None = None
-    """The number of bits to decode the X and Y coordinates from the address. Only used if `use_id_table` is False and `route_algo` is XY."""
-    xy_id_offset: SimpleId | Coord | None = None
-    """A constant offset to add to the X and Y coordinates. Only used if `route_algo` is XY."""
-    num_endpoints: int | None = None
-    """The number of endpoints in the network."""
-    num_id_bits: int | None = None
-    """The number of bits to represent the ID. Only used if `route_algo` is ID or SRC."""
-    num_x_bits: int | None = None
-    """The number of bits to represent the X coordinate. Only used if `route_algo` is XY."""
-    num_y_bits: int | None = None
-    """The number of bits to represent the Y coordinate. Only used if `route_algo` is XY."""
-    num_route_bits: int | None = None
-    """The number of bits to represent the route. Only used if `route_algo` is SRC."""
-    addr_width: int | None = None
-    """The width of the address bus."""
     rob_idx_bits: int = 1
     port_id_bits: int = 1
     """The number of bits to represent the local port ID."""
     num_vc_id_bits: int = 0
-    decouple_rw: WideRwDecouple = WideRwDecouple.NONE
-    vc_impl: VcImpl = VcImpl.NAIVE
-    collective_sam: RouteMap | None = None
-    """The collective system address map. Only used if collective is enabled."""
-    collective: CollectiveCfg = CollectiveCfg()
+    decouple_rw: WideRwDecouple | None = None
+    """Read/write decoupling of the wide link. Left unset, no `WideRwDecouple` parameter is emitted and the hardware default applies."""
+    vc_impl: VcImpl | None = None
+    """Virtual channel implementation. Left unset, no `VcImpl` parameter is emitted and the hardware default applies."""
+    collective: CollectiveCfg = Field(default_factory=CollectiveCfg)
 
     @property
     def en_collective(self) -> bool:
@@ -954,6 +939,42 @@ class Routing(ConfigModel):
                 f"algorithms, but got {self.route_algo}"
             )
         return self
+
+
+class Routing(RoutingDesc):
+    """A `RoutingDesc` together with everything `Network.gen_routing_info()` derives.
+
+    Constructed once the graph is elaborated, so `sam`, `addr_width` and the endpoint
+    counts are always present. The remaining widths stay optional because which of them
+    exists is decided by `route_algo`; `render_*` raises if one is read that the
+    configured algorithm never produces.
+    """
+
+    addr_width: int
+    """The width of the address bus, taken from the network's protocols."""
+    num_endpoints: int
+    """The number of endpoints in the network."""
+    num_id_bits: int
+    """The number of bits to represent the ID."""
+    sam: RouteMap
+    """The system address map."""
+    collective_sam: RouteMap | None = None
+    """The collective system address map. Only used if collective is enabled."""
+    addr_offset_bits: int | None = None
+    """The number of bits to decode the X and Y coordinates from the address. Only used if `use_id_table` is False and `route_algo` is XY."""
+    xy_id_offset: SimpleId | Coord | None = None
+    """A constant offset to add to the X and Y coordinates. Only used if `route_algo` is XY."""
+    num_x_bits: int | None = None
+    """The number of bits to represent the X coordinate. Only used if `route_algo` is XY."""
+    num_y_bits: int | None = None
+    """The number of bits to represent the Y coordinate. Only used if `route_algo` is XY."""
+    num_route_bits: int | None = None
+    """The number of bits to represent the route. Only used if `route_algo` is SRC."""
+
+    @classmethod
+    def from_desc(cls, desc: RoutingDesc, **generated) -> "Routing":
+        """Build the elaborated routing from its configuration and the derived values."""
+        return cls(**dict(desc), **generated)
 
     def render_param_decl(self) -> str:
         """Render the SystemVerilog parameter declaration."""
@@ -1043,8 +1064,6 @@ class Routing(ConfigModel):
             if self.addr_offset_bits is None:
                 raise ValueError(_NOT_GENERATED)
             id_addr_offset = self.addr_offset_bits
-        if self.sam is None:
-            raise ValueError("System address map has not been generated")
 
         fields = {
             "RouteAlgo": self.route_algo.value,
@@ -1059,10 +1078,14 @@ class Routing(ConfigModel):
         return sv_param_decl(name, sv_struct_render(fields), dtype="route_cfg_t")
 
     def render_vc_impl(self) -> str:
-        """Render WideRwDecouple and VcImpl localparam declarations."""
+        """Render WideRwDecouple and VcImpl localparam declarations.
+
+        Only emitted when the configuration asked for them, so that a network that says
+        nothing about either keeps the hardware defaults.
+        """
         s = ""
-        if "decouple_rw" in self.model_fields_set:
+        if self.decouple_rw is not None:
             s += sv_param_decl("WideRwDecouple", str(self.decouple_rw), dtype="wide_rw_decouple_e")
-        if "vc_impl" in self.model_fields_set:
+        if self.vc_impl is not None:
             s += sv_param_decl("VcImpl", str(self.vc_impl), dtype="vc_impl_e")
         return s
