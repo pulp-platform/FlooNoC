@@ -8,10 +8,11 @@ _FlooGen_ provides a structured command-line interface to perform specific gener
 floogen <command> [options]
 ```
 
-To see the available options for a specific command, pass the `-h` or `--help` flag after the command name:
+To see the available options for a specific command, pass the `-h` or `--help` flag after the command name, or use the `help` command:
 
 ```bash
 floogen rtl --help
+floogen help rtl
 ```
 
 ## Commands
@@ -217,3 +218,19 @@ floogen traffic -c <config_file> --traffic-type <pattern> --traffic-rw <read|wri
 
 !!! note
     The emitted files are named `<traffic_name>_<idx>.txt` for wide traffic and `<traffic_name>_<idx+100>.txt` for narrow traffic, where `idx = x * num_y + y` is the linear index of the initiator node at mesh coordinate `(x, y)`. For a network without a wide protocol (e.g. a single-AXI mesh), wide bursts are skipped and only the narrow job files carry transfers.
+
+-----
+
+### `help`
+
+Prints the general help message, or the help message of a specific command. This is equivalent to `floogen --help` and `floogen <command> --help`, respectively.
+
+**Usage:**
+
+```bash
+# General help
+floogen help
+
+# Help of a specific command
+floogen help traffic
+```

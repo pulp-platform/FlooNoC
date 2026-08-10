@@ -297,6 +297,22 @@ def build_parser() -> argparse.ArgumentParser:
             "If not specified, the schema is printed to stdout."
         ),
     )
+    # floogen help [<command>]
+    p_help = subparsers.add_parser(
+        "help",
+        add_help=True,
+        help="Show the help message of `floogen` or of a specific command.",
+    )
+    p_help.add_argument(
+        "help_command",
+        metavar="command",
+        type=str,
+        nargs="?",
+        choices=list(subparsers.choices),
+        help="Command to show the help message for. If omitted, the general help is shown.",
+    )
+    # Make the subcommand parsers accessible to `floogen help <command>`.
+    p_help.set_defaults(subparsers=subparsers.choices)
 
     return parser
 
@@ -319,6 +335,12 @@ def main():
             (args.outdir / SCHEMA_FILE_NAME).write_text(schema, encoding="utf-8")
         else:
             print(schema, end="")
+
+    if args.command == "help":
+        if args.help_command is None:
+            parser.print_help()
+        else:
+            args.subparsers[args.help_command].print_help()
         return 0
 
     try:
