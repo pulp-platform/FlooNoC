@@ -19,6 +19,7 @@ dependencies:
   common_verification: 0.2.3
   idma: { version: 0.6.2, upstream_name: iDMA }
   FPnew: { git: "https://github.com/pulp-platform/cvfpu.git", rev: pulp-v0.2.3 }
+  axi_rt: { git: "https://github.com/pulp-platform/axi_rt.git", rev: 431f1ccee2aa84821a946d772c1a5114be6c690b }
   floo_noc_pd: { path: ./pd, target: "floo_synth" }
 
 export_include_dirs:
@@ -114,6 +115,7 @@ sources:
     - hw/synth/floo_synth_axi_router.sv
     - hw/synth/floo_synth_nw_router.sv
     - hw/synth/floo_synth_nw_2tiles.sv
+    - hw/synth/floo_synth_nw_realm_tile.sv
 
   - target: floo_deprecated_hw
     include_dirs:

@@ -6,13 +6,14 @@
 
 `include "axi/typedef.svh"
 `include "floo_noc/typedef.svh"
+`include "register_interface/typedef.svh"
 
 package floo_synth_params_pkg;
   import floo_pkg::*;
 
   // Router parameters
-  localparam int unsigned InFifoDepth = 2;
-  localparam int unsigned OutFifoDepth = 2;
+  localparam int unsigned InFifoDepth = 16;
+  localparam int unsigned OutFifoDepth = 16;
 
   // Default route config for testing
   localparam floo_pkg::route_cfg_t RouteCfg = '{
@@ -330,5 +331,74 @@ package floo_synth_collective_pkg;
     },
     default: '0
   };
+
+endpackage
+
+package floo_synth_qos_pkg;
+  import endpoint_axi_pkg::*;
+  import floo_synth_nw_pkg::*;
+
+  // AXI-Realm regfile
+  localparam int unsigned NumMrg     = axi_rt_reg_pkg::NumMrg;  // managers per RT unit
+  localparam int unsigned NumSub     = axi_rt_reg_pkg::NumSub;  // address (sub)regions
+  localparam int unsigned NumReg     = axi_rt_reg_pkg::NumReg;  // register banks
+  localparam int unsigned RegBlockAw = axi_rt_reg_pkg::BlockAw; // reg-file byte-addr width
+
+  // Tile topology
+  localparam int unsigned NumCores          = 1;    // single accelerator manager
+  localparam int unsigned NumNoCPlanes      = 2;    // narrow + wide NoC plane
+  localparam int unsigned IdxNoCPlaneWide   = 0;
+  localparam int unsigned IdxNoCPlaneNarrow = 1;
+  localparam int unsigned MeshDimY          = 32'd4; // used for the reg-file guard ID
+
+  // AXI-Realm sizing
+  localparam int unsigned NumManagers        = NumMrg;    // == NumCores
+  localparam int unsigned NumRegions         = 32'd1;     // active regions (<= NumSub)
+  localparam int unsigned MaxBurstLength     = 32'd256;
+  localparam int unsigned NumPending         = MaxBurstLength;
+  localparam int unsigned WBufferDepth       = MaxBurstLength;
+  localparam int unsigned PeriodWidth        = 32'd32;
+  localparam int unsigned BudgetWidth        = 32'd32;
+  localparam int unsigned RegIdWidth         = 32'd8;
+  localparam bit          CutDecErrors       = 1'b0;
+  localparam bit          CutSplitterPaths   = 1'b0;
+  localparam bit          DisableSplitChecks = 1'b0;
+  localparam int unsigned WideAxiSizeWidth   = axi_pkg::SizeWidth + 4; // FlooNoC wide: 512-bit
+  localparam int unsigned NarrowAxiSizeWidth = axi_pkg::SizeWidth;     // FlooNoC wide: 64-bit
+  localparam bit          UseWriteBuffer     = 1'b0;
+  localparam bit          UseSplitterReconf  = 1'b0;
+
+  typedef logic [RegIdWidth-1:0] reg_id_t;
+
+  // ---------------------------------------------------------------------------
+  // Per-plane AXI widths handed to `axi_rt_unit_top`, sourced from
+  // `endpoint_axi_pkg` so the RT unit always matches the chimney AXI datapath.
+  // ---------------------------------------------------------------------------
+  localparam int unsigned RtAddrWidth       = endpoint_axi_pkg::AddrWidth;
+  localparam int unsigned RtWideDataWidth   = endpoint_axi_pkg::WideDataWidth;
+  localparam int unsigned RtWideIdWidth     = endpoint_axi_pkg::WideIdWidthOut;
+  localparam int unsigned RtWideUserWidth   = endpoint_axi_pkg::WideUserWidth;
+  localparam int unsigned RtNarrowDataWidth = endpoint_axi_pkg::NarrowDataWidth;
+  localparam int unsigned RtNarrowIdWidth   = endpoint_axi_pkg::NarrowIdWidthOut;
+  localparam int unsigned RtNarrowUserWidth = endpoint_axi_pkg::NarrowUserWidth;
+
+  // ---------------------------------------------------------------------------
+  // Configuration decode + conversion chain
+  //   AXI64 -> [dw 64->32] -> [modify addr 48->32] -> AXI-Lite -> reg-bus
+  // ---------------------------------------------------------------------------
+  localparam int unsigned CfgAddrSpaceDim   = 32'h0000_2000; // per-plane cfg window
+  localparam int unsigned CfgAddrWidth      = 32'd32;        // downsized address width
+  localparam int unsigned CfgDataWidth      = 32'd32;        // downsized data width
+  localparam int unsigned CfgDwMaxReads     = 32'd8;         // axi_dw_converter max reads
+  localparam int unsigned CfgLiteMaxTxns    = 32'd1;         // axi_to_axi_lite max r/w txns
+  localparam int unsigned CfgRegBufferDepth = 32'd2;         // axi_lite_to_reg buffer depth
+
+  typedef logic [CfgAddrWidth-1:0]   cfg_addr32_t;
+  typedef logic [CfgDataWidth-1:0]   cfg_data32_t;
+  typedef logic [CfgDataWidth/8-1:0] cfg_strb32_t;
+
+  // AXI-Lite (feeds the conversion chain) and register bus (feeds `reg_req_i`).
+  `AXI_LITE_TYPEDEF_ALL(cfg_lite, cfg_addr32_t, cfg_data32_t, cfg_strb32_t)
+  `REG_BUS_TYPEDEF_ALL(cfg, cfg_addr32_t, cfg_data32_t, cfg_strb32_t)
 
 endpackage
