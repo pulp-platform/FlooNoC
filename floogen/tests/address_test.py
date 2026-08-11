@@ -125,6 +125,59 @@ def test_get_rdl_rdl_name_takes_priority():
     assert result[0]["rdl_name"] == "my_block"
 
 
+def test_rdl_name_must_be_a_bare_component_name():
+    """The `rdl_name: "foo #(.N(4))"` hack is rejected in favour of `rdl_params`."""
+    with pytest.raises(ValueError, match="must be a SystemRDL component name"):
+        AddrRange(start=0, end=0x1000, rdl_name="my_block #(.NumCores(4))")
+
+
+def test_rdl_params_requires_rdl_name():
+    """There is no component definition to bind parameters on without `rdl_name`."""
+    with pytest.raises(ValueError, match="requires 'rdl_name'"):
+        AddrRange(start=0, end=0x1000, rdl_params={"NumCores": 4})
+
+    with pytest.raises(ValueError, match="requires 'rdl_name'"):
+        AddrRange(start=0, end=0x1000, rdl_as_mem=True, rdl_params={"NumCores": 4})
+
+
+def test_rdl_param_name_must_be_an_identifier():
+    with pytest.raises(ValueError, match="not a valid identifier"):
+        AddrRange(start=0, end=0x1000, rdl_name="my_block", rdl_params={"not a name": 4})
+
+
+def test_get_rdl_renders_the_parameter_binding():
+    """Values are inlined: the generated addrmap has no parameters left to override."""
+    rule = RouteMapRule(
+        addr_range=AddrRange(
+            start=0,
+            end=0x1000,
+            rdl_name="my_block",
+            rdl_params={
+                "NumCores": 4,
+                "BaseAddr": 0x1000_0000,
+                "EnableDebug": True,
+                "Disabled": False,
+                "Name": "occamy",
+            },
+        ),
+        dest=SimpleId(id=1),
+    )
+    result = rule.get_rdl("inst", rdl_as_mem=False)
+    assert result[0]["rdl_name"] == (
+        "my_block #(.NumCores(4), .BaseAddr(0x10000000), "
+        '.EnableDebug(true), .Disabled(false), .Name("occamy"))'
+    )
+
+
+def test_render_rdl_inc_uses_the_bare_component_name():
+    """The include is keyed on the component, not on its parameter binding."""
+    rule = RouteMapRule(
+        addr_range=AddrRange(start=0, end=0x1000, rdl_name="my_block", rdl_params={"N": 4}),
+        dest=SimpleId(id=1),
+    )
+    assert RouteMap(name="sam", rules=[rule]).render_rdl_inc() == '`include "my_block.rdl"\n'
+
+
 def test_routing_table_len():
     """Test the length of a RoutingTable object."""
     rule1 = RouteMapRule(addr_range=AddrRange(start=0, end=10), dest=SimpleId(id=1))
