@@ -416,6 +416,8 @@ class AddrRange(ConfigModel):
     desc: str | None = None
     rdl_addrmap_grp: OneOrMany[str] | None = None
     """One or more SystemRDL addrmap group tags this address range belongs to."""
+    rdl_params: dict[str, bool | int | str] | None = None
+    """Parameters bound on the SystemRDL component named by `rdl_name`."""
 
     def __str__(self):
         return f"[{self.start:X}:{self.end:X}]"
@@ -487,6 +489,21 @@ class AddrRange(ConfigModel):
             raise ValueError("Address range start must be less than end")
         if self.rdl_name is not None and self.rdl_as_mem is True:
             raise ValueError("AddrRange: 'rdl_name' and 'rdl_as_mem' are mutually exclusive")
+        if self.rdl_name is not None and not self.rdl_name.isidentifier():
+            raise ValueError(
+                f"AddrRange: 'rdl_name' must be a SystemRDL component name, "
+                f"got '{self.rdl_name}'. Use 'rdl_params' to bind parameters on it"
+            )
+        if self.rdl_params is not None:
+            # An anonymous `external mem { ... }` block has no component definition to
+            # bind parameters on, so `rdl_params` is only meaningful alongside `rdl_name`.
+            if self.rdl_name is None:
+                raise ValueError("AddrRange: 'rdl_params' requires 'rdl_name' to be set")
+            for param in self.rdl_params:
+                if not param.isidentifier():
+                    raise ValueError(
+                        f"AddrRange: SystemRDL parameter name '{param}' is not a valid identifier"
+                    )
         return self
 
     def set_arr(self, arr_idx, arr_dim):
@@ -548,6 +565,32 @@ class RouteMapRule(BaseModel):
                 pass
         return rule_desc
 
+    @staticmethod
+    def _render_rdl_param_value(value: bool | int | str) -> str:
+        """Render a single SystemRDL parameter value."""
+        match value:
+            # `bool` before `int`: it is a subclass, so the other order never matches.
+            case bool():
+                return "true" if value else "false"
+            case int():
+                # Larger values are almost always addresses or sizes, which the rest of
+                # the generated addrmap also spells in hex.
+                return f"0x{value:X}" if value >= 0x1_0000 else str(value)
+            case _:
+                escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+                return f'"{escaped}"'
+
+    def _render_rdl_inst_type(self) -> str:
+        """Render the component name of the instance, with its parameter binding."""
+        name = self.addr_range.rdl_name
+        if not self.addr_range.rdl_params:
+            return f"{name}"
+        params = ", ".join(
+            f".{param}({self._render_rdl_param_value(value)})"
+            for param, value in self.addr_range.rdl_params.items()
+        )
+        return f"{name} #({params})"
+
     def get_rdl(self, instance_name, rdl_as_mem=False, rdl_memwidth=8):
         """Render the SystemRDL routing rule."""
         if self.addr_range.rdl_name is not None:
@@ -555,7 +598,7 @@ class RouteMapRule(BaseModel):
                 {
                     "start_addr": self.addr_range.start,
                     "size": self.addr_range.size,
-                    "rdl_name": self.addr_range.rdl_name,
+                    "rdl_name": self._render_rdl_inst_type(),
                     "instance_name": instance_name,
                     "arr_dim": self.addr_range.arr_dim,
                 }
@@ -858,7 +901,7 @@ class RouteMap(BaseModel):
         rdl_names = []
         for rule in rules:
             if rule.addr_range.rdl_name is not None:
-                rdl_names.append(rule.addr_range.rdl_name.split()[0].split("#")[0])
+                rdl_names.append(rule.addr_range.rdl_name)
         # uniquify the names
         rdl_names = sorted(set(rdl_names))
         for rule in rdl_names:
