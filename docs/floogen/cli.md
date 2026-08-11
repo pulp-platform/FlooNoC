@@ -31,6 +31,7 @@ floogen rtl -c <config_file> -o <output_dir>
 
   * `-c, --config <file>`: Path to the YAML NoC configuration file.
   * `-o, --outdir <dir>`: Directory where generated files will be written. If omitted, output is printed to stdout.
+  * `-P, --param <NAME=VALUE>`: Override a [parameter](params.md) declared in the configuration's `params` block. May be given multiple times. Accepted by every command that reads a configuration; overriding an undeclared parameter is an error.
   * `--no-format`: Disable auto-formatting (e.g., Verible) of the generated SystemVerilog.
 
 -----

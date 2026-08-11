@@ -129,6 +129,10 @@ fields give finer control over how each range is rendered:
 - `rdl_as_mem`: renders this specific range as an anonymous `external mem` block,
   overriding the global `--as-mem` flag for this range only (`true` forces it on,
   `false` forces it off, regardless of the CLI flag).
+- `rdl_params`: binds parameters on the component named by `rdl_name`. Requires
+  `rdl_name` — an anonymous `external mem` block has no component definition to bind
+  parameters on — and is described in [SystemRDL Parameters](#systemrdl-parameters)
+  below.
 
 `rdl_name` and `rdl_as_mem` are mutually exclusive on the same address range.
 
@@ -145,6 +149,47 @@ endpoints:
     sbr_port_protocol:
       - "axi_out"
 ```
+
+### SystemRDL Parameters
+
+`rdl_params` binds parameters on the instantiated component. The values are resolved at
+generation time — typically from a [configuration parameter](params.md) — and inlined
+into the emitted instantiation, so the generated addrmap has no parameters of its own
+left for downstream tooling to override:
+
+```yaml
+params:
+  num_cores: 4
+
+endpoints:
+  - name: "cluster"
+    addr_range:
+      base: 0x1000_0000
+      size: 0x0004_0000
+      rdl_name: "cluster_regs"
+      rdl_params:
+        NumCores: "${num_cores}" # from a configuration parameter
+        DataWidth: 64 # or a literal
+        EnableDebug: true
+    sbr_port_protocol:
+      - "axi_out"
+```
+
+which renders as:
+
+```systemrdl
+cluster_regs #(.NumCores(4), .DataWidth(64), .EnableDebug(true)) cluster @0x10000000;
+```
+
+Values are emitted according to their type: booleans as `true`/`false`, strings as
+quoted string literals, and integers in decimal or — from `0x1_0000` upwards, where the
+value is usually an address or a size — in hexadecimal.
+
+`rdl_name` must be a bare component name. To pass parameters, use `rdl_params` rather
+than writing them into `rdl_name` itself.
+
+For an endpoint declared as an array, the generated addrmap emits a single instance with
+SystemRDL array syntax, so one parameter binding covers every element of the array.
 
 ### SystemRDL Addrmap Groups
 
