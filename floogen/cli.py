@@ -91,26 +91,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print detailed information about what the tool is doing.",
     )
 
-    # Parser for SystemVerilog formatting options
+    # Parser for SystemVerilog formatting options. Argument groups are inherited by title,
+    # so every command built on this parent shows the same section in its help message.
     sv_format = argparse.ArgumentParser(add_help=False)
-    sv_format.add_argument(
+    sv_format_grp = sv_format.add_argument_group("Output formatting options")
+    sv_format_grp.add_argument(
         "--no-format",
         dest="no_format",
         action="store_true",
         help="Do not format the output.",
     )
-    sv_format.add_argument(
+    sv_format_grp.add_argument(
         "--verible-fmt-bin",
         type=str,
         default=None,
         help="Overwrite default `verible-verilog-format` binary.",
     )
-    sv_format.add_argument(
+    sv_format_grp.add_argument(
         "--verible-fmt-args",
         type=str,
         default=None,
         help="Additional arguments to pass to `verible-verilog-format`.",
     )
+    # Not a formatting option, but shared by the same set of commands.
     sv_format.add_argument(
         "--name",
         type=str,
@@ -129,7 +132,7 @@ def build_parser() -> argparse.ArgumentParser:
         version=f"%(prog)s {version('floogen')}",
     )
 
-    subparsers = parser.add_subparsers(dest="command")
+    subparsers = parser.add_subparsers(dest="command", metavar="")
 
     # floogen rtl -> pkg + top
     subparsers.add_parser(
@@ -229,41 +232,45 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Base name of the emitted job files. Defaults to the traffic configuration filename. ",
     )
-    p_traffic.add_argument(
+    p_traffic_builtin = p_traffic.add_argument_group(
+        "built-in pattern options",
+        description="Only used with --traffic-type.",
+    )
+    p_traffic_builtin.add_argument(
         "--traffic-rw",
         dest="traffic_rw",
         type=str,
         default="write",
         choices=["read", "write"],
-        help="Read or write transaction, only used with --traffic-type.",
+        help="Read or write transaction. Defaults to 'write'.",
     )
-    p_traffic.add_argument(
+    p_traffic_builtin.add_argument(
         "--num-narrow-bursts",
         dest="num_narrow_bursts",
         type=int,
         default=10,
-        help="Number of narrow bursts per node, only used with --traffic-type.",
+        help="Number of narrow bursts per node. Defaults to 10.",
     )
-    p_traffic.add_argument(
+    p_traffic_builtin.add_argument(
         "--num-wide-bursts",
         dest="num_wide_bursts",
         type=int,
         default=100,
-        help="Number of wide bursts per node, only used with --traffic-type.",
+        help="Number of wide bursts per node. Defaults to 100.",
     )
-    p_traffic.add_argument(
+    p_traffic_builtin.add_argument(
         "--narrow-burst-length",
         dest="narrow_burst_length",
         type=int,
         default=1,
-        help="Narrow burst length, in beats, only used with --traffic-type.",
+        help="Narrow burst length, in beats. Defaults to 1.",
     )
-    p_traffic.add_argument(
+    p_traffic_builtin.add_argument(
         "--wide-burst-length",
         dest="wide_burst_length",
         type=int,
         default=16,
-        help="Wide burst length, in beats, only used with --traffic-type.",
+        help="Wide burst length, in beats. Defaults to 16.",
     )
 
     # floogen query <key>
@@ -297,6 +304,22 @@ def build_parser() -> argparse.ArgumentParser:
             "If not specified, the schema is printed to stdout."
         ),
     )
+    # floogen help [<command>]
+    p_help = subparsers.add_parser(
+        "help",
+        add_help=True,
+        help="Show the help message of `floogen` or of a specific command.",
+    )
+    p_help.add_argument(
+        "help_command",
+        metavar="command",
+        type=str,
+        nargs="?",
+        choices=list(subparsers.choices),
+        help="Command to show the help message for. If omitted, the general help is shown.",
+    )
+    # Make the subcommand parsers accessible to `floogen help <command>`.
+    p_help.set_defaults(subparsers=subparsers.choices)
 
     return parser
 
@@ -319,6 +342,13 @@ def main():
             (args.outdir / SCHEMA_FILE_NAME).write_text(schema, encoding="utf-8")
         else:
             print(schema, end="")
+        return 0
+
+    if args.command == "help":
+        if args.help_command is None:
+            parser.print_help()
+        else:
+            args.subparsers[args.help_command].print_help()
         return 0
 
     try:

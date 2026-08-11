@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 #### FlooGen
 - New `floogen schema` command, emitting a JSON schema of the configuration file so editors can complete field names and flag mistakes while a configuration is written. See the [CLI documentation](docs/floogen/cli.md) for how to wire it up.
+- Add a `help` command, to print the general help message (`floogen help`) or the help message of a specific command (`floogen help <command>`).
 
 ### Changed
 
