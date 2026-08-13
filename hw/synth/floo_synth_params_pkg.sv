@@ -32,9 +32,9 @@ package floo_synth_params_pkg;
   localparam floo_pkg::chimney_cfg_t ChimneyCfg = '{
     EnSbrPort: 1'b1,
     EnMgrPort: 1'b1,
-    MaxTxns: 32,
+    MaxTxns: 8,
     MaxUniqueIds: 1,
-    MaxTxnsPerId: 32,
+    MaxTxnsPerId: 8,
     BRoBType: floo_pkg::NoRoB,
     BRoBSize: 0,
     RRoBType: floo_pkg::NoRoB,
@@ -338,26 +338,27 @@ package floo_synth_qos_pkg;
   import endpoint_axi_pkg::*;
   import floo_synth_nw_pkg::*;
 
-  // AXI-Realm regfile
-  localparam int unsigned NumMrg     = axi_rt_reg_pkg::NumMrg;  // managers per RT unit
-  localparam int unsigned NumSub     = axi_rt_reg_pkg::NumSub;  // address (sub)regions
-  localparam int unsigned NumReg     = axi_rt_reg_pkg::NumReg;  // register banks
-  localparam int unsigned RegBlockAw = axi_rt_reg_pkg::BlockAw; // reg-file byte-addr width
+  // AXI-Realm tile
+  localparam int unsigned NumAxiRt          = 2; // narrow + wide NoC plane
 
-  // Tile topology
-  localparam int unsigned NumDmas           = 1;     // DMAs per cluster
-  localparam int unsigned NumNoCPlanes      = 2;    // narrow + wide NoC plane
-  localparam int unsigned IdxNoCPlaneWide   = 0;
-  localparam int unsigned IdxNoCPlaneNarrow = 1;
-  localparam int unsigned MeshDimY          = 32'd4; // used for the reg-file guard ID
+  // AXI-Realm regfile
+  localparam int unsigned NumMrg                = axi_rt_reg_pkg::NumMrg;  // managers per RT unit
+  localparam int unsigned NumSub                = axi_rt_reg_pkg::NumSub;  // address (sub)regions
+  localparam int unsigned NumReg                = axi_rt_reg_pkg::NumReg;  // register banks
+  localparam int unsigned NumCfgXbarMst         = NumAxiRt + 1; // 2 AXI-Realm (NW) + 1 accelerator
+  localparam int unsigned RegBlockAw            = axi_rt_reg_pkg::BlockAw; // reg-file byte-addr width
+  localparam int unsigned AxiRtGuardRegMeshDimY = 32'd4; // used for the reg-file guard ID
+  localparam int unsigned IdxAxiRtWide          = 0; // AXI-Realm wide index
+  localparam int unsigned IdxAxiRtNarrow        = 1; // AXI-Realm narrow index
+  localparam int unsigned IdxCfgXbarAcc         = NumAxiRt; // Accelerator index
 
   // AXI-Realm sizing
-  localparam int unsigned NumManagers        = NumMrg;    // == NumDmas
+  localparam int unsigned NumManagers        = NumMrg;
   localparam int unsigned NumRegions         = 32'd1;     // active regions (<= NumSub)
   // Maximum AXI burst length [beats]. Only sizes the write-data buffer below.
   localparam int unsigned MaxBurstLength     = 32'd256;
   // Maximum number of outstanding transactions
-  localparam int unsigned MaxOutstandingTxns = 32'd8;
+  localparam int unsigned MaxOutstandingTxns = floo_synth_params_pkg::ChimneyCfg.MaxTxns;
   localparam int unsigned NumPending         = MaxOutstandingTxns;
   // Write buffer depth
   localparam int unsigned WBufferDepth       = MaxBurstLength;
@@ -382,7 +383,7 @@ package floo_synth_qos_pkg;
   localparam int unsigned RtNarrowIdWidth   = endpoint_axi_pkg::NarrowIdWidthOut;
   localparam int unsigned RtNarrowUserWidth = endpoint_axi_pkg::NarrowUserWidth;
 
-  localparam int unsigned CfgAddrSpaceDim = 32'h0000_2000; // per-plane cfg window
+  localparam int unsigned CfgAddrSpaceDim = 32'h0000_2000; // AXI-Realm address space dimension
   localparam int unsigned CfgDataWidth    = 32'd32;        // reg-bus data width
   localparam bit          CfgCutMemReqs   = 1'b0;          // axi_to_reg_v2 req spill cut
   localparam bit          CfgCutMemRsps   = 1'b0;          // axi_to_reg_v2 rsp spill cut

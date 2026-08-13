@@ -21,21 +21,29 @@ module floo_synth_nw_realm_tile
   input  logic clk_i,
   input  logic rst_ni,
   input  logic test_enable_i,
-  input  endpoint_axi_pkg::narrow_out_req_t   axi_narrow_in_req_i,
-  output endpoint_axi_pkg::narrow_out_resp_t  axi_narrow_in_rsp_o,
-  input  endpoint_axi_pkg::wide_out_req_t     axi_wide_in_req_i,
-  output endpoint_axi_pkg::wide_out_resp_t    axi_wide_in_rsp_o,
-  output endpoint_axi_pkg::wide_in_req_t      axi_wide_out_req_o,
-  input  endpoint_axi_pkg::wide_in_resp_t     axi_wide_out_rsp_i,
   input  id_t id_i,
   input  route_t [floo_iomsb(RouteCfg.NumRoutes):0] route_table_i,
+  // NoC interfaces
   output floo_req_t  [West:North] floo_req_o,
   input  floo_rsp_t  [West:North] floo_rsp_i,
   output floo_wide_t [West:North] floo_wide_o,
   input  floo_req_t  [West:North] floo_req_i,
   output floo_rsp_t  [West:North] floo_rsp_o,
-  input  floo_wide_t [West:North] floo_wide_i
+  input  floo_wide_t [West:North] floo_wide_i,
+  // Accelerator interfaces
+  input  endpoint_axi_pkg::narrow_out_req_t   axi_narrow_in_req_i,
+  output endpoint_axi_pkg::narrow_out_resp_t  axi_narrow_in_rsp_o,
+  output endpoint_axi_pkg::narrow_in_req_t    axi_narrow_out_req_o,
+  input  endpoint_axi_pkg::narrow_in_resp_t   axi_narrow_out_rsp_i,
+  input  endpoint_axi_pkg::wide_out_req_t     axi_wide_in_req_i,
+  output endpoint_axi_pkg::wide_out_resp_t    axi_wide_in_rsp_o,
+  output endpoint_axi_pkg::wide_in_req_t      axi_wide_out_req_o,
+  input  endpoint_axi_pkg::wide_in_resp_t     axi_wide_out_rsp_i
 );
+
+  ////////////
+  // Router //
+  ////////////
 
   localparam floo_pkg::route_cfg_t ActiveRouteCfg = '{
     RouteAlgo:     CollectRouteCfg.RouteAlgo,
@@ -56,15 +64,11 @@ module floo_synth_nw_realm_tile
     WideRedCfg: CollectRouteCfg.CollectiveCfg.WideRedCfg
   };
 
-  ////////////
-  // Router //
-  ////////////
-
   floo_req_t  [int'(NumDirections)-1:0] router_floo_req_in,  router_floo_req_out;
   floo_rsp_t  [int'(NumDirections)-1:0] router_floo_rsp_in,  router_floo_rsp_out;
   floo_wide_t [int'(NumDirections)-1:0] router_floo_wide_in, router_floo_wide_out;
 
-  // Reduction offload ports are unused in this endpoint tile: tie off.
+  // Tie off reduction offload ports.
   red_wide_req_t   router_offload_wide_req;
   red_narrow_req_t router_offload_narrow_req;
 
@@ -108,7 +112,6 @@ module floo_synth_nw_realm_tile
     .offload_narrow_rsp_i ( '0                        )
   );
 
-  // Connect to the wrapper ports.
   assign floo_req_o                          = router_floo_req_out[West:North];
   assign router_floo_req_in[West:North]      = floo_req_i;
   assign floo_rsp_o                          = router_floo_rsp_out[West:North];
@@ -120,13 +123,11 @@ module floo_synth_nw_realm_tile
   // Chimney //
   /////////////
 
-  // Chimney subordinate (inject side) is driven by the AXI-Realm outputs.
   endpoint_axi_pkg::narrow_out_req_t  chimney_narrow_in_req;
   endpoint_axi_pkg::narrow_out_resp_t chimney_narrow_in_rsp;
   endpoint_axi_pkg::wide_out_req_t    chimney_wide_in_req;
   endpoint_axi_pkg::wide_out_resp_t   chimney_wide_in_rsp;
 
-  // Chimney manager (eject side): narrow NoC => configuration, wide NoC => local memory.
   endpoint_axi_pkg::narrow_in_req_t   chimney_narrow_out_req;
   endpoint_axi_pkg::narrow_in_resp_t  chimney_narrow_out_rsp;
   endpoint_axi_pkg::wide_in_req_t     chimney_wide_out_req;
@@ -186,13 +187,18 @@ module floo_synth_nw_realm_tile
     .floo_wide_i          ( router_floo_wide_out[Eject] )
   );
 
-  // Wide traffic ejected from the NoC is exposed as the local tile memory port.
+  //////////////////////////////////////////
+  // AXI chimney wide => Accelerator wide //
+  //////////////////////////////////////////
+
   assign axi_wide_out_req_o   = chimney_wide_out_req;
   assign chimney_wide_out_rsp = axi_wide_out_rsp_i;
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Narrow NoC (cfg): NI narrow eject => AXI4 targets => AXI4-Lite => reg-bus //
-  //////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////
+  // AXI chimney narrow => AXI-Realm regfile + Accelerator narrow //
+  //////////////////////////////////////////////////////////////////
+
+  localparam int unsigned CfgXbarMstIdxWidth = cf_math_pkg::idx_width(floo_synth_qos_pkg::NumCfgXbarMst);
 
   AXI_BUS #(
     .AXI_ADDR_WIDTH ( endpoint_axi_pkg::AddrWidth          ),
@@ -206,13 +212,23 @@ module floo_synth_nw_realm_tile
     .AXI_DATA_WIDTH ( endpoint_axi_pkg::NarrowDataWidth    ),
     .AXI_ID_WIDTH   ( endpoint_axi_pkg::NarrowIdWidthIn    ),
     .AXI_USER_WIDTH ( endpoint_axi_pkg::NarrowUserWidth    )
-  ) cfg_xbar_mst [floo_synth_qos_pkg::NumNoCPlanes-1:0] ();
+  ) cfg_xbar_mst [floo_synth_qos_pkg::NumCfgXbarMst-1:0] ();
+
+  endpoint_axi_pkg::narrow_in_req_t  [floo_synth_qos_pkg::NumAxiRt-1:0] cfg_axi_req;
+  endpoint_axi_pkg::narrow_in_resp_t [floo_synth_qos_pkg::NumAxiRt-1:0] cfg_axi_rsp;
+
+  // AXI-Realm register files.
+  floo_synth_qos_pkg::cfg_req_t [floo_synth_qos_pkg::NumAxiRt-1:0] regbus_realm_req;
+  floo_synth_qos_pkg::cfg_rsp_t [floo_synth_qos_pkg::NumAxiRt-1:0] regbus_realm_rsp;
+
+  // AXI-Realm guard ID, derived from the tile coordinates.
+  floo_synth_qos_pkg::reg_id_t realm_regfile_id;
 
   `AXI_ASSIGN_FROM_REQ(cfg_xbar_slv[0], chimney_narrow_out_req)
   `AXI_ASSIGN_TO_RESP(chimney_narrow_out_rsp, cfg_xbar_slv[0])
 
-  axi_pkg::xbar_rule_64_t [floo_synth_qos_pkg::NumNoCPlanes-1:0] cfg_addr_map;
-  for (genvar p = 0; p < floo_synth_qos_pkg::NumNoCPlanes; p++) begin : gen_cfg_addr_map
+  axi_pkg::xbar_rule_64_t [floo_synth_qos_pkg::NumAxiRt-1:0] cfg_addr_map;
+  for (genvar p = 0; p < floo_synth_qos_pkg::NumAxiRt; p++) begin : gen_cfg_addr_map
     assign cfg_addr_map[p] = '{
       idx:        p,
       start_addr: p * floo_synth_qos_pkg::CfgAddrSpaceDim,
@@ -222,53 +238,47 @@ module floo_synth_nw_realm_tile
 
   localparam axi_pkg::xbar_cfg_t CfgXbarCfg = '{
     NoSlvPorts:         1,
-    NoMstPorts:         floo_synth_qos_pkg::NumNoCPlanes,
-    MaxMstTrans:        1,
-    MaxSlvTrans:        1,
+    NoMstPorts:         floo_synth_qos_pkg::NumCfgXbarMst,
+    MaxMstTrans:        floo_synth_qos_pkg::MaxOutstandingTxns,
+    MaxSlvTrans:        floo_synth_qos_pkg::MaxOutstandingTxns,
     FallThrough:        1'b0,
     LatencyMode:        axi_pkg::CUT_ALL_PORTS,
     PipelineStages:     0,
     AxiIdWidthSlvPorts: endpoint_axi_pkg::NarrowIdWidthIn,
-    AxiIdUsedSlvPorts:  1,
+    AxiIdUsedSlvPorts:  endpoint_axi_pkg::NarrowIdWidthIn,
     UniqueIds:          0,
     AxiAddrWidth:       endpoint_axi_pkg::AddrWidth,
     AxiDataWidth:       endpoint_axi_pkg::NarrowDataWidth,
-    NoAddrRules:        floo_synth_qos_pkg::NumNoCPlanes
+    NoAddrRules:        floo_synth_qos_pkg::NumAxiRt
   };
 
   axi_xbar_intf #(
     .AXI_USER_WIDTH ( endpoint_axi_pkg::NarrowUserWidth ),
     .Cfg            ( CfgXbarCfg                        ),
-    .ATOPS          ( 1'b0                              ),
+    .ATOPS          ( 1'b1                              ),
     .rule_t         ( axi_pkg::xbar_rule_64_t           )
   ) i_cfg_xbar (
     .clk_i,
     .rst_ni,
-    .test_i                ( 1'b0         ),
-    .slv_ports             ( cfg_xbar_slv ),
-    .mst_ports             ( cfg_xbar_mst ),
-    .addr_map_i            ( cfg_addr_map ),
-    .en_default_mst_port_i ( '0           ),
-    .default_mst_port_i    ( '0           )
+    .test_i                ( 1'b0                                                   ),
+    .slv_ports             ( cfg_xbar_slv                                           ),
+    .mst_ports             ( cfg_xbar_mst                                           ),
+    .addr_map_i            ( cfg_addr_map                                           ),
+    .en_default_mst_port_i ( 1'b1                                                   ),
+    .default_mst_port_i    ( CfgXbarMstIdxWidth'(floo_synth_qos_pkg::IdxCfgXbarAcc) ) // Anything outside the cfg windows goes to the accelerator.
   );
 
-  // AXI-Realm register files.
-  floo_synth_qos_pkg::cfg_req_t [floo_synth_qos_pkg::NumNoCPlanes-1:0] regbus_realm_req;
-  floo_synth_qos_pkg::cfg_rsp_t [floo_synth_qos_pkg::NumNoCPlanes-1:0] regbus_realm_rsp;
+  // AXI narrow out => Accelerator
+  `AXI_ASSIGN_TO_REQ(axi_narrow_out_req_o, cfg_xbar_mst[floo_synth_qos_pkg::IdxCfgXbarAcc])
+  `AXI_ASSIGN_FROM_RESP(cfg_xbar_mst[floo_synth_qos_pkg::IdxCfgXbarAcc], axi_narrow_out_rsp_i)
 
-  // Struct view of each per-plane AXI master port of the config crossbar.
-  endpoint_axi_pkg::narrow_in_req_t  [floo_synth_qos_pkg::NumNoCPlanes-1:0] cfg_axi_req;
-  endpoint_axi_pkg::narrow_in_resp_t [floo_synth_qos_pkg::NumNoCPlanes-1:0] cfg_axi_rsp;
+  // AXI narrow out => AXI-Realm cfg reg-files
+  for (genvar p = 0; p < floo_synth_qos_pkg::NumAxiRt; p++) begin : gen_cfg_chain
 
-  for (genvar p = 0; p < floo_synth_qos_pkg::NumNoCPlanes; p++) begin : gen_cfg_chain
-
-    // AXI_BUS crossbar master port -> AXI4 struct.
     `AXI_ASSIGN_TO_REQ(cfg_axi_req[p], cfg_xbar_mst[p])
     `AXI_ASSIGN_FROM_RESP(cfg_xbar_mst[p], cfg_axi_rsp[p])
 
-    // AXI4 (64b) -> register bus (32b) in a single struct-based converter.
-    // Replaces the interface-based dw/addr/lite chain, which is not
-    // synthesizable in the Fusion flow (unresolved `AXI_BUS` interface template).
+    // AXI4 (64b) => Register bus (32b)
     axi_to_reg_v2 #(
       .AxiAddrWidth ( endpoint_axi_pkg::AddrWidth        ),
       .AxiDataWidth ( endpoint_axi_pkg::NarrowDataWidth  ),
@@ -293,18 +303,17 @@ module floo_synth_nw_realm_tile
     );
   end
 
-  // Register-file guard ID (derived from the tile position on the mesh).
-  floo_synth_qos_pkg::reg_id_t realm_regfile_id;
-  assign realm_regfile_id = floo_synth_qos_pkg::reg_id_t'(id_i.y + floo_synth_qos_pkg::MeshDimY * id_i.x);
+  // Assign AXI-Realm guard ID value.
+  assign realm_regfile_id = floo_synth_qos_pkg::reg_id_t'(id_i.y + floo_synth_qos_pkg::AxiRtGuardRegMeshDimY * id_i.x);
 
-  //////////////////////////
-  // AXI-Realm (wide NoC) //
-  //////////////////////////
+  ////////////////////////////////////////////////////////////////
+  // AXI accelerator wide => AXI-Realm wide => AXI chimney wide //
+  ////////////////////////////////////////////////////////////////
 
   endpoint_axi_pkg::wide_out_req_t  realm_wide_in_req,  realm_wide_out_req;
   endpoint_axi_pkg::wide_out_resp_t realm_wide_in_rsp,  realm_wide_out_rsp;
 
-  // Accelerator wide manager => AXI-Realm subordinate.
+  // Accelerator wide manager => AXI-Realm wide subordinate
   assign realm_wide_in_req = axi_wide_in_req_i;
   assign axi_wide_in_rsp_o = realm_wide_in_rsp;
 
@@ -338,27 +347,27 @@ module floo_synth_nw_realm_tile
   ) i_axi_rt_unit_wide (
     .clk_i,
     .rst_ni,
-    .slv_req_i  ( realm_wide_in_req                                     ),
-    .slv_resp_o ( realm_wide_in_rsp                                     ),
-    .mst_req_o  ( realm_wide_out_req                                    ),
-    .mst_resp_i ( realm_wide_out_rsp                                    ),
-    .reg_req_i  ( regbus_realm_req[floo_synth_qos_pkg::IdxNoCPlaneWide] ),
-    .reg_rsp_o  ( regbus_realm_rsp[floo_synth_qos_pkg::IdxNoCPlaneWide] ),
-    .reg_id_i   ( realm_regfile_id                                      )
+    .slv_req_i  ( realm_wide_in_req                                  ),
+    .slv_resp_o ( realm_wide_in_rsp                                  ),
+    .mst_req_o  ( realm_wide_out_req                                 ),
+    .mst_resp_i ( realm_wide_out_rsp                                 ),
+    .reg_req_i  ( regbus_realm_req[floo_synth_qos_pkg::IdxAxiRtWide] ),
+    .reg_rsp_o  ( regbus_realm_rsp[floo_synth_qos_pkg::IdxAxiRtWide] ),
+    .reg_id_i   ( realm_regfile_id                                   )
   );
 
-  // AXI-Realm wide output => chimney wide inject.
+  // AXI-Realm wide manager => chimney wide subordinate
   assign chimney_wide_in_req = realm_wide_out_req;
   assign realm_wide_out_rsp  = chimney_wide_in_rsp;
 
-  ////////////////////////////
-  // AXI-Realm (narrow NoC) //
-  ////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  // AXI accelerator narrow => AXI-Realm narrow => AXI chimney narrow //
+  //////////////////////////////////////////////////////////////////////
 
   endpoint_axi_pkg::narrow_out_req_t  realm_narrow_in_req,  realm_narrow_out_req;
   endpoint_axi_pkg::narrow_out_resp_t realm_narrow_in_rsp,  realm_narrow_out_rsp;
 
-  // Accelerator narrow manager => AXI-Realm subordinate.
+  // Accelerator narrow manager => AXI-Realm narrow subordinate
   assign realm_narrow_in_req = axi_narrow_in_req_i;
   assign axi_narrow_in_rsp_o    = realm_narrow_in_rsp;
 
@@ -392,16 +401,16 @@ module floo_synth_nw_realm_tile
   ) i_axi_rt_unit_narrow (
     .clk_i,
     .rst_ni,
-    .slv_req_i  ( realm_narrow_in_req                                     ),
-    .slv_resp_o ( realm_narrow_in_rsp                                     ),
-    .mst_req_o  ( realm_narrow_out_req                                    ),
-    .mst_resp_i ( realm_narrow_out_rsp                                    ),
-    .reg_req_i  ( regbus_realm_req[floo_synth_qos_pkg::IdxNoCPlaneNarrow] ),
-    .reg_rsp_o  ( regbus_realm_rsp[floo_synth_qos_pkg::IdxNoCPlaneNarrow] ),
-    .reg_id_i   ( realm_regfile_id                                        )
+    .slv_req_i  ( realm_narrow_in_req                                  ),
+    .slv_resp_o ( realm_narrow_in_rsp                                  ),
+    .mst_req_o  ( realm_narrow_out_req                                 ),
+    .mst_resp_i ( realm_narrow_out_rsp                                 ),
+    .reg_req_i  ( regbus_realm_req[floo_synth_qos_pkg::IdxAxiRtNarrow] ),
+    .reg_rsp_o  ( regbus_realm_rsp[floo_synth_qos_pkg::IdxAxiRtNarrow] ),
+    .reg_id_i   ( realm_regfile_id                                     )
   );
 
-  // AXI-Realm narrow output => chimney narrow inject.
+  // AXI-Realm narrow manager => chimney narrow subordinate
   assign chimney_narrow_in_req = realm_narrow_out_req;
   assign realm_narrow_out_rsp  = chimney_narrow_in_rsp;
 
