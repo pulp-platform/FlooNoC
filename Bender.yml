@@ -117,6 +117,7 @@ sources:
     - hw/synth/floo_synth_nw_router.sv
     - hw/synth/floo_synth_nw_2tiles.sv
     - hw/synth/floo_synth_nw_realm_tile.sv
+    - hw/synth/floo_synth_nw_realm_2tiles.sv
 
   - target: floo_deprecated_hw
     include_dirs:

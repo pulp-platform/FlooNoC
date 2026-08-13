@@ -16,7 +16,7 @@ module floo_synth_nw_realm_tile
   import endpoint_axi_pkg::*;
   import floo_synth_qos_pkg::*;
   #(
-    parameter collective_cfg_idx_e CollectCfgIdx = CollectNone
+    parameter collective_cfg_idx_e CollectCfgIdx = floo_synth_collective_pkg::CollectNone
   ) (
   input  logic clk_i,
   input  logic rst_ni,
