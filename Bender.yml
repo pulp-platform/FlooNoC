@@ -20,6 +20,7 @@ dependencies:
   idma: { version: 0.6.2, upstream_name: iDMA }
   FPnew: { git: "https://github.com/pulp-platform/cvfpu.git", rev: pulp-v0.2.3 }
   axi_rt: { git: "https://github.com/pulp-platform/axi_rt.git", rev: 431f1ccee2aa84821a946d772c1a5114be6c690b }
+  register_interface: 0.4.7
   floo_noc_pd: { path: ./pd, target: "floo_synth" }
 
 export_include_dirs:

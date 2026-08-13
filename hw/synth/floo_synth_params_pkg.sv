@@ -12,8 +12,8 @@ package floo_synth_params_pkg;
   import floo_pkg::*;
 
   // Router parameters
-  localparam int unsigned InFifoDepth = 16;
-  localparam int unsigned OutFifoDepth = 16;
+  localparam int unsigned InFifoDepth = 2;
+  localparam int unsigned OutFifoDepth = 2;
 
   // Default route config for testing
   localparam floo_pkg::route_cfg_t RouteCfg = '{
@@ -179,13 +179,13 @@ package floo_synth_collective_pkg;
   // Low-latency reduction config for narrow integer ops (short pipeline, cut offload interface)
   localparam reduction_cfg_t NarrowReductionCfg = '{
     RdPipelineDepth: 1,
-    CutOffloadIntf: 1'b1
+    CutOffloadIntf:  1'b1
   };
 
   // High-throughput reduction config for wide FP ops (deep pipeline, cut offload interface)
   localparam reduction_cfg_t WideReductionCfg = '{
     RdPipelineDepth: 5,
-    CutOffloadIntf: 1'b1
+    CutOffloadIntf:  1'b1
   };
 
   // Route config with collective support enabled
@@ -201,8 +201,8 @@ package floo_synth_collective_pkg;
     EnFpMul:            1'b1,
     EnFpMin:            1'b1,
     EnFpMax:            1'b1,
-    EnIntAdd:            1'b1,
-    EnIntMul:            1'b1,
+    EnIntAdd:           1'b1,
+    EnIntMul:           1'b1,
     EnIntMinS:          1'b1,
     EnIntMinU:          1'b1,
     EnIntMaxS:          1'b1,
@@ -239,8 +239,8 @@ package floo_synth_collective_pkg;
     EnFpMul:            1'b0,
     EnFpMin:            1'b0,
     EnFpMax:            1'b0,
-    EnIntAdd:            1'b1,
-    EnIntMul:            1'b1,
+    EnIntAdd:           1'b1,
+    EnIntMul:           1'b1,
     EnIntMinS:          1'b1,
     EnIntMinU:          1'b1,
     EnIntMaxS:          1'b1,
@@ -255,8 +255,8 @@ package floo_synth_collective_pkg;
     EnFpMul:            1'b1,
     EnFpMin:            1'b1,
     EnFpMax:            1'b1,
-    EnIntAdd:            1'b1,
-    EnIntMul:            1'b1,
+    EnIntAdd:           1'b1,
+    EnIntMul:           1'b1,
     EnIntMinS:          1'b1,
     EnIntMinU:          1'b1,
     EnIntMaxS:          1'b1,
@@ -345,17 +345,21 @@ package floo_synth_qos_pkg;
   localparam int unsigned RegBlockAw = axi_rt_reg_pkg::BlockAw; // reg-file byte-addr width
 
   // Tile topology
-  localparam int unsigned NumCores          = 1;    // single accelerator manager
+  localparam int unsigned NumDmas           = 1;     // DMAs per cluster
   localparam int unsigned NumNoCPlanes      = 2;    // narrow + wide NoC plane
   localparam int unsigned IdxNoCPlaneWide   = 0;
   localparam int unsigned IdxNoCPlaneNarrow = 1;
   localparam int unsigned MeshDimY          = 32'd4; // used for the reg-file guard ID
 
   // AXI-Realm sizing
-  localparam int unsigned NumManagers        = NumMrg;    // == NumCores
+  localparam int unsigned NumManagers        = NumMrg;    // == NumDmas
   localparam int unsigned NumRegions         = 32'd1;     // active regions (<= NumSub)
+  // Maximum AXI burst length [beats]. Only sizes the write-data buffer below.
   localparam int unsigned MaxBurstLength     = 32'd256;
-  localparam int unsigned NumPending         = MaxBurstLength;
+  // Maximum number of outstanding transactions
+  localparam int unsigned MaxOutstandingTxns = 32'd8;
+  localparam int unsigned NumPending         = MaxOutstandingTxns;
+  // Write buffer depth
   localparam int unsigned WBufferDepth       = MaxBurstLength;
   localparam int unsigned PeriodWidth        = 32'd32;
   localparam int unsigned BudgetWidth        = 32'd32;
@@ -370,10 +374,6 @@ package floo_synth_qos_pkg;
 
   typedef logic [RegIdWidth-1:0] reg_id_t;
 
-  // ---------------------------------------------------------------------------
-  // Per-plane AXI widths handed to `axi_rt_unit_top`, sourced from
-  // `endpoint_axi_pkg` so the RT unit always matches the chimney AXI datapath.
-  // ---------------------------------------------------------------------------
   localparam int unsigned RtAddrWidth       = endpoint_axi_pkg::AddrWidth;
   localparam int unsigned RtWideDataWidth   = endpoint_axi_pkg::WideDataWidth;
   localparam int unsigned RtWideIdWidth     = endpoint_axi_pkg::WideIdWidthOut;
@@ -382,23 +382,15 @@ package floo_synth_qos_pkg;
   localparam int unsigned RtNarrowIdWidth   = endpoint_axi_pkg::NarrowIdWidthOut;
   localparam int unsigned RtNarrowUserWidth = endpoint_axi_pkg::NarrowUserWidth;
 
-  // ---------------------------------------------------------------------------
-  // Configuration decode + conversion chain
-  //   AXI64 -> [dw 64->32] -> [modify addr 48->32] -> AXI-Lite -> reg-bus
-  // ---------------------------------------------------------------------------
-  localparam int unsigned CfgAddrSpaceDim   = 32'h0000_2000; // per-plane cfg window
-  localparam int unsigned CfgAddrWidth      = 32'd32;        // downsized address width
-  localparam int unsigned CfgDataWidth      = 32'd32;        // downsized data width
-  localparam int unsigned CfgDwMaxReads     = 32'd8;         // axi_dw_converter max reads
-  localparam int unsigned CfgLiteMaxTxns    = 32'd1;         // axi_to_axi_lite max r/w txns
-  localparam int unsigned CfgRegBufferDepth = 32'd2;         // axi_lite_to_reg buffer depth
+  localparam int unsigned CfgAddrSpaceDim = 32'h0000_2000; // per-plane cfg window
+  localparam int unsigned CfgDataWidth    = 32'd32;        // reg-bus data width
+  localparam bit          CfgCutMemReqs   = 1'b0;          // axi_to_reg_v2 req spill cut
+  localparam bit          CfgCutMemRsps   = 1'b0;          // axi_to_reg_v2 rsp spill cut
 
-  typedef logic [CfgAddrWidth-1:0]   cfg_addr32_t;
-  typedef logic [CfgDataWidth-1:0]   cfg_data32_t;
-  typedef logic [CfgDataWidth/8-1:0] cfg_strb32_t;
+  typedef logic [endpoint_axi_pkg::AddrWidth-1:0] cfg_addr_t;  // 48b
+  typedef logic [CfgDataWidth-1:0]                cfg_data_t;  // 32b
+  typedef logic [CfgDataWidth/8-1:0]              cfg_strb_t;  // 4b
 
-  // AXI-Lite (feeds the conversion chain) and register bus (feeds `reg_req_i`).
-  `AXI_LITE_TYPEDEF_ALL(cfg_lite, cfg_addr32_t, cfg_data32_t, cfg_strb32_t)
-  `REG_BUS_TYPEDEF_ALL(cfg, cfg_addr32_t, cfg_data32_t, cfg_strb32_t)
+  `REG_BUS_TYPEDEF_ALL(cfg, cfg_addr_t, cfg_data_t, cfg_strb_t)
 
 endpackage

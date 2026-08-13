@@ -256,106 +256,40 @@ module floo_synth_nw_realm_tile
   floo_synth_qos_pkg::cfg_req_t [floo_synth_qos_pkg::NumNoCPlanes-1:0] regbus_realm_req;
   floo_synth_qos_pkg::cfg_rsp_t [floo_synth_qos_pkg::NumNoCPlanes-1:0] regbus_realm_rsp;
 
-  // AXI data-downsized (64b -> 32b).
-  AXI_BUS #(
-    .AXI_ADDR_WIDTH ( endpoint_axi_pkg::AddrWidth       ),
-    .AXI_DATA_WIDTH ( floo_synth_qos_pkg::CfgDataWidth  ),
-    .AXI_ID_WIDTH   ( endpoint_axi_pkg::NarrowIdWidthIn ),
-    .AXI_USER_WIDTH ( endpoint_axi_pkg::NarrowUserWidth )
-  ) cfg_data_downsized [floo_synth_qos_pkg::NumNoCPlanes-1:0] ();
-
-  // AXI data-downsized (48b -> 32b).
-  AXI_BUS #(
-    .AXI_ADDR_WIDTH ( floo_synth_qos_pkg::CfgAddrWidth  ),
-    .AXI_DATA_WIDTH ( floo_synth_qos_pkg::CfgDataWidth  ),
-    .AXI_ID_WIDTH   ( endpoint_axi_pkg::NarrowIdWidthIn ),
-    .AXI_USER_WIDTH ( endpoint_axi_pkg::NarrowUserWidth )
-  ) cfg_addr_downsized [floo_synth_qos_pkg::NumNoCPlanes-1:0] ();
-
-  // AXI4-Lite.
-  AXI_LITE #(
-    .AXI_ADDR_WIDTH ( floo_synth_qos_pkg::CfgAddrWidth ),
-    .AXI_DATA_WIDTH ( floo_synth_qos_pkg::CfgDataWidth )
-  ) cfg_axi_lite [floo_synth_qos_pkg::NumNoCPlanes-1:0] ();
-
-  floo_synth_qos_pkg::cfg_lite_req_t [floo_synth_qos_pkg::NumNoCPlanes-1:0] cfg_lite_req;
-  floo_synth_qos_pkg::cfg_lite_resp_t [floo_synth_qos_pkg::NumNoCPlanes-1:0] cfg_lite_rsp;
-
-  floo_synth_qos_pkg::cfg_addr32_t [floo_synth_qos_pkg::NumNoCPlanes-1:0] cfg_aw_addr32;
-  floo_synth_qos_pkg::cfg_addr32_t [floo_synth_qos_pkg::NumNoCPlanes-1:0] cfg_ar_addr32;
+  // Struct view of each per-plane AXI master port of the config crossbar.
+  endpoint_axi_pkg::narrow_in_req_t  [floo_synth_qos_pkg::NumNoCPlanes-1:0] cfg_axi_req;
+  endpoint_axi_pkg::narrow_in_resp_t [floo_synth_qos_pkg::NumNoCPlanes-1:0] cfg_axi_rsp;
 
   for (genvar p = 0; p < floo_synth_qos_pkg::NumNoCPlanes; p++) begin : gen_cfg_chain
 
-    // Downsize data width from 64b to 32b.
-    axi_dw_converter_intf #(
-      .AXI_ID_WIDTH            ( endpoint_axi_pkg::NarrowIdWidthIn ),
-      .AXI_ADDR_WIDTH          ( endpoint_axi_pkg::AddrWidth       ),
-      .AXI_SLV_PORT_DATA_WIDTH ( endpoint_axi_pkg::NarrowDataWidth ),
-      .AXI_MST_PORT_DATA_WIDTH ( floo_synth_qos_pkg::CfgDataWidth  ),
-      .AXI_USER_WIDTH          ( endpoint_axi_pkg::NarrowUserWidth ),
-      .AXI_MAX_READS           ( floo_synth_qos_pkg::CfgDwMaxReads )
-    ) i_cfg_dw_converter (
+    // AXI_BUS crossbar master port -> AXI4 struct.
+    `AXI_ASSIGN_TO_REQ(cfg_axi_req[p], cfg_xbar_mst[p])
+    `AXI_ASSIGN_FROM_RESP(cfg_xbar_mst[p], cfg_axi_rsp[p])
+
+    // AXI4 (64b) -> register bus (32b) in a single struct-based converter.
+    // Replaces the interface-based dw/addr/lite chain, which is not
+    // synthesizable in the Fusion flow (unresolved `AXI_BUS` interface template).
+    axi_to_reg_v2 #(
+      .AxiAddrWidth ( endpoint_axi_pkg::AddrWidth        ),
+      .AxiDataWidth ( endpoint_axi_pkg::NarrowDataWidth  ),
+      .AxiIdWidth   ( endpoint_axi_pkg::NarrowIdWidthIn  ),
+      .AxiUserWidth ( endpoint_axi_pkg::NarrowUserWidth  ),
+      .RegDataWidth ( floo_synth_qos_pkg::CfgDataWidth   ),
+      .CutMemReqs   ( floo_synth_qos_pkg::CfgCutMemReqs  ),
+      .CutMemRsps   ( floo_synth_qos_pkg::CfgCutMemRsps  ),
+      .axi_req_t    ( endpoint_axi_pkg::narrow_in_req_t  ),
+      .axi_rsp_t    ( endpoint_axi_pkg::narrow_in_resp_t ),
+      .reg_req_t    ( floo_synth_qos_pkg::cfg_req_t      ),
+      .reg_rsp_t    ( floo_synth_qos_pkg::cfg_rsp_t      )
+    ) i_cfg_axi_to_reg (
       .clk_i,
       .rst_ni,
-      .slv ( cfg_xbar_mst[p]        ),
-      .mst ( cfg_data_downsized[p]  )
-    );
-
-    assign cfg_aw_addr32[p] = cfg_data_downsized[p].aw_addr[floo_synth_qos_pkg::CfgAddrWidth-1:0];
-    assign cfg_ar_addr32[p] = cfg_data_downsized[p].ar_addr[floo_synth_qos_pkg::CfgAddrWidth-1:0];
-
-    // Downsize address width from 48b to 32b.
-    axi_modify_address_intf #(
-      .AXI_SLV_PORT_ADDR_WIDTH ( endpoint_axi_pkg::AddrWidth       ),
-      .AXI_MST_PORT_ADDR_WIDTH ( floo_synth_qos_pkg::CfgAddrWidth  ),
-      .AXI_DATA_WIDTH          ( floo_synth_qos_pkg::CfgDataWidth  ),
-      .AXI_ID_WIDTH            ( endpoint_axi_pkg::NarrowIdWidthIn ),
-      .AXI_USER_WIDTH          ( endpoint_axi_pkg::NarrowUserWidth )
-    ) i_cfg_modify_address (
-      .slv           ( cfg_data_downsized[p] ),
-      .mst_aw_addr_i ( cfg_aw_addr32[p]      ),
-      .mst_ar_addr_i ( cfg_ar_addr32[p]      ),
-      .mst           ( cfg_addr_downsized[p] )
-    );
-
-    // Convert AXI4 to AXI4-Lite.
-    axi_to_axi_lite_intf #(
-      .AXI_ADDR_WIDTH     ( floo_synth_qos_pkg::CfgAddrWidth   ),
-      .AXI_DATA_WIDTH     ( floo_synth_qos_pkg::CfgDataWidth   ),
-      .AXI_ID_WIDTH       ( endpoint_axi_pkg::NarrowIdWidthIn  ),
-      .AXI_USER_WIDTH     ( endpoint_axi_pkg::NarrowUserWidth  ),
-      .AXI_MAX_WRITE_TXNS ( floo_synth_qos_pkg::CfgLiteMaxTxns ),
-      .AXI_MAX_READ_TXNS  ( floo_synth_qos_pkg::CfgLiteMaxTxns ),
-      .FALL_THROUGH       ( 1'b0                               ),
-      .FULL_BW            ( 0                                  )
-    ) i_cfg_to_axi_lite (
-      .clk_i,
-      .rst_ni,
-      .testmode_i ( test_enable_i         ),
-      .slv        ( cfg_addr_downsized[p] ),
-      .mst        ( cfg_axi_lite[p]       )
-    );
-
-    `AXI_LITE_ASSIGN_TO_REQ(cfg_lite_req[p], cfg_axi_lite[p])
-    `AXI_LITE_ASSIGN_FROM_RESP(cfg_axi_lite[p], cfg_lite_rsp[p])
-
-    // Convert AXI4-Lite to register bus.
-    axi_lite_to_reg #(
-      .ADDR_WIDTH     ( floo_synth_qos_pkg::CfgAddrWidth      ),
-      .DATA_WIDTH     ( floo_synth_qos_pkg::CfgDataWidth      ),
-      .BUFFER_DEPTH   ( floo_synth_qos_pkg::CfgRegBufferDepth ),
-      .DECOUPLE_W     ( 1                                     ),
-      .axi_lite_req_t ( floo_synth_qos_pkg::cfg_lite_req_t    ),
-      .axi_lite_rsp_t ( floo_synth_qos_pkg::cfg_lite_resp_t   ),
-      .reg_req_t      ( floo_synth_qos_pkg::cfg_req_t         ),
-      .reg_rsp_t      ( floo_synth_qos_pkg::cfg_rsp_t         )
-    ) i_cfg_axi_lite_to_reg (
-      .clk_i,
-      .rst_ni,
-      .axi_lite_req_i ( cfg_lite_req[p]     ),
-      .axi_lite_rsp_o ( cfg_lite_rsp[p]     ),
-      .reg_req_o      ( regbus_realm_req[p] ),
-      .reg_rsp_i      ( regbus_realm_rsp[p] )
+      .axi_req_i ( cfg_axi_req[p]      ),
+      .axi_rsp_o ( cfg_axi_rsp[p]      ),
+      .reg_req_o ( regbus_realm_req[p] ),
+      .reg_rsp_i ( regbus_realm_rsp[p] ),
+      .reg_id_o  (                     ),
+      .busy_o    (                     )
     );
   end
 
