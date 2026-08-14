@@ -18,6 +18,7 @@ from mako.template import Template
 from floogen.config_parser import ConfigError, parse_config
 from floogen.model.network import Network, config_json_schema
 from floogen.model.traffic import MESH_TRAFFIC_TYPES, gen_traffic_builtin, gen_traffic_cfg
+from floogen.params import ParamError, parse_overrides
 from floogen.query import handle_query
 from floogen.utils import verible_format
 
@@ -82,6 +83,18 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Path to the output directory of the generated output files. "
             "If not specified, the files are printed to stdout."
+        ),
+    )
+    common.add_argument(
+        "-P",
+        "--param",
+        dest="params",
+        action="append",
+        default=[],
+        metavar="NAME=VALUE",
+        help=(
+            "Override a parameter declared in the configuration's 'params' block. "
+            "May be given multiple times."
         ),
     )
     common.add_argument(
@@ -352,7 +365,13 @@ def main():
         return 0
 
     try:
-        network = parse_config(Network, args.config)
+        param_overrides = parse_overrides(args.params)
+    except ParamError as e:
+        print(f"floogen: {e}", file=sys.stderr)
+        return 1
+
+    try:
+        network = parse_config(Network, args.config, param_overrides)
     except ConfigError as e:
         # `parse_config` has already reported the individual problems in detail; a traceback
         # would only bury them.

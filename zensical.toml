@@ -40,6 +40,7 @@ nav = [
             {"Global Settings" = [
                 {"System Configuration" = "floogen/network_types.md"},
                 {"Routing" = "floogen/routing.md"},
+                {"Parameters" = "floogen/params.md"},
             ]},
             {"Network Components" = [
                 {"Protocols" = "floogen/protocols.md"},

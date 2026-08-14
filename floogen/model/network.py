@@ -35,7 +35,13 @@ from floogen.model.routing import (
     WideRwDecouple,
     XYDirections,
 )
-from floogen.utils import clog2, snake_to_camel, sv_enum_typedef, sv_param_decl
+from floogen.params import ParamValue
+from floogen.utils import bool_to_sv, clog2, snake_to_camel, sv_enum_typedef, sv_param_decl
+
+# The SystemVerilog data type used for an integer parameter, by magnitude. `int` is
+# 32 bits wide, so an address above 4 GiB silently truncates without the wider type.
+_INT32_MAX = 2**31 - 1
+_UINT32_MAX = 2**32 - 1
 
 
 class NetworkType(str, Enum):
@@ -74,6 +80,11 @@ class Network(ConfigModel):
     routers: list[RouterDesc]
     connections: list[ConnectionDesc]
     routing: RoutingDesc
+    params: dict[str, ParamValue] = Field(default_factory=dict)
+    """Generation-time parameters, referenced elsewhere in the configuration as
+    `${...}`. They are already resolved to plain values by the time the configuration is
+    validated (see `floogen.params`) and are kept here only so that they can be emitted
+    as `localparam`s in the generated package."""
     graph: SkipJsonSchema[Graph] = Field(default_factory=Graph)
     """Elaboration state rather than configuration: built by `create_network()` and
     omitted from the JSON schema, which describes the configuration file only."""
@@ -924,6 +935,34 @@ class Network(ConfigModel):
         string = ""
         for ni in self.graph.get_ni_nodes():
             string += ni.render(noc=self)
+        return string
+
+    def render_params(self):
+        """Render the configuration parameters as localparams.
+
+        Every declared parameter is emitted, including ones the configuration never
+        references, so that the generated package documents the full set a config
+        exposes rather than only the subset that happened to be used.
+        """
+        string = ""
+        for name, value in self.params.items():
+            sv_name = snake_to_camel(name)
+            match value:
+                # `bool` before `int`: it is a subclass, so the other order never matches.
+                case bool():
+                    string += sv_param_decl(sv_name, bool_to_sv(value), dtype="bit")
+                case int():
+                    if 0 <= value <= _UINT32_MAX:
+                        dtype = "int unsigned"
+                    elif -_INT32_MAX - 1 <= value < 0:
+                        dtype = "int"
+                    else:
+                        dtype = "longint unsigned" if value >= 0 else "longint"
+                    string += sv_param_decl(sv_name, value, dtype=dtype)
+                case float():
+                    string += sv_param_decl(sv_name, str(value), dtype="real")
+                case _:
+                    string += sv_param_decl(sv_name, f'"{value}"', dtype="string")
         return string
 
     def render_ep_arr_dims(self):

@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 #### FlooGen
 - New `floogen schema` command, emitting a JSON schema of the configuration file so editors can complete field names and flag mistakes while a configuration is written. See the [CLI documentation](docs/floogen/cli.md) for how to wire it up.
 - Add a `help` command, to print the general help message (`floogen help`) or the help message of a specific command (`floogen help <command>`).
+- Configuration files can declare parameters in a top-level `params` block and reference them anywhere else in the file as `${...}`, with arithmetic, bit operations and comparisons supported inside the braces. Every command that reads a configuration accepts `-P NAME=VALUE` to override a declared parameter, so a single configuration can be generated for several mesh sizes or address maps without being edited. Parameters are resolved before validation and inlined into the generated output; they are additionally emitted as `localparam`s in the generated package. See the [parameter documentation](docs/floogen/params.md).
+- Address ranges accept an `rdl_params` field, binding parameters on the SystemRDL component named by `rdl_name` (e.g. `cluster_regs #(.NumCores(4)) cluster @0x10000000;`). Values are resolved at generation time - typically from a configuration parameter - so the generated addrmap has no parameters of its own left to override. See the [endpoint documentation](docs/floogen/endpoints.md#systemrdl-parameters).
 
 ### Changed
 

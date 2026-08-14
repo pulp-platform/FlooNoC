@@ -17,6 +17,14 @@ package floo_${name}_noc_pkg;
 
   import floo_pkg::*;
 
+% if noc.params:
+  ////////////////////
+  //   Parameters   //
+  ////////////////////
+
+  ${noc.render_params()}
+
+% endif
 % if any(ep.array is not None for ep in noc.endpoints):
   /////////////////////////////
   //   Endpoint Dimensions   //
