@@ -378,6 +378,10 @@ module floo_nw_join #(
   `AXI_ASSIGN_REQ_STRUCT(axi_req_o, axi_out_req_atop)
   `AXI_ASSIGN_RESP_STRUCT(axi_out_rsp_atop, axi_rsp_i)
 
+  // Check the user sized correctly signals and parameters
+  `ASSERT_INIT(AxiJoinOutIdWidth, $bits(axi_req_o.aw.id) == AxiIdOutWidth)
+  `ASSERT_INIT(AxiJoinInIdWidth, $bits(axi_rsp_i.b.id) == AxiIdOutWidth)
+
   // The ID fields of AXI are not unique anymore after an ID remapper
   // which violates the atomics. Therefore we need to use the user field
   // as the ID field for the atomics.
