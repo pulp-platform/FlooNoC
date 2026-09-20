@@ -159,23 +159,29 @@ package floo_pkg;
   /// of the B responses (CollectB).
   /// The internal micro operations must be in the MSB to make sure
   /// the user will never issue those
-  typedef enum logic [3:0] {
-    Unicast   = 4'b0000,  // Unicast operation
-    Multicast = 4'b0001,  // Multicast communication
-    LsbAnd    = 4'b0010,  // AND Connect the LSB of the payload
-    FpAdd     = 4'b0011,  // FP Addition
-    FpMul     = 4'b0100,  // FP Multiplication
-    FpMin     = 4'b0101,  // FP Min
-    FpMax     = 4'b0110,  // FP Max
-    IntAdd     = 4'b0111,  // Atomic Add (signed)
-    IntMul     = 4'b1000,  // (Non-) Atomic (signed)
-    IntMinS   = 4'b1001,  // Atomic Min (signed)
-    IntMinU   = 4'b1010,  // Atomic Min (unsigned)
-    IntMaxS   = 4'b1011,  // Atomic Max (signed)
-    IntMaxU   = 4'b1100,  // Atomic Max (unsigned)
-    SelectAW  = 4'b1101,  // Select first incoming AW flit for a parallel reduction
-    CollectB  = 4'b1110,  // Collect B responses for AXI transmission
-    SeqAW     = 4'b1111   // Select the first incoming flit AW from a sequential reduction
+  typedef enum logic [4:0] {
+    Unicast   = 5'b00000,  // Unicast operation
+    Multicast = 5'b00001,  // Multicast communication
+    LsbAnd    = 5'b00010,  // AND Connect the LSB of the payload
+    FpAdd     = 5'b00011,  // FP Addition (FP64)
+    FpMul     = 5'b00100,  // FP Multiplication (FP64)
+    FpMin     = 5'b00101,  // FP Min (FP64)
+    FpMax     = 5'b00110,  // FP Max (FP64)
+    IntAdd     = 5'b00111,  // Atomic Add (signed)
+    IntMul     = 5'b01000,  // (Non-) Atomic (signed)
+    IntMinS   = 5'b01001,  // Atomic Min (signed)
+    IntMinU   = 5'b01010,  // Atomic Min (unsigned)
+    IntMaxS   = 5'b01011,  // Atomic Max (signed)
+    IntMaxU   = 5'b01100,  // Atomic Max (unsigned)
+    SelectAW  = 5'b01101,  // Select first incoming AW flit for a parallel reduction
+    CollectB  = 5'b01110,  // Collect B responses for AXI transmission
+    SeqAW     = 5'b01111,  // Select the first incoming flit AW from a sequential reduction
+    FpAdd32   = 5'b10000,  // FP Addition (FP32)
+    FpAdd16   = 5'b10001,  // FP Addition (FP16)
+    FpAdd8    = 5'b10010,  // FP Addition (FP8)
+    FpMax32   = 5'b10011,  // FP Max (FP32)
+    FpMax16   = 5'b10100,  // FP Max (FP16)
+    FpMax8    = 5'b10101   // FP Max (FP8)
   } collect_op_e;
 
   /// The types of AXI channels in narrow-wide AXI network interfaces
@@ -227,10 +233,16 @@ package floo_pkg;
     bit EnNarrowMulticast;  /// Enable multicast transaction support on the narrow router
     bit EnWideMulticast;    /// Enable multicast transaction support on the wide router
     bit EnLsbAnd;           /// Enable LSB and operation support
-    bit EnFpAdd;            /// Enable FP addition support
-    bit EnFpMul;            /// Enable FP multiplier support
-    bit EnFpMin;            /// Enable FP minimum calculation support
-    bit EnFpMax;            /// Enable FP maximum calculationn support
+    bit EnFpAdd;            /// Enable FP addition support (FP64)
+    bit EnFpMul;            /// Enable FP multiplier support (FP64)
+    bit EnFpMin;            /// Enable FP minimum calculation support (FP64)
+    bit EnFpMax;            /// Enable FP maximum calculationn support (FP64)
+    bit EnFpAdd32;          /// Enable FP addition support (FP32)
+    bit EnFpAdd16;          /// Enable FP addition support (FP16)
+    bit EnFpAdd8;           /// Enable FP addition support (FP8)
+    bit EnFpMax32;          /// Enable FP maximum calculation support (FP32)
+    bit EnFpMax16;          /// Enable FP maximum calculation support (FP16)
+    bit EnFpMax8;           /// Enable FP maximum calculation support (FP8)
     bit EnIntAdd;            /// Enable INT addition support
     bit EnIntMul;            /// Enable INT multiplier support
     bit EnIntMinS;          /// Enable INT signed minimum calculation support
@@ -250,10 +262,16 @@ package floo_pkg;
   typedef struct packed {
     bit EnMulticast;  // Multicast communication
     bit EnLsbAnd;     // AND Connect the LSB of the payload
-    bit EnFpAdd;      // FP Addition
-    bit EnFpMul;      // FP Multiplication
-    bit EnFpMin;      // FP Min
-    bit EnFpMax;      // FP Max
+    bit EnFpAdd;      // FP Addition (FP64)
+    bit EnFpMul;      // FP Multiplication (FP64)
+    bit EnFpMin;      // FP Min (FP64)
+    bit EnFpMax;      // FP Max (FP64)
+    bit EnFpAdd32;    // FP Addition (FP32)
+    bit EnFpAdd16;    // FP Addition (FP16)
+    bit EnFpAdd8;     // FP Addition (FP8)
+    bit EnFpMax32;    // FP Max (FP32)
+    bit EnFpMax16;    // FP Max (FP16)
+    bit EnFpMax8;     // FP Max (FP8)
     bit EnIntAdd;      // Atomic Add (signed)
     bit EnIntMul;      // (Non-) Atomic (signed)
     bit EnIntMinS;    // Atomic Min (signed)
@@ -264,7 +282,7 @@ package floo_pkg;
     bit EnCollectB;   // Collect B responses for AXI transmission
   } collect_op_be_cfg_t;
 
-  typedef logic [3:0] collect_op_t;
+  typedef logic [4:0] collect_op_t;
 
   /// Configuration for the offload reduction logic
   typedef struct packed {
@@ -564,8 +582,9 @@ package floo_pkg;
   /// there is no need to separate between parallel and sequential for the
   /// wide because only wide sequential is supported
   function automatic bit en_wide_reduction(collect_op_fe_cfg_t cfg);
-    return (cfg.EnFpAdd | cfg.EnFpMul |
-            cfg.EnFpMin | cfg.EnFpMax
+    return (cfg.EnFpAdd | cfg.EnFpMul | cfg.EnFpMin | cfg.EnFpMax |
+            cfg.EnFpAdd32 | cfg.EnFpAdd16 | cfg.EnFpAdd8 |
+            cfg.EnFpMax32 | cfg.EnFpMax16 | cfg.EnFpMax8
             );
   endfunction
 
@@ -588,6 +607,8 @@ package floo_pkg;
   /// and which type of hardware support is required
   function automatic bit en_sequential_support(collect_op_be_cfg_t cfg);
     return (cfg.EnFpAdd | cfg.EnFpMul | cfg.EnFpMin | cfg.EnFpMax |
+            cfg.EnFpAdd32 | cfg.EnFpAdd16 | cfg.EnFpAdd8 |
+            cfg.EnFpMax32 | cfg.EnFpMax16 | cfg.EnFpMax8 |
             cfg.EnIntAdd | cfg.EnIntMul | cfg.EnIntMinS | cfg.EnIntMinU |
             cfg.EnIntMaxS | cfg.EnIntMaxU
             );
@@ -611,6 +632,7 @@ package floo_pkg;
   function automatic bit is_reduction_op(collect_op_e op);
     case (op)
       FpAdd, FpMul, FpMin, FpMax, LsbAnd, SelectAW, SeqAW,
+      FpAdd32, FpAdd16, FpAdd8, FpMax32, FpMax16, FpMax8,
       IntAdd, IntMul, IntMinS, IntMinU, IntMaxS,
       IntMaxU: return 1'b1;
       default: return 1'b0;
@@ -626,6 +648,7 @@ package floo_pkg;
   function automatic bit is_seq_reduction_op(collect_op_e op);
     case (op)
       FpAdd, FpMul, FpMin, FpMax, SeqAW,
+      FpAdd32, FpAdd16, FpAdd8, FpMax32, FpMax16, FpMax8,
       IntAdd, IntMul, IntMinS, IntMinU, IntMaxS,
       IntMaxU: return 1'b1;
       default: return 1'b0;
@@ -667,6 +690,12 @@ package floo_pkg;
         be.EnFpMul     = fe_ops.EnFpMul;
         be.EnFpMin     = fe_ops.EnFpMin;
         be.EnFpMax     = fe_ops.EnFpMax;
+        be.EnFpAdd32   = fe_ops.EnFpAdd32;
+        be.EnFpAdd16   = fe_ops.EnFpAdd16;
+        be.EnFpAdd8    = fe_ops.EnFpAdd8;
+        be.EnFpMax32   = fe_ops.EnFpMax32;
+        be.EnFpMax16   = fe_ops.EnFpMax16;
+        be.EnFpMax8    = fe_ops.EnFpMax8;
       end
       default: be = '0;
     endcase
