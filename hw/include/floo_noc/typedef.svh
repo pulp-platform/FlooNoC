@@ -360,6 +360,80 @@
   `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(wide, wide_chan, wide_virt_chan, wide_phys_chan)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+// Collective opcode type
+//
+// Generates a single flat `collect_op_e`/`collect_op_t`: `NumReservedCollectOps` fixed
+// structural opcodes (Unicast, Multicast, LsbAnd, SelectAW, CollectB, SeqAW), followed by
+// `num_narrow_seq_ops` opaque narrow (ALU) and `num_wide_seq_ops` opaque wide (FPU) opcodes,
+// interpreted only by the consuming offload unit, never by the NoC's own generic RTL.
+//
+// Arguments:
+// - collect_op_e_name: Name of the generated enum type
+// - collect_op_t_name: Name of the generated plain-bitvector type (same width as the enum)
+// - first_narrow_seq_op_name: Name of the generated localparam giving the first narrow-op value
+// - first_wide_seq_op_name: Name of the generated localparam giving the first wide-op value
+// - num_collect_ops_name: Name of the generated localparam giving the total opcode count
+// - num_narrow_seq_ops: Number of opaque narrow (ALU) reduction ops (may be 0)
+// - num_wide_seq_ops: Number of opaque wide (FPU) reduction ops (may be 0)
+//
+// Requires `NumReservedCollectOps` (a FlooNoC-fixed property, not user-supplied) to already be
+// visible in the invoking scope, e.g. via `import floo_pkg::*;`.
+//
+// Usage Example:
+// `FLOO_TYPEDEF_COLLECT_OP_E(collect_op_e, collect_op_t, FirstNarrowSeqOp, FirstWideSeqOp,
+//                            NumCollectOps, 6, 10)
+`define FLOO_TYPEDEF_COLLECT_OP_E(collect_op_e_name, collect_op_t_name, first_narrow_seq_op_name, first_wide_seq_op_name, num_collect_ops_name, num_narrow_seq_ops, num_wide_seq_ops) \
+  localparam int unsigned num_collect_ops_name =                                                \
+      NumReservedCollectOps + (num_narrow_seq_ops) + (num_wide_seq_ops);                        \
+  localparam int unsigned first_narrow_seq_op_name = NumReservedCollectOps;                     \
+  localparam int unsigned first_wide_seq_op_name = NumReservedCollectOps + (num_narrow_seq_ops); \
+  typedef enum logic [$clog2(num_collect_ops_name)-1:0] {                                       \
+    Unicast   = 'd0,                                                                            \
+    Multicast = 'd1,                                                                            \
+    LsbAnd    = 'd2,                                                                            \
+    SelectAW  = 'd3,                                                                            \
+    CollectB  = 'd4,                                                                             \
+    SeqAW     = 'd5                                                                             \
+  } collect_op_e_name;                                                                          \
+  typedef logic [$clog2(num_collect_ops_name)-1:0]                                              \
+      collect_op_t_name;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Collective opcode classifier functions
+//
+// Generates the fixed set of classifier functions used throughout the NoC's generic
+// routing/reduction RTL. These never need to change as the number of narrow/wide reduction
+// ops grows or shrinks -- `is_narrow_seq_op`/`is_wide_seq_op`/`is_seq_reduction_op` are pure
+// range checks against the two threshold localparams generated above, not per-op case lists.
+//
+// Arguments:
+// - collect_op_e_name: Name of the `collect_op_e`-shaped enum type (as generated above)
+// - first_narrow_seq_op: The `first_narrow_seq_op_name` localparam generated above
+// - first_wide_seq_op: The `first_wide_seq_op_name` localparam generated above
+//
+// Usage Example:
+// `FLOO_COLLECT_OP_HELPERS(collect_op_e, FirstNarrowSeqOp, FirstWideSeqOp)
+`define FLOO_COLLECT_OP_HELPERS(collect_op_e_name, first_narrow_seq_op, first_wide_seq_op)      \
+  function automatic bit is_multicast_op(collect_op_e_name op);                                 \
+    return (op == Multicast);                                                                   \
+  endfunction                                                                                    \
+  function automatic bit is_parallel_reduction_op(collect_op_e_name op);                        \
+    return (op == LsbAnd) || (op == CollectB) || (op == SelectAW);                              \
+  endfunction                                                                                     \
+  function automatic bit is_narrow_seq_op(collect_op_e_name op);                                \
+    return (op >= (first_narrow_seq_op)) && (op < (first_wide_seq_op));                         \
+  endfunction                                                                                     \
+  function automatic bit is_wide_seq_op(collect_op_e_name op);                                  \
+    return (op >= (first_wide_seq_op));                                                          \
+  endfunction                                                                                     \
+  function automatic bit is_seq_reduction_op(collect_op_e_name op);                             \
+    return (op == SeqAW) || is_narrow_seq_op(op) || is_wide_seq_op(op);                         \
+  endfunction                                                                                     \
+  function automatic bit is_reduction_op(collect_op_e_name op);                                 \
+    return (op == LsbAnd) || (op == SelectAW) || is_seq_reduction_op(op);                       \
+  endfunction
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Reduction offload request channel payload
 //
 // Arguments:
