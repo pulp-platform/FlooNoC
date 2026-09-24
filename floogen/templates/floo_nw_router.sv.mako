@@ -90,6 +90,10 @@ floo_nw_router #(
   .VcImpl(VcImpl),
 % endif
   .CollectiveCfg(RouteCfg.CollectiveCfg),
+% if network.routing.collective.en_collective:
+  .NumNarrowSeqOps(NumNarrowSeqOps),
+  .NumWideSeqOps(NumWideSeqOps),
+% endif
 % if network.routing.collective.en_narrow_reduction is not None:
   .red_narrow_req_t(red_narrow_req_t),
   .red_narrow_rsp_t(red_narrow_rsp_t),
