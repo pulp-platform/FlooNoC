@@ -11,6 +11,7 @@
 // These ports cannot be reduced!
 
 `include "common_cells/assertions.svh"
+`include "floo_noc/typedef.svh"
 
 module floo_output_arbiter import floo_pkg::*;
 #(
@@ -23,10 +24,13 @@ module floo_output_arbiter import floo_pkg::*;
   /// Routing algorithm
   parameter route_algo_e    RouteAlgo   = XYRouting,
   /// Type definitions
-  parameter type         flit_t               = logic,
-  parameter type         hdr_t                = logic,
-  parameter type         id_t                 = logic,
-  parameter axi_cfg_t    AxiCfg               = '0
+  parameter type          flit_t               = logic,
+  parameter type          hdr_t                = logic,
+  parameter type          id_t                 = logic,
+  parameter type          collect_op_e         = logic,
+  parameter axi_cfg_t     AxiCfg               = '0,
+  parameter int unsigned  FirstNarrowSeqOp     = 0,
+  parameter int unsigned  FirstWideSeqOp       = 0
 ) (
   input  logic                      clk_i,
   input  logic                      rst_ni,
@@ -41,6 +45,8 @@ module floo_output_arbiter import floo_pkg::*;
   input  logic                      ready_i,
   output flit_t                     data_o
 );
+
+  `FLOO_COLLECT_OP_HELPERS(collect_op_e, FirstNarrowSeqOp, FirstWideSeqOp)
 
   flit_t                  reduce_data_out, unicast_data_out;
   logic [NumRoutes-1:0]   reduce_valid_in, unicast_valid_in;
@@ -110,6 +116,7 @@ module floo_output_arbiter import floo_pkg::*;
       .hdr_t                ( hdr_t                ),
       .id_t                 ( id_t                 ),
       .RouteAlgo            ( RouteAlgo            ),
+      .collect_op_e         ( collect_op_e         ),
       .AxiCfg               ( AxiCfg               )
     ) i_reduction_arbiter (
       .xy_id_i,

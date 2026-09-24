@@ -8,6 +8,7 @@
 
 `include "common_cells/assertions.svh"
 `include "common_cells/registers.svh"
+`include "floo_noc/typedef.svh"
 
 /// A simple router with configurable number of ports, physical and virtual channels, and input/output buffers
 module floo_router
@@ -44,6 +45,10 @@ module floo_router
   /// Parameter for the reduction configuration
   parameter collect_op_be_cfg_t CollectiveCfg    = CollectiveSupportDefaultCfg,
   parameter reduction_cfg_t     RedCfg           = '0,
+  /// Number of narrow sequential-reduction opcodes
+  parameter int unsigned NumNarrowSeqOps         = 0,
+  /// Number of wide sequential-reduction opcodes
+  parameter int unsigned NumWideSeqOps           = 0,
   /// AXI configurations
   parameter axi_cfg_t    AxiCfgOffload        = '0,
   parameter axi_cfg_t    AxiCfgParallel       = '0,
@@ -78,6 +83,10 @@ module floo_router
 );
 
   // TODO MICHAERO: assert NumPhysChannels <= NumVirtChannels
+
+  `FLOO_TYPEDEF_COLLECT_OP_E(collect_op_e, collect_op_t, FirstNarrowSeqOp, FirstWideSeqOp,
+                             NumCollectOps, NumNarrowSeqOps, NumWideSeqOps)
+  `FLOO_COLLECT_OP_HELPERS(collect_op_e, FirstNarrowSeqOp, FirstWideSeqOp)
 
   // Generate some local parameters to understand which type of collective support
   // is required in the specific router instance
@@ -278,6 +287,7 @@ module floo_router
       .hdr_t                      (hdr_t),
       .id_t                       (id_t),
       .reduction_data_t           (RdData_t),
+      .collect_op_t               (collect_op_t),
       .RedCfg                     (RedCfg),
       .AxiCfg                     (AxiCfgOffload)
     ) i_reduction_unit (
@@ -429,7 +439,10 @@ module floo_router
         .flit_t               ( flit_t                    ),
         .hdr_t                ( hdr_t                     ),
         .id_t                 ( id_t                      ),
-        .AxiCfg               ( AxiCfgParallel            )
+        .collect_op_e         ( collect_op_e              ),
+        .AxiCfg               ( AxiCfgParallel            ),
+        .FirstNarrowSeqOp     ( FirstNarrowSeqOp          ),
+        .FirstWideSeqOp       ( FirstWideSeqOp            )
       ) i_output_arbiter (
         .clk_i,
         .rst_ni,

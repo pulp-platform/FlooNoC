@@ -88,7 +88,11 @@ package floo_alu_pkg;
 endpackage
 
 // Wrapper incl. decoder for the ALU
-module floo_reduction_alu import floo_pkg::*; #() (
+module floo_reduction_alu import floo_pkg::*; #(
+  parameter type          collect_op_e     = logic,
+  parameter type          collect_op_t     = logic,
+  parameter int unsigned  FirstNarrowSeqOp = 0
+) (
   input  logic              clk_i,
   input  logic              rst_ni,
   input  logic              flush_i,

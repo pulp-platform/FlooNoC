@@ -155,25 +155,21 @@ package floo_pkg;
     Phys = 2'd2
   } wide_rw_decouple_e;
 
-  /// List of supported collective operations in the NoC.
-  /// `Unicast`/`Multicast`/`LsbAnd`/`SelectAW`/`CollectB`/`SeqAW` are fixed, reserved
-  /// structural opcodes the NoC's own routing/reduction RTL interprets directly; the user
-  /// will never issue `SelectAW`/`CollectB`/`SeqAW` (internal-only). Every other opcode
-  /// (narrow ALU / wide FPU reduction ops) is opaque to the NoC -- interpreted only by the
-  /// consuming offload unit -- and its count is a per-project, floogen-driven property, not
-  /// a fixed enum member list. See plans/floonoc-op-agnostic-plan.md (Gwaihir repo) for the
-  /// full design.
+  /// `Unicast`/`Multicast`/`LsbAnd`/`SelectAW`/`CollectB`/`SeqAW` are the fixed, reserved
+  /// structural opcodes the NoC needs to support collective.
   localparam int unsigned NumReservedCollectOps = 6;
 
-  // TODO(lleone): hardcoded to match today's op set (6 narrow ALU ops, 10 wide FPU ops)
-  // until Stage 4/5 of the above plan thread these as real module parameters computed by
-  // floogen, instead of package-level constants.
-  localparam int unsigned NumNarrowSeqOps = 6;
-  localparam int unsigned NumWideSeqOps = 10;
-
-  `FLOO_TYPEDEF_COLLECT_OP_E(collect_op_e, collect_op_t, FirstNarrowSeqOp, FirstWideSeqOp,
-                             NumCollectOps, NumNarrowSeqOps, NumWideSeqOps)
-  `FLOO_COLLECT_OP_HELPERS(collect_op_e, FirstNarrowSeqOp, FirstWideSeqOp)
+  /// Struct for the reserved collective operations, used internally by the NoC
+  /// The NoC is agnostic to any other collective, i.e. tehre is no need to
+  /// specify the opcodes of an eventual offload functional unit.
+  typedef enum logic [$clog2(NumReservedCollectOps)-1:0] {
+    Unicast   = 'd0,
+    Multicast = 'd1,
+    LsbAnd    = 'd2,
+    SelectAW  = 'd3,
+    CollectB  = 'd4,
+    SeqAW     = 'd5
+  } collect_reserved_op_e;
 
   /// The types of AXI channels in narrow-wide AXI network interfaces
   typedef enum logic [3:0] {
@@ -218,7 +214,7 @@ package floo_pkg;
   /// In this context collective operations are macro
   /// operations, i.e. multicast, reduction etc...
   /// The user does not have to care about the hidden
-  /// transfers required to implement these macro collective.
+  /// transfers required to implement these macro collective in FlooNoC.
   /// This is the type the top-level user can set [Frontend]
   typedef struct packed {
     bit EnNarrowMulticast;    /// Enable multicast transaction support on the narrow router
@@ -574,7 +570,8 @@ package floo_pkg;
   endfunction
 
   // is_multicast_op/is_reduction_op/is_parallel_reduction_op/is_seq_reduction_op/
-  // is_narrow_seq_op/is_wide_seq_op are generated above by `FLOO_COLLECT_OP_HELPERS`.
+  // is_narrow_seq_op/is_wide_seq_op: each project-specific "big" NoC module generates its own
+  // copies of these via `` `FLOO_COLLECT_OP_HELPERS `` (see the `collect_op_e` note above).
 
   /// Helper function to map frontend collective ops to backend config for NW routers.
   /// The target router/link is identified by the AXI channel `ch` that traverses it

@@ -29,6 +29,7 @@ module floo_reduction_arbiter import floo_pkg::*;
   parameter type         flit_t               = logic,
   parameter type         hdr_t                = logic,
   parameter type         id_t                 = logic,
+  parameter type         collect_op_e         = logic,
   parameter axi_cfg_t    AxiCfg               = '0
 ) (
   /// Current XY-coordinate of the router
