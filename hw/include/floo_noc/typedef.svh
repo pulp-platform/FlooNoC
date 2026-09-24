@@ -42,7 +42,7 @@
 // - ch_t: Identifier type for the payload
 // - rob_idx_t: Type of the RoB index
 // - mask_t: Type of the mask for collective support
-// - collect_op_e: Type of the collective opcode (enum)
+// - collect_op_t: Type of the collective opcode (logic vector)
 //
 // Usage Example:
 // `FLOO_TYPEDEF_XY_NODE_ID_T(id_t, ...)
@@ -50,7 +50,7 @@
 //
 // For `SourceRouting`:
 // `FLOO_TYPEDEF_HDR_T(hdr_t, route_t, id_t, floo_pkg::axi_ch_e, logic)
-`define FLOO_TYPEDEF_HDR_T(hdr_t, dst_t, src_t, ch_t, rob_idx_t, mask_t = logic, collect_op_e = logic)  \
+`define FLOO_TYPEDEF_HDR_T(hdr_t, dst_t, src_t, ch_t, rob_idx_t, mask_t = logic, collect_op_t = logic)  \
   typedef struct packed {                                         \
     logic rob_req;                                                \
     rob_idx_t rob_idx;                                            \
@@ -60,7 +60,7 @@
     logic last;                                                   \
     logic atop;                                                   \
     ch_t axi_ch;                                                  \
-    collect_op_e collective_op;                                   \
+    collect_op_t collective_op;                                   \
   } hdr_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -360,73 +360,30 @@
   `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(wide, wide_chan, wide_virt_chan, wide_phys_chan)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// Collective opcode type
-//
-// Generates a single flat `collect_op_e`: `NumReservedCollectOps` fixed structural opcodes
-// (Unicast, Multicast, LsbAnd, SelectAW, CollectB, SeqAW), followed by `num_narrow_seq_ops`
-// opaque narrow (ALU) and `num_wide_seq_ops` opaque wide (FPU) opcodes, interpreted only by
-// the consuming offload unit, never by the NoC's own generic RTL.
-//
-// Arguments:
-// - collect_op_e_name: Name of the generated enum type
-// - first_narrow_seq_op_name: Name of the generated localparam giving the first narrow-op value
-// - first_wide_seq_op_name: Name of the generated localparam giving the first wide-op value
-// - num_collect_ops_name: Name of the generated localparam giving the total opcode count
-// - num_narrow_seq_ops: Number of opaque narrow (ALU) reduction ops (may be 0)
-// - num_wide_seq_ops: Number of opaque wide (FPU) reduction ops (may be 0)
-//
-// Requires `NumReservedCollectOps` (a FlooNoC-fixed property, not user-supplied) to already be
-// visible in the invoking scope, e.g. via `import floo_pkg::*;`.
-//
-// Usage Example:
-// `FLOO_TYPEDEF_COLLECT_OP_E(collect_op_e, FirstNarrowSeqOp, FirstWideSeqOp,
-//                            NumCollectOps, 6, 10)
-`define FLOO_TYPEDEF_COLLECT_OP_E(collect_op_e_name, first_narrow_seq_op_name, first_wide_seq_op_name, num_collect_ops_name, num_narrow_seq_ops, num_wide_seq_ops) \
-  localparam int unsigned num_collect_ops_name =                                                \
-      NumReservedCollectOps + (num_narrow_seq_ops) + (num_wide_seq_ops);                        \
-  localparam int unsigned first_narrow_seq_op_name = NumReservedCollectOps;                     \
-  localparam int unsigned first_wide_seq_op_name = NumReservedCollectOps + (num_narrow_seq_ops); \
-  typedef enum logic [$clog2(num_collect_ops_name)-1:0] {                                       \
-    Unicast   = 'd0,                                                                            \
-    Multicast = 'd1,                                                                            \
-    LsbAnd    = 'd2,                                                                            \
-    SelectAW  = 'd3,                                                                            \
-    CollectB  = 'd4,                                                                             \
-    SeqAW     = 'd5                                                                             \
-  } collect_op_e_name;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 // Collective opcode classifier functions
 //
-// Generates the fixed set of classifier functions used throughout the NoC's generic
-// routing/reduction RTL. These never need to change as the number of narrow/wide reduction
-// ops grows or shrinks -- `is_narrow_seq_op`/`is_wide_seq_op`/`is_seq_reduction_op` are pure
-// range checks against the two threshold localparams generated above, not per-op case lists.
+// Generates the classifier functions used by the generic routing/reduction RTL. The reserved
+// opcodes are named in `floo_pkg`; every opcode from `NumReservedCollectOps` upwards is an
+// opaque sequential-reduction op, so the functions do not depend on the number of narrow/wide ops.
 //
 // Arguments:
-// - collect_op_e_name: Name of the `collect_op_e`-shaped enum type (as generated above)
-// - first_narrow_seq_op: The `first_narrow_seq_op_name` localparam generated above
-// - first_wide_seq_op: The `first_wide_seq_op_name` localparam generated above
+// - collect_op_t_name: Name of the project collective opcode type (a `logic` vector)
+//
+// Requires `floo_pkg` to be imported in the invoking scope.
 //
 // Usage Example:
-// `FLOO_COLLECT_OP_HELPERS(collect_op_e, FirstNarrowSeqOp, FirstWideSeqOp)
-`define FLOO_COLLECT_OP_HELPERS(collect_op_e_name, first_narrow_seq_op, first_wide_seq_op)      \
-  function automatic bit is_multicast_op(collect_op_e_name op);                                 \
+// `FLOO_COLLECT_OP_HELPERS(collect_op_t)
+`define FLOO_COLLECT_OP_HELPERS(collect_op_t_name)                                              \
+  function automatic bit is_multicast_op(collect_op_t_name op);                                 \
     return (op == Multicast);                                                                   \
-  endfunction                                                                                    \
-  function automatic bit is_parallel_reduction_op(collect_op_e_name op);                        \
+  endfunction                                                                                   \
+  function automatic bit is_parallel_reduction_op(collect_op_t_name op);                        \
     return (op == LsbAnd) || (op == CollectB) || (op == SelectAW);                              \
-  endfunction                                                                                     \
-  function automatic bit is_narrow_seq_op(collect_op_e_name op);                                \
-    return (op >= (first_narrow_seq_op)) && (op < (first_wide_seq_op));                         \
-  endfunction                                                                                     \
-  function automatic bit is_wide_seq_op(collect_op_e_name op);                                  \
-    return (op >= (first_wide_seq_op));                                                          \
-  endfunction                                                                                     \
-  function automatic bit is_seq_reduction_op(collect_op_e_name op);                             \
-    return (op == SeqAW) || is_narrow_seq_op(op) || is_wide_seq_op(op);                         \
-  endfunction                                                                                     \
-  function automatic bit is_reduction_op(collect_op_e_name op);                                 \
+  endfunction                                                                                   \
+  function automatic bit is_seq_reduction_op(collect_op_t_name op);                             \
+    return (op == SeqAW) || (op >= NumReservedCollectOps);                                      \
+  endfunction                                                                                   \
+  function automatic bit is_reduction_op(collect_op_t_name op);                                 \
     return (op == LsbAnd) || (op == SelectAW) || is_seq_reduction_op(op);                       \
   endfunction
 
@@ -436,10 +393,10 @@
 // Arguments:
 // - name:          Suffix/prefix used to build the type name
 // - data_t:        Operand data type
-// - collect_op_e:  List of collective opcodes
-`define FLOO_RED_TYPEDEF_REQ_CHAN_T(name, data_t, collect_op_e) \
+// - collect_op_t:  List of collective opcodes
+`define FLOO_RED_TYPEDEF_REQ_CHAN_T(name, data_t, collect_op_t) \
   typedef struct packed {                          \
-    collect_op_e  op;                                     \
+    collect_op_t  op;                                     \
     data_t   operand1;                               \
     data_t   operand2;                               \
   } red_``name``_req_chan_t;
@@ -487,10 +444,10 @@
 // Arguments:
 // - name:          Base name
 // - data_t:        Data type (operands + result)
-// - collect_op_e:  The wide `collect_op_e`, forwarded to FU
+// - collect_op_t:  The wide `collect_op_t`, forwarded to FU
 //                   `` `FLOO_RED_TYPEDEF_REQ_CHAN_T ``
-`define FLOO_RED_TYPEDEF_REQ_RSP_CHAN_ALL(name, data_t, collect_op_e) \
-  `FLOO_RED_TYPEDEF_REQ_CHAN_T(name, data_t, collect_op_e)            \
+`define FLOO_RED_TYPEDEF_REQ_RSP_CHAN_ALL(name, data_t, collect_op_t) \
+  `FLOO_RED_TYPEDEF_REQ_CHAN_T(name, data_t, collect_op_t)            \
   `FLOO_RED_TYPEDEF_RSP_CHAN_T(name, data_t)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -501,12 +458,12 @@
 // - data_t:        Data type (operands + result)
 // - req_link:      Base name for the request link type
 // - rsp_link:      Base name for the response link type
-// - collect_op_e:  List of collective opcodes
+// - collect_op_t:  List of collective opcodes
 //
 // Example:
-// `FLOO_RED_TYPEDEF_REQ_RSP_LINK(wide, data_t, wide_req, wide_rsp, collect_op_e)
-`define FLOO_RED_TYPEDEF_REQ_RSP_LINK(name, data_t, req_link, rsp_link, collect_op_e) \
-  `FLOO_RED_TYPEDEF_REQ_RSP_CHAN_ALL(name, data_t, collect_op_e)                          \
+// `FLOO_RED_TYPEDEF_REQ_RSP_LINK(wide, data_t, wide_req, wide_rsp, collect_op_t)
+`define FLOO_RED_TYPEDEF_REQ_RSP_LINK(name, data_t, req_link, rsp_link, collect_op_t) \
+  `FLOO_RED_TYPEDEF_REQ_RSP_CHAN_ALL(name, data_t, collect_op_t)                          \
   `FLOO_RED_TYPEDEF_REQ_LINK_T(req_link, name)                                    \
   `FLOO_RED_TYPEDEF_RSP_LINK_T(rsp_link, name)
 

@@ -159,9 +159,8 @@ package floo_pkg;
   /// structural opcodes the NoC needs to support collective.
   localparam int unsigned NumReservedCollectOps = 6;
 
-  /// Struct for the reserved collective operations, used internally by the NoC
-  /// The NoC is agnostic to any other collective, i.e. tehre is no need to
-  /// specify the opcodes of an eventual offload functional unit.
+  /// Names of the reserved collective opcodes, compared against the project `collect_op_t`
+  /// vector. The NoC is agnostic to any other opcode (opaque, offloaded to the functional unit).
   typedef enum logic [$clog2(NumReservedCollectOps)-1:0] {
     Unicast   = 'd0,
     Multicast = 'd1,
@@ -568,10 +567,6 @@ package floo_pkg;
   function automatic bit en_multicast_support(collect_op_be_cfg_t cfg);
     return (cfg.EnMulticast);
   endfunction
-
-  // is_multicast_op/is_reduction_op/is_parallel_reduction_op/is_seq_reduction_op/
-  // is_narrow_seq_op/is_wide_seq_op: each project-specific "big" NoC module generates its own
-  // copies of these via `` `FLOO_COLLECT_OP_HELPERS `` (see the `collect_op_e` note above).
 
   /// Helper function to map frontend collective ops to backend config for NW routers.
   /// The target router/link is identified by the AXI channel `ch` that traverses it

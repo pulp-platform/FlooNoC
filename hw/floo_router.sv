@@ -45,10 +45,6 @@ module floo_router
   /// Parameter for the reduction configuration
   parameter collect_op_be_cfg_t CollectiveCfg    = CollectiveSupportDefaultCfg,
   parameter reduction_cfg_t     RedCfg           = '0,
-  /// Number of narrow sequential-reduction opcodes
-  parameter int unsigned NumNarrowSeqOps         = 0,
-  /// Number of wide sequential-reduction opcodes
-  parameter int unsigned NumWideSeqOps           = 0,
   /// AXI configurations
   parameter axi_cfg_t    AxiCfgOffload        = '0,
   parameter axi_cfg_t    AxiCfgParallel       = '0,
@@ -57,7 +53,7 @@ module floo_router
   parameter type         flit_t               = logic,
   parameter type         hdr_t                = logic,
   /// Collective opcode type
-  parameter type         collect_op_e         = logic,
+  parameter type         collect_op_t         = logic,
   /// Offload reduction  interface
   parameter type red_req_t                     = logic,
   parameter type red_rsp_t                     = logic
@@ -86,9 +82,7 @@ module floo_router
 
   // TODO MICHAERO: assert NumPhysChannels <= NumVirtChannels
 
-  localparam int unsigned FirstNarrowSeqOp = NumReservedCollectOps;
-  localparam int unsigned FirstWideSeqOp   = NumReservedCollectOps + NumNarrowSeqOps;
-  `FLOO_COLLECT_OP_HELPERS(collect_op_e, FirstNarrowSeqOp, FirstWideSeqOp)
+  `FLOO_COLLECT_OP_HELPERS(collect_op_t)
 
   // Generate some local parameters to understand which type of collective support
   // is required in the specific router instance
@@ -289,7 +283,7 @@ module floo_router
       .hdr_t                      (hdr_t),
       .id_t                       (id_t),
       .reduction_data_t           (RdData_t),
-      .collect_op_e               (collect_op_e),
+      .collect_op_t               (collect_op_t),
       .RedCfg                     (RedCfg),
       .AxiCfg                     (AxiCfgOffload)
     ) i_reduction_unit (
@@ -441,10 +435,8 @@ module floo_router
         .flit_t               ( flit_t                    ),
         .hdr_t                ( hdr_t                     ),
         .id_t                 ( id_t                      ),
-        .collect_op_e         ( collect_op_e              ),
-        .AxiCfg               ( AxiCfgParallel            ),
-        .FirstNarrowSeqOp     ( FirstNarrowSeqOp          ),
-        .FirstWideSeqOp       ( FirstWideSeqOp            )
+        .collect_op_t         ( collect_op_t              ),
+        .AxiCfg               ( AxiCfgParallel            )
       ) i_output_arbiter (
         .clk_i,
         .rst_ni,

@@ -89,7 +89,7 @@ endpackage
 
 // Wrapper incl. decoder for the ALU
 module floo_reduction_alu import floo_pkg::*; #(
-  parameter type          collect_op_e     = logic,
+  parameter type          collect_op_t     = logic,
   parameter int unsigned  FirstNarrowSeqOp = 0
 ) (
   input  logic              clk_i,
@@ -98,7 +98,7 @@ module floo_reduction_alu import floo_pkg::*; #(
   /// IF towards external FPU
   input  logic[63:0]        alu_req_op1_i,
   input  logic[63:0]        alu_req_op2_i,
-  input  collect_op_e       alu_req_type_i,
+  input  collect_op_t       alu_req_type_i,
   input  logic              alu_req_valid_i,
   output logic              alu_req_ready_o,
   /// IF from external ALU
@@ -138,7 +138,7 @@ module floo_reduction_alu import floo_pkg::*; #(
   localparam int unsigned IntMaxSId = 4;
   localparam int unsigned IntMaxUId = 5;
 
-  logic [$bits(collect_op_e)-1:0] narrow_op_id;
+  logic [$bits(collect_op_t)-1:0] narrow_op_id;
   assign narrow_op_id = alu_req_type_i - FirstNarrowSeqOp;
 
   /* Module Declaration */

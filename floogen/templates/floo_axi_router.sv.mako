@@ -62,7 +62,7 @@ floo_axi_router #(
   .id_t(id_t),
   .hdr_t(hdr_t),
 % if network.routing.collective.en_collective:
-  .collect_op_e(collect_op_e),
+  .collect_op_t(collect_op_t),
 % endif
 % if router.route_algo == RouteAlgo.ID:
   .NumAddrRules (${len(router.table.rules)}),
