@@ -216,13 +216,13 @@ class CollectiveCfg(ConfigModel):
             s += sv_typedef("floo_narrow_red_data_t", dtype=f"logic [{cfg_n}.DataWidth-1:0]")
             s += (
                 "`FLOO_RED_TYPEDEF_REQ_RSP_LINK(narrow, floo_narrow_red_data_t, narrow_req, "
-                "narrow_rsp, collect_op_t)\n\n"
+                "narrow_rsp, collect_op_e)\n\n"
             )
         if self.en_wide_reduction is not None:
             s += sv_typedef("floo_wide_red_data_t", dtype=f"logic [{cfg_w}.DataWidth-1:0]")
             s += (
                 "`FLOO_RED_TYPEDEF_REQ_RSP_LINK(wide, floo_wide_red_data_t, wide_req, wide_rsp, "
-                "collect_op_t)\n"
+                "collect_op_e)\n"
             )
         return s
 
@@ -1052,11 +1052,11 @@ class Routing(RoutingDesc):
         return string
 
     def render_collect_op_params(self) -> str:
-        """Render `collect_op_e`/`collect_op_t` and their two driving counts."""
+        """Render `collect_op_e` and the two counts that size it."""
         string = sv_param_decl("NumNarrowSeqOps", self.collective.num_narrow_seq_ops)
         string += sv_param_decl("NumWideSeqOps", self.collective.num_wide_seq_ops)
         string += (
-            "`FLOO_TYPEDEF_COLLECT_OP_E(collect_op_e, collect_op_t, FirstNarrowSeqOp, "
+            "`FLOO_TYPEDEF_COLLECT_OP_E(collect_op_e, FirstNarrowSeqOp, "
             "FirstWideSeqOp, NumCollectOps, NumNarrowSeqOps, NumWideSeqOps)\n"
         )
         return string
@@ -1071,7 +1071,7 @@ class Routing(RoutingDesc):
             if self.collective.en_collective:
                 return (
                     f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t,"
-                    f" id_t, collect_op_t)"
+                    f" id_t, collect_op_e)"
                 )
             return f"`FLOO_TYPEDEF_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t)"
         return f"`FLOO_TYPEDEF_VC_HDR_T(hdr_t, {dst_type}, id_t, {ch_type}, rob_idx_t, vc_id_t)"

@@ -43,6 +43,8 @@ module floo_axi_chimney
   parameter type dst_t                                  = id_t,
   /// Header type for the flits
   parameter type hdr_t                                  = logic,
+  /// Collective opcode type
+  parameter type collect_op_e                           = logic,
   /// Rule type for the System Address Map
   /// (only used if `RouteCfg.UseIdTable == 1'b1`)
   parameter type sam_rule_t                             = logic,
@@ -588,7 +590,8 @@ module floo_axi_chimney
     floo_axi_aw.hdr.axi_ch  = AxiAw;
     floo_axi_aw.hdr.atop    = axi_aw_queue.atop != axi_pkg::ATOP_NONE;
     floo_axi_aw.payload     = axi_aw_queue;
-    floo_axi_aw.hdr.collective_op = (mcast_mask[AxiAw] != '0)? Multicast : Unicast;
+    floo_axi_aw.hdr.collective_op = (mcast_mask[AxiAw] != '0) ?
+                              collect_op_e'(Multicast) : collect_op_e'(Unicast);
   end
 
   always_comb begin
@@ -601,7 +604,8 @@ module floo_axi_chimney
     floo_axi_w.hdr.last     = axi_req_in.w.last;
     floo_axi_w.hdr.axi_ch   = AxiW;
     floo_axi_w.payload      = axi_req_in.w;
-    floo_axi_w.hdr.collective_op = (mcast_mask[AxiW] != '0)? Multicast : Unicast;
+    floo_axi_w.hdr.collective_op = (mcast_mask[AxiW] != '0) ?
+                              collect_op_e'(Multicast) : collect_op_e'(Unicast);
   end
 
   always_comb begin
@@ -614,7 +618,7 @@ module floo_axi_chimney
     floo_axi_ar.hdr.last    = 1'b1;
     floo_axi_ar.hdr.axi_ch  = AxiAr;
     floo_axi_ar.payload     = axi_ar_queue;
-    floo_axi_ar.hdr.collective_op = '0;
+    floo_axi_ar.hdr.collective_op = collect_op_e'('0);
   end
 
   always_comb begin
@@ -629,8 +633,8 @@ module floo_axi_chimney
     floo_axi_b.hdr.atop     = aw_out_hdr_out.hdr.atop;
     floo_axi_b.payload      = meta_buf_rsp_out.b;
     floo_axi_b.payload.id   = aw_out_hdr_out.id;
-    floo_axi_b.hdr.collective_op = (aw_out_hdr_out.hdr.collective_op == Multicast)?
-                              CollectB : Unicast;
+    floo_axi_b.hdr.collective_op = (aw_out_hdr_out.hdr.collective_op == Multicast) ?
+                              collect_op_e'(CollectB) : collect_op_e'(Unicast);
   end
 
   always_comb begin
@@ -645,7 +649,7 @@ module floo_axi_chimney
     floo_axi_r.hdr.atop     = ar_out_hdr_out.hdr.atop;
     floo_axi_r.payload      = meta_buf_rsp_out.r;
     floo_axi_r.payload.id   = ar_out_hdr_out.id;
-    floo_axi_r.hdr.collective_op = '0;
+    floo_axi_r.hdr.collective_op = collect_op_e'('0);
   end
 
   always_comb begin

@@ -93,6 +93,7 @@ floo_nw_router #(
 % if network.routing.collective.en_collective:
   .NumNarrowSeqOps(NumNarrowSeqOps),
   .NumWideSeqOps(NumWideSeqOps),
+  .collect_op_e(collect_op_e),
 % endif
 % if network.routing.collective.en_narrow_reduction is not None:
   .red_narrow_req_t(red_narrow_req_t),

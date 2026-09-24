@@ -30,6 +30,8 @@ module floo_axi_router #(
   parameter type id_t                         = logic,
   /// Header type
   parameter type hdr_t                        = logic,
+  /// Collective opcode type
+  parameter type collect_op_e                 = logic,
   /// Number of rules in the route table
   /// (only used for `RouteAlgo == IdTable`)
   parameter int unsigned NumAddrRules         = 0,
@@ -106,6 +108,7 @@ module floo_axi_router #(
     .RouteAlgo        ( RouteAlgo               ),
     .XYRouteOpt       ( XYRouteOpt              ),
     .id_t             ( id_t                    ),
+    .collect_op_e     ( collect_op_e            ),
     .NumAddrRules     ( NumAddrRules            ),
     .addr_rule_t      ( addr_rule_t             )
   ) i_req_floo_router (
@@ -138,6 +141,7 @@ module floo_axi_router #(
     .XYRouteOpt       ( XYRouteOpt              ),
     .flit_t           ( floo_rsp_generic_flit_t ),
     .id_t             ( id_t                    ),
+    .collect_op_e     ( collect_op_e            ),
     .NumAddrRules     ( NumAddrRules            ),
     .addr_rule_t      ( addr_rule_t             )
   ) i_rsp_floo_router (

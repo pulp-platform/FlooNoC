@@ -57,6 +57,8 @@ module floo_nw_chimney
   parameter type dst_t                                  = id_t,
   /// Header type for the flits
   parameter type hdr_t                                  = logic,
+  /// Collective opcode type
+  parameter type collect_op_e                           = logic,
   /// Rule type for the System Address Map
   /// (only used if `RouteCfg.UseIdTable == 1'b1`)
   parameter type sam_rule_t                             = logic,
@@ -129,8 +131,8 @@ module floo_nw_chimney
 
   import floo_pkg::*;
 
-  `FLOO_TYPEDEF_COLLECT_OP_E(collect_op_e, collect_op_t, FirstNarrowSeqOp, FirstWideSeqOp,
-                             NumCollectOps, NumNarrowSeqOps, NumWideSeqOps)
+  localparam int unsigned FirstNarrowSeqOp = NumReservedCollectOps;
+  localparam int unsigned FirstWideSeqOp   = NumReservedCollectOps + NumNarrowSeqOps;
   `FLOO_COLLECT_OP_HELPERS(collect_op_e, FirstNarrowSeqOp, FirstWideSeqOp)
 
   typedef logic [AxiCfgN.AddrWidth-1:0] axi_addr_t;
@@ -338,7 +340,7 @@ module floo_nw_chimney
       user_narrow_struct_t user;
       assign user = axi_narrow_in_req_i.aw.user;
       assign axi_narrow_req_in_mask = user.collective_mask;
-      assign axi_narrow_req_in_red_op = user.collective_op;
+      assign axi_narrow_req_in_red_op = collect_op_e'(user.collective_op);
     end else begin : gen_no_narrow_collective_info
       assign axi_narrow_req_in_mask = '0;
       assign axi_narrow_req_in_red_op = collect_op_e'('0);
@@ -447,7 +449,7 @@ module floo_nw_chimney
       user_wide_struct_t user;
       assign user = axi_wide_in_req_i.aw.user;
       assign axi_wide_req_in_mask = user.collective_mask;
-      assign axi_wide_req_in_red_op = user.collective_op;
+      assign axi_wide_req_in_red_op = collect_op_e'(user.collective_op);
     end else begin : gen_no_wide_collective_info
       assign axi_wide_req_in_mask = '0;
       assign axi_wide_req_in_red_op = collect_op_e'('0);
@@ -1153,7 +1155,7 @@ module floo_nw_chimney
     if (en_narrow_reduction(CollectOpCfg) &&
         is_reduction_op(red_coll_operation[NarrowAw])) begin: gen_red_op
         floo_narrow_aw.hdr.collective_op = is_seq_reduction_op(red_coll_operation[NarrowAw]) ?
-                                            SeqAW : SelectAW;
+                                            collect_op_e'(SeqAW) : collect_op_e'(SelectAW);
     end
   end
 
@@ -1203,10 +1205,10 @@ module floo_nw_chimney
     // Reduction --> Multicast the B response to all members
     floo_narrow_b.hdr.collective_op  = collect_op_e'('0);
     if(en_narrow_collective(CollectOpCfg)) begin: gen_nar_b_coll
-      if(is_multicast_op(collect_op_e'(narrow_aw_buf_hdr_out.hdr.collective_op))) begin: gen_nar_red_rsp
-        floo_narrow_b.hdr.collective_op = CollectB;
-      end else if(is_reduction_op(collect_op_e'(narrow_aw_buf_hdr_out.hdr.collective_op))) begin: gen_nar_mcast
-        floo_narrow_b.hdr.collective_op = Multicast;
+      if(is_multicast_op(narrow_aw_buf_hdr_out.hdr.collective_op)) begin: gen_nar_red_rsp
+        floo_narrow_b.hdr.collective_op = collect_op_e'(CollectB);
+      end else if(is_reduction_op(narrow_aw_buf_hdr_out.hdr.collective_op)) begin: gen_nar_mcast
+        floo_narrow_b.hdr.collective_op = collect_op_e'(Multicast);
       end
     end
   end
@@ -1243,7 +1245,7 @@ module floo_nw_chimney
     if (en_wide_reduction(CollectOpCfg)) begin
       if (is_reduction_op(red_coll_operation[WideAw])) begin
         floo_wide_aw.hdr.collective_op = is_seq_reduction_op(red_coll_operation[WideAw]) ?
-                                          SeqAW : SelectAW;
+                                          collect_op_e'(SeqAW) : collect_op_e'(SelectAW);
       end
     end
   end
@@ -1292,12 +1294,12 @@ module floo_nw_chimney
     // The AXI slave on the chimney should not be aware of a reduction / multicast!
     // Multicast --> Collect the B responses in a parallel reduction
     // Reduction --> Multicast the B response to all members
-    floo_wide_b.hdr.collective_op  = Unicast;
+    floo_wide_b.hdr.collective_op  = collect_op_e'(Unicast);
     if(en_wide_collective(CollectOpCfg)) begin: gen_wide_b_coll
-      if(is_multicast_op(collect_op_e'(wide_aw_buf_hdr_out.hdr.collective_op))) begin: gen_wide_red_rsp
-        floo_wide_b.hdr.collective_op = CollectB;
-      end else if(is_reduction_op(collect_op_e'(wide_aw_buf_hdr_out.hdr.collective_op))) begin: gen_wide_mcast
-        floo_wide_b.hdr.collective_op = Multicast;
+      if(is_multicast_op(wide_aw_buf_hdr_out.hdr.collective_op)) begin: gen_wide_red_rsp
+        floo_wide_b.hdr.collective_op = collect_op_e'(CollectB);
+      end else if(is_reduction_op(wide_aw_buf_hdr_out.hdr.collective_op)) begin: gen_wide_mcast
+        floo_wide_b.hdr.collective_op = collect_op_e'(Multicast);
       end
     end
   end

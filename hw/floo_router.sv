@@ -56,6 +56,8 @@ module floo_router
   parameter type         addr_rule_t          = logic,
   parameter type         flit_t               = logic,
   parameter type         hdr_t                = logic,
+  /// Collective opcode type
+  parameter type         collect_op_e         = logic,
   /// Offload reduction  interface
   parameter type red_req_t                     = logic,
   parameter type red_rsp_t                     = logic
@@ -84,8 +86,8 @@ module floo_router
 
   // TODO MICHAERO: assert NumPhysChannels <= NumVirtChannels
 
-  `FLOO_TYPEDEF_COLLECT_OP_E(collect_op_e, collect_op_t, FirstNarrowSeqOp, FirstWideSeqOp,
-                             NumCollectOps, NumNarrowSeqOps, NumWideSeqOps)
+  localparam int unsigned FirstNarrowSeqOp = NumReservedCollectOps;
+  localparam int unsigned FirstWideSeqOp   = NumReservedCollectOps + NumNarrowSeqOps;
   `FLOO_COLLECT_OP_HELPERS(collect_op_e, FirstNarrowSeqOp, FirstWideSeqOp)
 
   // Generate some local parameters to understand which type of collective support
@@ -287,7 +289,7 @@ module floo_router
       .hdr_t                      (hdr_t),
       .id_t                       (id_t),
       .reduction_data_t           (RdData_t),
-      .collect_op_t               (collect_op_t),
+      .collect_op_e               (collect_op_e),
       .RedCfg                     (RedCfg),
       .AxiCfg                     (AxiCfgOffload)
     ) i_reduction_unit (

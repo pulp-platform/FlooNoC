@@ -23,6 +23,7 @@ floo_nw_chimney  #(
 % if noc.routing.collective.en_collective:
   .NumNarrowSeqOps(NumNarrowSeqOps),
   .NumWideSeqOps(NumWideSeqOps),
+  .collect_op_e(collect_op_e),
 % endif
 % if noc.routing.decouple_rw is not None:
   .WideRwDecouple(WideRwDecouple),

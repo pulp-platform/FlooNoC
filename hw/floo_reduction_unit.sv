@@ -27,7 +27,7 @@ module floo_reduction_unit
     parameter type hdr_t              = logic,
     parameter type id_t               = logic,
     parameter type reduction_data_t   = logic,
-    parameter type collect_op_t       = logic,
+    parameter type collect_op_e       = logic,
     /// Parameters for the reduction configuration
     parameter reduction_cfg_t RedCfg               = '0,
     /// Axi Configuration
@@ -50,7 +50,7 @@ module floo_reduction_unit
     input   logic                                     operands_ready_i,
     output  reduction_data_t                          operand1_o,
     output  reduction_data_t                          operand2_o,
-    output  collect_op_t                              operation_o,
+    output  collect_op_e                              operation_o,
     input   logic                                     result_valid_i,
     output  logic                                     result_ready_o,
     input   reduction_data_t                          result_i
@@ -63,7 +63,7 @@ module floo_reduction_unit
   typedef logic [cc_pkg::idx_width(NumOutputs)-1:0] out_select_t;
 
   typedef struct packed {
-    collect_op_t     op;
+    collect_op_e     op;
     reduction_data_t operand1;
     reduction_data_t operand2;
   } red_intsr_t;
@@ -71,7 +71,7 @@ module floo_reduction_unit
   // Select signals for the input data
   input_sel_t operand1_sel;
   input_sel_t operand2_sel;
-  collect_op_t incoming_op;
+  collect_op_e incoming_op;
 
   logic [NumInputs-1:0] mask_operand1;
   logic [NumInputs-1:0] mask_operand2;

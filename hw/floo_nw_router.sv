@@ -53,6 +53,8 @@ module floo_nw_router
   parameter type id_t                               = logic,
   /// Header type
   parameter type hdr_t                              = logic,
+  /// Collective opcode type
+  parameter type collect_op_e                       = logic,
   /// Number of rules in the route table
   /// (only used for `RouteAlgo == IdTable`)
   parameter int unsigned NumAddrRules               = 0,
@@ -195,6 +197,7 @@ module floo_nw_router
     .CollectiveCfg        ( CollectiveReqCfg          ),
     .NumNarrowSeqOps      ( NumNarrowSeqOps           ),
     .NumWideSeqOps        ( NumWideSeqOps             ),
+    .collect_op_e         ( collect_op_e              ),
     .RedCfg               ( CollectiveCfg.NarrRedCfg  ),
     .AxiCfgOffload        ( AxiCfgN                   ),
     .AxiCfgParallel       ( AxiCfgN                   ),
@@ -236,6 +239,7 @@ module floo_nw_router
     .CollectiveCfg        ( CollectiveRspCfg        ),
     .NumNarrowSeqOps      ( NumNarrowSeqOps           ),
     .NumWideSeqOps        ( NumWideSeqOps             ),
+    .collect_op_e         ( collect_op_e              ),
     .AxiCfgOffload        ( '0                      ),
     .AxiCfgParallel       ( AxiCfgN                 ),
     .id_t                 ( id_t                    ),
@@ -279,6 +283,7 @@ module floo_nw_router
       .CollectiveCfg        ( CollectiveWideCfg         ),
       .NumNarrowSeqOps      ( NumNarrowSeqOps           ),
       .NumWideSeqOps        ( NumWideSeqOps             ),
+      .collect_op_e         ( collect_op_e              ),
       .RedCfg               ( CollectiveCfg.WideRedCfg  ),
       .AxiCfgOffload        ( AxiCfgW                   ),
       .AxiCfgParallel       ( '0                        ),
@@ -348,6 +353,7 @@ module floo_nw_router
       .CollectiveCfg        ( CollectiveWideCfg         ),
       .NumNarrowSeqOps      ( NumNarrowSeqOps           ),
       .NumWideSeqOps        ( NumWideSeqOps             ),
+      .collect_op_e         ( collect_op_e              ),
       .RedCfg               ( CollectiveCfg.WideRedCfg  ),
       .AxiCfgOffload        ( AxiCfgW                   ),
       .AxiCfgParallel       ( '0                        ),
@@ -389,6 +395,7 @@ module floo_nw_router
       .CollectiveCfg        ( '0                        ),
       .NumNarrowSeqOps      ( NumNarrowSeqOps           ),
       .NumWideSeqOps        ( NumWideSeqOps             ),
+      .collect_op_e         ( collect_op_e              ),
       .AxiCfgOffload        ( '0                        ),
       .AxiCfgParallel       ( '0                        ),
       .id_t                 ( id_t                      ),

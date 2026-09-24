@@ -23,6 +23,9 @@ floo_axi_chimney  #(
   .dst_t   (route_t),
 % endif
   .hdr_t  (hdr_t),
+% if noc.routing.collective.en_collective:
+  .collect_op_e(collect_op_e),
+% endif
   .sam_rule_t(sam_rule_t),
   .Sam(Sam),
   .axi_in_req_t(${in_prot.type_name()}_req_t),
