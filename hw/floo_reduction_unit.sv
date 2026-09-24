@@ -83,7 +83,8 @@ module floo_reduction_unit
   logic       operands_valid_out;
   logic       operands_ready_in;
 
-  // Operand stream after the fork: one branch stores the metadata, the other goe to the functional unit
+  // Operand stream after the fork: one branch stores the metadata, the other goes to the
+  // functional units
   logic       fu_operands_valid;
   logic       fu_operands_ready;
   logic       meta_operands_valid;
@@ -166,9 +167,9 @@ module floo_reduction_unit
 
   assign operand2_flit = data_i[operand2_sel];
 
-  // Fork the operand stream: to handle teh backpressure of the offload unit we branch.
+  // Fork the operand stream: to handle the backpressure of the offload unit we branch.
   // The metadata is pushed into a FIFO, while the operand is pushed downstream.
-  // To avoid combinational loop due the the FallThrough, we use a stream fork which decouple the
+  // To avoid a combinational loop due to the FallThrough, we use a stream fork which decouples the
   // two paths.
   cc_stream_fork #(
     .NumOup ( 2 )
@@ -215,15 +216,17 @@ module floo_reduction_unit
   ) i_fifo_flit (
       .clk_i,
       .rst_ni,
-      .clr_i    ( 1'b0                                                 ),
-      .flush_i  ( 1'b0                                                 ),
-      .usage_o  (                                                      ),
-      .data_i   ( operand1_flit                                        ),  // store the flit of the first operand
-      .valid_i  ( meta_operands_valid                                  ),
-      .ready_o  ( meta_flit_ready                                      ),
-      .data_o   ( metadata_flit_out                                    ),
-      .valid_o  ( meta_flit_valid                                      ),
-      .ready_i  ( result_flit_valid_out & result_flit_ready_in         )   // pop on result handshake
+      .clr_i    ( 1'b0                ),
+      .flush_i  ( 1'b0                ),
+      .usage_o  (                     ),
+      // Store the flit of the first operand
+      .data_i   ( operand1_flit       ),
+      .valid_i  ( meta_operands_valid ),
+      .ready_o  ( meta_flit_ready     ),
+      .data_o   ( metadata_flit_out   ),
+      .valid_o  ( meta_flit_valid     ),
+      // Pop on result handshake
+      .ready_i  ( result_flit_valid_out & result_flit_ready_in )
   );
 
   // Fifo to store the output direction of the element during the FPU reduction
@@ -234,15 +237,17 @@ module floo_reduction_unit
   ) i_fifo_route_dir (
       .clk_i,
       .rst_ni,
-      .clr_i    ( 1'b0                                                 ),
-      .flush_i  ( 1'b0                                                 ),
-      .usage_o  (                                                      ),
-      .data_i   ( routed_out_mask_i[operand1_sel]                      ),  // store the route out of the first operand
-      .valid_i  ( meta_operands_valid                                  ),
-      .ready_o  ( meta_route_ready                                     ),
-      .data_o   ( metadata_route_out_dir                               ),
-      .valid_o  ( meta_route_valid                                     ),
-      .ready_i  ( result_flit_valid_out & result_flit_ready_in         )   // pop on result handshake
+      .clr_i    ( 1'b0                    ),
+      .flush_i  ( 1'b0                    ),
+      .usage_o  (                         ),
+      // Store the route out of the first operand
+      .data_i   ( routed_out_mask_i[operand1_sel] ),
+      .valid_i  ( meta_operands_valid     ),
+      .ready_o  ( meta_route_ready        ),
+      .data_o   ( metadata_route_out_dir  ),
+      .valid_o  ( meta_route_valid        ),
+      // Pop on result handshake
+      .ready_i  ( result_flit_valid_out & result_flit_ready_in )
   );
 
   // TODO (lleone): Create a REQ/RSP struct for the following interface
