@@ -83,6 +83,13 @@ module floo_reduction_unit
   logic       operands_valid_out;
   logic       operands_ready_in;
 
+  // Operand stream after the fork: one branch stores the metadata, the other goe to the functional unit
+  logic       fu_operands_valid;
+  logic       fu_operands_ready;
+  logic       meta_operands_valid;
+  logic       meta_flit_ready, meta_route_ready;
+  logic       meta_flit_valid, meta_route_valid;
+
   // Signals towards the offload interface
   logic       offload_operands_valid_out;
   logic       offload_operands_ready_in;
@@ -159,14 +166,30 @@ module floo_reduction_unit
 
   assign operand2_flit = data_i[operand2_sel];
 
+  // Fork the operand stream: to handle teh backpressure of the offload unit we branch.
+  // The metadata is pushed into a FIFO, while the operand is pushed downstream.
+  // To avoid combinational loop due the the FallThrough, we use a stream fork which decouple the
+  // two paths.
+  cc_stream_fork #(
+    .NumOup ( 2 )
+  ) i_operands_fork (
+    .clk_i,
+    .rst_ni,
+    .clr_i    ( 1'b0                                                        ),
+    .valid_i  ( operands_valid_out                                          ),
+    .ready_o  ( operands_ready_in                                           ),
+    .valid_o  ( {fu_operands_valid, meta_operands_valid}                    ),
+    .ready_i  ( {fu_operands_ready, meta_flit_ready & meta_route_ready}     )
+  );
+
   // Stream demux to arbitrate between different functional units:
   // - Output 1: Offload unit
   // - Output 2: SelectAW unit
   cc_stream_demux #(
     .NumOup ( 2 )
   ) i_operands_demux (
-    .inp_valid_i   ( operands_valid_out     ),
-    .inp_ready_o   ( operands_ready_in      ),
+    .inp_valid_i   ( fu_operands_valid      ),
+    .inp_ready_o   ( fu_operands_ready      ),
     .oup_sel_i     ( incoming_op == SeqAW   ),
     .oup_valid_o   ( {aw_valid_out, offload_operands_valid_out} ),
     .oup_ready_i   ( {aw_ready_in, offload_operands_ready_in}   )
@@ -183,56 +206,43 @@ module floo_reduction_unit
   // For the select AW we don't need any operations except for assigning one of
   assign aw_out = operand1_flit;
 
-  // Store incoming hdr + payload info for the response path
-  // The data bits are useless since the result coming from the
-  // functional unit will be the actual data. For this reason we hardcode the data to 0
-  // at the fifo input to make sure that those FFs are then optimized away.
-
-  // To avoid combinational loop, the push of the fifo must not depend on the ready
-  // because the latter depends from the output of the fifo itself that is combinatorial
-  // in case of FALL_THROUGH.
-
-  logic already_pushed_q;
-  logic valid_operand_handshake;
-
-  assign valid_operand_handshake = operands_valid_out & operands_ready_in;
-
-  `FFLARNC(already_pushed_q, 1'b1, operands_valid_out && (~already_pushed_q),
-           valid_operand_handshake, 1'b0, clk_i, rst_ni)
-  cc_fifo #(
-      .FallThrough     (1'b1),
-      .data_t            (flit_t),
-      .Depth            (RedCfg.RdPipelineDepth+2)
+  // Metadata of the reductions in flight (first operand flit + output direction), kept until
+  // the result comes back. Both queues have the same depth and push/pop: always in lockstep.
+  cc_stream_fifo #(
+      .FallThrough ( 1'b1                        ),
+      .data_t      ( flit_t                      ),
+      .Depth       ( RedCfg.RdPipelineDepth + 2  )
   ) i_fifo_flit (
-      .clk_i      (clk_i),
-      .rst_ni     (rst_ni),
-      .clr_i      (1'b0),
-      .flush_i    (1'b0),
-      .full_o     (),
-      .empty_o    (),
-      .usage_o    (),
-      .data_i     (operand1_flit),  // store the flit of the first operand
-      .push_i     (operands_valid_out & (~already_pushed_q)),  // pop on operands handshake
-      .data_o     (metadata_flit_out),
-      .pop_i      (result_flit_valid_out & result_flit_ready_in) // pop on result handshake
+      .clk_i,
+      .rst_ni,
+      .clr_i    ( 1'b0                                                 ),
+      .flush_i  ( 1'b0                                                 ),
+      .usage_o  (                                                      ),
+      .data_i   ( operand1_flit                                        ),  // store the flit of the first operand
+      .valid_i  ( meta_operands_valid                                  ),
+      .ready_o  ( meta_flit_ready                                      ),
+      .data_o   ( metadata_flit_out                                    ),
+      .valid_o  ( meta_flit_valid                                      ),
+      .ready_i  ( result_flit_valid_out & result_flit_ready_in         )   // pop on result handshake
   );
+
   // Fifo to store the output direction of the element during the FPU reduction
-  cc_fifo #(
-      .FallThrough     (1'b1),
-      .DataWidth        (NumInputs),
-      .Depth            (RedCfg.RdPipelineDepth+2)
+  cc_stream_fifo #(
+      .FallThrough ( 1'b1                        ),
+      .DataWidth   ( NumOutputs                  ),
+      .Depth       ( RedCfg.RdPipelineDepth + 2  )
   ) i_fifo_route_dir (
-      .clk_i      (clk_i),
-      .rst_ni     (rst_ni),
-      .clr_i      (1'b0),
-      .flush_i    (1'b0),
-      .full_o     (),
-      .empty_o    (), // Not needed, this fifo is always sinc with the flit one
-      .usage_o    (),
-      .data_i     (routed_out_mask_i[operand1_sel]),  // store the route out of the first operand
-      .push_i     (operands_valid_out & (~already_pushed_q)),  // pop on operands handshake
-      .data_o     (metadata_route_out_dir),
-      .pop_i      (result_flit_valid_out & result_flit_ready_in) // pop on result handshake
+      .clk_i,
+      .rst_ni,
+      .clr_i    ( 1'b0                                                 ),
+      .flush_i  ( 1'b0                                                 ),
+      .usage_o  (                                                      ),
+      .data_i   ( routed_out_mask_i[operand1_sel]                      ),  // store the route out of the first operand
+      .valid_i  ( meta_operands_valid                                  ),
+      .ready_o  ( meta_route_ready                                     ),
+      .data_o   ( metadata_route_out_dir                               ),
+      .valid_o  ( meta_route_valid                                     ),
+      .ready_i  ( result_flit_valid_out & result_flit_ready_in         )   // pop on result handshake
   );
 
   // TODO (lleone): Create a REQ/RSP struct for the following interface
@@ -325,6 +335,13 @@ module floo_reduction_unit
     .oup_ready_i   ( ready_i                )
   );
   assign data_o = {NumOutputs{result_flit_out}};
+
+  // The functional unit may accept an operand set before its metadata is stored (queue full),
+  // which is safe only because results come back in order: the head must exist for every result
+  `ASSERT(ResultWithoutMetadata,
+          result_flit_valid_out |-> (meta_flit_valid && meta_route_valid),
+          clk_i, !rst_ni,
+          "A result arrived with no reduction metadata stored")
 
   `ASSERT(ReductionFrom2MoreInputs,
           !(|valid_i) || ($countones(in_mask_i[operand1_sel]) == 0) ||
