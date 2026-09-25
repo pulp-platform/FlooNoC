@@ -30,6 +30,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ### Fixed
 
+#### Hardware
+- The chimney no longer clears `collective_mask` in the AXI user field of unicast requests, and the meta buffer no longer rewrites the address of unicast requests. This lets a unicast carry a multicast mask to an endpoint that forwards it, e.g. across a chip-to-chip link.
+
 #### FlooGen
 - An `xy_id_offset` given as a plain value (e.g. `xy_id_offset: 5`) was silently discarded, and a misspelled coordinate key (e.g. `X` instead of `x`) silently left that axis at 0. Both are now validation errors, and the `SimpleId` form of `xy_id_offset` is usable again.
 
