@@ -50,6 +50,13 @@ package floo_synth_params_pkg;
   // Unused types
   typedef logic route_t;
 
+  // Collective opcode type: the reserved ops followed by 4 narrow and 4 wide opaque sequential ops
+  localparam int unsigned NumNarrowSeqOps = 4;
+  localparam int unsigned NumWideSeqOps = 4;
+  localparam int unsigned NumCollectOps =
+      floo_pkg::NumReservedCollectOps + NumNarrowSeqOps + NumWideSeqOps;
+  typedef logic [$clog2(NumCollectOps)-1:0] collect_op_t;
+
 endpackage
 
 package floo_synth_axi_pkg;
@@ -109,8 +116,9 @@ package floo_synth_nw_pkg;
 
   typedef logic [AxiCfgW.DataWidth-1:0] floo_wide_red_data_t;
   typedef logic [AxiCfgN.DataWidth-1:0] floo_narrow_red_data_t;
-  `FLOO_RED_TYPEDEF_REQ_RSP_LINK(wide, floo_wide_red_data_t, wide_req, wide_rsp)
-  `FLOO_RED_TYPEDEF_REQ_RSP_LINK(narrow, floo_narrow_red_data_t, narrow_req, narrow_rsp)
+  `FLOO_RED_TYPEDEF_REQ_RSP_LINK(wide, floo_wide_red_data_t, wide_req, wide_rsp, collect_op_t)
+  `FLOO_RED_TYPEDEF_REQ_RSP_LINK(narrow, floo_narrow_red_data_t, narrow_req, narrow_rsp,
+                                 collect_op_t)
 
 endpackage
 
@@ -193,73 +201,43 @@ package floo_synth_collective_pkg;
   // TODO (lleone): Script this with Python
 
   localparam floo_pkg::collect_op_fe_cfg_t CollectiveOpCfg = '{
-    EnNarrowMulticast:  1'b1,
-    EnWideMulticast:    1'b1,
-    EnLsbAnd:           1'b1,
-    EnFpAdd:            1'b1,
-    EnFpMul:            1'b1,
-    EnFpMin:            1'b1,
-    EnFpMax:            1'b1,
-    EnIntAdd:            1'b1,
-    EnIntMul:            1'b1,
-    EnIntMinS:          1'b1,
-    EnIntMinU:          1'b1,
-    EnIntMaxS:          1'b1,
-    EnIntMaxU:          1'b1
+    EnNarrowMulticast:    1'b1,
+    EnWideMulticast:      1'b1,
+    EnLsbAnd:             1'b1,
+    EnNarrowSeqReduction: 1'b1,
+    EnWideSeqReduction:   1'b1
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t MulticastOpCfg = '{
-    EnNarrowMulticast:  1'b1,
-    EnWideMulticast:    1'b1,
-    EnLsbAnd:           1'b0,
-    EnFpAdd:            1'b0,
-    EnFpMul:            1'b0,
-    EnFpMin:            1'b0,
-    EnFpMax:            1'b0,
-    default:            '0
+    EnNarrowMulticast:    1'b1,
+    EnWideMulticast:      1'b1,
+    EnLsbAnd:             1'b0,
+    EnNarrowSeqReduction: 1'b0,
+    EnWideSeqReduction:   1'b0
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t ParallelOpCfg = '{
-    EnNarrowMulticast:  1'b1,
-    EnWideMulticast:    1'b1,
-    EnLsbAnd:           1'b1,
-    EnFpAdd:            1'b0,
-    EnFpMul:            1'b0,
-    EnFpMin:            1'b0,
-    EnFpMax:            1'b0,
-    default:            '0
+    EnNarrowMulticast:    1'b1,
+    EnWideMulticast:      1'b1,
+    EnLsbAnd:             1'b1,
+    EnNarrowSeqReduction: 1'b0,
+    EnWideSeqReduction:   1'b0
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t NarrSequentialOpCfg = '{
-    EnNarrowMulticast:  1'b1,
-    EnWideMulticast:    1'b1,
-    EnLsbAnd:           1'b1,
-    EnFpAdd:            1'b0,
-    EnFpMul:            1'b0,
-    EnFpMin:            1'b0,
-    EnFpMax:            1'b0,
-    EnIntAdd:            1'b1,
-    EnIntMul:            1'b1,
-    EnIntMinS:          1'b1,
-    EnIntMinU:          1'b1,
-    EnIntMaxS:          1'b1,
-    EnIntMaxU:          1'b1
+    EnNarrowMulticast:    1'b1,
+    EnWideMulticast:      1'b1,
+    EnLsbAnd:             1'b1,
+    EnNarrowSeqReduction: 1'b1,
+    EnWideSeqReduction:   1'b0
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t WideSequentialOpCfg = '{
-    EnNarrowMulticast:  1'b1,
-    EnWideMulticast:    1'b1,
-    EnLsbAnd:           1'b1,
-    EnFpAdd:            1'b1,
-    EnFpMul:            1'b1,
-    EnFpMin:            1'b1,
-    EnFpMax:            1'b1,
-    EnIntAdd:            1'b1,
-    EnIntMul:            1'b1,
-    EnIntMinS:          1'b1,
-    EnIntMinU:          1'b1,
-    EnIntMaxS:          1'b1,
-    EnIntMaxU:          1'b1
+    EnNarrowMulticast:    1'b1,
+    EnWideMulticast:      1'b1,
+    EnLsbAnd:             1'b1,
+    EnNarrowSeqReduction: 1'b1,
+    EnWideSeqReduction:   1'b1
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t CollectOpCfgList [6] = '{
@@ -284,7 +262,7 @@ package floo_synth_collective_pkg;
   typedef logic[AxiCfgW.DataWidth-1:0] RdDataWide_t;
   typedef logic[AxiCfgN.DataWidth-1:0] RdDataNarrow_t;
 
-  `FLOO_TYPEDEF_HDR_T(hdr_coll_t, id_t, id_t, nw_ch_e, rob_idx_t, id_t, collect_op_e)
+  `FLOO_TYPEDEF_HDR_T(hdr_coll_t, id_t, id_t, nw_ch_e, rob_idx_t, id_t, collect_op_t)
 
   // Collective SAM types — names and field types match the generated floo_*_noc_pkg
   typedef struct packed {
@@ -309,13 +287,13 @@ package floo_synth_collective_pkg;
 
   typedef struct packed {
     user_mask_t                 collective_mask;
-    floo_pkg::collect_op_e      collective_op;
+    collect_op_t                collective_op;
     logic [AtomicIdWidth-1:0]   atomic;
   } collective_narrow_user_t;
 
   typedef struct packed {
     user_mask_t             collective_mask;
-    floo_pkg::collect_op_e  collective_op;
+    collect_op_t            collective_op;
   } collective_wide_user_t;
 
   localparam floo_pkg::route_cfg_t CollectRouteCfg = '{

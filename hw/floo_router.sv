@@ -8,6 +8,7 @@
 
 `include "common_cells/assertions.svh"
 `include "common_cells/registers.svh"
+`include "floo_noc/typedef.svh"
 
 /// A simple router with configurable number of ports, physical and virtual channels, and input/output buffers
 module floo_router
@@ -51,6 +52,8 @@ module floo_router
   parameter type         addr_rule_t          = logic,
   parameter type         flit_t               = logic,
   parameter type         hdr_t                = logic,
+  /// Collective opcode type
+  parameter type         collect_op_t         = logic,
   /// Offload reduction  interface
   parameter type red_req_t                     = logic,
   parameter type red_rsp_t                     = logic
@@ -78,6 +81,8 @@ module floo_router
 );
 
   // TODO MICHAERO: assert NumPhysChannels <= NumVirtChannels
+
+  `FLOO_COLLECT_OP_HELPERS(collect_op_t)
 
   // Generate some local parameters to understand which type of collective support
   // is required in the specific router instance
@@ -278,6 +283,7 @@ module floo_router
       .hdr_t                      (hdr_t),
       .id_t                       (id_t),
       .reduction_data_t           (RdData_t),
+      .collect_op_t               (collect_op_t),
       .RedCfg                     (RedCfg),
       .AxiCfg                     (AxiCfgOffload)
     ) i_reduction_unit (
@@ -429,6 +435,7 @@ module floo_router
         .flit_t               ( flit_t                    ),
         .hdr_t                ( hdr_t                     ),
         .id_t                 ( id_t                      ),
+        .collect_op_t         ( collect_op_t              ),
         .AxiCfg               ( AxiCfgParallel            )
       ) i_output_arbiter (
         .clk_i,

@@ -53,6 +53,8 @@ module floo_nw_chimney
   parameter type dst_t                                  = id_t,
   /// Header type for the flits
   parameter type hdr_t                                  = logic,
+  /// Collective opcode type
+  parameter type collect_op_t                           = logic,
   /// Rule type for the System Address Map
   /// (only used if `RouteCfg.UseIdTable == 1'b1`)
   parameter type sam_rule_t                             = logic,
@@ -125,6 +127,8 @@ module floo_nw_chimney
 
   import floo_pkg::*;
 
+  `FLOO_COLLECT_OP_HELPERS(collect_op_t)
+
   typedef logic [AxiCfgN.AddrWidth-1:0] axi_addr_t;
   typedef logic [AxiCfgN.InIdWidth-1:0] axi_narrow_in_id_t;
   typedef logic [AxiCfgN.OutIdWidth-1:0] axi_narrow_out_id_t;
@@ -166,8 +170,8 @@ module floo_nw_chimney
   axi_wide_req_t axi_wide_req_in;
   axi_wide_rsp_t axi_wide_rsp_out;
   user_mask_t axi_narrow_req_in_mask, axi_wide_req_in_mask;
-  floo_pkg::collect_op_e axi_narrow_req_in_red_op;
-  floo_pkg::collect_op_e axi_wide_req_in_red_op;
+  collect_op_t axi_narrow_req_in_red_op;
+  collect_op_t axi_wide_req_in_red_op;
 
   // AX queue
   axi_narrow_aw_chan_t axi_narrow_aw_queue;
@@ -179,8 +183,8 @@ module floo_nw_chimney
   logic axi_wide_aw_queue_valid_out, axi_wide_aw_queue_ready_in;
   logic axi_wide_ar_queue_valid_out, axi_wide_ar_queue_ready_in;
   user_mask_t axi_narrow_mask_queue, axi_wide_mask_queue;
-  floo_pkg::collect_op_e axi_narrow_red_op_queue;
-  floo_pkg::collect_op_e axi_wide_red_op_queue;
+  collect_op_t axi_narrow_red_op_queue;
+  collect_op_t axi_wide_red_op_queue;
 
   // AXI req/rsp arbiter
   floo_req_chan_t [WideAr:NarrowAw] floo_req_arb_in;
@@ -330,10 +334,10 @@ module floo_nw_chimney
       user_narrow_struct_t user;
       assign user = axi_narrow_in_req_i.aw.user;
       assign axi_narrow_req_in_mask = user.collective_mask;
-      assign axi_narrow_req_in_red_op = user.collective_op;
+      assign axi_narrow_req_in_red_op = collect_op_t'(user.collective_op);
     end else begin : gen_no_narrow_collective_info
       assign axi_narrow_req_in_mask = '0;
-      assign axi_narrow_req_in_red_op = floo_pkg::collect_op_e'('0);
+      assign axi_narrow_req_in_red_op = '0;
     end
 
     if (ChimneyCfgN.CutAx) begin : gen_ax_cuts
@@ -380,7 +384,7 @@ module floo_nw_chimney
           .ready_i  ( axi_narrow_aw_queue_ready_in )
         );
         cc_spill_register #(
-          .data_t (floo_pkg::collect_op_e)
+          .data_t (collect_op_t)
         ) i_coll_operation_queue (
           .clk_i,
           .rst_ni,
@@ -394,7 +398,7 @@ module floo_nw_chimney
         );
       end else begin : gen_no_collective_cuts
         assign axi_narrow_mask_queue = '0;
-        assign axi_narrow_red_op_queue = floo_pkg::collect_op_e'('0);
+        assign axi_narrow_red_op_queue = '0;
       end
     end else begin : gen_ax_no_cuts
       assign axi_narrow_aw_queue = axi_narrow_req_in.aw;
@@ -425,7 +429,7 @@ module floo_nw_chimney
     assign axi_narrow_aw_queue_valid_out = 1'b0;
     assign axi_narrow_ar_queue_valid_out = 1'b0;
     assign axi_narrow_mask_queue = '0;
-    assign axi_narrow_red_op_queue = floo_pkg::collect_op_e'('0);
+    assign axi_narrow_red_op_queue = '0;
   end
 
   if (ChimneyCfgW.EnMgrPort) begin : gen_wide_sbr_port
@@ -439,10 +443,10 @@ module floo_nw_chimney
       user_wide_struct_t user;
       assign user = axi_wide_in_req_i.aw.user;
       assign axi_wide_req_in_mask = user.collective_mask;
-      assign axi_wide_req_in_red_op = user.collective_op;
+      assign axi_wide_req_in_red_op = collect_op_t'(user.collective_op);
     end else begin : gen_no_wide_collective_info
       assign axi_wide_req_in_mask = '0;
-      assign axi_wide_req_in_red_op = floo_pkg::collect_op_e'('0);
+      assign axi_wide_req_in_red_op = '0;
     end
 
     if (ChimneyCfgW.CutAx) begin : gen_ax_cuts
@@ -489,7 +493,7 @@ module floo_nw_chimney
           .ready_i  ( axi_wide_aw_queue_ready_in )
         );
         cc_spill_register #(
-          .data_t (floo_pkg::collect_op_e)
+          .data_t (collect_op_t)
         ) i_coll_operation_queue (
           .clk_i,
           .rst_ni,
@@ -503,7 +507,7 @@ module floo_nw_chimney
         );
       end else begin : gen_no_collective_cuts
         assign axi_wide_mask_queue = '0;
-        assign axi_wide_red_op_queue = floo_pkg::collect_op_e'('0);
+        assign axi_wide_red_op_queue = '0;
       end
 
     end else begin : gen_ax_no_cuts
@@ -535,7 +539,7 @@ module floo_nw_chimney
     assign axi_wide_aw_queue_valid_out = 1'b0;
     assign axi_wide_ar_queue_valid_out = 1'b0;
     assign axi_wide_mask_queue = '0;
-    assign axi_wide_red_op_queue = floo_pkg::collect_op_e'('0);
+    assign axi_wide_red_op_queue = '0;
   end
 
   cc_spill_register #(
@@ -966,9 +970,9 @@ module floo_nw_chimney
   id_t [NumNWAxiChannels-1:0] axi_rsp_src_id;
   mask_sel_t [NumNWAxiChannels-1:0] x_mask_sel, y_mask_sel;
 
-  floo_pkg::collect_op_e [NumNWAxiChannels-1:0] red_coll_operation;
-  floo_pkg::collect_op_e red_narrow_coll_operation_q;
-  floo_pkg::collect_op_e red_wide_coll_operation_q;
+  collect_op_t [NumNWAxiChannels-1:0] red_coll_operation;
+  collect_op_t red_narrow_coll_operation_q;
+  collect_op_t red_wide_coll_operation_q;
 
   assign axi_req_addr[NarrowAw] = axi_narrow_aw_queue.addr;
   assign axi_req_addr[NarrowAr] = axi_narrow_ar_queue.addr;
@@ -1106,21 +1110,21 @@ module floo_nw_chimney
 
   // Assign all collective operation (if not supported, they are already tied to zero)
   assign red_coll_operation[NarrowAw] = axi_narrow_red_op_queue;
-  assign red_coll_operation[NarrowAr] = floo_pkg::collect_op_e'('0);
+  assign red_coll_operation[NarrowAr] = '0;
   assign red_coll_operation[WideAw]   = axi_wide_red_op_queue;
-  assign red_coll_operation[WideAr]   = floo_pkg::collect_op_e'('0);
+  assign red_coll_operation[WideAr]   = '0;
   assign red_coll_operation[NarrowW]  = red_narrow_coll_operation_q;
   assign red_coll_operation[WideW]    = red_wide_coll_operation_q;
-  assign red_coll_operation[NarrowR]  = floo_pkg::collect_op_e'('0);
-  assign red_coll_operation[NarrowB]  = floo_pkg::collect_op_e'('0);
-  assign red_coll_operation[WideR]    = floo_pkg::collect_op_e'('0);
-  assign red_coll_operation[WideB]    = floo_pkg::collect_op_e'('0);
+  assign red_coll_operation[NarrowR]  = '0;
+  assign red_coll_operation[NarrowB]  = '0;
+  assign red_coll_operation[WideR]    = '0;
+  assign red_coll_operation[WideB]    = '0;
 
   // Store the collective operation to be used for the incoming W beat!
   `FFL(red_narrow_coll_operation_q, axi_narrow_red_op_queue,
-      axi_narrow_aw_queue_valid_out && axi_narrow_aw_queue_ready_in, floo_pkg::collect_op_e'('0))
+      axi_narrow_aw_queue_valid_out && axi_narrow_aw_queue_ready_in, '0)
   `FFL(red_wide_coll_operation_q, axi_wide_red_op_queue,
-      axi_wide_aw_queue_valid_out && axi_wide_aw_queue_ready_in, floo_pkg::collect_op_e'('0))
+      axi_wide_aw_queue_valid_out && axi_wide_aw_queue_ready_in, '0)
 
   ///////////////////
   // FLIT PACKING  //
@@ -1174,7 +1178,7 @@ module floo_nw_chimney
     floo_narrow_ar.hdr.last            = 1'b1;
     floo_narrow_ar.hdr.axi_ch          = NarrowAr;
     floo_narrow_ar.payload             = axi_narrow_ar_queue;
-    floo_narrow_ar.hdr.collective_op   = floo_pkg::collect_op_e'('0);
+    floo_narrow_ar.hdr.collective_op   = '0;
   end
 
   always_comb begin
@@ -1193,11 +1197,11 @@ module floo_nw_chimney
     // The AXI slave on the chimney should not be aware of a reduction / multicast!
     // Multicast --> Collect the B responses in a parallel reduction
     // Reduction --> Multicast the B response to all members
-    floo_narrow_b.hdr.collective_op  = floo_pkg::collect_op_e'('0);
+    floo_narrow_b.hdr.collective_op  = '0;
     if(en_narrow_collective(CollectOpCfg)) begin: gen_nar_b_coll
-      if(is_multicast_op(collect_op_e'(narrow_aw_buf_hdr_out.hdr.collective_op))) begin: gen_nar_red_rsp
+      if(is_multicast_op(narrow_aw_buf_hdr_out.hdr.collective_op)) begin: gen_nar_red_rsp
         floo_narrow_b.hdr.collective_op = CollectB;
-      end else if(is_reduction_op(collect_op_e'(narrow_aw_buf_hdr_out.hdr.collective_op))) begin: gen_nar_mcast
+      end else if(is_reduction_op(narrow_aw_buf_hdr_out.hdr.collective_op)) begin: gen_nar_mcast
         floo_narrow_b.hdr.collective_op = Multicast;
       end
     end
@@ -1215,7 +1219,7 @@ module floo_nw_chimney
     floo_narrow_r.hdr.atop            = narrow_ar_buf_hdr_out.hdr.atop;
     floo_narrow_r.payload             = axi_narrow_meta_buf_rsp_out.r;
     floo_narrow_r.payload.id          = narrow_ar_buf_hdr_out.id;
-    floo_narrow_r.hdr.collective_op   = floo_pkg::collect_op_e'('0);
+    floo_narrow_r.hdr.collective_op   = '0;
   end
 
   always_comb begin
@@ -1265,7 +1269,7 @@ module floo_nw_chimney
     floo_wide_ar.hdr.last            = 1'b1;
     floo_wide_ar.hdr.axi_ch          = WideAr;
     floo_wide_ar.payload             = axi_wide_ar_queue;
-    floo_wide_ar.hdr.collective_op   = floo_pkg::collect_op_e'('0);
+    floo_wide_ar.hdr.collective_op   = '0;
   end
 
   always_comb begin
@@ -1286,9 +1290,9 @@ module floo_nw_chimney
     // Reduction --> Multicast the B response to all members
     floo_wide_b.hdr.collective_op  = Unicast;
     if(en_wide_collective(CollectOpCfg)) begin: gen_wide_b_coll
-      if(is_multicast_op(collect_op_e'(wide_aw_buf_hdr_out.hdr.collective_op))) begin: gen_wide_red_rsp
+      if(is_multicast_op(wide_aw_buf_hdr_out.hdr.collective_op)) begin: gen_wide_red_rsp
         floo_wide_b.hdr.collective_op = CollectB;
-      end else if(is_reduction_op(collect_op_e'(wide_aw_buf_hdr_out.hdr.collective_op))) begin: gen_wide_mcast
+      end else if(is_reduction_op(wide_aw_buf_hdr_out.hdr.collective_op)) begin: gen_wide_mcast
         floo_wide_b.hdr.collective_op = Multicast;
       end
     end
@@ -1305,7 +1309,7 @@ module floo_nw_chimney
     floo_wide_r.hdr.last             = 1'b1; // No reason to do wormhole routing for R bursts
     floo_wide_r.payload              = axi_wide_meta_buf_rsp_out.r;
     floo_wide_r.payload.id           = wide_ar_buf_hdr_out.id;
-    floo_wide_r.hdr.collective_op    = floo_pkg::collect_op_e'('0);
+    floo_wide_r.hdr.collective_op    = '0;
   end
 
   always_comb begin

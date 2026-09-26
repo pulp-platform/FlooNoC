@@ -49,6 +49,8 @@ module floo_nw_router
   parameter type id_t                               = logic,
   /// Header type
   parameter type hdr_t                              = logic,
+  /// Collective opcode type
+  parameter type collect_op_t                       = logic,
   /// Number of rules in the route table
   /// (only used for `RouteAlgo == IdTable`)
   parameter int unsigned NumAddrRules               = 0,
@@ -189,6 +191,7 @@ module floo_nw_router
     .NumAddrRules         ( NumAddrRules              ),
     .NoLoopback           ( NoLoopback                ),
     .CollectiveCfg        ( CollectiveReqCfg          ),
+    .collect_op_t         ( collect_op_t              ),
     .RedCfg               ( CollectiveCfg.NarrRedCfg  ),
     .AxiCfgOffload        ( AxiCfgN                   ),
     .AxiCfgParallel       ( AxiCfgN                   ),
@@ -228,6 +231,7 @@ module floo_nw_router
     .NumAddrRules         ( NumAddrRules            ),
     .NoLoopback           ( NoLoopback              ),
     .CollectiveCfg        ( CollectiveRspCfg        ),
+    .collect_op_t         ( collect_op_t            ),
     .AxiCfgOffload        ( '0                      ),
     .AxiCfgParallel       ( AxiCfgN                 ),
     .id_t                 ( id_t                    ),
@@ -269,6 +273,7 @@ module floo_nw_router
       .NoLoopback           ( NoLoopback                ),
       .VcImpl               ( VcImpl                    ),
       .CollectiveCfg        ( CollectiveWideCfg         ),
+      .collect_op_t         ( collect_op_t              ),
       .RedCfg               ( CollectiveCfg.WideRedCfg  ),
       .AxiCfgOffload        ( AxiCfgW                   ),
       .AxiCfgParallel       ( '0                        ),
@@ -336,6 +341,7 @@ module floo_nw_router
       .NoLoopback           ( NoLoopback                ),
       .VcImpl               ( VcImpl                    ),
       .CollectiveCfg        ( CollectiveWideCfg         ),
+      .collect_op_t         ( collect_op_t              ),
       .RedCfg               ( CollectiveCfg.WideRedCfg  ),
       .AxiCfgOffload        ( AxiCfgW                   ),
       .AxiCfgParallel       ( '0                        ),
@@ -375,6 +381,7 @@ module floo_nw_router
       .NoLoopback           ( NoLoopback                ),
       .VcImpl               ( VcImpl                    ),
       .CollectiveCfg        ( '0                        ),
+      .collect_op_t         ( collect_op_t              ),
       .AxiCfgOffload        ( '0                        ),
       .AxiCfgParallel       ( '0                        ),
       .id_t                 ( id_t                      ),

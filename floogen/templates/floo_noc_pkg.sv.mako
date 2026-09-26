@@ -25,6 +25,10 @@ package floo_${name}_noc_pkg;
   ${noc.render_params()}
 
 % endif
+% if noc.routing.collective.en_collective:
+  ${noc.routing.render_collect_op_params()}
+
+% endif
 % if any(ep.array is not None for ep in noc.endpoints):
   /////////////////////////////
   //   Endpoint Dimensions   //

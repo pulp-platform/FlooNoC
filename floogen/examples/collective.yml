@@ -5,8 +5,8 @@
 # Example: full collective support
 #   - narrow + wide multicast
 #   - barrier (LSB-AND)
-#   - narrow reduction: all integer ops (Add, Mul, MinS, MinU, MaxS, MaxU)
-#   - wide reduction: only Add and Max (selective ops example)
+#   - narrow reduction: 6 ops, custom hw config
+#   - wide reduction: 2 ops, default hw config
 
 name: nw_mesh_collective
 description: "4x4 NW mesh with full collective operation support"
@@ -20,11 +20,10 @@ routing:
     en_wide_multicast: true
     en_barrier: true
     en_narrow_reduction:
-      rd_pipeline_depth: 1   # all integer ops, custom hw config
-    en_wide_reduction:       # selective FP ops, default hw config
-      ops: [Add, Max]
-      rd_pipeline_depth: 5
-      cut_offload_intf: true
+      num_ops: 6
+      rd_pipeline_depth: 1
+    en_wide_reduction:
+      num_ops: 2
   # decouple_rw: Phys
   vc_impl: PREEMPT
 

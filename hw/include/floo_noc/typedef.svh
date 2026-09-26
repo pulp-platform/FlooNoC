@@ -42,7 +42,7 @@
 // - ch_t: Identifier type for the payload
 // - rob_idx_t: Type of the RoB index
 // - mask_t: Type of the mask for collective support
-// - collect_op_t: Type of the collective opcode
+// - collect_op_t: Type of the collective opcode (logic vector)
 //
 // Usage Example:
 // `FLOO_TYPEDEF_XY_NODE_ID_T(id_t, ...)
@@ -50,7 +50,7 @@
 //
 // For `SourceRouting`:
 // `FLOO_TYPEDEF_HDR_T(hdr_t, route_t, id_t, floo_pkg::axi_ch_e, logic)
-`define FLOO_TYPEDEF_HDR_T(hdr_t, dst_t, src_t, ch_t, rob_idx_t, mask_t = logic, collect_op_t = logic)  \
+`define FLOO_TYPEDEF_HDR_T(hdr_t, dst_t, src_t, ch_t, rob_idx_t, mask_t=logic, collect_op_t=logic) \
   typedef struct packed {                                         \
     logic rob_req;                                                \
     rob_idx_t rob_idx;                                            \
@@ -360,14 +360,43 @@
   `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(wide, wide_chan, wide_virt_chan, wide_phys_chan)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+// Collective opcode classifier functions
+//
+// Generates the classifier functions used by the generic routing/reduction RTL. The reserved
+// opcodes are named in `floo_pkg`; every opcode from `NumReservedCollectOps` upwards is an
+// opaque sequential-reduction op, so the functions do not depend on the number of narrow/wide ops.
+//
+// Arguments:
+// - collect_op_t_name: Name of the project collective opcode type (a `logic` vector)
+//
+// Requires `floo_pkg` to be imported in the invoking scope.
+//
+// Usage Example:
+// `FLOO_COLLECT_OP_HELPERS(collect_op_t)
+`define FLOO_COLLECT_OP_HELPERS(collect_op_t_name)                                              \
+  function automatic bit is_multicast_op(collect_op_t_name op);                                 \
+    return (op == Multicast);                                                                   \
+  endfunction                                                                                   \
+  function automatic bit is_parallel_reduction_op(collect_op_t_name op);                        \
+    return (op == LsbAnd) || (op == CollectB) || (op == SelectAW);                              \
+  endfunction                                                                                   \
+  function automatic bit is_seq_reduction_op(collect_op_t_name op);                             \
+    return (op == SeqAW) || (op >= NumReservedCollectOps);                                      \
+  endfunction                                                                                   \
+  function automatic bit is_reduction_op(collect_op_t_name op);                                 \
+    return (op == LsbAnd) || (op == SelectAW) || is_seq_reduction_op(op);                       \
+  endfunction
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Reduction offload request channel payload
 //
 // Arguments:
-// - name:       Suffix/prefix used to build the type name
-// - data_t:     Operand data type
-`define FLOO_RED_TYPEDEF_REQ_CHAN_T(name, data_t) \
+// - name:          Suffix/prefix used to build the type name
+// - data_t:        Operand data type
+// - collect_op_t:   Type of the collective opcode (logic vector)
+`define FLOO_RED_TYPEDEF_REQ_CHAN_T(name, data_t, collect_op_t) \
   typedef struct packed {                          \
-    floo_pkg::collect_op_e  op;                                     \
+    collect_op_t  op;                                     \
     data_t   operand1;                               \
     data_t   operand2;                               \
   } red_``name``_req_chan_t;
@@ -413,25 +442,28 @@
 // Convenience macro: define both request and response channel payload types
 //
 // Arguments:
-// - name:   Base name
-// - data_t: Data type (operands + result)
-`define FLOO_RED_TYPEDEF_REQ_RSP_CHAN_ALL(name, data_t) \
-  `FLOO_RED_TYPEDEF_REQ_CHAN_T(name, data_t)            \
+// - name:          Base name
+// - data_t:        Data type (operands + result)
+// - collect_op_t:  Type of the collective opcode (logic vector)
+//                   `` `FLOO_RED_TYPEDEF_REQ_CHAN_T ``
+`define FLOO_RED_TYPEDEF_REQ_RSP_CHAN_ALL(name, data_t, collect_op_t) \
+  `FLOO_RED_TYPEDEF_REQ_CHAN_T(name, data_t, collect_op_t)            \
   `FLOO_RED_TYPEDEF_RSP_CHAN_T(name, data_t)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Convenience macro: define payload types AND ready/valid links
 //
 // Arguments:
-// - name:     Base name for the payload types
-// - data_t:   Data type (operands + result)
-// - req_link: Base name for the request link type
-// - rsp_link: Base name for the response link type
+// - name:          Base name for the payload types
+// - data_t:        Data type (operands + result)
+// - req_link:      Base name for the request link type
+// - rsp_link:      Base name for the response link type
+// - collect_op_t:  Type of the collective opcode (logic vector)
 //
 // Example:
-// `FLOO_RED_TYPEDEF_REQ_RSP_LINK_ALL(wide, data_t, wide_req, wide_rsp)
-`define FLOO_RED_TYPEDEF_REQ_RSP_LINK(name, data_t, req_link, rsp_link) \
-  `FLOO_RED_TYPEDEF_REQ_RSP_CHAN_ALL(name, data_t)                          \
+// `FLOO_RED_TYPEDEF_REQ_RSP_LINK(wide, data_t, wide_req, wide_rsp, collect_op_t)
+`define FLOO_RED_TYPEDEF_REQ_RSP_LINK(name, data_t, req_link, rsp_link, collect_op_t) \
+  `FLOO_RED_TYPEDEF_REQ_RSP_CHAN_ALL(name, data_t, collect_op_t)                          \
   `FLOO_RED_TYPEDEF_REQ_LINK_T(req_link, name)                                    \
   `FLOO_RED_TYPEDEF_RSP_LINK_T(rsp_link, name)
 

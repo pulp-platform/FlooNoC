@@ -88,14 +88,17 @@ package floo_alu_pkg;
 endpackage
 
 // Wrapper incl. decoder for the ALU
-module floo_reduction_alu import floo_pkg::*; #() (
+module floo_reduction_alu import floo_pkg::*; #(
+  parameter type          collect_op_t     = logic,
+  parameter int unsigned  FirstNarrowSeqOp = 0
+) (
   input  logic              clk_i,
   input  logic              rst_ni,
   input  logic              flush_i,
   /// IF towards external FPU
   input  logic[63:0]        alu_req_op1_i,
   input  logic[63:0]        alu_req_op2_i,
-  input  collect_op_e       alu_req_type_i,
+  input  collect_op_t       alu_req_type_i,
   input  logic              alu_req_valid_i,
   output logic              alu_req_ready_o,
   /// IF from external ALU
@@ -125,6 +128,17 @@ module floo_reduction_alu import floo_pkg::*; #() (
   alu_in_t alu_in;
   alu_out_t alu_out;
 
+  // Zero-based narrow-seq-op IDs (unsupported today).
+  localparam int unsigned IntAddId  = 0;
+  localparam int unsigned IntMulId  = 1;
+  localparam int unsigned IntMinSId = 2;
+  localparam int unsigned IntMinUId = 3;
+  localparam int unsigned IntMaxSId = 4;
+  localparam int unsigned IntMaxUId = 5;
+
+  logic [$bits(collect_op_t)-1:0] narrow_op_id;
+  assign narrow_op_id = alu_req_type_i - FirstNarrowSeqOp;
+
   /* Module Declaration */
 
   // Parse the ALU request
@@ -138,28 +152,28 @@ module floo_reduction_alu import floo_pkg::*; #() (
     alu_in.operands[1] = alu_req_op2_i;
 
     // Define the operation we want to execute on the FPU
-    unique casez (alu_req_type_i)
-      (floo_pkg::IntAdd) : begin
+    unique casez (narrow_op_id)
+      (IntAddId) : begin
         alu_in.op = floo_alu_pkg::ADD;
         alu_in.fmt = floo_alu_pkg::INT32;
       end
-      (floo_pkg::IntMul) : begin
+      (IntMulId) : begin
         alu_in.op = floo_alu_pkg::MUL;
         alu_in.fmt = floo_alu_pkg::INT32;
       end
-      (floo_pkg::IntMinS) : begin
+      (IntMinSId) : begin
         alu_in.op = floo_alu_pkg::MIN;
         alu_in.fmt = floo_alu_pkg::INT32;
       end
-      (floo_pkg::IntMinU) : begin
+      (IntMinUId) : begin
         alu_in.op = floo_alu_pkg::MIN;
         alu_in.fmt = floo_alu_pkg::UINT32;
       end
-      (floo_pkg::IntMaxS) : begin
+      (IntMaxSId) : begin
         alu_in.op = floo_alu_pkg::MAX;
         alu_in.fmt = floo_alu_pkg::INT32;
       end
-      (floo_pkg::IntMaxU) : begin
+      (IntMaxUId) : begin
         alu_in.op = floo_alu_pkg::MAX;
         alu_in.fmt = floo_alu_pkg::UINT32;
       end

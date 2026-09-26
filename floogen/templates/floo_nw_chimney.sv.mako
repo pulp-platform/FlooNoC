@@ -20,6 +20,9 @@ floo_nw_chimney  #(
   .ChimneyCfgN(set_ports(ChimneyDefaultCfg, ${bool_to_sv(ni.sbr_narrow_port != None)}, ${bool_to_sv(ni.mgr_narrow_port != None)})),
   .ChimneyCfgW(set_ports(ChimneyDefaultCfg, ${bool_to_sv(ni.sbr_wide_port != None)}, ${bool_to_sv(ni.mgr_wide_port != None)})),
   .RouteCfg(RouteCfg),
+% if noc.routing.collective.en_collective:
+  .collect_op_t(collect_op_t),
+% endif
 % if noc.routing.decouple_rw is not None:
   .WideRwDecouple(WideRwDecouple),
 % endif
