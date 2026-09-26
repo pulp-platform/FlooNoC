@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.9.0] - 2026-09-26
 
 ### Added
 
@@ -17,11 +17,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 ### Changed
 
 #### Hardware
+- Refactor collective support to make the NoC agnostic of the collective operations: chimneys, routers and the reduction units now accept a generic `collect_op_t` parameter type (an opcode vector) instead of the fixed `collect_op_e` enum. Eventaul opcodes are treated transparently by the NoC.
+
 - Add `XYRoutingMirrored` and `YXRoutingMirrored` algorithms to support mixed `req/rsp` algorithms.
 
 - Bump and adapt RTL to latest `common_cells v2.0.0-beta.3` and bump related IPs: `axi`, `axi_riscv_atomics`, `idma` and `FPnew`
 
 #### FlooGen
+- Align collective configuration with the generic `collect_op_t`: reductions are now configured with a required `num_ops` count, and the generated package emits `NumNarrowSeqOps`, `NumWideSeqOps`, `NumCollectOps` and `collect_op_t`, which is passed to chimneys and routers at the system level.
 - Add mixed `req/rsp` algorithm support.
 - Unknown keys in the `protocols` section are now rejected instead of silently ignored, so a misspelled field name reports an error at its line and column rather than falling back to the default.
 - Fields that _FlooGen_ derives during elaboration - `sam`, `num_x_bits`, `num_y_bits`, `num_route_bits`, `num_endpoints`, `addr_offset_bits`, `xy_id_offset` and `addr_width` - are no longer accepted under `routing:`. Setting one now reports an error rather than being overwritten or ignored during elaboration.
@@ -29,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Custom templates that test whether `decouple_rw`/`vc_impl` were configured must use `noc.routing.decouple_rw is not None` instead of `"decouple_rw" in noc.routing.model_fields_set`. The generated output is unchanged.
 
 ### Fixed
+- Fixed `floo_reduction_unit`: missing backpressure mechanism to avoid pushing data into full FIFO.
 
 #### FlooGen
 - An `xy_id_offset` given as a plain value (e.g. `xy_id_offset: 5`) was silently discarded, and a misspelled coordinate key (e.g. `X` instead of `x`) silently left that axis at 0. Both are now validation errors, and the `SimpleId` form of `xy_id_offset` is usable again.
