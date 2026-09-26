@@ -590,8 +590,7 @@ module floo_axi_chimney
     floo_axi_aw.hdr.axi_ch  = AxiAw;
     floo_axi_aw.hdr.atop    = axi_aw_queue.atop != axi_pkg::ATOP_NONE;
     floo_axi_aw.payload     = axi_aw_queue;
-    floo_axi_aw.hdr.collective_op = (mcast_mask[AxiAw] != '0) ?
-                              Multicast : Unicast;
+    floo_axi_aw.hdr.collective_op = (mcast_mask[AxiAw] != '0) ? Multicast : Unicast;
   end
 
   always_comb begin
@@ -604,8 +603,7 @@ module floo_axi_chimney
     floo_axi_w.hdr.last     = axi_req_in.w.last;
     floo_axi_w.hdr.axi_ch   = AxiW;
     floo_axi_w.payload      = axi_req_in.w;
-    floo_axi_w.hdr.collective_op = (mcast_mask[AxiW] != '0) ?
-                              Multicast : Unicast;
+    floo_axi_w.hdr.collective_op = (mcast_mask[AxiW] != '0) ? Multicast : Unicast;
   end
 
   always_comb begin

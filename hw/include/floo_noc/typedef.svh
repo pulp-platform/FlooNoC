@@ -393,7 +393,7 @@
 // Arguments:
 // - name:          Suffix/prefix used to build the type name
 // - data_t:        Operand data type
-// - collect_op_t:  List of collective opcodes
+// - collect_op_t:   Type of the collective opcode (logic vector)
 `define FLOO_RED_TYPEDEF_REQ_CHAN_T(name, data_t, collect_op_t) \
   typedef struct packed {                          \
     collect_op_t  op;                                     \
@@ -444,7 +444,7 @@
 // Arguments:
 // - name:          Base name
 // - data_t:        Data type (operands + result)
-// - collect_op_t:  The wide `collect_op_t`, forwarded to FU
+// - collect_op_t:  Type of the collective opcode (logic vector)
 //                   `` `FLOO_RED_TYPEDEF_REQ_CHAN_T ``
 `define FLOO_RED_TYPEDEF_REQ_RSP_CHAN_ALL(name, data_t, collect_op_t) \
   `FLOO_RED_TYPEDEF_REQ_CHAN_T(name, data_t, collect_op_t)            \
@@ -458,7 +458,7 @@
 // - data_t:        Data type (operands + result)
 // - req_link:      Base name for the request link type
 // - rsp_link:      Base name for the response link type
-// - collect_op_t:  List of collective opcodes
+// - collect_op_t:  Type of the collective opcode (logic vector)
 //
 // Example:
 // `FLOO_RED_TYPEDEF_REQ_RSP_LINK(wide, data_t, wide_req, wide_rsp, collect_op_t)

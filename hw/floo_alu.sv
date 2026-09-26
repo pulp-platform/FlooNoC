@@ -128,9 +128,7 @@ module floo_reduction_alu import floo_pkg::*; #(
   alu_in_t alu_in;
   alu_out_t alu_out;
 
-  // Zero-based narrow-seq-op IDs (unused/dead code today -- see
-  // plans/floonoc-op-agnostic-plan.md, Gwaihir repo -- kept compiling and behavior-preserving
-  // in case this module is ever instantiated in the future).
+  // Zero-based narrow-seq-op IDs (unsupported today).
   localparam int unsigned IntAddId  = 0;
   localparam int unsigned IntMulId  = 1;
   localparam int unsigned IntMinSId = 2;

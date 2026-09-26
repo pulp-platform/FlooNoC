@@ -231,7 +231,7 @@ module floo_nw_router
     .NumAddrRules         ( NumAddrRules            ),
     .NoLoopback           ( NoLoopback              ),
     .CollectiveCfg        ( CollectiveRspCfg        ),
-    .collect_op_t         ( collect_op_t              ),
+    .collect_op_t         ( collect_op_t            ),
     .AxiCfgOffload        ( '0                      ),
     .AxiCfgParallel       ( AxiCfgN                 ),
     .id_t                 ( id_t                    ),
