@@ -14,9 +14,9 @@
 # file, e.g. when checking out an older pull request.
 #
 # The same hooks run on every pull request, see `.github/workflows/lint.yml`.
-# `ruff`, `ty`, `reuse`, `typos` and `pytest` run as local hooks through `uv` so
-# that their versions come from `uv.lock` instead of a second, independently
-# pinned copy. Upstream `pre-commit` can run this configuration too, but it will
+# `ruff`, `ty`, `astli`, `reuse`, `typos` and `pytest` run as local hooks
+# through `uv` so that their versions come from `uv.lock` instead of a second,
+# independently pinned copy. Upstream `pre-commit` can run this configuration too, but it will
 # not have `prek`'s native hook implementations.
 
 # `pd` is a placeholder that `make init-pd` replaces with the (closed-source)
@@ -72,6 +72,13 @@ repos:
         types_or: [python, pyi]
         pass_filenames: false
         stages: [pre-push]
+      - id: astli-fmt
+        name: astli fmt
+        entry: uv run astli fmt --write
+        language: system
+        types_or: [system-verilog, verilog]
+        # `astli` formats files in parallel itself.
+        require_serial: true
       - id: reuse-lint-file
         name: reuse lint-file
         entry: uv run reuse lint-file
