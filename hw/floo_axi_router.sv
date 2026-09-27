@@ -10,38 +10,40 @@
 /// Wrapper of a multi-link router for single-AXI links
 module floo_axi_router #(
   /// Config of the AXI interfaces (see floo_pkg::axi_cfg_t for details)
-  parameter floo_pkg::axi_cfg_t    AxiCfg       = '0,
+  parameter floo_pkg::axi_cfg_t    AxiCfg    = '0,
   /// Routing algorithm
-  parameter floo_pkg::route_algo_e RouteAlgo    = floo_pkg::XYRouting,
+  parameter floo_pkg::route_algo_e RouteAlgo = floo_pkg::XYRouting,
+
   /// Number of input/output ports
-  parameter int unsigned           NumRoutes    = 0,
+  parameter int unsigned NumRoutes    = 0,
   /// Number of input ports
-  parameter int unsigned           NumInputs    = NumRoutes,
+  parameter int unsigned NumInputs    = NumRoutes,
   /// Number of output ports
-  parameter int unsigned           NumOutputs   = NumRoutes,
+  parameter int unsigned NumOutputs   = NumRoutes,
   /// Input buffer depth
-  parameter int unsigned           InFifoDepth  = 0,
+  parameter int unsigned InFifoDepth  = 0,
   /// Output buffer depth
-  parameter int unsigned           OutFifoDepth = 0,
+  parameter int unsigned OutFifoDepth = 0,
   /// Disable illegal connections in router
   /// (only applies for `RouteAlgo == XYRouting`)
   parameter bit          XYRouteOpt   = 1'b1,
-  /// Node ID type
-  parameter type         id_t         = logic,
-  /// Header type
-  parameter type         hdr_t        = logic,
-  /// Collective opcode type
-  parameter type         collect_op_t = logic,
   /// Number of rules in the route table
   /// (only used for `RouteAlgo == IdTable`)
   parameter int unsigned NumAddrRules = 0,
+
+  /// Node ID type
+  parameter type id_t         = logic,
+  /// Header type
+  parameter type hdr_t        = logic,
+  /// Collective opcode type
+  parameter type collect_op_t = logic,
   /// Address rule type
   /// (only used for `RouteAlgo == IdTable`)
-  parameter type         addr_rule_t  = logic,
+  parameter type addr_rule_t  = logic,
   /// Floo `req` link type
-  parameter type         floo_req_t   = logic,
+  parameter type floo_req_t   = logic,
   /// Floo `rsp` link type
-  parameter type         floo_rsp_t   = logic
+  parameter type floo_rsp_t   = logic
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -74,10 +76,11 @@ module floo_axi_router #(
   floo_rsp_chan_t [NumInputs-1:0]  rsp_out;
   floo_req_chan_t [NumOutputs-1:0] req_out;
   floo_rsp_chan_t [NumOutputs-1:0] rsp_in;
-  logic [NumInputs-1:0]            req_valid_in, req_ready_out;
-  logic [NumInputs-1:0]            rsp_valid_out, rsp_ready_in;
-  logic [NumOutputs-1:0]           req_valid_out, req_ready_in;
-  logic [NumOutputs-1:0]           rsp_valid_in, rsp_ready_out;
+
+  logic [NumInputs-1:0]  req_valid_in, req_ready_out;
+  logic [NumInputs-1:0]  rsp_valid_out, rsp_ready_in;
+  logic [NumOutputs-1:0] req_valid_out, req_ready_in;
+  logic [NumOutputs-1:0] rsp_valid_in, rsp_ready_out;
 
   for (genvar i = 0; i < NumInputs; i++) begin : gen_chimney_req
     assign req_valid_in[i]     = floo_req_i[i].valid;

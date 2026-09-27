@@ -28,26 +28,27 @@ module floo_axi_chimney
   /// Every atomic transactions needs to have a unique ID
   /// and one ID is reserved for non-atomic transactions
   parameter int unsigned MaxAtomicTxns = 1,
+
   /// Node ID type for routing
-  parameter type         id_t          = logic,
+  parameter type id_t         = logic,
   /// RoB index type for reordering.
   // (can be ignored if `RoBType == NoRoB`)
-  parameter type         rob_idx_t     = logic,
+  parameter type rob_idx_t    = logic,
   /// Route type for source-based routing
   /// (only used if `RouteCfg.RouteAlgo == SourceRouting`)
-  parameter type         route_t       = logic,
+  parameter type route_t      = logic,
   /// Destination ID type for routing
   /// The destination ID type is usually the same as the node ID type,
   /// except for the case of source-based routing, where the destination
   /// ID is the actual route to the destination i.e. `route_t`
-  parameter type         dst_t         = id_t,
+  parameter type dst_t        = id_t,
   /// Header type for the flits
-  parameter type         hdr_t         = logic,
+  parameter type hdr_t        = logic,
   /// Collective opcode type
-  parameter type         collect_op_t  = logic,
+  parameter type collect_op_t = logic,
   /// Rule type for the System Address Map
   /// (only used if `RouteCfg.UseIdTable == 1'b1`)
-  parameter type         sam_rule_t    = logic,
+  parameter type sam_rule_t   = logic,
   /// The System Address Map (SAM) rules
   /// (only used if `RouteCfg.UseIdTable == 1'b1`)
   parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam = '0,
@@ -79,9 +80,10 @@ module floo_axi_chimney
   /// The `mask` field will not be transported over the NoC, while the `user` field will be.
   parameter type user_struct_t = logic
 ) (
-  input  logic         clk_i,
-  input  logic         rst_ni,
-  input  logic         test_enable_i,
+  input logic clk_i,
+  input logic rst_ni,
+  input logic test_enable_i,
+
   /// SRAM configuration
   input  sram_cfg_t    sram_cfg_i,
   /// AXI4 side interfaces
@@ -586,12 +588,12 @@ module floo_axi_chimney
     floo_axi_aw.hdr.rob_req = aw_rob_req_out;
     floo_axi_aw.hdr.rob_idx = aw_rob_idx_out;
     floo_axi_aw.hdr.dst_id  = dst_id[AxiAw];
+    floo_axi_aw.hdr.src_id  = id_i;
+    floo_axi_aw.hdr.last    = 1'b0;
+    floo_axi_aw.hdr.axi_ch  = AxiAw;
+    floo_axi_aw.hdr.atop    = axi_aw_queue.atop != axi_pkg::ATOP_NONE;
+    floo_axi_aw.payload     = axi_aw_queue;
     floo_axi_aw.hdr.collective_mask = mcast_mask[AxiAw];
-    floo_axi_aw.hdr.src_id          = id_i;
-    floo_axi_aw.hdr.last            = 1'b0;
-    floo_axi_aw.hdr.axi_ch          = AxiAw;
-    floo_axi_aw.hdr.atop            = axi_aw_queue.atop != axi_pkg::ATOP_NONE;
-    floo_axi_aw.payload             = axi_aw_queue;
     floo_axi_aw.hdr.collective_op   = (mcast_mask[AxiAw] != '0) ? Multicast : Unicast;
   end
 
@@ -600,11 +602,11 @@ module floo_axi_chimney
     floo_axi_w.hdr.rob_req = aw_rob_req_out;
     floo_axi_w.hdr.rob_idx = aw_rob_idx_out;
     floo_axi_w.hdr.dst_id  = dst_id[AxiW];
+    floo_axi_w.hdr.src_id  = id_i;
+    floo_axi_w.hdr.last    = axi_req_in.w.last;
+    floo_axi_w.hdr.axi_ch  = AxiW;
+    floo_axi_w.payload     = axi_req_in.w;
     floo_axi_w.hdr.collective_mask = mcast_mask[AxiW];
-    floo_axi_w.hdr.src_id          = id_i;
-    floo_axi_w.hdr.last            = axi_req_in.w.last;
-    floo_axi_w.hdr.axi_ch          = AxiW;
-    floo_axi_w.payload             = axi_req_in.w;
     floo_axi_w.hdr.collective_op   = (mcast_mask[AxiW] != '0) ? Multicast : Unicast;
   end
 
@@ -613,11 +615,11 @@ module floo_axi_chimney
     floo_axi_ar.hdr.rob_req = ar_rob_req_out;
     floo_axi_ar.hdr.rob_idx = ar_rob_idx_out;
     floo_axi_ar.hdr.dst_id  = dst_id[AxiAr];
+    floo_axi_ar.hdr.src_id  = id_i;
+    floo_axi_ar.hdr.last    = 1'b1;
+    floo_axi_ar.hdr.axi_ch  = AxiAr;
+    floo_axi_ar.payload     = axi_ar_queue;
     floo_axi_ar.hdr.collective_mask = mcast_mask[AxiAr];
-    floo_axi_ar.hdr.src_id          = id_i;
-    floo_axi_ar.hdr.last            = 1'b1;
-    floo_axi_ar.hdr.axi_ch          = AxiAr;
-    floo_axi_ar.payload             = axi_ar_queue;
     floo_axi_ar.hdr.collective_op   = '0;
   end
 
@@ -626,13 +628,13 @@ module floo_axi_chimney
     floo_axi_b.hdr.rob_req = aw_out_hdr_out.hdr.rob_req;
     floo_axi_b.hdr.rob_idx = aw_out_hdr_out.hdr.rob_idx;
     floo_axi_b.hdr.dst_id  = dst_id[AxiB];
+    floo_axi_b.hdr.src_id  = id_i;
+    floo_axi_b.hdr.last    = 1'b1;
+    floo_axi_b.hdr.axi_ch  = AxiB;
+    floo_axi_b.hdr.atop    = aw_out_hdr_out.hdr.atop;
+    floo_axi_b.payload     = meta_buf_rsp_out.b;
+    floo_axi_b.payload.id  = aw_out_hdr_out.id;
     floo_axi_b.hdr.collective_mask = mcast_mask[AxiB];
-    floo_axi_b.hdr.src_id          = id_i;
-    floo_axi_b.hdr.last            = 1'b1;
-    floo_axi_b.hdr.axi_ch          = AxiB;
-    floo_axi_b.hdr.atop            = aw_out_hdr_out.hdr.atop;
-    floo_axi_b.payload             = meta_buf_rsp_out.b;
-    floo_axi_b.payload.id          = aw_out_hdr_out.id;
     floo_axi_b.hdr.collective_op   = (aw_out_hdr_out.hdr.collective_op == Multicast) ? CollectB :
                                      Unicast;
   end
@@ -642,13 +644,13 @@ module floo_axi_chimney
     floo_axi_r.hdr.rob_req = ar_out_hdr_out.hdr.rob_req;
     floo_axi_r.hdr.rob_idx = ar_out_hdr_out.hdr.rob_idx;
     floo_axi_r.hdr.dst_id  = dst_id[AxiR];
+    floo_axi_r.hdr.src_id  = id_i;
+    floo_axi_r.hdr.last    = 1'b1; // There is no reason to do wormhole routing for R bursts
+    floo_axi_r.hdr.axi_ch  = AxiR;
+    floo_axi_r.hdr.atop    = ar_out_hdr_out.hdr.atop;
+    floo_axi_r.payload     = meta_buf_rsp_out.r;
+    floo_axi_r.payload.id  = ar_out_hdr_out.id;
     floo_axi_r.hdr.collective_mask = mcast_mask[AxiR];
-    floo_axi_r.hdr.src_id          = id_i;
-    floo_axi_r.hdr.last            = 1'b1; // There is no reason to do wormhole routing for R bursts
-    floo_axi_r.hdr.axi_ch          = AxiR;
-    floo_axi_r.hdr.atop            = ar_out_hdr_out.hdr.atop;
-    floo_axi_r.payload             = meta_buf_rsp_out.r;
-    floo_axi_r.payload.id          = ar_out_hdr_out.id;
     floo_axi_r.hdr.collective_op   = '0;
   end
 
