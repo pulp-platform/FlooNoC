@@ -9,25 +9,25 @@ module floo_rob_wrapper
   import floo_pkg::*;
 #(
   /// Type of reorder buffer to use
-  parameter rob_type_e   RoBType = NormalRoB,
+  parameter rob_type_e   RoBType        = NormalRoB,
   /// Maximum number of transactions in flight per ID which *require* reordering
   parameter int unsigned MaxRoTxnsPerId = 32'd32,
   /// If the response only consists of small metadata i.e. B channel
   /// In this case no SRAM will be instantied and the response will be
   /// metadata will be stored in normal FFs
-  parameter bit          OnlyMetaData = 1'b0,
+  parameter bit          OnlyMetaData   = 1'b0,
   /// Size of the reorder buffer
-  parameter int unsigned RoBSize = 32'd64,
+  parameter int unsigned RoBSize        = 32'd64,
   /// Data type of response to be reordered
-  parameter type         ax_len_t   = logic,
-  parameter type         ax_id_t    = logic,
-  parameter type         rsp_chan_t = logic,
-  parameter type         rsp_data_t = logic,
-  parameter type         rsp_meta_t = logic,
-  parameter type         rob_idx_t  = logic,
-  parameter type         dest_t     = logic,
+  parameter type         ax_len_t       = logic,
+  parameter type         ax_id_t        = logic,
+  parameter type         rsp_chan_t     = logic,
+  parameter type         rsp_data_t     = logic,
+  parameter type         rsp_meta_t     = logic,
+  parameter type         rob_idx_t      = logic,
+  parameter type         dest_t         = logic,
   // Type for implementation inputs and outputs
-  parameter type         sram_cfg_t = logic
+  parameter type         sram_cfg_t     = logic
 ) (
   input  logic      clk_i,
   input  logic      rst_ni,
@@ -54,17 +54,17 @@ module floo_rob_wrapper
 
   if (RoBType == NormalRoB) begin : gen_normal_rob
     floo_rob #(
-      .RoBSize        ( RoBSize        ),
-      .MaxRoTxnsPerId ( MaxRoTxnsPerId ),
-      .OnlyMetaData   ( OnlyMetaData   ),
-      .ax_len_t       ( ax_len_t       ),
-      .ax_id_t        ( ax_id_t        ),
-      .rsp_chan_t     ( rsp_chan_t     ),
-      .rsp_data_t     ( rsp_data_t     ),
-      .rsp_meta_t     ( rsp_meta_t     ),
-      .rob_idx_t      ( rob_idx_t      ),
-      .dest_t         ( dest_t         ),
-      .sram_cfg_t     ( sram_cfg_t     )
+      .RoBSize       (RoBSize),
+      .MaxRoTxnsPerId(MaxRoTxnsPerId),
+      .OnlyMetaData  (OnlyMetaData),
+      .ax_len_t      (ax_len_t),
+      .ax_id_t       (ax_id_t),
+      .rsp_chan_t    (rsp_chan_t),
+      .rsp_data_t    (rsp_data_t),
+      .rsp_meta_t    (rsp_meta_t),
+      .rob_idx_t     (rob_idx_t),
+      .dest_t        (dest_t),
+      .sram_cfg_t    (sram_cfg_t)
     ) i_rob (
       .clk_i,
       .rst_ni,
@@ -91,15 +91,15 @@ module floo_rob_wrapper
 
   end else if (RoBType == SimpleRoB) begin : gen_simpl_rob
     floo_simple_rob #(
-      .RoBSize        ( RoBSize       ),
-      .OnlyMetaData   ( OnlyMetaData  ),
-      .ax_len_t       ( ax_len_t      ),
-      .rsp_chan_t     ( rsp_chan_t    ),
-      .rsp_data_t     ( rsp_data_t    ),
-      .rsp_meta_t     ( rsp_meta_t    ),
-      .rob_idx_t      ( rob_idx_t     ),
-      .dest_t         ( dest_t        ),
-      .sram_cfg_t     ( sram_cfg_t    )
+      .RoBSize     (RoBSize),
+      .OnlyMetaData(OnlyMetaData),
+      .ax_len_t    (ax_len_t),
+      .rsp_chan_t  (rsp_chan_t),
+      .rsp_data_t  (rsp_data_t),
+      .rsp_meta_t  (rsp_meta_t),
+      .rob_idx_t   (rob_idx_t),
+      .dest_t      (dest_t),
+      .sram_cfg_t  (sram_cfg_t)
     ) i_rob (
       .clk_i,
       .rst_ni,
@@ -125,12 +125,12 @@ module floo_rob_wrapper
 
   end else if (RoBType == NoRoB) begin : gen_no_rob
 
-    localparam int unsigned AxiIdBits = $bits(ax_id_i);
+    localparam int unsigned AxiIdBits    = $bits(ax_id_i);
     localparam int unsigned CounterWidth = $clog2(MaxRoTxnsPerId);
 
-    logic push, pop;
-    logic counter_full;
-    logic in_flight;
+    logic  push, pop;
+    logic  counter_full;
+    logic  in_flight;
     dest_t prev_dest;
 
     // A new transaction can be pushed if it is the first one
@@ -138,7 +138,7 @@ module floo_rob_wrapper
     // has the same destination
     assign push = ax_valid_i && (!in_flight || ax_dest_i == prev_dest) && !counter_full;
     // Whenever a response arrives we can pop the transaction
-    assign pop = rsp_valid_i && rsp_last_i;
+    assign pop  = rsp_valid_i && rsp_last_i;
 
     assign ax_valid_o = push;
     assign ax_ready_o = push && ax_ready_i;
@@ -148,28 +148,27 @@ module floo_rob_wrapper
 
     assign rsp_ready_o = rsp_ready_i;
     assign rsp_valid_o = rsp_valid_i;
-    assign rsp_o = rsp_i;
-
+    assign rsp_o       = rsp_i;
 
     axi_demux_id_counters #(
-      .AxiIdBits          ( AxiIdBits     ),
-      .CounterWidth       ( CounterWidth  ),
-      .mst_port_select_t  ( dest_t        )
+      .AxiIdBits        (AxiIdBits),
+      .CounterWidth     (CounterWidth),
+      .mst_port_select_t(dest_t)
     ) i_axi_demux_id_counters (
       .clk_i,
       .rst_ni,
-      .lookup_axi_id_i              ( ax_id_i             ),
-      .lookup_mst_select_o          ( prev_dest           ),
-      .lookup_mst_select_occupied_o ( in_flight           ),
-      .full_o                       ( counter_full        ),
-      .push_axi_id_i                ( ax_id_i             ),
-      .push_mst_select_i            ( ax_dest_i           ),
-      .push_i                       ( push && ax_ready_i  ),  // Only push on handshake
-      .inject_axi_id_i              ( '0                  ),
-      .inject_i                     ( 1'b0                ),
-      .pop_axi_id_i                 ( rsp_i.id            ),
-      .pop_i                        ( pop && rsp_ready_i  ), // Only pop on handshake
-      .any_outstanding_trx_o        (                     )
+      .lookup_axi_id_i             (ax_id_i),
+      .lookup_mst_select_o         (prev_dest),
+      .lookup_mst_select_occupied_o(in_flight),
+      .full_o                      (counter_full),
+      .push_axi_id_i               (ax_id_i),
+      .push_mst_select_i           (ax_dest_i),
+      .push_i                      (push && ax_ready_i), // Only push on handshake
+      .inject_axi_id_i             ('0),
+      .inject_i                    (1'b0),
+      .pop_axi_id_i                (rsp_i.id),
+      .pop_i                       (pop && rsp_ready_i), // Only pop on handshake
+      .any_outstanding_trx_o       ()
     );
 
   end else begin : gen_error
