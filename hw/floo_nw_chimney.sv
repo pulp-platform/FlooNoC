@@ -1139,14 +1139,14 @@ module floo_nw_chimney
     floo_narrow_aw.hdr.rob_req = narrow_aw_rob_req_out;
     floo_narrow_aw.hdr.rob_idx = rob_idx_t'(narrow_aw_rob_idx_out);
     floo_narrow_aw.hdr.dst_id  = dst_id[NarrowAw];
+    floo_narrow_aw.hdr.src_id  = id_i;
+    floo_narrow_aw.hdr.last    = 1'b0; // AW and W need to be sent together
+    floo_narrow_aw.hdr.axi_ch  = NarrowAw;
+    floo_narrow_aw.hdr.atop    = axi_narrow_aw_queue.atop != axi_pkg::ATOP_NONE;
+    floo_narrow_aw.payload     = axi_narrow_aw_queue;
     // Make sure that the injected mask is zero when the operation is Unicast
     floo_narrow_aw.hdr.collective_mask = (red_coll_operation[NarrowAw] == Unicast) ? '0 :
                                          collective_mask[NarrowAw];
-    floo_narrow_aw.hdr.src_id          = id_i;
-    floo_narrow_aw.hdr.last            = 1'b0; // AW and W need to be sent together
-    floo_narrow_aw.hdr.axi_ch          = NarrowAw;
-    floo_narrow_aw.hdr.atop            = axi_narrow_aw_queue.atop != axi_pkg::ATOP_NONE;
-    floo_narrow_aw.payload             = axi_narrow_aw_queue;
     // Assign the collective_op and operation to the narrow AW flit
     floo_narrow_aw.hdr.collective_op   = red_coll_operation[NarrowAw];
 
@@ -1162,12 +1162,12 @@ module floo_nw_chimney
     floo_narrow_w.hdr.rob_req = narrow_aw_rob_req_out;
     floo_narrow_w.hdr.rob_idx = rob_idx_t'(narrow_aw_rob_idx_out);
     floo_narrow_w.hdr.dst_id  = dst_id[NarrowW];
+    floo_narrow_w.hdr.src_id  = id_i;
+    floo_narrow_w.hdr.last    = axi_narrow_req_in.w.last;
+    floo_narrow_w.hdr.axi_ch  = NarrowW;
+    floo_narrow_w.payload     = axi_narrow_req_in.w;
     floo_narrow_w.hdr.collective_mask = (red_coll_operation[NarrowW] == Unicast) ? '0 :
                                         collective_mask[NarrowW];
-    floo_narrow_w.hdr.src_id          = id_i;
-    floo_narrow_w.hdr.last            = axi_narrow_req_in.w.last;
-    floo_narrow_w.hdr.axi_ch          = NarrowW;
-    floo_narrow_w.payload             = axi_narrow_req_in.w;
     // Assign the collective_op and operation to the narrow W flit
     floo_narrow_w.hdr.collective_op   = red_coll_operation[NarrowW];
   end
@@ -1177,11 +1177,11 @@ module floo_nw_chimney
     floo_narrow_ar.hdr.rob_req = narrow_ar_rob_req_out;
     floo_narrow_ar.hdr.rob_idx = rob_idx_t'(narrow_ar_rob_idx_out);
     floo_narrow_ar.hdr.dst_id  = dst_id[NarrowAr];
+    floo_narrow_ar.hdr.src_id  = id_i;
+    floo_narrow_ar.hdr.last    = 1'b1;
+    floo_narrow_ar.hdr.axi_ch  = NarrowAr;
+    floo_narrow_ar.payload     = axi_narrow_ar_queue;
     floo_narrow_ar.hdr.collective_mask = collective_mask[NarrowAr];
-    floo_narrow_ar.hdr.src_id          = id_i;
-    floo_narrow_ar.hdr.last            = 1'b1;
-    floo_narrow_ar.hdr.axi_ch          = NarrowAr;
-    floo_narrow_ar.payload             = axi_narrow_ar_queue;
     floo_narrow_ar.hdr.collective_op   = '0;
   end
 
@@ -1190,13 +1190,13 @@ module floo_nw_chimney
     floo_narrow_b.hdr.rob_req = narrow_aw_buf_hdr_out.hdr.rob_req;
     floo_narrow_b.hdr.rob_idx = rob_idx_t'(narrow_aw_buf_hdr_out.hdr.rob_idx);
     floo_narrow_b.hdr.dst_id  = dst_id[NarrowB];
+    floo_narrow_b.hdr.src_id  = id_i;
+    floo_narrow_b.hdr.last    = 1'b1;
+    floo_narrow_b.hdr.axi_ch  = NarrowB;
+    floo_narrow_b.hdr.atop    = narrow_aw_buf_hdr_out.hdr.atop;
+    floo_narrow_b.payload     = axi_narrow_meta_buf_rsp_out.b;
+    floo_narrow_b.payload.id  = narrow_aw_buf_hdr_out.id;
     floo_narrow_b.hdr.collective_mask = collective_mask[NarrowB];
-    floo_narrow_b.hdr.src_id          = id_i;
-    floo_narrow_b.hdr.last            = 1'b1;
-    floo_narrow_b.hdr.axi_ch          = NarrowB;
-    floo_narrow_b.hdr.atop            = narrow_aw_buf_hdr_out.hdr.atop;
-    floo_narrow_b.payload             = axi_narrow_meta_buf_rsp_out.b;
-    floo_narrow_b.payload.id          = narrow_aw_buf_hdr_out.id;
     // We need to adapt the B Response according to the previous AW Request
     // The AXI slave on the chimney should not be aware of a reduction / multicast!
     // Multicast --> Collect the B responses in a parallel reduction
@@ -1216,13 +1216,13 @@ module floo_nw_chimney
     floo_narrow_r.hdr.rob_req = narrow_ar_buf_hdr_out.hdr.rob_req;
     floo_narrow_r.hdr.rob_idx = rob_idx_t'(narrow_ar_buf_hdr_out.hdr.rob_idx);
     floo_narrow_r.hdr.dst_id  = dst_id[NarrowR];
+    floo_narrow_r.hdr.src_id  = id_i;
+    floo_narrow_r.hdr.axi_ch  = NarrowR;
+    floo_narrow_r.hdr.last    = 1'b1; // No reason to do wormhole routing for R bursts
+    floo_narrow_r.hdr.atop    = narrow_ar_buf_hdr_out.hdr.atop;
+    floo_narrow_r.payload     = axi_narrow_meta_buf_rsp_out.r;
+    floo_narrow_r.payload.id  = narrow_ar_buf_hdr_out.id;
     floo_narrow_r.hdr.collective_mask = collective_mask[NarrowR];
-    floo_narrow_r.hdr.src_id          = id_i;
-    floo_narrow_r.hdr.axi_ch          = NarrowR;
-    floo_narrow_r.hdr.last            = 1'b1; // No reason to do wormhole routing for R bursts
-    floo_narrow_r.hdr.atop            = narrow_ar_buf_hdr_out.hdr.atop;
-    floo_narrow_r.payload             = axi_narrow_meta_buf_rsp_out.r;
-    floo_narrow_r.payload.id          = narrow_ar_buf_hdr_out.id;
     floo_narrow_r.hdr.collective_op   = '0;
   end
 
@@ -1231,12 +1231,12 @@ module floo_nw_chimney
     floo_wide_aw.hdr.rob_req = wide_aw_rob_req_out;
     floo_wide_aw.hdr.rob_idx = rob_idx_t'(wide_aw_rob_idx_out);
     floo_wide_aw.hdr.dst_id  = dst_id[WideAw];
+    floo_wide_aw.hdr.src_id  = id_i;
+    floo_wide_aw.hdr.last    = 1'b0; // AW and W need to be sent together
+    floo_wide_aw.hdr.axi_ch  = WideAw;
+    floo_wide_aw.payload     = axi_wide_aw_queue;
     floo_wide_aw.hdr.collective_mask = (red_coll_operation[WideAw] == Unicast) ? '0 :
                                        collective_mask[WideAw];
-    floo_wide_aw.hdr.src_id          = id_i;
-    floo_wide_aw.hdr.last            = 1'b0; // AW and W need to be sent together
-    floo_wide_aw.hdr.axi_ch          = WideAw;
-    floo_wide_aw.payload             = axi_wide_aw_queue;
     // Assign the collective_op to the wide AW flit
     floo_wide_aw.hdr.collective_op   = red_coll_operation[WideAw];
 
@@ -1253,12 +1253,12 @@ module floo_nw_chimney
     floo_wide_w.hdr.rob_req = wide_aw_rob_req_out;
     floo_wide_w.hdr.rob_idx = rob_idx_t'(wide_aw_rob_idx_out);
     floo_wide_w.hdr.dst_id  = dst_id[WideW];
+    floo_wide_w.hdr.src_id  = id_i;
+    floo_wide_w.hdr.last    = axi_wide_req_in.w.last;
+    floo_wide_w.hdr.axi_ch  = WideW;
+    floo_wide_w.payload     = axi_wide_req_in.w;
     floo_wide_w.hdr.collective_mask = (red_coll_operation[WideW] == Unicast) ? '0 :
                                       collective_mask[WideW];
-    floo_wide_w.hdr.src_id          = id_i;
-    floo_wide_w.hdr.last            = axi_wide_req_in.w.last;
-    floo_wide_w.hdr.axi_ch          = WideW;
-    floo_wide_w.payload             = axi_wide_req_in.w;
     // Assign the collective_op and operation to the wide W flit
     floo_wide_w.hdr.collective_op   = red_coll_operation[WideW];
   end
@@ -1268,11 +1268,11 @@ module floo_nw_chimney
     floo_wide_ar.hdr.rob_req = wide_ar_rob_req_out;
     floo_wide_ar.hdr.rob_idx = rob_idx_t'(wide_ar_rob_idx_out);
     floo_wide_ar.hdr.dst_id  = dst_id[WideAr];
+    floo_wide_ar.hdr.src_id  = id_i;
+    floo_wide_ar.hdr.last    = 1'b1;
+    floo_wide_ar.hdr.axi_ch  = WideAr;
+    floo_wide_ar.payload     = axi_wide_ar_queue;
     floo_wide_ar.hdr.collective_mask = collective_mask[WideAr];
-    floo_wide_ar.hdr.src_id          = id_i;
-    floo_wide_ar.hdr.last            = 1'b1;
-    floo_wide_ar.hdr.axi_ch          = WideAr;
-    floo_wide_ar.payload             = axi_wide_ar_queue;
     floo_wide_ar.hdr.collective_op   = '0;
   end
 
@@ -1281,12 +1281,12 @@ module floo_nw_chimney
     floo_wide_b.hdr.rob_req = wide_aw_buf_hdr_out.hdr.rob_req;
     floo_wide_b.hdr.rob_idx = rob_idx_t'(wide_aw_buf_hdr_out.hdr.rob_idx);
     floo_wide_b.hdr.dst_id  = dst_id[WideB];
+    floo_wide_b.hdr.src_id  = id_i;
+    floo_wide_b.hdr.last    = 1'b1;
+    floo_wide_b.hdr.axi_ch  = WideB;
+    floo_wide_b.payload     = axi_wide_meta_buf_rsp_out.b;
+    floo_wide_b.payload.id  = wide_aw_buf_hdr_out.id;
     floo_wide_b.hdr.collective_mask = collective_mask[WideB];
-    floo_wide_b.hdr.src_id          = id_i;
-    floo_wide_b.hdr.last            = 1'b1;
-    floo_wide_b.hdr.axi_ch          = WideB;
-    floo_wide_b.payload             = axi_wide_meta_buf_rsp_out.b;
-    floo_wide_b.payload.id          = wide_aw_buf_hdr_out.id;
 
     // We need to adapt the B Response according to the previous AW Request
     // The AXI slave on the chimney should not be aware of a reduction / multicast!
@@ -1307,12 +1307,12 @@ module floo_nw_chimney
     floo_wide_r.hdr.rob_req = wide_ar_buf_hdr_out.hdr.rob_req;
     floo_wide_r.hdr.rob_idx = rob_idx_t'(wide_ar_buf_hdr_out.hdr.rob_idx);
     floo_wide_r.hdr.dst_id  = dst_id[WideR];
+    floo_wide_r.hdr.src_id  = id_i;
+    floo_wide_r.hdr.axi_ch  = WideR;
+    floo_wide_r.hdr.last    = 1'b1; // No reason to do wormhole routing for R bursts
+    floo_wide_r.payload     = axi_wide_meta_buf_rsp_out.r;
+    floo_wide_r.payload.id  = wide_ar_buf_hdr_out.id;
     floo_wide_r.hdr.collective_mask = collective_mask[WideR];
-    floo_wide_r.hdr.src_id          = id_i;
-    floo_wide_r.hdr.axi_ch          = WideR;
-    floo_wide_r.hdr.last            = 1'b1; // No reason to do wormhole routing for R bursts
-    floo_wide_r.payload             = axi_wide_meta_buf_rsp_out.r;
-    floo_wide_r.payload.id          = wide_ar_buf_hdr_out.id;
     floo_wide_r.hdr.collective_op   = '0;
   end
 

@@ -72,15 +72,16 @@ module floo_nw_join #(
   parameter int unsigned AtopAxiUserIdMsb = AxiCfgJoin.UserWidth - 1,
   /// LSB of the ID field of the ATOP adapter
   parameter int unsigned AtopAxiUserIdLsb = 0,
+
   /// AXI type of the narrow AXI bus
-  parameter type         axi_narrow_req_t = logic,
-  parameter type         axi_narrow_rsp_t = logic,
+  parameter type axi_narrow_req_t = logic,
+  parameter type axi_narrow_rsp_t = logic,
   /// AXI type of the wide AXI bus
-  parameter type         axi_wide_req_t   = logic,
-  parameter type         axi_wide_rsp_t   = logic,
+  parameter type axi_wide_req_t   = logic,
+  parameter type axi_wide_rsp_t   = logic,
   /// AXI type of the resulting AXI bus
-  parameter type         axi_req_t        = logic,
-  parameter type         axi_rsp_t        = logic
+  parameter type axi_req_t        = logic,
+  parameter type axi_rsp_t        = logic
 ) (
   input  logic            clk_i,
   input  logic            rst_ni,

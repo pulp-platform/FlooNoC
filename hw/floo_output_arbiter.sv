@@ -16,20 +16,21 @@
 module floo_output_arbiter
   import floo_pkg::*;
 #(
+  parameter axi_cfg_t    AxiCfg    = '0,
   /// Number of total input ports
-  parameter int unsigned        NumRoutes            = 1,
-  /// Number of paraellel reduction capable ports
-  parameter int unsigned        NumParallelRedRoutes = 0,
-  /// Collective ops configuration
-  parameter collect_op_be_cfg_t CollectOpCfg         = CollectiveSupportDefaultCfg,
+  parameter int unsigned NumRoutes = 1,
   /// Routing algorithm
-  parameter route_algo_e        RouteAlgo            = XYRouting,
+  parameter route_algo_e RouteAlgo = XYRouting,
+  /// Number of paraellel reduction capable ports
+  parameter int unsigned NumParallelRedRoutes = 0,
+
+  /// Collective ops configuration
+  parameter collect_op_be_cfg_t CollectOpCfg = CollectiveSupportDefaultCfg,
   /// Type definitions
-  parameter type      flit_t       = logic,
-  parameter type      hdr_t        = logic,
-  parameter type      id_t         = logic,
-  parameter type      collect_op_t = logic,
-  parameter axi_cfg_t AxiCfg       = '0
+  parameter type flit_t       = logic,
+  parameter type hdr_t        = logic,
+  parameter type id_t         = logic,
+  parameter type collect_op_t = logic
 ) (
   input  logic clk_i,
   input  logic rst_ni,

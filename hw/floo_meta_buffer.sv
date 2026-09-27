@@ -14,6 +14,9 @@
 /// that need to be stored until the response arrives.
 /// Also supports atomics with unique IDs.
 module floo_meta_buffer #(
+  // used for AXI mask <-> NoC mask conversion
+  parameter floo_pkg::route_cfg_t RouteCfg = '0,
+
   /// AXI in ID width
   parameter int unsigned InIdWidth     = 0,
   /// AXI out ID width
@@ -26,40 +29,41 @@ module floo_meta_buffer #(
   parameter bit          AtopSupport   = 1'b1,
   /// Number of outstanding atomic requests
   parameter int          MaxAtomicTxns = 32'd1,
+
   /// AXI in request channel
-  parameter type         axi_in_req_t  = logic,
+  parameter type axi_in_req_t  = logic,
   /// AXI in response channel
-  parameter type         axi_in_rsp_t  = logic,
+  parameter type axi_in_rsp_t  = logic,
   /// AXI out request channel
-  parameter type         axi_out_req_t = logic,
+  parameter type axi_out_req_t = logic,
   /// AXI out response channel
-  parameter type         axi_out_rsp_t = logic,
+  parameter type axi_out_rsp_t = logic,
   /// Information to be buffered for responses
-  parameter type         buf_t         = logic,
-  // used for AXI mask <-> NoC mask conversion
-  parameter floo_pkg::route_cfg_t RouteCfg = '0,
-  parameter type addr_t     = logic,
+  parameter type buf_t         = logic,
+  parameter type addr_t        = logic,
   /// The type of the address rules
-  parameter type sam_rule_t = logic,
-  /// The System Address Map
-  parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam,
-  parameter type id_t       = logic,
+  parameter type sam_rule_t    = logic,
+  parameter type id_t          = logic,
   /// SAM Index type to support multicast info
-  parameter type sam_idx_t  = id_t,
-  parameter type mask_sel_t = logic
+  parameter type sam_idx_t     = id_t,
+  parameter type mask_sel_t    = logic,
+  /// The System Address Map
+  parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam
 ) (
-  input  logic         clk_i,
-  input  logic         rst_ni,
-  input  logic         test_enable_i,
-  input  id_t          id_i,
+  input logic clk_i,
+  input logic rst_ni,
+  input logic test_enable_i,
+  input id_t  id_i,
+
   input  axi_in_req_t  axi_req_i,
   output axi_in_rsp_t  axi_rsp_o,
   output axi_out_req_t axi_req_o,
   input  axi_out_rsp_t axi_rsp_i,
-  input  buf_t         aw_buf_i,
-  input  buf_t         ar_buf_i,
-  output buf_t         r_buf_o,
-  output buf_t         b_buf_o
+
+  input  buf_t aw_buf_i,
+  input  buf_t ar_buf_i,
+  output buf_t r_buf_o,
+  output buf_t b_buf_o
 );
 
   // AXI parameters

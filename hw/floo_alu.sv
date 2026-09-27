@@ -94,9 +94,10 @@ module floo_reduction_alu
   parameter type         collect_op_t     = logic,
   parameter int unsigned FirstNarrowSeqOp = 0
 ) (
-  input  logic        clk_i,
-  input  logic        rst_ni,
-  input  logic        flush_i,
+  input logic clk_i,
+  input logic rst_ni,
+  input logic flush_i,
+
   /// IF towards external FPU
   input  logic [63:0] alu_req_op1_i,
   input  logic [63:0] alu_req_op2_i,
@@ -223,19 +224,21 @@ module floo_alu_top #(
   localparam int unsigned WIDTH       = 64,
   localparam int unsigned NumOperands = 2
 ) (
-  input  logic clk_i,
-  input  logic rst_ni,
-  input  logic flush_i,
+  input logic clk_i,
+  input logic rst_ni,
+  input logic flush_i,
   /// Input Signal
-  input  logic [NumOperands-1:0][WIDTH-1:0] operands_i,
-  input  floo_alu_pkg::alu_operation_e      op_i,
-  input  floo_alu_pkg::alu_int_format_e     fmt_i,
-  input  logic             vector_mode_i,
-  input  tag_t             tag_i,
-  input  logic             in_valid_i,
-  output logic             in_ready_o,
+  input logic [NumOperands-1:0][WIDTH-1:0] operands_i,
+  input floo_alu_pkg::alu_operation_e      op_i,
+  input floo_alu_pkg::alu_int_format_e     fmt_i,
+
+  input  logic vector_mode_i,
+  input  tag_t tag_i,
+  input  logic in_valid_i,
+  output logic in_ready_o,
+
   /// Output Signal
-  output logic [WIDTH-1:0] result_o,
+  output logic [WIDTH-1:0]          result_o,
   output floo_alu_pkg::alu_status_t status_o,
   output tag_t tag_o,
   output logic out_valid_o,

@@ -25,12 +25,13 @@ module floo_route_select
   parameter int unsigned RouteSelWidth  = $clog2(NumRoutes),
   /// Enable multicast routing, currently only supported for `XYRouting`
   parameter bit          EnMultiCast    = 1'b0,
-  /// Various types used in the routing algorithm
-  parameter type         flit_t         = logic,
-  parameter type         addr_rule_t    = logic,
-  parameter type         id_t           = logic [IdWidth-1:0],
   /// Inversed SRC / DST if we want to support Multicast on the B response
-  parameter bit          InversedSrcDst = 1'b0
+  parameter bit          InversedSrcDst = 1'b0,
+
+  /// Various types used in the routing algorithm
+  parameter type flit_t      = logic,
+  parameter type addr_rule_t = logic,
+  parameter type id_t        = logic [IdWidth-1:0]
 ) (
   input logic clk_i,
   input logic rst_ni,
