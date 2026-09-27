@@ -16,6 +16,21 @@ wheels = [
 ]
 
 [[package]]
+name = "astli"
+version = "0.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b9/15/f4d24fb01a3055c9b2c680a88ef1e987230bd4f18338df165a55871713ee/astli-0.1.1.tar.gz", hash = "sha256:fcba2dea06ee07a0e85ba16a18b64ac580fcfadbae2ba34d1e7d1eed48846c57", size = 156687, upload-time = "2026-09-25T12:56:49.921Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bd/6c/cf35a719856d0a74cbc1fbf8de0e21185de7a9e4a9c2c954cd4acf5c39a7/astli-0.1.1-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:1d6c166dcf58707fdca630df884fe79746f333db49a07c18fd9b7337efdfe597", size = 1004784, upload-time = "2026-09-25T12:56:41.341Z" },
+    { url = "https://files.pythonhosted.org/packages/74/61/956e1a985c9d87a47cd6c01e043ad629fdf86113497cbf42100f59d4c8db/astli-0.1.1-py3-none-macosx_11_0_arm64.whl", hash = "sha256:54663874c99c48f8c3cf58769788cf5173eef4d874a017b6b94f33bd9e6f58b5", size = 962109, upload-time = "2026-09-25T12:56:42.637Z" },
+    { url = "https://files.pythonhosted.org/packages/bd/e7/8777f0c8cd7a348af511218384606d6fc3c154ffb478c234c8adc0258d71/astli-0.1.1-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:29d968a4ca0fb5af1cc4738d604f129f3d6607b5f031bc05a70c0d65be54a99d", size = 1128685, upload-time = "2026-09-25T12:56:43.833Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/fa/75098d045837866390a3aa0ef53cfb8e84ce942b2804ef522e247e3711c6/astli-0.1.1-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:37129ba6e348d7ce6db6f0b9b45ffc96e0dc192926538287dae3590eeaf9ed66", size = 1067718, upload-time = "2026-09-25T12:56:45.032Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/68/84ba52419a5855b55bd840a52524fea140a65592dc182583e0ee6865512c/astli-0.1.1-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:0985328499973185ec840db4a10d231b3f99fa40297b47b2368d43d7e0ab6d1c", size = 1182958, upload-time = "2026-09-25T12:56:46.242Z" },
+    { url = "https://files.pythonhosted.org/packages/d8/3f/ebf5da58f791a5d4b40787ac22443c205af0c6492d952e607fdf6e11e4a6/astli-0.1.1-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:852c7532744333e27ff84b72f621bb60e2f11db7c7fd5e62fe17bc93d9f94a95", size = 1131966, upload-time = "2026-09-25T12:56:47.471Z" },
+    { url = "https://files.pythonhosted.org/packages/67/ff/6ce2fe89ac9edf58102f3cb175677da3b6dd29f6fb35b84050121cfe4658/astli-0.1.1-py3-none-win_amd64.whl", hash = "sha256:2074030fdb5ee0c6f6b92fab33b79439b9e01d52040a0e9124ef73a8e0749caa", size = 866693, upload-time = "2026-09-25T12:56:48.851Z" },
+]
+
+[[package]]
 name = "attrs"
 version = "26.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -149,7 +164,7 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/66/54/eb9bfc647b19f2009dd5c7f5ec51c4e6ca831725f1aea7a993034f483147/contourpy-1.3.2.tar.gz", hash = "sha256:b6945942715a034c671b7fc54f9588126b0b8bf23db2696e3ca8328f3ff0ab54", size = 13466130, upload-time = "2025-04-15T17:47:53.79Z" }
 wheels = [
@@ -219,7 +234,7 @@ resolution-markers = [
     "python_full_version >= '3.11'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.4.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "numpy", version = "2.4.1", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/58/01/1253e6698a07380cd31a736d248a3f2a50a7c88779a1813da27503cadc2a/contourpy-1.3.3.tar.gz", hash = "sha256:083e12155b210502d0bca491432bb04d56dc3432f95a979b429f2848c3dbe880", size = 13466174, upload-time = "2025-07-26T12:03:12.549Z" }
 wheels = [
@@ -319,7 +334,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -331,6 +346,7 @@ name = "floogen"
 version = "0.9.0"
 source = { editable = "." }
 dependencies = [
+    { name = "astli" },
     { name = "mako" },
     { name = "networkx", version = "3.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -358,6 +374,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "astli", specifier = ">=0.1.1" },
     { name = "mako" },
     { name = "matplotlib", marker = "extra == 'viz'" },
     { name = "networkx" },

@@ -7,6 +7,7 @@
 import math
 import shutil
 import subprocess
+import sysconfig
 
 
 def cdiv(x: float, y: float) -> int:
@@ -265,40 +266,42 @@ def sv_enum_typedef(
     return typedef
 
 
-def verible_format(string: str, verible_fmt_bin=None, verible_fmt_args=None) -> str:
-    """Format the string using verible-verilog-format.
+def find_astli_bin() -> str:
+    """Locate the `astli` binary installed alongside floogen.
+
+    The `astli` wheel only ships a binary, which lands in the scripts directory of the
+    interpreter's environment. That directory is not on the `PATH` if the environment
+    is not activated, so it is searched first before falling back to the `PATH`.
+
+    Returns:
+        str: Path to the `astli` binary.
+
+    Raises:
+        FileNotFoundError: If the binary can be found neither in the scripts directory
+            nor in the `PATH`.
+    """
+    astli_bin = shutil.which("astli", path=sysconfig.get_path("scripts")) or shutil.which("astli")
+    if astli_bin is None:
+        raise FileNotFoundError(
+            "`astli` was not found, which is required to format the output. "
+            "Reinstall floogen or use the `--no-format` flag to skip formatting."
+        )
+    return astli_bin
+
+
+def astli_format(string: str) -> str:
+    """Format the string using astli.
 
     Args:
         string (str): Input string to format.
-        verible_fmt_bin (str, optional): Path to the verible-verilog-format binary.
-            If None, it will try to find it in the PATH. Defaults to None.
-        verible_fmt_args (str, optional): Additional arguments to pass to verible-verilog-format.
-            If None, no additional arguments are passed. Defaults to None.
 
     Returns:
-        str: Formatted string, or the original string if verible-verilog-format is not found.
+        str: Formatted string.
     """
-    if verible_fmt_bin is None:
-        verible_fmt_bin = shutil.which("verible-verilog-format")  # Fallback to `which`
-    if verible_fmt_bin is None:
-        print(
-            "\033[93mWarning:\033[0m Output formatting is skipped because \
-            `verible-verilog-format` was not found in the `PATH` \
-             Please install it or use the `--no-format` flag to skip formatting. \
-             Alternatively, you can also specify the path to the binary with the \
-            `--verible-fmt-bin` flag."
-        )
-        return string
-
-    if verible_fmt_args is None:
-        verible_fmt_args = []
-    else:
-        verible_fmt_args = verible_fmt_args.split()
-
-    # Format the output using verible-verilog-format, by piping it into the stdin
+    # Format the output using astli, by piping it into the stdin
     # of the formatter and capturing the stdout
     return subprocess.run(
-        verible_fmt_bin.split() + verible_fmt_args + ["-"],
+        [find_astli_bin(), "fmt", "-"],
         input=string,
         capture_output=True,
         text=True,

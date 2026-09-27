@@ -20,11 +20,13 @@ from floogen.model.network import Network, config_json_schema
 from floogen.model.traffic import MESH_TRAFFIC_TYPES, gen_traffic_builtin, gen_traffic_cfg
 from floogen.params import ParamError, parse_overrides
 from floogen.query import handle_query
-from floogen.utils import verible_format
+from floogen.utils import astli_format
 
 tpl_dir = Path(__file__).parent / "templates"
 
 SCHEMA_FILE_NAME = "floogen.schema.json"
+
+DEPRECATED_VERIBLE_FLAGS = ["--verible-fmt-bin", "--verible-fmt-args"]
 
 
 class RenderKwargs(TypedDict, total=False):
@@ -32,8 +34,6 @@ class RenderKwargs(TypedDict, total=False):
 
     outdir: Path | None
     format_output: bool
-    verible_fmt_bin: str | None
-    verible_fmt_args: str | None
 
 
 def render_template(
@@ -42,8 +42,6 @@ def render_template(
     outdir: Path | None = None,
     file_name: str | None = None,
     format_output: bool = False,
-    verible_fmt_bin: str | None = None,
-    verible_fmt_args: str | None = None,
 ):
     """Render a template, format if requested and write to file or print to stdout."""
     if not tpl.exists():
@@ -54,7 +52,7 @@ def render_template(
             raise FileNotFoundError(f"Template not found: {tpl}")
     rendered = Template(filename=str(tpl.resolve())).render(**context)
     if format_output:
-        rendered = verible_format(rendered, verible_fmt_bin, verible_fmt_args)
+        rendered = astli_format(rendered)
     if outdir:
         outdir.mkdir(parents=True, exist_ok=True)
         if file_name:
@@ -114,18 +112,10 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Do not format the output.",
     )
-    sv_format_grp.add_argument(
-        "--verible-fmt-bin",
-        type=str,
-        default=None,
-        help="Overwrite default `verible-verilog-format` binary.",
-    )
-    sv_format_grp.add_argument(
-        "--verible-fmt-args",
-        type=str,
-        default=None,
-        help="Additional arguments to pass to `verible-verilog-format`.",
-    )
+    # Deprecated since formatting moved from verible to astli. Still accepted, but ignored,
+    # so existing invocations keep working. Hidden from the help message.
+    for flag in DEPRECATED_VERIBLE_FLAGS:
+        sv_format_grp.add_argument(flag, type=str, default=None, help=argparse.SUPPRESS)
     # Not a formatting option, but shared by the same set of commands.
     sv_format.add_argument(
         "--name",
@@ -391,9 +381,13 @@ def main():
     # Command specific render arguments
     match args.command:
         case "rtl" | "pkg" | "top" | "template":
+            for flag in DEPRECATED_VERIBLE_FLAGS:
+                if getattr(args, flag.lstrip("-").replace("-", "_")) is not None:
+                    print(
+                        f"floogen: warning: `{flag}` is deprecated and ignored. It will be removed in a future release.",
+                        file=sys.stderr,
+                    )
             render_kwargs["format_output"] = not args.no_format
-            render_kwargs["verible_fmt_bin"] = args.verible_fmt_bin
-            render_kwargs["verible_fmt_args"] = args.verible_fmt_args
             context["name"] = args.name or network.name
             pkg_file_name = f"floo_{args.name or network.name}_noc_pkg.sv"
             top_file_name = f"floo_{args.name or network.name}_noc.sv"

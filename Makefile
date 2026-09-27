@@ -21,7 +21,6 @@ VCS_SEPP    ?=
 BENDER     	?= bender
 VSIM       	?= $(QUESTA_SEPP) vsim
 SPYGLASS   	?= sg_shell
-VERIBLE_FMT	?= verible-verilog-format
 VCS		      ?= $(VCS_SEPP) vcs
 VLOGAN  	  ?= $(VCS_SEPP) vlogan
 
