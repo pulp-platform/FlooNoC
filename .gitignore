@@ -88,6 +88,9 @@ scripts/compile_vcs.sh
 # Verible
 verible*
 
+# Slang
+floo_noc.f
+
 # spyglass
 scripts/spyglass/*
 
