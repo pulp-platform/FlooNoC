@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+#### FlooGen
+- The generated SystemVerilog is now formatted with [astli](https://github.com/fischeti/astli) instead of `verible-verilog-format`. `astli` is installed as a regular dependency of _FlooGen_, so formatting no longer requires a separately installed binary. The `--verible-fmt-bin` and `--verible-fmt-args` flags are deprecated: they are still accepted, but ignored with a warning, and will be removed in a future release.
+
 ## [0.9.0] - 2026-09-26
 
 ### Added
