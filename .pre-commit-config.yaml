@@ -77,10 +77,6 @@ repos:
         entry: uv run astli fmt --write
         language: system
         types_or: [system-verilog, verilog]
-        # TODO: `astli` wraps the long `$display` table rows, which hurts
-        # readability. Remove once `astli` can skip regions or the file is
-        # rewritten.
-        exclude: ^hw/test/include/axi_print_txns\.svh$
         # `astli` formats files in parallel itself.
         require_serial: true
       - id: reuse-lint-file
