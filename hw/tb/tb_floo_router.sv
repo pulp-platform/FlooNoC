@@ -6,12 +6,11 @@
 
 `include "floo_noc/typedef.svh"
 
-  // TODO MICHAERO: gen stimuli
-  //   - for each input VC generate packets of flits in a queue with random destination Ports (IDs), excluding the source port
-  //   - collect these packets for each destination port (ID) and VC
-  //   - for each output VC collect all incoming packets of flits
-  //   - match the collected flits to ensure all packets are routed to their intended destination without errors or injected/missing flits
-
+// TODO MICHAERO: gen stimuli
+//   - for each input VC generate packets of flits in a queue with random destination Ports (IDs), excluding the source port
+//   - collect these packets for each destination port (ID) and VC
+//   - for each output VC collect all incoming packets of flits
+//   - match the collected flits to ensure all packets are routed to their intended destination without errors or injected/missing flits
 
 module tb_floo_router;
 
@@ -30,15 +29,15 @@ module tb_floo_router;
   endtask : cycle_end
 
   task automatic started_cycle_end();
-    #(TestTime-ApplTime);
+    #(TestTime - ApplTime);
   endtask : started_cycle_end
 
   localparam int unsigned NumTestPacketsPerChannel = 100;
 
-  localparam int unsigned NumPorts = 5;
+  localparam int unsigned NumPorts        = 5;
   localparam int unsigned NumVirtChannels = 6;
-  localparam int unsigned IdWidth = $clog2(NumPorts);
-  localparam int unsigned FlitWidth = 123;
+  localparam int unsigned IdWidth         = $clog2(NumPorts);
+  localparam int unsigned FlitWidth       = 123;
   localparam int unsigned MaxPacketLength = 32;
 
   typedef logic [FlitWidth-1:0] payload_t;
@@ -50,23 +49,22 @@ module tb_floo_router;
   logic clk, rst_n;
 
   clk_rst_gen #(
-    .ClkPeriod    ( CyclTime ),
-    .RstClkCycles ( 5        )
+    .ClkPeriod   (CyclTime),
+    .RstClkCycles(5)
   ) i_clk_gen (
-    .clk_o  ( clk   ),
-    .rst_no ( rst_n )
+    .clk_o (clk),
+    .rst_no(rst_n)
   );
-
 
   /************************
    *  Stimuli generation  *
    ************************/
 
   class rand_data_t;
-    bit [IdWidth-1:0] id;
+    bit [IdWidth-1:0]          id;
     rand logic [FlitWidth-1:0] data;
 
-    function new (bit [IdWidth-1:0] in_id);
+    function new(bit [IdWidth-1:0] in_id);
       this.id = in_id;
     endfunction
 
@@ -76,11 +74,11 @@ module tb_floo_router;
   endclass
 
   class stimuli_t;
-    bit [IdWidth-1:0]        source;
-    rand int                 len;
-    rand bit [IdWidth-1:0]   id;
+    bit [IdWidth-1:0] source;
+    rand int          len;
+    rand bit [IdWidth-1:0] id;
 
-    function new (bit [IdWidth-1:0] in_source);
+    function new(bit [IdWidth-1:0] in_source);
       this.source = in_source;
     endfunction
 
@@ -97,10 +95,10 @@ module tb_floo_router;
   endclass
 
   //                         Source Port   Virtual Channel
-  floo_req_generic_flit_t  stimuli_queue[NumPorts][NumVirtChannels][$];
+  floo_req_generic_flit_t stimuli_queue[NumPorts][NumVirtChannels][$];
 
   //                         Destination   Virtual Channel      Source Port
-  floo_req_generic_flit_t  golden_queue [NumPorts][NumVirtChannels][NumPorts][$];
+  floo_req_generic_flit_t golden_queue[NumPorts][NumVirtChannels][NumPorts][$];
 
   function automatic void generate_stimuli();
     for (int port = 0; port < NumPorts; port++) begin
@@ -121,10 +119,10 @@ module tb_floo_router;
               rand_data.data_mod_id_c.constraint_mode(1);
               if (rand_data.randomize()) begin
                 automatic floo_req_generic_flit_t next_flit = '0;
-                next_flit.payload = rand_data.data;
+                next_flit.payload    = rand_data.data;
                 next_flit.hdr.src_id = port;
                 next_flit.hdr.dst_id = stimuli.id;
-                next_flit.hdr.last = j == stimuli.len-1;
+                next_flit.hdr.last   = j == stimuli.len - 1;
 
                 stimuli_queue[port][virt_channel].push_back(next_flit);
                 golden_queue[port][virt_channel][stimuli.id].push_back(next_flit);
@@ -144,7 +142,7 @@ module tb_floo_router;
 
   // Apply Stimuli
 
-  logic       [NumPorts-1:0][NumVirtChannels-1:0] pre_valid_in, pre_ready_in;
+  logic [NumPorts-1:0][NumVirtChannels-1:0] pre_valid_in, pre_ready_in;
   floo_req_generic_flit_t [NumPorts-1:0][NumVirtChannels-1:0] pre_data_in;
 
   task automatic apply_stimuli(int unsigned port, int unsigned virt_channel);
@@ -156,19 +154,17 @@ module tb_floo_router;
     fork
       begin : apply_valid_data
         stimuli = stimuli_queue[port][virt_channel].pop_front();
-        pre_data_in[port][virt_channel] = stimuli;
+        pre_data_in[port][virt_channel]  = stimuli;
         pre_valid_in[port][virt_channel] = 1'b1;
       end
       begin
         started_cycle_end();
         while (!pre_ready_in[port][virt_channel]) begin
-          @(posedge clk)
-          cycle_end();
+          @(posedge clk) cycle_end();
         end
       end
     join
-    @(posedge clk)
-    cycle_start();
+    @(posedge clk) cycle_start();
     pre_valid_in[port][virt_channel] = 1'b0;
 
   endtask
@@ -177,126 +173,125 @@ module tb_floo_router;
    *  Device Under Test  *
    ***********************/
 
-  logic       [NumPorts-1:0][NumVirtChannels-1:0] delayed_valid_in;
-  logic       [NumPorts-1:0][NumVirtChannels-1:0] delayed_ready_in;
+  logic [NumPorts-1:0][NumVirtChannels-1:0] delayed_valid_in;
+  logic [NumPorts-1:0][NumVirtChannels-1:0] delayed_ready_in;
   floo_req_generic_flit_t [NumPorts-1:0][NumVirtChannels-1:0] delayed_data_in;
 
   for (genvar port = 0; port < NumPorts; port++) begin : gen_in_delay
     for (genvar vc = 0; vc < NumVirtChannels; vc++) begin : gen_in_vc_delay
       cc_stream_delay #(
-        .StallRandom ( 1'b1        ),
-        .FixedDelay  ( 1           ),
-        .payload_t   ( floo_req_generic_flit_t ),
-        .Seed        ( '0          )
+        .StallRandom(1'b1),
+        .FixedDelay (1),
+        .payload_t  (floo_req_generic_flit_t),
+        .Seed       ('0)
       ) i_in_delay (
-        .clk_i    (clk),
-        .rst_ni   (rst_n),
+        .clk_i (clk),
+        .rst_ni(rst_n),
 
-        .payload_i( pre_data_in [port][vc] ),
-        .ready_o  ( pre_ready_in[port][vc] ),
-        .valid_i  ( pre_valid_in[port][vc] ),
+        .payload_i(pre_data_in[port][vc]),
+        .ready_o  (pre_ready_in[port][vc]),
+        .valid_i  (pre_valid_in[port][vc]),
 
-        .payload_o( delayed_data_in [port][vc] ),
-        .ready_i  ( delayed_ready_in[port][vc] ),
-        .valid_o  ( delayed_valid_in[port][vc] )
+        .payload_o(delayed_data_in[port][vc]),
+        .ready_i  (delayed_ready_in[port][vc]),
+        .valid_o  (delayed_valid_in[port][vc])
       );
     end
   end
 
-  logic       [NumPorts-1:0][NumVirtChannels-1:0] valid_in, valid_out;
-  logic       [NumPorts-1:0][NumVirtChannels-1:0] ready_in, ready_out;
-  floo_req_generic_flit_t [NumPorts-1:0]                      data_in,  data_out;
+  logic [NumPorts-1:0][NumVirtChannels-1:0] valid_in, valid_out;
+  logic [NumPorts-1:0][NumVirtChannels-1:0] ready_in, ready_out;
+  floo_req_generic_flit_t [NumPorts-1:0]    data_in, data_out;
 
   for (genvar port = 0; port < NumPorts; port++) begin : gen_in_vc_arb
     floo_vc_arbiter #(
-      .NumVirtChannels ( NumVirtChannels ),
-      .flit_t          ( floo_req_generic_flit_t )
+      .NumVirtChannels(NumVirtChannels),
+      .flit_t         (floo_req_generic_flit_t)
     ) i_vc_arbiter (
-      .clk_i   ( clk   ),
-      .rst_ni  ( rst_n ),
+      .clk_i (clk),
+      .rst_ni(rst_n),
 
-      .valid_i ( delayed_valid_in[port] ),
-      .ready_o ( delayed_ready_in[port] ),
-      .data_i  ( delayed_data_in [port] ),
+      .valid_i(delayed_valid_in[port]),
+      .ready_o(delayed_ready_in[port]),
+      .data_i (delayed_data_in[port]),
 
-      .valid_o ( valid_in[port] ),
-      .ready_i ( ready_in[port] ),
-      .data_o  ( data_in [port] ),
-      .credit_i( '0             )
+      .valid_o (valid_in[port]),
+      .ready_i (ready_in[port]),
+      .data_o  (data_in[port]),
+      .credit_i('0)
     );
   end
 
-
   floo_router #(
-    .NumRoutes        ( NumPorts                ),
-    .NumVirtChannels  ( NumVirtChannels         ),
-    .flit_t           ( floo_req_generic_flit_t ),
-    .InFifoDepth      ( 4                       ),
-    .RouteAlgo        ( SourceRouting           ),
-    .IdWidth          ( IdWidth                 )
+    .NumRoutes      (NumPorts),
+    .NumVirtChannels(NumVirtChannels),
+    .flit_t         (floo_req_generic_flit_t),
+    .InFifoDepth    (4),
+    .RouteAlgo      (SourceRouting),
+    .IdWidth        (IdWidth)
   ) i_dut (
-    .clk_i         ( clk   ),
-    .rst_ni        ( rst_n ),
-    .test_enable_i ( '0 ),
+    .clk_i        (clk),
+    .rst_ni       (rst_n),
+    .test_enable_i('0),
 
-    .xy_id_i       ( '0 ), // Unused for `SourceRouting`
-    .id_route_map_i( '0 ), // Unused for `SourceRouting`
+    .xy_id_i       ('0), // Unused for `SourceRouting`
+    .id_route_map_i('0), // Unused for `SourceRouting`
 
-    .valid_i       ( valid_in  ),
-    .ready_o       ( ready_in  ),
-    .data_i        ( data_in   ),
-    .credit_o      (           ),
+    .valid_i (valid_in),
+    .ready_o (ready_in),
+    .data_i  (data_in),
+    .credit_o(),
 
-    .valid_o       ( valid_out ),
-    .ready_i       ( ready_out ),
-    .data_o        ( data_out  ),
-    .credit_i      ( '0        ),
-    .offload_req_o (           ),
-    .offload_rsp_i ( '0        )
+    .valid_o      (valid_out),
+    .ready_i      (ready_out),
+    .data_o       (data_out),
+    .credit_i     ('0),
+    .offload_req_o(),
+    .offload_rsp_i('0)
   );
 
-  logic       [NumPorts-1:0][NumVirtChannels-1:0] fall_valid_out;
-  logic       [NumPorts-1:0][NumVirtChannels-1:0] fall_ready_out;
+  logic [NumPorts-1:0][NumVirtChannels-1:0] fall_valid_out;
+  logic [NumPorts-1:0][NumVirtChannels-1:0] fall_ready_out;
   floo_req_generic_flit_t [NumPorts-1:0][NumVirtChannels-1:0] fall_data_out;
-  logic       [NumPorts-1:0][NumVirtChannels-1:0] delayed_valid_out;
-  logic       [NumPorts-1:0][NumVirtChannels-1:0] delayed_ready_out;
+  logic [NumPorts-1:0][NumVirtChannels-1:0] delayed_valid_out;
+  logic [NumPorts-1:0][NumVirtChannels-1:0] delayed_ready_out;
   floo_req_generic_flit_t [NumPorts-1:0][NumVirtChannels-1:0] delayed_data_out;
 
   for (genvar port = 0; port < NumPorts; port++) begin : gen_out_delay
     for (genvar vc = 0; vc < NumVirtChannels; vc++) begin : gen_out_vc_delay
 
       cc_fall_through_register #(
-        .data_t ( floo_req_generic_flit_t )
+        .data_t(floo_req_generic_flit_t)
       ) i_fall (
-        .clk_i     (clk),
-        .rst_ni    (rst_n),
-        .clr_i     (1'b0),
+        .clk_i (clk),
+        .rst_ni(rst_n),
+        .clr_i (1'b0),
 
-        .valid_i   ( valid_out     [port][vc] ),
-        .ready_o   ( ready_out     [port][vc] ),
-        .data_i    ( data_out      [port] ),
+        .valid_i(valid_out[port][vc]),
+        .ready_o(ready_out[port][vc]),
+        .data_i (data_out[port]),
 
-        .valid_o   ( fall_valid_out[port][vc] ),
-        .ready_i   ( fall_ready_out[port][vc] ),
-        .data_o    ( fall_data_out [port][vc] )
+        .valid_o(fall_valid_out[port][vc]),
+        .ready_i(fall_ready_out[port][vc]),
+        .data_o (fall_data_out[port][vc])
       );
 
       cc_stream_delay #(
-        .StallRandom ( 1'b1        ),
-        .FixedDelay  ( 1           ),
-        .payload_t   ( floo_req_generic_flit_t ),
-        .Seed        ( '0          )
+        .StallRandom(1'b1),
+        .FixedDelay (1),
+        .payload_t  (floo_req_generic_flit_t),
+        .Seed       ('0)
       ) i_in_delay (
-        .clk_i    (clk),
-        .rst_ni   (rst_n),
+        .clk_i (clk),
+        .rst_ni(rst_n),
 
-        .payload_i( fall_data_out [port][vc] ),
-        .ready_o  ( fall_ready_out[port][vc] ),
-        .valid_i  ( fall_valid_out[port][vc] ),
+        .payload_i(fall_data_out[port][vc]),
+        .ready_o  (fall_ready_out[port][vc]),
+        .valid_i  (fall_valid_out[port][vc]),
 
-        .payload_o( delayed_data_out [port][vc] ),
-        .ready_i  ( delayed_ready_out[port][vc] ),
-        .valid_o  ( delayed_valid_out[port][vc] )
+        .payload_o(delayed_data_out[port][vc]),
+        .ready_i  (delayed_ready_out[port][vc]),
+        .valid_o  (delayed_valid_out[port][vc])
       );
     end
   end
@@ -330,7 +325,7 @@ module tb_floo_router;
   logic [NumPorts-1:0][NumVirtChannels-1:0] check_complete;
 
   task automatic check_result(int unsigned port, int unsigned virt_channel);
-    logic last_active = 1'b0;
+    logic        last_active = 1'b0;
     int unsigned last_physical_bin = 0;
     int unsigned all_golden_size = 0;
 
@@ -338,7 +333,7 @@ module tb_floo_router;
     automatic floo_req_generic_flit_t golden;
 
     do begin
-      wait(result_queue[port][virt_channel].size() != 0);
+      wait (result_queue[port][virt_channel].size() != 0);
 
       // Capture the result
       if (result_queue[port][virt_channel].size() == 0) begin
@@ -353,8 +348,8 @@ module tb_floo_router;
       end
 
       if (result.payload != golden.payload) begin
-        $error("ERROR! Mismatch for port %d channel %d (from %d, target port %d)",
-               port, virt_channel, result.hdr.src_id, result.hdr.dst_id);
+        $error("ERROR! Mismatch for port %d channel %d (from %d, target port %d)", port,
+               virt_channel, result.hdr.src_id, result.hdr.dst_id);
       end
 
       all_golden_size = 0;
@@ -388,15 +383,13 @@ module tb_floo_router;
 
   initial begin
     // Initialize variables
-    pre_valid_in = '0;
-    pre_data_in = '0;
+    pre_valid_in      = '0;
+    pre_data_in       = '0;
     delayed_ready_out = '0;
 
     check_complete = '0;
 
-    @(posedge rst_n)
-
-    for (int port = 0; port < NumPorts; port++) begin
+    @(posedge rst_n) for (int port = 0; port < NumPorts; port++) begin
       automatic int internal_port = port;
       fork
         for (int virt_channel = 0; virt_channel < NumVirtChannels; virt_channel++) begin
@@ -410,7 +403,7 @@ module tb_floo_router;
       join_none
     end
     generate_stimuli();
-    while(check_complete != {NumPorts{{NumVirtChannels{1'b1}}}} ) begin
+    while (check_complete != {NumPorts{{NumVirtChannels{1'b1}}}}) begin
       @(posedge clk);
     end
     $finish(0);

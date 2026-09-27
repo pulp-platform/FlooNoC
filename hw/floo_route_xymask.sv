@@ -18,26 +18,28 @@
 
 `include "common_cells/assertions.svh"
 
-module floo_route_xymask import floo_pkg::*; #(
+module floo_route_xymask
+  import floo_pkg::*;
+#(
   /// Number of collective routes, either output or input
-  parameter int unsigned    NumRoutes   = 0,
+  parameter int unsigned NumRoutes = 0,
   /// The type of mask to be computed
   /// 1: Determine output directions of the forward path in Multicast
   /// 0: Determine input directions of the backward path in Multicast i.e the reduction
-  parameter bit             FwdMode     = 1'b1,
+  parameter bit          FwdMode   = 1'b1,
   /// Routing algorithm: XYRouting resolves X first, YXRouting resolves Y first
-  parameter route_algo_e    RouteAlgo   = XYRouting,
+  parameter route_algo_e RouteAlgo = XYRouting,
   /// type for data flit
-  parameter type            flit_t      = logic,
+  parameter type         flit_t    = logic,
   /// type for local id (router id)
-  parameter type            id_t        = logic
+  parameter type         id_t      = logic
 ) (
   // The input flit (only the header is used)
-  input  flit_t                         channel_i,
+  input  flit_t channel_i,
   // The current XY-coordinate of the router
-  input  id_t                           xy_id_i,
+  input  id_t   xy_id_i,
   // The calculated onehot mask for the multicast/reduction
-  output logic [NumRoutes-1:0]          route_sel_o
+  output logic [NumRoutes-1:0] route_sel_o
 );
 
   // General Concept: In XY-Routing all flits travel first in X - direction until they arrive at the column of the destination
@@ -74,7 +76,7 @@ module floo_route_xymask import floo_pkg::*; #(
   // To improve readability of the code we generate both mask in parallel and only
   // mux them at the output.
 
-/* Variable declaration */
+  /* Variable declaration */
   // generated routes
   logic [NumRoutes-1:0] route_output;
   logic [NumRoutes-1:0] route_expected_input;
@@ -97,7 +99,7 @@ module floo_route_xymask import floo_pkg::*; #(
   // Signal assignments
   assign dst_id = channel_i.hdr.dst_id;
   assign src_id = channel_i.hdr.src_id;
-  assign mask = channel_i.hdr.collective_mask;
+  assign mask   = channel_i.hdr.collective_mask;
 
   // We compute minimum and maximum destination IDs, to decide whether
   // we need to send left and/or right resp. up and/or down.
@@ -121,14 +123,13 @@ module floo_route_xymask import floo_pkg::*; #(
   assign x_matched_expected_input = &(mask.x | ~(xy_id_i.x ^ src_id.x));
   assign y_matched_expected_input = &(mask.y | ~(xy_id_i.y ^ src_id.y));
 
-
   // Generate the output mask
-  if(FwdMode) begin : gen_output_mask
+  if (FwdMode) begin : gen_output_mask
     always_comb begin
       route_output = '0;
 
       // If both direction match then the local port is member of the distribution
-      if(x_matched_output && y_matched_output) begin
+      if (x_matched_output && y_matched_output) begin
         route_output[Eject] = 1'b1;
       end
 
@@ -197,12 +198,12 @@ module floo_route_xymask import floo_pkg::*; #(
   end
 
   // Generate the expected input mask
-  if(!FwdMode) begin : gen_expected_input_mask
+  if (!FwdMode) begin : gen_expected_input_mask
     always_comb begin
       route_expected_input = '0;
 
       // If both direction match then the local port is a member of the distribution
-      if(x_matched_expected_input && y_matched_expected_input) begin
+      if (x_matched_expected_input && y_matched_expected_input) begin
         route_expected_input[Eject] = 1'b1;
       end
 
@@ -213,11 +214,11 @@ module floo_route_xymask import floo_pkg::*; #(
         // e.g. the North / South can only be selected if we are in the correct dst column.
         // We expect a packet from the north if the current y id is higher/equal as the destination but still
         // inside the expected maximum range of the source reduction. Same for the South!
-        if(xy_id_i.x == dst_id.x) begin
-          if((xy_id_i.y >= dst_id.y) && (xy_id_i.y < src_id_max.y)) begin
+        if (xy_id_i.x == dst_id.x) begin
+          if ((xy_id_i.y >= dst_id.y) && (xy_id_i.y < src_id_max.y)) begin
             route_expected_input[North] = 1'b1;
           end
-          if((xy_id_i.y <= dst_id.y) && (xy_id_i.y > src_id_min.y)) begin
+          if ((xy_id_i.y <= dst_id.y) && (xy_id_i.y > src_id_min.y)) begin
             route_expected_input[South] = 1'b1;
           end
         end
@@ -227,11 +228,11 @@ module floo_route_xymask import floo_pkg::*; #(
         // For all members of a rows involved in the reduction the flag y_matched_expected_input is set!
         // We expect a packet from the east if the current x id is higher/equal as the destination but still
         // inside the expected maximum range of the source reduction. Same for the West!
-        if(y_matched_expected_input) begin
-          if((xy_id_i.x >= dst_id.x) && (xy_id_i.x < src_id_max.x)) begin
+        if (y_matched_expected_input) begin
+          if ((xy_id_i.x >= dst_id.x) && (xy_id_i.x < src_id_max.x)) begin
             route_expected_input[East] = 1'b1;
           end
-          if((xy_id_i.x <= dst_id.x) && (xy_id_i.x > src_id_min.x)) begin
+          if ((xy_id_i.x <= dst_id.x) && (xy_id_i.x > src_id_min.x)) begin
             route_expected_input[West] = 1'b1;
           end
         end
@@ -242,11 +243,11 @@ module floo_route_xymask import floo_pkg::*; #(
         // e.g. the East / West can only be selected if we are in the correct dst row.
         // We expect a packet from the east if the current x id is higher/equal as the destination but still
         // inside the expected maximum range of the source reduction. Same for the West!
-        if(xy_id_i.y == dst_id.y) begin
-          if((xy_id_i.x >= dst_id.x) && (xy_id_i.x < src_id_max.x)) begin
+        if (xy_id_i.y == dst_id.y) begin
+          if ((xy_id_i.x >= dst_id.x) && (xy_id_i.x < src_id_max.x)) begin
             route_expected_input[East] = 1'b1;
           end
-          if((xy_id_i.x <= dst_id.x) && (xy_id_i.x > src_id_min.x)) begin
+          if ((xy_id_i.x <= dst_id.x) && (xy_id_i.x > src_id_min.x)) begin
             route_expected_input[West] = 1'b1;
           end
         end
@@ -256,11 +257,11 @@ module floo_route_xymask import floo_pkg::*; #(
         // For all members of a column involved in the reduction the flag x_matched_expected_input is set!
         // We expect a packet from the north if the current y id is higher/equal as the destination but still
         // inside the expected maximum range of the source reduction. Same for the South!
-        if(x_matched_expected_input) begin
-          if((xy_id_i.y >= dst_id.y) && (xy_id_i.y < src_id_max.y)) begin
+        if (x_matched_expected_input) begin
+          if ((xy_id_i.y >= dst_id.y) && (xy_id_i.y < src_id_max.y)) begin
             route_expected_input[North] = 1'b1;
           end
-          if((xy_id_i.y <= dst_id.y) && (xy_id_i.y > src_id_min.y)) begin
+          if ((xy_id_i.y <= dst_id.y) && (xy_id_i.y > src_id_min.y)) begin
             route_expected_input[South] = 1'b1;
           end
         end

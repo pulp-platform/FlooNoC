@@ -16,60 +16,60 @@ module floo_axi_chimney
   import floo_pkg::*;
 #(
   /// Config of the AXI interfaces (see floo_pkg::axi_cfg_t for details)
-  parameter floo_pkg::axi_cfg_t AxiCfg = '0,
+  parameter floo_pkg::axi_cfg_t     AxiCfg     = '0,
   /// Config of the data path in the chimney (see floo_pkg::chimney_cfg_t for details)
   parameter floo_pkg::chimney_cfg_t ChimneyCfg = floo_pkg::ChimneyDefaultCfg,
   /// Config for routing information (see floo_pkg::route_cfg_t for details)
-  parameter floo_pkg::route_cfg_t RouteCfg  = floo_pkg::RouteDefaultCfg,
+  parameter floo_pkg::route_cfg_t   RouteCfg   = floo_pkg::RouteDefaultCfg,
   /// Atomic operation support
-  parameter bit AtopSupport                 = 1'b1,
+  parameter bit          AtopSupport   = 1'b1,
   /// Maximum number of outstanding Atomic transactions,
   /// must be smaller or equal to 2**AxiOutIdWidth-1 since
   /// Every atomic transactions needs to have a unique ID
   /// and one ID is reserved for non-atomic transactions
-  parameter int unsigned MaxAtomicTxns      = 1,
+  parameter int unsigned MaxAtomicTxns = 1,
   /// Node ID type for routing
-  parameter type id_t                                   = logic,
+  parameter type         id_t          = logic,
   /// RoB index type for reordering.
   // (can be ignored if `RoBType == NoRoB`)
-  parameter type rob_idx_t                              = logic,
+  parameter type         rob_idx_t     = logic,
   /// Route type for source-based routing
   /// (only used if `RouteCfg.RouteAlgo == SourceRouting`)
-  parameter type route_t                                = logic,
+  parameter type         route_t       = logic,
   /// Destination ID type for routing
   /// The destination ID type is usually the same as the node ID type,
   /// except for the case of source-based routing, where the destination
   /// ID is the actual route to the destination i.e. `route_t`
-  parameter type dst_t                                  = id_t,
+  parameter type         dst_t         = id_t,
   /// Header type for the flits
-  parameter type hdr_t                                  = logic,
+  parameter type         hdr_t         = logic,
   /// Collective opcode type
-  parameter type collect_op_t                           = logic,
+  parameter type         collect_op_t  = logic,
   /// Rule type for the System Address Map
   /// (only used if `RouteCfg.UseIdTable == 1'b1`)
-  parameter type sam_rule_t                             = logic,
+  parameter type         sam_rule_t    = logic,
   /// The System Address Map (SAM) rules
   /// (only used if `RouteCfg.UseIdTable == 1'b1`)
-  parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam   = '0,
+  parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam = '0,
   /// SAM Index type to support multicast info
-  parameter type sam_idx_t                              = id_t,
+  parameter type sam_idx_t     = id_t,
   /// Struct consisting of offset and len to specify the position of the mask bits
   /// (only used if `EnMultiCast && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
-  parameter type mask_sel_t                             = logic,
+  parameter type mask_sel_t    = logic,
   /// AXI manager request channel type
-  parameter type axi_in_req_t               = logic,
+  parameter type axi_in_req_t  = logic,
   /// AXI manager response channel type
-  parameter type axi_in_rsp_t               = logic,
+  parameter type axi_in_rsp_t  = logic,
   /// AXI subordinate request channel type
-  parameter type axi_out_req_t              = logic,
+  parameter type axi_out_req_t = logic,
   // AXI subordinate response channel type
-  parameter type axi_out_rsp_t              = logic,
+  parameter type axi_out_rsp_t = logic,
   /// Floo `req` link type
-  parameter type floo_req_t                 = logic,
+  parameter type floo_req_t    = logic,
   /// Floo `rsp` link type
-  parameter type floo_rsp_t                 = logic,
+  parameter type floo_rsp_t    = logic,
   /// SRAM configuration type
-  parameter type sram_cfg_t                 = logic,
+  parameter type sram_cfg_t    = logic,
   /// Struct to interpret the multicast mask in the user bits. Only used if `EnMultiCast == 1'b1`.
   /// It expects at least a field `mask`, which has the same size as the address:
   /// typedef struct packed {
@@ -77,20 +77,20 @@ module floo_axi_chimney
   ///   logic [AxiCfg.UserWidth-1:0] user;
   /// } user_struct_t;
   /// The `mask` field will not be transported over the NoC, while the `user` field will be.
-  parameter type user_struct_t              = logic
+  parameter type user_struct_t = logic
 ) (
-  input  logic clk_i,
-  input  logic rst_ni,
-  input  logic test_enable_i,
+  input  logic         clk_i,
+  input  logic         rst_ni,
+  input  logic         test_enable_i,
   /// SRAM configuration
-  input  sram_cfg_t  sram_cfg_i,
+  input  sram_cfg_t    sram_cfg_i,
   /// AXI4 side interfaces
-  input  axi_in_req_t axi_in_req_i,
-  output axi_in_rsp_t axi_in_rsp_o,
+  input  axi_in_req_t  axi_in_req_i,
+  output axi_in_rsp_t  axi_in_rsp_o,
   output axi_out_req_t axi_out_req_o,
   input  axi_out_rsp_t axi_out_rsp_i,
   /// Coordinates/ID of the current tile
-  input  id_t id_i,
+  input  id_t          id_i,
   /// Routing table for the current tile
   input  route_t [cc_pkg::iomsb(RouteCfg.NumRoutes):0] route_table_i,
   /// Output links to NoC
@@ -114,79 +114,82 @@ module floo_axi_chimney
   typedef logic [AxiCfg.DataWidth/8-1:0] axi_strb_t;
 
   // (Re-) definitions of `axi_in` and `floo` types, for transport
-  `AXI_TYPEDEF_ALL_CT(axi, axi_req_t, axi_rsp_t, axi_addr_t, axi_in_id_t,
-                      axi_data_t, axi_strb_t, axi_user_t)
+  `AXI_TYPEDEF_ALL_CT(axi, axi_req_t, axi_rsp_t, axi_addr_t, axi_in_id_t, axi_data_t, axi_strb_t,
+                      axi_user_t)
   `AXI_TYPEDEF_AW_CHAN_T(axi_out_aw_chan_t, axi_addr_t, axi_out_id_t, axi_user_t)
   `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi, AxiCfg, hdr_t)
 
   // Type of the mask encoded in the user field.
   // It's always equal to the address field.
   // For future extension, add an extra opcode in the user_struct_t
-  typedef axi_addr_t user_mask_t ;
+  typedef axi_addr_t user_mask_t;
 
   // Duplicate AXI port signals to degenerate ports
   // in case they are not used
-  axi_req_t axi_req_in;
-  axi_rsp_t axi_rsp_out;
+  axi_req_t   axi_req_in;
+  axi_rsp_t   axi_rsp_out;
   user_mask_t axi_req_in_mask;
 
   // AX queue
   axi_aw_chan_t axi_aw_queue;
   axi_ar_chan_t axi_ar_queue;
-  logic axi_aw_queue_valid_out, axi_aw_queue_ready_in;
-  logic axi_ar_queue_valid_out, axi_ar_queue_ready_in;
-  user_mask_t axi_mask_queue;
+  logic         axi_aw_queue_valid_out, axi_aw_queue_ready_in;
+  logic         axi_ar_queue_valid_out, axi_ar_queue_ready_in;
+  user_mask_t   axi_mask_queue;
 
   // AXI req/rsp arbiter
   floo_req_chan_t [AxiW:AxiAr] floo_req_arb_in;
-  floo_rsp_chan_t [AxiB:AxiR] floo_rsp_arb_in;
-  logic  [AxiW:AxiAr] floo_req_arb_req_in, floo_req_arb_gnt_out;
-  logic  [AxiB:AxiR] floo_rsp_arb_req_in, floo_rsp_arb_gnt_out;
+  floo_rsp_chan_t [AxiB:AxiR]  floo_rsp_arb_in;
+  logic [AxiW:AxiAr]           floo_req_arb_req_in, floo_req_arb_gnt_out;
+  logic [AxiB:AxiR]            floo_rsp_arb_req_in, floo_rsp_arb_gnt_out;
 
   // flit queue
   floo_req_chan_t floo_req_in;
   floo_rsp_chan_t floo_rsp_in;
-  logic floo_req_in_valid, floo_rsp_in_valid;
-  logic floo_req_out_ready, floo_rsp_out_ready;
+  logic           floo_req_in_valid, floo_rsp_in_valid;
+  logic           floo_req_out_ready, floo_rsp_out_ready;
   logic [NumAxiChannels-1:0] axi_valid_in, axi_ready_out;
 
   // Flit packing
-  floo_axi_aw_flit_t  floo_axi_aw;
-  floo_axi_w_flit_t   floo_axi_w;
-  floo_axi_ar_flit_t  floo_axi_ar;
-  floo_axi_b_flit_t   floo_axi_b;
-  floo_axi_r_flit_t   floo_axi_r;
+  floo_axi_aw_flit_t floo_axi_aw;
+  floo_axi_w_flit_t  floo_axi_w;
+  floo_axi_ar_flit_t floo_axi_ar;
+  floo_axi_b_flit_t  floo_axi_b;
+  floo_axi_r_flit_t  floo_axi_r;
 
   // Flit unpacking
-  axi_aw_chan_t axi_unpack_aw;
-  axi_ar_chan_t axi_unpack_ar;
-  axi_w_chan_t  axi_unpack_w;
-  axi_b_chan_t  axi_unpack_b;
-  axi_r_chan_t  axi_unpack_r;
+  axi_aw_chan_t           axi_unpack_aw;
+  axi_ar_chan_t           axi_unpack_ar;
+  axi_w_chan_t            axi_unpack_w;
+  axi_b_chan_t            axi_unpack_b;
+  axi_r_chan_t            axi_unpack_r;
   floo_req_generic_flit_t unpack_req_generic;
   floo_rsp_generic_flit_t unpack_rsp_generic;
 
   // Meta Buffer
-  axi_req_t meta_buf_req_in;
-  axi_rsp_t meta_buf_rsp_out;
+  axi_req_t     meta_buf_req_in;
+  axi_rsp_t     meta_buf_rsp_out;
   axi_out_req_t meta_buf_req_out;
   axi_out_rsp_t meta_buf_rsp_in;
 
   // Flit arbitration
-  typedef enum logic {SelAw, SelW} aw_w_sel_e;
+  typedef enum logic {
+    SelAw,
+    SelW
+  } aw_w_sel_e;
   aw_w_sel_e aw_w_sel_q, aw_w_sel_d;
 
   // ID tracking
   typedef struct packed {
-    axi_in_id_t  id;
-    hdr_t        hdr;
+    axi_in_id_t id;
+    hdr_t       hdr;
   } meta_buf_t;
 
   // Routing
   dst_t [NumAxiChannels-1:0] dst_id;
   dst_t axi_aw_id_q;
-  id_t  [NumAxiChannels-1:0] mcast_mask;
-  id_t  axi_aw_mask_q;
+  id_t [NumAxiChannels-1:0] mcast_mask;
+  id_t axi_aw_mask_q;
   id_t [NumAxiChannels-1:0] id_out;
   id_t [NumAxiChannels-1:0] mask_id;
 
@@ -206,7 +209,7 @@ module floo_axi_chimney
     // Extract the multicast mask bits from the AXI user bits
     if (en_narrow_collective(CollectOpCfg)) begin : gen_mask
       user_struct_t user;
-      assign user = axi_in_req_i.aw.user;
+      assign user            = axi_in_req_i.aw.user;
       assign axi_req_in_mask = user.mcast_mask;
     end else begin : gen_no_mask
       assign axi_req_in_mask = '0;
@@ -214,118 +217,117 @@ module floo_axi_chimney
 
     if (ChimneyCfg.CutAx) begin : gen_ax_cuts
       cc_spill_register #(
-        .data_t ( axi_aw_chan_t )
+        .data_t(axi_aw_chan_t)
       ) i_aw_queue (
         .clk_i,
         .rst_ni,
-        .clr_i(1'b0),
-        .data_i     ( axi_in_req_i.aw         ),
-        .valid_i    ( axi_in_req_i.aw_valid   ),
-        .ready_o    ( axi_rsp_out.aw_ready    ),
-        .data_o     ( axi_aw_queue            ),
-        .valid_o    ( axi_aw_queue_valid_out  ),
-        .ready_i    ( axi_aw_queue_ready_in   )
+        .clr_i  (1'b0),
+        .data_i (axi_in_req_i.aw),
+        .valid_i(axi_in_req_i.aw_valid),
+        .ready_o(axi_rsp_out.aw_ready),
+        .data_o (axi_aw_queue),
+        .valid_o(axi_aw_queue_valid_out),
+        .ready_i(axi_aw_queue_ready_in)
       );
 
       cc_spill_register #(
-        .data_t ( axi_ar_chan_t )
+        .data_t(axi_ar_chan_t)
       ) i_ar_queue (
         .clk_i,
         .rst_ni,
-        .clr_i(1'b0),
-        .data_i     ( axi_in_req_i.ar         ),
-        .valid_i    ( axi_in_req_i.ar_valid   ),
-        .ready_o    ( axi_rsp_out.ar_ready    ),
-        .data_o     ( axi_ar_queue            ),
-        .valid_o    ( axi_ar_queue_valid_out  ),
-        .ready_i    ( axi_ar_queue_ready_in   )
+        .clr_i  (1'b0),
+        .data_i (axi_in_req_i.ar),
+        .valid_i(axi_in_req_i.ar_valid),
+        .ready_o(axi_rsp_out.ar_ready),
+        .data_o (axi_ar_queue),
+        .valid_o(axi_ar_queue_valid_out),
+        .ready_i(axi_ar_queue_ready_in)
       );
       if (en_narrow_collective(CollectOpCfg)) begin : gen_mask_cuts
         cc_spill_register #(
-          .data_t (logic [AxiCfg.UserWidth-1:0])
+          .data_t(logic [AxiCfg.UserWidth-1:0])
         ) i_usermask_queue (
           .clk_i,
           .rst_ni,
-          .clr_i(1'b0),
-          .data_i   ( axi_req_in_mask ),
-          .valid_i  ( axi_req_in.aw_valid ),
-          .ready_o  (  ),
-          .data_o   ( axi_mask_queue ),
-          .valid_o  (  ),
-          .ready_i  ( axi_aw_queue_ready_in )
+          .clr_i  (1'b0),
+          .data_i (axi_req_in_mask),
+          .valid_i(axi_req_in.aw_valid),
+          .ready_o(),
+          .data_o (axi_mask_queue),
+          .valid_o(),
+          .ready_i(axi_aw_queue_ready_in)
         );
       end else begin : gen_no_mask_cuts
         assign axi_mask_queue = '0;
       end
     end else begin : gen_no_ax_cuts
-      assign axi_aw_queue = axi_in_req_i.aw;
+      assign axi_aw_queue           = axi_in_req_i.aw;
       assign axi_aw_queue_valid_out = axi_in_req_i.aw_valid;
-      assign axi_rsp_out.aw_ready = axi_aw_queue_ready_in;
-      assign axi_ar_queue = axi_in_req_i.ar;
+      assign axi_rsp_out.aw_ready   = axi_aw_queue_ready_in;
+      assign axi_ar_queue           = axi_in_req_i.ar;
       assign axi_ar_queue_valid_out = axi_in_req_i.ar_valid;
-      assign axi_rsp_out.ar_ready = axi_ar_queue_ready_in;
-      assign axi_mask_queue = axi_req_in_mask;
+      assign axi_rsp_out.ar_ready   = axi_ar_queue_ready_in;
+      assign axi_mask_queue         = axi_req_in_mask;
     end
 
   end else begin : gen_err_slv_port
     axi_err_slv #(
-      .AxiIdWidth ( AxiCfg.InIdWidth  ),
-      .ATOPs      ( AtopSupport       ),
-      .axi_req_t  ( axi_in_req_t      ),
-      .axi_resp_t ( axi_in_rsp_t      )
+      .AxiIdWidth(AxiCfg.InIdWidth),
+      .ATOPs     (AtopSupport),
+      .axi_req_t (axi_in_req_t),
+      .axi_resp_t(axi_in_rsp_t)
     ) i_axi_err_slv (
-      .clk_i      ( clk_i         ),
-      .rst_ni     ( rst_ni        ),
-      .slv_req_i  ( axi_in_req_i  ),
-      .slv_resp_o ( axi_in_rsp_o  )
+      .clk_i     (clk_i),
+      .rst_ni    (rst_ni),
+      .slv_req_i (axi_in_req_i),
+      .slv_resp_o(axi_in_rsp_o)
     );
-    assign axi_req_in = '0;
-    assign axi_aw_queue = '0;
-    assign axi_ar_queue = '0;
+    assign axi_req_in             = '0;
+    assign axi_aw_queue           = '0;
+    assign axi_ar_queue           = '0;
     assign axi_aw_queue_valid_out = 1'b0;
     assign axi_ar_queue_valid_out = 1'b0;
-    assign axi_mask_queue = '0;
+    assign axi_mask_queue         = '0;
   end
 
   if (ChimneyCfg.CutRsp) begin : gen_rsp_cuts
     cc_spill_register #(
-      .data_t ( floo_req_chan_t )
+      .data_t(floo_req_chan_t)
     ) i_data_req_arb (
-      .clk_i      ( clk_i               ),
-      .rst_ni     ( rst_ni              ),
-      .clr_i(1'b0),
-      .data_i     ( floo_req_i.req      ),
-      .valid_i    ( floo_req_i.valid    ),
-      .ready_o    ( floo_req_o.ready    ),
-      .data_o     ( floo_req_in         ),
-      .valid_o    ( floo_req_in_valid   ),
-      .ready_i    ( floo_req_out_ready  )
+      .clk_i  (clk_i),
+      .rst_ni (rst_ni),
+      .clr_i  (1'b0),
+      .data_i (floo_req_i.req),
+      .valid_i(floo_req_i.valid),
+      .ready_o(floo_req_o.ready),
+      .data_o (floo_req_in),
+      .valid_o(floo_req_in_valid),
+      .ready_i(floo_req_out_ready)
     );
 
     cc_spill_register #(
-      .data_t ( floo_rsp_chan_t )
+      .data_t(floo_rsp_chan_t)
     ) i_data_rsp_arb (
-      .clk_i      ( clk_i               ),
-      .rst_ni     ( rst_ni              ),
-      .clr_i(1'b0),
-      .data_i     ( floo_rsp_i.rsp      ),
-      .valid_i    ( floo_rsp_i.valid    ),
-      .ready_o    ( floo_rsp_o.ready    ),
-      .data_o     ( floo_rsp_in         ),
-      .valid_o    ( floo_rsp_in_valid   ),
-      .ready_i    ( floo_rsp_out_ready  )
+      .clk_i  (clk_i),
+      .rst_ni (rst_ni),
+      .clr_i  (1'b0),
+      .data_i (floo_rsp_i.rsp),
+      .valid_i(floo_rsp_i.valid),
+      .ready_o(floo_rsp_o.ready),
+      .data_o (floo_rsp_in),
+      .valid_o(floo_rsp_in_valid),
+      .ready_i(floo_rsp_out_ready)
     );
   end else begin : gen_no_rsp_cuts
-    assign floo_req_in = floo_req_i.req;
+    assign floo_req_in       = floo_req_i.req;
     assign floo_req_in_valid = floo_req_i.valid;
-    assign floo_req_o.ready = floo_req_out_ready;
-    assign floo_rsp_in = floo_rsp_i.rsp;
+    assign floo_req_o.ready  = floo_req_out_ready;
+    assign floo_rsp_in       = floo_rsp_i.rsp;
     assign floo_rsp_in_valid = floo_rsp_i.valid;
-    assign floo_rsp_o.ready = floo_rsp_out_ready;
+    assign floo_rsp_o.ready  = floo_rsp_out_ready;
   end
 
-
-  logic aw_out_queue_valid, aw_out_queue_ready;
+  logic             aw_out_queue_valid, aw_out_queue_ready;
   axi_out_aw_chan_t axi_aw_queue_out, axi_aw_queue_in;
 
   `AXI_ASSIGN_AW_STRUCT(axi_aw_queue_in, meta_buf_req_out.aw)
@@ -334,24 +336,24 @@ module floo_axi_chimney
   // a downstream module does not accept the AW until the W is valid.
   // Therefore, we need to add a spill register for the AW channel.
   cc_spill_register #(
-    .data_t (axi_out_aw_chan_t)
+    .data_t(axi_out_aw_chan_t)
   ) i_aw_out_queue (
-    .clk_i    ( clk_i                     ),
-    .rst_ni   ( rst_ni                    ),
-    .clr_i(1'b0),
-    .valid_i  ( meta_buf_req_out.aw_valid ),
-    .ready_o  ( aw_out_queue_ready        ),
-    .data_i   ( axi_aw_queue_in           ),
-    .valid_o  ( aw_out_queue_valid        ),
-    .ready_i  ( axi_out_rsp_i.aw_ready    ),
-    .data_o   ( axi_aw_queue_out          )
+    .clk_i  (clk_i),
+    .rst_ni (rst_ni),
+    .clr_i  (1'b0),
+    .valid_i(meta_buf_req_out.aw_valid),
+    .ready_o(aw_out_queue_ready),
+    .data_i (axi_aw_queue_in),
+    .valid_o(aw_out_queue_valid),
+    .ready_i(axi_out_rsp_i.aw_ready),
+    .data_o (axi_aw_queue_out)
   );
 
   always_comb begin
-    axi_out_req_o = meta_buf_req_out;
+    axi_out_req_o          = meta_buf_req_out;
     axi_out_req_o.aw_valid = aw_out_queue_valid;
     `AXI_SET_AW_STRUCT(axi_out_req_o.aw, axi_aw_queue_out);
-    meta_buf_rsp_in = axi_out_rsp_i;
+    meta_buf_rsp_in          = axi_out_rsp_i;
     meta_buf_rsp_in.aw_ready = aw_out_queue_ready;
   end
 
@@ -361,66 +363,66 @@ module floo_axi_chimney
 
   // AW/B RoB
   axi_b_chan_t axi_b_rob_out, axi_b_rob_in;
-  logic aw_rob_req_out;
-  rob_idx_t aw_rob_idx_out;
-  logic aw_rob_valid_in, aw_rob_ready_out;
-  logic aw_rob_valid_out, aw_rob_ready_in;
-  logic b_rob_valid_in, b_rob_ready_out;
-  logic b_rob_valid_out, b_rob_ready_in;
+  logic        aw_rob_req_out;
+  rob_idx_t    aw_rob_idx_out;
+  logic        aw_rob_valid_in, aw_rob_ready_out;
+  logic        aw_rob_valid_out, aw_rob_ready_in;
+  logic        b_rob_valid_in, b_rob_ready_out;
+  logic        b_rob_valid_out, b_rob_ready_in;
 
   // AR/R RoB
   axi_r_chan_t axi_r_rob_out, axi_r_rob_in;
-  logic ar_rob_req_out;
-  rob_idx_t ar_rob_idx_out;
-  logic ar_rob_valid_out, ar_rob_ready_in;
-  logic r_rob_valid_in, r_rob_ready_out;
-  logic r_rob_valid_out, r_rob_ready_in;
+  logic        ar_rob_req_out;
+  rob_idx_t    ar_rob_idx_out;
+  logic        ar_rob_valid_out, ar_rob_ready_in;
+  logic        r_rob_valid_in, r_rob_ready_out;
+  logic        r_rob_valid_out, r_rob_ready_in;
 
   if (AtopSupport) begin : gen_atop_support
     // Bypass AW/B RoB
     assign aw_rob_valid_in = axi_aw_queue_valid_out && (axi_aw_queue.atop == axi_pkg::ATOP_NONE);
-    assign axi_aw_queue_ready_in = (axi_aw_queue.atop == axi_pkg::ATOP_NONE)?
-                                aw_rob_ready_out : aw_rob_ready_in;
+    assign axi_aw_queue_ready_in = (axi_aw_queue.atop == axi_pkg::ATOP_NONE) ? aw_rob_ready_out :
+                                   aw_rob_ready_in;
   end else begin : gen_no_atop_support
-    assign aw_rob_valid_in = axi_aw_queue_valid_out;
+    assign aw_rob_valid_in       = axi_aw_queue_valid_out;
     assign axi_aw_queue_ready_in = aw_rob_ready_out;
     `ASSERT(NoAtopSupport, !(axi_aw_queue_valid_out && (axi_aw_queue.atop != axi_pkg::ATOP_NONE)))
   end
 
   floo_rob_wrapper #(
-    .RoBType        ( ChimneyCfg.BRoBType     ),
-    .RoBSize        ( ChimneyCfg.BRoBSize     ),
-    .MaxRoTxnsPerId ( ChimneyCfg.MaxTxnsPerId ),
-    .OnlyMetaData   ( 1'b1                    ),
-    .ax_len_t       ( axi_pkg::len_t          ),
-    .ax_id_t        ( axi_in_id_t             ),
-    .rsp_chan_t     ( axi_b_chan_t            ),
-    .rsp_meta_t     ( axi_b_chan_t            ),
-    .rob_idx_t      ( rob_idx_t               ),
-    .dest_t         ( id_t                    ),
-    .sram_cfg_t     ( sram_cfg_t              )
+    .RoBType       (ChimneyCfg.BRoBType),
+    .RoBSize       (ChimneyCfg.BRoBSize),
+    .MaxRoTxnsPerId(ChimneyCfg.MaxTxnsPerId),
+    .OnlyMetaData  (1'b1),
+    .ax_len_t      (axi_pkg::len_t),
+    .ax_id_t       (axi_in_id_t),
+    .rsp_chan_t    (axi_b_chan_t),
+    .rsp_meta_t    (axi_b_chan_t),
+    .rob_idx_t     (rob_idx_t),
+    .dest_t        (id_t),
+    .sram_cfg_t    (sram_cfg_t)
   ) i_b_rob (
     .clk_i,
     .rst_ni,
     .sram_cfg_i,
-    .ax_valid_i     ( aw_rob_valid_in               ),
-    .ax_ready_o     ( aw_rob_ready_out              ),
-    .ax_len_i       ( '0                            ), // B responses are single-beat
-    .ax_id_i        ( axi_aw_queue.id               ),
-    .ax_dest_i      ( id_out[AxiAw]                 ),
-    .ax_valid_o     ( aw_rob_valid_out              ),
-    .ax_ready_i     ( aw_rob_ready_in               ),
-    .ax_rob_req_o   ( aw_rob_req_out                ),
-    .ax_rob_idx_o   ( aw_rob_idx_out                ),
-    .rsp_valid_i    ( b_rob_valid_in                ),
-    .rsp_ready_o    ( b_rob_ready_out               ),
-    .rsp_i          ( axi_b_rob_in                  ),
-    .rsp_rob_req_i  ( floo_rsp_in.axi_b.hdr.rob_req ),
-    .rsp_rob_idx_i  ( floo_rsp_in.axi_b.hdr.rob_idx ),
-    .rsp_last_i     ( 1'b1                          ),
-    .rsp_valid_o    ( b_rob_valid_out               ),
-    .rsp_ready_i    ( b_rob_ready_in                ),
-    .rsp_o          ( axi_b_rob_out                 )
+    .ax_valid_i   (aw_rob_valid_in),
+    .ax_ready_o   (aw_rob_ready_out),
+    .ax_len_i     ('0), // B responses are single-beat
+    .ax_id_i      (axi_aw_queue.id),
+    .ax_dest_i    (id_out[AxiAw]),
+    .ax_valid_o   (aw_rob_valid_out),
+    .ax_ready_i   (aw_rob_ready_in),
+    .ax_rob_req_o (aw_rob_req_out),
+    .ax_rob_idx_o (aw_rob_idx_out),
+    .rsp_valid_i  (b_rob_valid_in),
+    .rsp_ready_o  (b_rob_ready_out),
+    .rsp_i        (axi_b_rob_in),
+    .rsp_rob_req_i(floo_rsp_in.axi_b.hdr.rob_req),
+    .rsp_rob_idx_i(floo_rsp_in.axi_b.hdr.rob_idx),
+    .rsp_last_i   (1'b1),
+    .rsp_valid_o  (b_rob_valid_out),
+    .rsp_ready_i  (b_rob_ready_in),
+    .rsp_o        (axi_b_rob_out)
   );
 
   typedef struct packed {
@@ -430,52 +432,51 @@ module floo_axi_chimney
     logic           last;
   } r_rob_meta_t;
 
-
   floo_rob_wrapper #(
-    .RoBType        ( ChimneyCfg.RRoBType     ),
-    .RoBSize        ( ChimneyCfg.RRoBSize     ),
-    .MaxRoTxnsPerId ( ChimneyCfg.MaxTxnsPerId ),
-    .OnlyMetaData   ( 1'b0                    ),
-    .ax_len_t       ( axi_pkg::len_t          ),
-    .ax_id_t        ( axi_in_id_t             ),
-    .rsp_chan_t     ( axi_r_chan_t            ),
-    .rsp_data_t     ( axi_data_t              ),
-    .rsp_meta_t     ( r_rob_meta_t            ),
-    .rob_idx_t      ( rob_idx_t               ),
-    .dest_t         ( id_t                    ),
-    .sram_cfg_t     ( sram_cfg_t              )
+    .RoBType       (ChimneyCfg.RRoBType),
+    .RoBSize       (ChimneyCfg.RRoBSize),
+    .MaxRoTxnsPerId(ChimneyCfg.MaxTxnsPerId),
+    .OnlyMetaData  (1'b0),
+    .ax_len_t      (axi_pkg::len_t),
+    .ax_id_t       (axi_in_id_t),
+    .rsp_chan_t    (axi_r_chan_t),
+    .rsp_data_t    (axi_data_t),
+    .rsp_meta_t    (r_rob_meta_t),
+    .rob_idx_t     (rob_idx_t),
+    .dest_t        (id_t),
+    .sram_cfg_t    (sram_cfg_t)
   ) i_r_rob (
     .clk_i,
     .rst_ni,
     .sram_cfg_i,
-    .ax_valid_i     ( axi_ar_queue_valid_out          ),
-    .ax_ready_o     ( axi_ar_queue_ready_in           ),
-    .ax_len_i       ( axi_ar_queue.len                ),
-    .ax_id_i        ( axi_ar_queue.id                 ),
-    .ax_dest_i      ( id_out[AxiAr]                   ),
-    .ax_valid_o     ( ar_rob_valid_out                ),
-    .ax_ready_i     ( ar_rob_ready_in                 ),
-    .ax_rob_req_o   ( ar_rob_req_out                  ),
-    .ax_rob_idx_o   ( ar_rob_idx_out                  ),
-    .rsp_valid_i    ( r_rob_valid_in                  ),
-    .rsp_ready_o    ( r_rob_ready_out                 ),
-    .rsp_i          ( axi_r_rob_in                    ),
-    .rsp_rob_req_i  ( floo_rsp_in.axi_r.hdr.rob_req   ),
-    .rsp_rob_idx_i  ( floo_rsp_in.axi_r.hdr.rob_idx   ),
-    .rsp_last_i     ( floo_rsp_in.axi_r.payload.last  ),
-    .rsp_valid_o    ( r_rob_valid_out                 ),
-    .rsp_ready_i    ( r_rob_ready_in                  ),
-    .rsp_o          ( axi_r_rob_out                   )
+    .ax_valid_i   (axi_ar_queue_valid_out),
+    .ax_ready_o   (axi_ar_queue_ready_in),
+    .ax_len_i     (axi_ar_queue.len),
+    .ax_id_i      (axi_ar_queue.id),
+    .ax_dest_i    (id_out[AxiAr]),
+    .ax_valid_o   (ar_rob_valid_out),
+    .ax_ready_i   (ar_rob_ready_in),
+    .ax_rob_req_o (ar_rob_req_out),
+    .ax_rob_idx_o (ar_rob_idx_out),
+    .rsp_valid_i  (r_rob_valid_in),
+    .rsp_ready_o  (r_rob_ready_out),
+    .rsp_i        (axi_r_rob_in),
+    .rsp_rob_req_i(floo_rsp_in.axi_r.hdr.rob_req),
+    .rsp_rob_idx_i(floo_rsp_in.axi_r.hdr.rob_idx),
+    .rsp_last_i   (floo_rsp_in.axi_r.payload.last),
+    .rsp_valid_o  (r_rob_valid_out),
+    .rsp_ready_i  (r_rob_ready_in),
+    .rsp_o        (axi_r_rob_out)
   );
 
   /////////////////
   //   ROUTING   //
   /////////////////
 
-  axi_addr_t [NumAxiChannels-1:0] axi_req_addr;
-  id_t [NumAxiChannels-1:0] axi_rsp_src_id;
+  axi_addr_t [NumAxiChannels-1:0]  axi_req_addr;
+  id_t [NumAxiChannels-1:0]        axi_rsp_src_id;
   user_mask_t [NumAxiChannels-1:0] axi_req_user;
-  mask_sel_t [NumAxiChannels-1:0] x_mask_sel, y_mask_sel;
+  mask_sel_t [NumAxiChannels-1:0]  x_mask_sel, y_mask_sel;
 
   assign axi_req_addr[AxiAw] = axi_aw_queue.addr;
   assign axi_req_addr[AxiAr] = axi_ar_queue.addr;
@@ -483,8 +484,8 @@ module floo_axi_chimney
   assign axi_rsp_src_id[AxiB] = aw_out_hdr_out.hdr.src_id;
   assign axi_rsp_src_id[AxiR] = ar_out_hdr_out.hdr.src_id;
 
-  assign axi_req_user [AxiAw] = axi_mask_queue;
-  assign axi_req_user [AxiAr] = '0;
+  assign axi_req_user[AxiAw] = axi_mask_queue;
+  assign axi_req_user[AxiAr] = '0;
 
   for (genvar ch = 0; ch < NumAxiChannels; ch++) begin : gen_route
     localparam axi_ch_e Ch = axi_ch_e'(ch);
@@ -492,8 +493,9 @@ module floo_axi_chimney
     if (Ch == AxiAw || Ch == AxiAr) begin : gen_req_route
 
       logic axi_req_valid;
-      assign axi_req_valid = (Ch == AxiAw)? axi_aw_queue_valid_out :
-                              (Ch == AxiAr)? axi_ar_queue_valid_out : 1'b0;
+      assign axi_req_valid = (Ch == AxiAw) ? axi_aw_queue_valid_out :
+                             (Ch == AxiAr) ? axi_ar_queue_valid_out :
+                             1'b0;
 
       // Translate the address from AXI requests to a destination ID
       floo_id_translation #(
@@ -507,11 +509,11 @@ module floo_axi_chimney
       ) i_floo_id_translation (
         .clk_i,
         .rst_ni,
-        .valid_i       (axi_req_valid),
-        .addr_i        (axi_req_addr[ch]),
-        .id_o          (id_out[ch]),
-        .mask_addr_x_o (x_mask_sel[ch]),
-        .mask_addr_y_o (y_mask_sel[ch])
+        .valid_i      (axi_req_valid),
+        .addr_i       (axi_req_addr[ch]),
+        .id_o         (id_out[ch]),
+        .mask_addr_x_o(x_mask_sel[ch]),
+        .mask_addr_y_o(y_mask_sel[ch])
       );
     end else if ((Ch == AxiB || Ch == AxiR)) begin : gen_rsp_route
       // For responses, the `src_id` from the request is used to route back
@@ -545,19 +547,19 @@ module floo_axi_chimney
       if (Ch == AxiAw) begin : gen_req_mcast_id_mask
         // Evaluate the ID Mask according to the info read from the SAM through the flooo_id_translation module
         if (RouteCfg.UseIdTable &&
-            RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin: gen_mcast_idtable
-          assign x_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel[ch].len))
-                                    << x_mask_sel[ch].offset);
-          assign y_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel[ch].len))
-                                    << y_mask_sel[ch].offset);
+            RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin : gen_mcast_idtable
+          assign x_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel[ch].len)) <<
+                                    x_mask_sel[ch].offset);
+          assign y_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel[ch].len)) <<
+                                    y_mask_sel[ch].offset);
           assign mask_id[ch].x = (axi_req_user[ch] & x_addr_mask[ch]) >> x_mask_sel[ch].offset;
           assign mask_id[ch].y = (axi_req_user[ch] & y_addr_mask[ch]) >> y_mask_sel[ch].offset;
           assign mask_id[ch].port_id = '0;
-        end else if (RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin: gen_mcast_noidtable
+        end else if (RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin : gen_mcast_noidtable
           assign mask_id[ch].x = axi_req_user[ch][RouteCfg.XYAddrOffsetX +: $bits(id_out[ch].x)];
           assign mask_id[ch].y = axi_req_user[ch][RouteCfg.XYAddrOffsetY +: $bits(id_out[ch].y)];
           assign mask_id[ch].port_id = '0;
-        end else begin: gen_mcast_nosupported
+        end else begin : gen_mcast_nosupported
           assign mask_id[ch] = '0; // We don't support multicast for other routing algorithms
         end
       end
@@ -571,7 +573,7 @@ module floo_axi_chimney
 
     `FFL(axi_aw_mask_q, mcast_mask[AxiAw], axi_aw_queue_valid_out &&
                                      axi_aw_queue_ready_in, '0)
-  end else begin: gen_no_mcast_mask
+  end else begin : gen_no_mcast_mask
     assign mcast_mask = '0;
   end
 
@@ -584,26 +586,26 @@ module floo_axi_chimney
     floo_axi_aw.hdr.rob_req = aw_rob_req_out;
     floo_axi_aw.hdr.rob_idx = aw_rob_idx_out;
     floo_axi_aw.hdr.dst_id  = dst_id[AxiAw];
-    floo_axi_aw.hdr.collective_mask    = mcast_mask[AxiAw];
-    floo_axi_aw.hdr.src_id  = id_i;
-    floo_axi_aw.hdr.last    = 1'b0;
-    floo_axi_aw.hdr.axi_ch  = AxiAw;
-    floo_axi_aw.hdr.atop    = axi_aw_queue.atop != axi_pkg::ATOP_NONE;
-    floo_axi_aw.payload     = axi_aw_queue;
-    floo_axi_aw.hdr.collective_op = (mcast_mask[AxiAw] != '0) ? Multicast : Unicast;
+    floo_axi_aw.hdr.collective_mask = mcast_mask[AxiAw];
+    floo_axi_aw.hdr.src_id          = id_i;
+    floo_axi_aw.hdr.last            = 1'b0;
+    floo_axi_aw.hdr.axi_ch          = AxiAw;
+    floo_axi_aw.hdr.atop            = axi_aw_queue.atop != axi_pkg::ATOP_NONE;
+    floo_axi_aw.payload             = axi_aw_queue;
+    floo_axi_aw.hdr.collective_op   = (mcast_mask[AxiAw] != '0) ? Multicast : Unicast;
   end
 
   always_comb begin
-    floo_axi_w              = '0;
-    floo_axi_w.hdr.rob_req  = aw_rob_req_out;
-    floo_axi_w.hdr.rob_idx  = aw_rob_idx_out;
-    floo_axi_w.hdr.dst_id   = dst_id[AxiW];
-    floo_axi_w.hdr.collective_mask     = mcast_mask[AxiW];
-    floo_axi_w.hdr.src_id   = id_i;
-    floo_axi_w.hdr.last     = axi_req_in.w.last;
-    floo_axi_w.hdr.axi_ch   = AxiW;
-    floo_axi_w.payload      = axi_req_in.w;
-    floo_axi_w.hdr.collective_op = (mcast_mask[AxiW] != '0) ? Multicast : Unicast;
+    floo_axi_w             = '0;
+    floo_axi_w.hdr.rob_req = aw_rob_req_out;
+    floo_axi_w.hdr.rob_idx = aw_rob_idx_out;
+    floo_axi_w.hdr.dst_id  = dst_id[AxiW];
+    floo_axi_w.hdr.collective_mask = mcast_mask[AxiW];
+    floo_axi_w.hdr.src_id          = id_i;
+    floo_axi_w.hdr.last            = axi_req_in.w.last;
+    floo_axi_w.hdr.axi_ch          = AxiW;
+    floo_axi_w.payload             = axi_req_in.w;
+    floo_axi_w.hdr.collective_op   = (mcast_mask[AxiW] != '0) ? Multicast : Unicast;
   end
 
   always_comb begin
@@ -612,42 +614,42 @@ module floo_axi_chimney
     floo_axi_ar.hdr.rob_idx = ar_rob_idx_out;
     floo_axi_ar.hdr.dst_id  = dst_id[AxiAr];
     floo_axi_ar.hdr.collective_mask = mcast_mask[AxiAr];
-    floo_axi_ar.hdr.src_id  = id_i;
-    floo_axi_ar.hdr.last    = 1'b1;
-    floo_axi_ar.hdr.axi_ch  = AxiAr;
-    floo_axi_ar.payload     = axi_ar_queue;
-    floo_axi_ar.hdr.collective_op = '0;
+    floo_axi_ar.hdr.src_id          = id_i;
+    floo_axi_ar.hdr.last            = 1'b1;
+    floo_axi_ar.hdr.axi_ch          = AxiAr;
+    floo_axi_ar.payload             = axi_ar_queue;
+    floo_axi_ar.hdr.collective_op   = '0;
   end
 
   always_comb begin
-    floo_axi_b              = '0;
-    floo_axi_b.hdr.rob_req  = aw_out_hdr_out.hdr.rob_req;
-    floo_axi_b.hdr.rob_idx  = aw_out_hdr_out.hdr.rob_idx;
-    floo_axi_b.hdr.dst_id   = dst_id[AxiB];
-    floo_axi_b.hdr.collective_mask     = mcast_mask[AxiB];
-    floo_axi_b.hdr.src_id   = id_i;
-    floo_axi_b.hdr.last     = 1'b1;
-    floo_axi_b.hdr.axi_ch   = AxiB;
-    floo_axi_b.hdr.atop     = aw_out_hdr_out.hdr.atop;
-    floo_axi_b.payload      = meta_buf_rsp_out.b;
-    floo_axi_b.payload.id   = aw_out_hdr_out.id;
-    floo_axi_b.hdr.collective_op = (aw_out_hdr_out.hdr.collective_op == Multicast) ?
-                              CollectB : Unicast;
+    floo_axi_b             = '0;
+    floo_axi_b.hdr.rob_req = aw_out_hdr_out.hdr.rob_req;
+    floo_axi_b.hdr.rob_idx = aw_out_hdr_out.hdr.rob_idx;
+    floo_axi_b.hdr.dst_id  = dst_id[AxiB];
+    floo_axi_b.hdr.collective_mask = mcast_mask[AxiB];
+    floo_axi_b.hdr.src_id          = id_i;
+    floo_axi_b.hdr.last            = 1'b1;
+    floo_axi_b.hdr.axi_ch          = AxiB;
+    floo_axi_b.hdr.atop            = aw_out_hdr_out.hdr.atop;
+    floo_axi_b.payload             = meta_buf_rsp_out.b;
+    floo_axi_b.payload.id          = aw_out_hdr_out.id;
+    floo_axi_b.hdr.collective_op   = (aw_out_hdr_out.hdr.collective_op == Multicast) ? CollectB :
+                                     Unicast;
   end
 
   always_comb begin
-    floo_axi_r              = '0;
-    floo_axi_r.hdr.rob_req  = ar_out_hdr_out.hdr.rob_req;
-    floo_axi_r.hdr.rob_idx  = ar_out_hdr_out.hdr.rob_idx;
-    floo_axi_r.hdr.dst_id   = dst_id[AxiR];
-    floo_axi_r.hdr.collective_mask     = mcast_mask[AxiR];
-    floo_axi_r.hdr.src_id   = id_i;
-    floo_axi_r.hdr.last     = 1'b1; // There is no reason to do wormhole routing for R bursts
-    floo_axi_r.hdr.axi_ch   = AxiR;
-    floo_axi_r.hdr.atop     = ar_out_hdr_out.hdr.atop;
-    floo_axi_r.payload      = meta_buf_rsp_out.r;
-    floo_axi_r.payload.id   = ar_out_hdr_out.id;
-    floo_axi_r.hdr.collective_op = '0;
+    floo_axi_r             = '0;
+    floo_axi_r.hdr.rob_req = ar_out_hdr_out.hdr.rob_req;
+    floo_axi_r.hdr.rob_idx = ar_out_hdr_out.hdr.rob_idx;
+    floo_axi_r.hdr.dst_id  = dst_id[AxiR];
+    floo_axi_r.hdr.collective_mask = mcast_mask[AxiR];
+    floo_axi_r.hdr.src_id          = id_i;
+    floo_axi_r.hdr.last            = 1'b1; // There is no reason to do wormhole routing for R bursts
+    floo_axi_r.hdr.axi_ch          = AxiR;
+    floo_axi_r.hdr.atop            = ar_out_hdr_out.hdr.atop;
+    floo_axi_r.payload             = meta_buf_rsp_out.r;
+    floo_axi_r.payload.id          = ar_out_hdr_out.id;
+    floo_axi_r.hdr.collective_op   = '0;
   end
 
   always_comb begin
@@ -658,19 +660,20 @@ module floo_axi_chimney
 
   `FF(aw_w_sel_q, aw_w_sel_d, SelAw)
 
-  assign floo_req_arb_req_in[AxiW]  = (aw_w_sel_q == SelAw) && (aw_rob_valid_out ||
-                                        ((axi_aw_queue.atop != axi_pkg::ATOP_NONE) &&
-                                          axi_aw_queue_valid_out)) ||
+  assign floo_req_arb_req_in[AxiW]  = (aw_w_sel_q == SelAw) &&
+                                      (aw_rob_valid_out ||
+                                       ((axi_aw_queue.atop != axi_pkg::ATOP_NONE) &&
+                                        axi_aw_queue_valid_out)) ||
                                       (aw_w_sel_q == SelW) && axi_req_in.w_valid;
   assign floo_req_arb_req_in[AxiAr] = ar_rob_valid_out;
   assign floo_rsp_arb_req_in[AxiB]  = meta_buf_rsp_out.b_valid;
   assign floo_rsp_arb_req_in[AxiR]  = meta_buf_rsp_out.r_valid;
 
-  assign aw_rob_ready_in      = floo_req_arb_gnt_out[AxiW] && (aw_w_sel_q == SelAw);
-  assign axi_rsp_out.w_ready  = floo_req_arb_gnt_out[AxiW] && (aw_w_sel_q == SelW);
-  assign ar_rob_ready_in      = floo_req_arb_gnt_out[AxiAr];
+  assign aw_rob_ready_in     = floo_req_arb_gnt_out[AxiW] && (aw_w_sel_q == SelAw);
+  assign axi_rsp_out.w_ready = floo_req_arb_gnt_out[AxiW] && (aw_w_sel_q == SelW);
+  assign ar_rob_ready_in     = floo_req_arb_gnt_out[AxiAr];
 
-  assign floo_req_arb_in[AxiW]  = (aw_w_sel_q == SelAw)? floo_axi_aw : floo_axi_w;
+  assign floo_req_arb_in[AxiW]  = (aw_w_sel_q == SelAw) ? floo_axi_aw : floo_axi_w;
   assign floo_req_arb_in[AxiAr] = floo_axi_ar;
   assign floo_rsp_arb_in[AxiB]  = floo_axi_b;
   assign floo_rsp_arb_in[AxiR]  = floo_axi_r;
@@ -683,64 +686,64 @@ module floo_axi_chimney
   logic floo_req_arb_valid, floo_req_arb_ready;
 
   floo_wormhole_arbiter #(
-    .NumRoutes  ( 2                       ),
-    .flit_t     ( floo_req_generic_flit_t )
+    .NumRoutes(2),
+    .flit_t   (floo_req_generic_flit_t)
   ) i_req_wormhole_arbiter (
-    .clk_i    ( clk_i                 ),
-    .rst_ni   ( rst_ni                ),
-    .valid_i  ( floo_req_arb_req_in   ),
-    .data_i   ( floo_req_arb_in       ),
-    .ready_o  ( floo_req_arb_gnt_out  ),
-    .data_o   ( floo_req_arb_data     ),
-    .ready_i  ( floo_req_arb_ready    ),
-    .valid_o  ( floo_req_arb_valid    )
+    .clk_i  (clk_i),
+    .rst_ni (rst_ni),
+    .valid_i(floo_req_arb_req_in),
+    .data_i (floo_req_arb_in),
+    .ready_o(floo_req_arb_gnt_out),
+    .data_o (floo_req_arb_data),
+    .ready_i(floo_req_arb_ready),
+    .valid_o(floo_req_arb_valid)
   );
 
   cc_spill_register #(
-    .data_t     ( floo_req_chan_t    ),
-    .Bypass( !ChimneyCfg.CutOup )
+    .data_t(floo_req_chan_t),
+    .Bypass(!ChimneyCfg.CutOup)
   ) i_req_out_cut (
     .clk_i,
     .rst_ni,
-    .clr_i(1'b0),
-    .valid_i ( floo_req_arb_valid ),
-    .ready_o ( floo_req_arb_ready ),
-    .data_i  ( floo_req_chan_t'(floo_req_arb_data) ),
-    .valid_o ( floo_req_o.valid ),
-    .ready_i ( floo_req_i.ready ),
-    .data_o  ( floo_req_o.req   )
+    .clr_i  (1'b0),
+    .valid_i(floo_req_arb_valid),
+    .ready_o(floo_req_arb_ready),
+    .data_i (floo_req_chan_t'(floo_req_arb_data)),
+    .valid_o(floo_req_o.valid),
+    .ready_i(floo_req_i.ready),
+    .data_o (floo_req_o.req)
   );
 
   floo_rsp_generic_flit_t floo_rsp_arb_data;
   logic floo_rsp_arb_valid, floo_rsp_arb_ready;
 
   floo_wormhole_arbiter #(
-    .NumRoutes  ( 2                       ),
-    .flit_t     ( floo_rsp_generic_flit_t )
+    .NumRoutes(2),
+    .flit_t   (floo_rsp_generic_flit_t)
   ) i_rsp_wormhole_arbiter (
-    .clk_i    ( clk_i                 ),
-    .rst_ni   ( rst_ni                ),
-    .valid_i  ( floo_rsp_arb_req_in   ),
-    .data_i   ( floo_rsp_arb_in       ),
-    .ready_o  ( floo_rsp_arb_gnt_out  ),
-    .data_o   ( floo_rsp_arb_data     ),
-    .ready_i  ( floo_rsp_arb_ready    ),
-    .valid_o  ( floo_rsp_arb_valid    )
+    .clk_i  (clk_i),
+    .rst_ni (rst_ni),
+    .valid_i(floo_rsp_arb_req_in),
+    .data_i (floo_rsp_arb_in),
+    .ready_o(floo_rsp_arb_gnt_out),
+    .data_o (floo_rsp_arb_data),
+    .ready_i(floo_rsp_arb_ready),
+    .valid_o(floo_rsp_arb_valid)
   );
 
   cc_spill_register #(
-    .data_t     ( floo_rsp_chan_t    ),
-    .Bypass( !ChimneyCfg.CutOup )
+    .data_t(floo_rsp_chan_t),
+    .Bypass(!ChimneyCfg.CutOup)
   ) i_rsp_out_cut (
     .clk_i,
     .rst_ni,
-    .clr_i(1'b0),
-    .valid_i ( floo_rsp_arb_valid ),
-    .ready_o ( floo_rsp_arb_ready ),
-    .data_i  ( floo_rsp_chan_t'(floo_rsp_arb_data) ),
-    .valid_o ( floo_rsp_o.valid ),
-    .ready_i ( floo_rsp_i.ready ),
-    .data_o  ( floo_rsp_o.rsp   )
+    .clr_i  (1'b0),
+    .valid_i(floo_rsp_arb_valid),
+    .ready_o(floo_rsp_arb_ready),
+    .data_i (floo_rsp_chan_t'(floo_rsp_arb_data)),
+    .valid_o(floo_rsp_o.valid),
+    .ready_i(floo_rsp_i.ready),
+    .data_o (floo_rsp_o.rsp)
   );
 
   ////////////////////
@@ -753,23 +756,25 @@ module floo_axi_chimney
 
   assign is_atop_b_rsp = AtopSupport && axi_valid_in[AxiB] && unpack_rsp_generic.hdr.atop;
   assign is_atop_r_rsp = AtopSupport && axi_valid_in[AxiR] && unpack_rsp_generic.hdr.atop;
-  assign b_sel_atop = is_atop_b_rsp && !b_rob_pending_q;
-  assign r_sel_atop = is_atop_r_rsp && !r_rob_pending_q;
+  assign b_sel_atop    = is_atop_b_rsp && !b_rob_pending_q;
+  assign r_sel_atop    = is_atop_r_rsp && !r_rob_pending_q;
 
-  assign axi_unpack_aw = floo_req_in.axi_aw.payload;
-  assign axi_unpack_w  = floo_req_in.axi_w.payload;
-  assign axi_unpack_ar = floo_req_in.axi_ar.payload;
-  assign axi_unpack_r  = floo_rsp_in.axi_r.payload;
-  assign axi_unpack_b  = floo_rsp_in.axi_b.payload;
+  assign axi_unpack_aw      = floo_req_in.axi_aw.payload;
+  assign axi_unpack_w       = floo_req_in.axi_w.payload;
+  assign axi_unpack_ar      = floo_req_in.axi_ar.payload;
+  assign axi_unpack_r       = floo_rsp_in.axi_r.payload;
+  assign axi_unpack_b       = floo_rsp_in.axi_b.payload;
   assign unpack_req_generic = floo_req_in.generic;
   assign unpack_rsp_generic = floo_rsp_in.generic;
 
   assign axi_valid_in[AxiAw] = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiAw);
   assign axi_valid_in[AxiW]  = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiW);
   assign axi_valid_in[AxiAr] = floo_req_in_valid && (unpack_req_generic.hdr.axi_ch == AxiAr);
-  assign axi_valid_in[AxiB]  = ChimneyCfg.EnMgrPort && floo_rsp_in_valid &&
+  assign axi_valid_in[AxiB]  = ChimneyCfg.EnMgrPort &&
+                               floo_rsp_in_valid &&
                                (unpack_rsp_generic.hdr.axi_ch == AxiB);
-  assign axi_valid_in[AxiR]  = ChimneyCfg.EnMgrPort && floo_rsp_in_valid &&
+  assign axi_valid_in[AxiR]  = ChimneyCfg.EnMgrPort &&
+                               floo_rsp_in_valid &&
                                (unpack_rsp_generic.hdr.axi_ch == AxiR);
 
   assign axi_ready_out[AxiAw] = meta_buf_rsp_out.aw_ready;
@@ -785,93 +790,90 @@ module floo_axi_chimney
   // AXI req/rsp generation  //
   ////////////////////////////
 
-  assign meta_buf_req_in ='{
-    aw        : axi_unpack_aw,
-    aw_valid  : axi_valid_in[AxiAw],
-    w         : axi_unpack_w,
-    w_valid   : axi_valid_in[AxiW],
-    b_ready   : floo_rsp_arb_gnt_out[AxiB],
-    ar        : axi_unpack_ar,
-    ar_valid  : axi_valid_in[AxiAr],
-    r_ready   : floo_rsp_arb_gnt_out[AxiR]
+  assign meta_buf_req_in = '{
+      aw: axi_unpack_aw,
+      aw_valid: axi_valid_in[AxiAw],
+      w: axi_unpack_w,
+      w_valid: axi_valid_in[AxiW],
+      b_ready: floo_rsp_arb_gnt_out[AxiB],
+      ar: axi_unpack_ar,
+      ar_valid: axi_valid_in[AxiAr],
+      r_ready: floo_rsp_arb_gnt_out[AxiR]
   };
 
-  assign b_rob_valid_in       = axi_valid_in[AxiB] && !is_atop_b_rsp;
-  assign r_rob_valid_in       = axi_valid_in[AxiR] && !is_atop_r_rsp;
-  assign axi_rsp_out.b_valid  = b_rob_valid_out || is_atop_b_rsp;
-  assign axi_rsp_out.r_valid  = r_rob_valid_out || is_atop_r_rsp;
-  assign b_rob_ready_in       = axi_req_in.b_ready && !b_sel_atop;
-  assign r_rob_ready_in       = axi_req_in.r_ready && !r_sel_atop;
+  assign b_rob_valid_in      = axi_valid_in[AxiB] && !is_atop_b_rsp;
+  assign r_rob_valid_in      = axi_valid_in[AxiR] && !is_atop_r_rsp;
+  assign axi_rsp_out.b_valid = b_rob_valid_out || is_atop_b_rsp;
+  assign axi_rsp_out.r_valid = r_rob_valid_out || is_atop_r_rsp;
+  assign b_rob_ready_in      = axi_req_in.b_ready && !b_sel_atop;
+  assign r_rob_ready_in      = axi_req_in.r_ready && !r_sel_atop;
 
-  assign axi_b_rob_in   = axi_unpack_b;
-  assign axi_r_rob_in   = axi_unpack_r;
-  assign axi_rsp_out.b  = (b_sel_atop)? axi_unpack_b : axi_b_rob_out;
-  assign axi_rsp_out.r  = (r_sel_atop)? axi_unpack_r : axi_r_rob_out;
+  assign axi_b_rob_in  = axi_unpack_b;
+  assign axi_r_rob_in  = axi_unpack_r;
+  assign axi_rsp_out.b = (b_sel_atop) ? axi_unpack_b : axi_b_rob_out;
+  assign axi_rsp_out.r = (r_sel_atop) ? axi_unpack_r : axi_r_rob_out;
 
   logic is_atop, atop_has_r_rsp;
-  assign is_atop = AtopSupport && axi_valid_in[AxiAw] &&
-                    (axi_unpack_aw.atop != axi_pkg::ATOP_NONE);
-  assign atop_has_r_rsp = AtopSupport && axi_valid_in[AxiAw] &&
+  assign is_atop = AtopSupport && axi_valid_in[AxiAw] && (axi_unpack_aw.atop != axi_pkg::ATOP_NONE);
+  assign atop_has_r_rsp = AtopSupport &&
+                          axi_valid_in[AxiAw] &&
                           axi_unpack_aw.atop[axi_pkg::ATOP_R_RESP];
 
-  assign aw_out_hdr_in = '{
-    id: axi_unpack_aw.id,
-    hdr: unpack_req_generic.hdr
-  };
+  assign aw_out_hdr_in = '{id: axi_unpack_aw.id, hdr: unpack_req_generic.hdr};
   assign ar_out_hdr_in = '{
-    id: (is_atop && atop_has_r_rsp)? axi_unpack_aw.id : axi_unpack_ar.id,
-    hdr: unpack_req_generic.hdr
+      id: (is_atop && atop_has_r_rsp) ? axi_unpack_aw.id : axi_unpack_ar.id,
+      hdr: unpack_req_generic.hdr
   };
 
   if (ChimneyCfg.EnSbrPort) begin : gen_mgr_port
     floo_meta_buffer #(
-      .InIdWidth      ( AxiCfg.InIdWidth        ),
-      .OutIdWidth     ( AxiCfg.OutIdWidth       ),
-      .MaxTxns        ( ChimneyCfg.MaxTxns      ),
-      .MaxUniqueIds   ( ChimneyCfg.MaxUniqueIds ),
-      .AtopSupport    ( AtopSupport             ),
-      .MaxAtomicTxns  ( MaxAtomicTxns           ),
-      .Sam            ( Sam                     ),
-      .buf_t          ( meta_buf_t              ),
-      .axi_in_req_t   ( axi_req_t               ),
-      .axi_in_rsp_t   ( axi_rsp_t               ),
-      .axi_out_req_t  ( axi_out_req_t           ),
-      .axi_out_rsp_t  ( axi_out_rsp_t           ),
-      .RouteCfg       ( RouteCfg                ),
-      .addr_t         ( axi_addr_t              ),
-      .sam_rule_t     ( sam_rule_t              ),
-      .id_t           ( id_t                    ),
-      .sam_idx_t      ( sam_idx_t               ),
-      .mask_sel_t     ( mask_sel_t              )
+      .InIdWidth    (AxiCfg.InIdWidth),
+      .OutIdWidth   (AxiCfg.OutIdWidth),
+      .MaxTxns      (ChimneyCfg.MaxTxns),
+      .MaxUniqueIds (ChimneyCfg.MaxUniqueIds),
+      .AtopSupport  (AtopSupport),
+      .MaxAtomicTxns(MaxAtomicTxns),
+      .Sam          (Sam),
+      .buf_t        (meta_buf_t),
+      .axi_in_req_t (axi_req_t),
+      .axi_in_rsp_t (axi_rsp_t),
+      .axi_out_req_t(axi_out_req_t),
+      .axi_out_rsp_t(axi_out_rsp_t),
+      .RouteCfg     (RouteCfg),
+      .addr_t       (axi_addr_t),
+      .sam_rule_t   (sam_rule_t),
+      .id_t         (id_t),
+      .sam_idx_t    (sam_idx_t),
+      .mask_sel_t   (mask_sel_t)
     ) i_floo_meta_buffer (
       .clk_i,
       .rst_ni,
       .test_enable_i,
-      .id_i       ( id_i      ),
-      .axi_req_i  ( meta_buf_req_in   ),
-      .axi_rsp_o  ( meta_buf_rsp_out  ),
-      .axi_req_o  ( meta_buf_req_out  ),
-      .axi_rsp_i  ( meta_buf_rsp_in   ),
-      .aw_buf_i   ( aw_out_hdr_in     ),
-      .ar_buf_i   ( ar_out_hdr_in     ),
-      .r_buf_o    ( ar_out_hdr_out    ),
-      .b_buf_o    ( aw_out_hdr_out    )
+      .id_i     (id_i),
+      .axi_req_i(meta_buf_req_in),
+      .axi_rsp_o(meta_buf_rsp_out),
+      .axi_req_o(meta_buf_req_out),
+      .axi_rsp_i(meta_buf_rsp_in),
+      .aw_buf_i (aw_out_hdr_in),
+      .ar_buf_i (ar_out_hdr_in),
+      .r_buf_o  (ar_out_hdr_out),
+      .b_buf_o  (aw_out_hdr_out)
     );
   end else begin : gen_no_mgr_port
     axi_err_slv #(
-      .AxiIdWidth ( AxiCfg.InIdWidth  ),
-      .ATOPs      ( AtopSupport       ),
-      .axi_req_t  ( axi_req_t         ),
-      .axi_resp_t ( axi_rsp_t         )
+      .AxiIdWidth(AxiCfg.InIdWidth),
+      .ATOPs     (AtopSupport),
+      .axi_req_t (axi_req_t),
+      .axi_resp_t(axi_rsp_t)
     ) i_axi_err_slv (
-      .clk_i      ( clk_i             ),
-      .rst_ni     ( rst_ni            ),
-      .slv_req_i  ( meta_buf_req_in   ),
-      .slv_resp_o ( meta_buf_rsp_out  )
+      .clk_i     (clk_i),
+      .rst_ni    (rst_ni),
+      .slv_req_i (meta_buf_req_in),
+      .slv_resp_o(meta_buf_rsp_out)
     );
     assign meta_buf_req_out = '0;
-    assign ar_out_hdr_out = '0;
-    assign aw_out_hdr_out = '0;
+    assign ar_out_hdr_out   = '0;
+    assign aw_out_hdr_out   = '0;
   end
 
   // Registers
@@ -896,7 +898,7 @@ module floo_axi_chimney
                                              (unpack_req_generic.hdr.axi_ch == AxiAw)))
   `ASSERT(NoSbrPortArRequest, ChimneyCfg.EnSbrPort || !(floo_req_in_valid &&
                                              (unpack_req_generic.hdr.axi_ch == AxiAr)))
-  `ASSERT(NoSbrPortWRequest,  ChimneyCfg.EnSbrPort || !(floo_req_in_valid &&
-                                             (unpack_req_generic.hdr.axi_ch == AxiW)))
+  `ASSERT(NoSbrPortWRequest, ChimneyCfg.EnSbrPort || !(floo_req_in_valid &&
+                                            (unpack_req_generic.hdr.axi_ch == AxiW)))
 
 endmodule
