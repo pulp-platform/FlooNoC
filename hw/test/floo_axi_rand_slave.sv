@@ -55,26 +55,26 @@ module floo_axi_rand_slave #(
   xbar_rule_t [NumSlaves-1:0] XbarAddrMap;
   for (genvar i = 0; i < NumSlaves; i++) begin : gen_addr_rules
     assign XbarAddrMap[i] = '{
-        idx: i,
+        idx:        i,
         start_addr: DstStartAddr + i * SlvAddrSpace,
-        end_addr: DstStartAddr + (i + 1) * SlvAddrSpace
+        end_addr:   DstStartAddr + (i + 1) * SlvAddrSpace
     };
   end
 
   localparam axi_pkg::xbar_cfg_t XbarCfg = '{
-      NoSlvPorts: 1,
-      NoMstPorts: NumSlaves,
-      MaxSlvTrans: 128,
-      MaxMstTrans: 128,
-      FallThrough: 1,
-      LatencyMode: axi_pkg::CUT_ALL_PORTS,
-      PipelineStages: 0,
+      NoSlvPorts:         1,
+      NoMstPorts:         NumSlaves,
+      MaxSlvTrans:        128,
+      MaxMstTrans:        128,
+      FallThrough:        1,
+      LatencyMode:        axi_pkg::CUT_ALL_PORTS,
+      PipelineStages:     0,
       AxiIdWidthSlvPorts: AxiCfg.OutIdWidth,
-      AxiIdUsedSlvPorts: AxiCfg.OutIdWidth,
-      UniqueIds: 0,
-      AxiAddrWidth: AxiCfg.AddrWidth,
-      AxiDataWidth: AxiCfg.DataWidth,
-      NoAddrRules: NumSlaves
+      AxiIdUsedSlvPorts:  AxiCfg.OutIdWidth,
+      UniqueIds:          0,
+      AxiAddrWidth:       AxiCfg.AddrWidth,
+      AxiDataWidth:       AxiCfg.DataWidth,
+      NoAddrRules:        NumSlaves
       // NoMulticastPorts:   0,
       // NoMulticastRules:   0
   };

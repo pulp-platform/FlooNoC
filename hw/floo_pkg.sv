@@ -335,36 +335,36 @@ package floo_pkg;
 
   /// The default configuration for collective operations
   localparam collective_cfg_t CollectiveDefaultCfg = '{
-      OpCfg: CollectiveOpDefaultCfg,
+      OpCfg:      CollectiveOpDefaultCfg,
       NarrRedCfg: RedDefaultCfg,
       WideRedCfg: RedDefaultCfg
   };
 
   /// The default configuration for the network interface
   localparam chimney_cfg_t ChimneyDefaultCfg = '{
-      EnSbrPort: 1'b1,
-      EnMgrPort: 1'b1,
-      MaxTxns: 32,
+      EnSbrPort:    1'b1,
+      EnMgrPort:    1'b1,
+      MaxTxns:      32,
       MaxUniqueIds: 1,
       MaxTxnsPerId: 32,
-      BRoBType: NoRoB,
-      BRoBSize: 0,
-      RRoBType: NoRoB,
-      RRoBSize: 0,
-      CutAx: 1'b0,
-      CutOup: 1'b0,
-      CutRsp: 1'b0
+      BRoBType:     NoRoB,
+      BRoBSize:     0,
+      RRoBType:     NoRoB,
+      RRoBSize:     0,
+      CutAx:        1'b0,
+      CutOup:       1'b0,
+      CutRsp:       1'b0
   };
 
   /// The default configuration for routing
   localparam route_cfg_t RouteDefaultCfg = '{
-      RouteAlgo: XYRouting,
-      UseIdTable: 1'b0,
+      RouteAlgo:     XYRouting,
+      UseIdTable:    1'b0,
       XYAddrOffsetX: 0,
       XYAddrOffsetY: 0,
-      IdAddrOffset: 0,
-      NumSamRules: 0,
-      NumRoutes: 0,
+      IdAddrOffset:  0,
+      NumSamRules:   0,
+      NumRoutes:     0,
       CollectiveCfg: CollectiveDefaultCfg
   };
 
@@ -391,10 +391,10 @@ package floo_pkg;
   /// Swaps the direction of the AXI interface config
   function automatic axi_cfg_t axi_cfg_swap_iw(axi_cfg_t cfg);
     return '{
-        AddrWidth: cfg.AddrWidth,
-        DataWidth: cfg.DataWidth,
-        UserWidth: cfg.UserWidth,
-        InIdWidth: cfg.OutIdWidth,
+        AddrWidth:  cfg.AddrWidth,
+        DataWidth:  cfg.DataWidth,
+        UserWidth:  cfg.UserWidth,
+        InIdWidth:  cfg.OutIdWidth,
         OutIdWidth: cfg.InIdWidth
     };
   endfunction
@@ -421,10 +421,10 @@ package floo_pkg;
   /// and wide AXI subordinate interfaces.
   function automatic axi_cfg_t axi_join_cfg(axi_cfg_t cfg_n, axi_cfg_t cfg_w);
     return '{
-        AddrWidth: cfg_n.AddrWidth,
-        DataWidth: max(cfg_n.DataWidth, cfg_w.DataWidth),
-        UserWidth: max(cfg_n.UserWidth, cfg_w.UserWidth),
-        InIdWidth: 0,                                           // Not used in `nw_join`
+        AddrWidth:  cfg_n.AddrWidth,
+        DataWidth:  max(cfg_n.DataWidth, cfg_w.DataWidth),
+        UserWidth:  max(cfg_n.UserWidth, cfg_w.UserWidth),
+        InIdWidth:  0,                                          // Not used in `nw_join`
         OutIdWidth: max(cfg_n.OutIdWidth, cfg_w.OutIdWidth) + 1 // for the AXI mux
     };
   endfunction

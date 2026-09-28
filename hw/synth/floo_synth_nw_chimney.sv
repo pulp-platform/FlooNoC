@@ -35,16 +35,16 @@ module floo_synth_nw_chimney
 );
 
   localparam floo_pkg::route_cfg_t ActiveRouteCfg = '{
-      RouteAlgo: CollectRouteCfg.RouteAlgo,
-      UseIdTable: CollectRouteCfg.UseIdTable,
+      RouteAlgo:     CollectRouteCfg.RouteAlgo,
+      UseIdTable:    CollectRouteCfg.UseIdTable,
       XYAddrOffsetX: CollectRouteCfg.XYAddrOffsetX,
       XYAddrOffsetY: CollectRouteCfg.XYAddrOffsetY,
       CollectiveCfg: '{
-          OpCfg: CollectOpCfgList[CollectCfgIdx],
+          OpCfg:      CollectOpCfgList[CollectCfgIdx],
           NarrRedCfg: CollectRouteCfg.CollectiveCfg.NarrRedCfg,
           WideRedCfg: CollectRouteCfg.CollectiveCfg.WideRedCfg
       },
-      default: '0
+      default:       '0
   };
 
   floo_nw_chimney #(

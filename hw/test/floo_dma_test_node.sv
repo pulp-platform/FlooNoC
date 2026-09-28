@@ -143,19 +143,19 @@ module floo_dma_test_node #(
   assign XbarAddrMap = '{'{idx: 0, start_addr: MemBaseAddr, end_addr: MemBaseAddr + MemSize}};
 
   localparam axi_pkg::xbar_cfg_t XbarCfg = '{
-      NoSlvPorts: 1,
-      NoMstPorts: 2,
-      MaxSlvTrans: 128,
-      MaxMstTrans: 128,
-      FallThrough: 1,
-      LatencyMode: axi_pkg::CUT_ALL_PORTS,
+      NoSlvPorts:         1,
+      NoMstPorts:         2,
+      MaxSlvTrans:        128,
+      MaxMstTrans:        128,
+      FallThrough:        1,
+      LatencyMode:        axi_pkg::CUT_ALL_PORTS,
       AxiIdWidthSlvPorts: AxiCfg.OutIdWidth,
-      AxiIdUsedSlvPorts: AxiCfg.OutIdWidth,
-      UniqueIds: 0,
-      AxiAddrWidth: AxiCfg.AddrWidth,
-      AxiDataWidth: AxiCfg.DataWidth,
-      NoAddrRules: 1,
-      PipelineStages: 0
+      AxiIdUsedSlvPorts:  AxiCfg.OutIdWidth,
+      UniqueIds:          0,
+      AxiAddrWidth:       AxiCfg.AddrWidth,
+      AxiDataWidth:       AxiCfg.DataWidth,
+      NoAddrRules:        1,
+      PipelineStages:     0
       // NoMulticastPorts:   0,
       // NoMulticastRules:   0
   };

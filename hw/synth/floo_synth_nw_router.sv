@@ -36,7 +36,7 @@ module floo_synth_nw_router
 
   // Build a CollectiveCfg derived from CollectRouteCfg but with OpCfg selected by CollectCfgIdx
   localparam floo_pkg::collective_cfg_t ActiveCollectiveCfg = '{
-      OpCfg: CollectOpCfgList[CollectCfgIdx],
+      OpCfg:      CollectOpCfgList[CollectCfgIdx],
       NarrRedCfg: CollectRouteCfg.CollectiveCfg.NarrRedCfg,
       WideRedCfg: CollectRouteCfg.CollectiveCfg.WideRedCfg
   };

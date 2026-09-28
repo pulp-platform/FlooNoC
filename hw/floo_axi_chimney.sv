@@ -793,14 +793,14 @@ module floo_axi_chimney
   ////////////////////////////
 
   assign meta_buf_req_in = '{
-      aw: axi_unpack_aw,
+      aw:       axi_unpack_aw,
       aw_valid: axi_valid_in[AxiAw],
-      w: axi_unpack_w,
-      w_valid: axi_valid_in[AxiW],
-      b_ready: floo_rsp_arb_gnt_out[AxiB],
-      ar: axi_unpack_ar,
+      w:        axi_unpack_w,
+      w_valid:  axi_valid_in[AxiW],
+      b_ready:  floo_rsp_arb_gnt_out[AxiB],
+      ar:       axi_unpack_ar,
       ar_valid: axi_valid_in[AxiAr],
-      r_ready: floo_rsp_arb_gnt_out[AxiR]
+      r_ready:  floo_rsp_arb_gnt_out[AxiR]
   };
 
   assign b_rob_valid_in      = axi_valid_in[AxiB] && !is_atop_b_rsp;
@@ -823,7 +823,7 @@ module floo_axi_chimney
 
   assign aw_out_hdr_in = '{id: axi_unpack_aw.id, hdr: unpack_req_generic.hdr};
   assign ar_out_hdr_in = '{
-      id: (is_atop && atop_has_r_rsp) ? axi_unpack_aw.id : axi_unpack_ar.id,
+      id:  (is_atop && atop_has_r_rsp) ? axi_unpack_aw.id : axi_unpack_ar.id,
       hdr: unpack_req_generic.hdr
   };
 

@@ -254,15 +254,15 @@ module tb_floo_vc_router;
         else dst_id = '{x: 3'd2, y: 3'd3, port_id: lookahead - Eject};
       end
       East: dst_id = '{
-          x: 3'd3 + (lookahead == East),
-          y: 3'd2 + (lookahead == North) - (lookahead == South),
+          x:       3'd3 + (lookahead == East),
+          y:       3'd2 + (lookahead == North) - (lookahead == South),
           port_id: lookahead >= Eject ? lookahead - Eject : 2'd0
       };
       South: if (lookahead == South) dst_id = '{x: 3'd2, y: 3'd0, port_id: 2'd0};
       else dst_id = '{x: 3'd2, y: 3'd1, port_id: lookahead - Eject};
       West: dst_id = '{
-          x: 3'd1 - (lookahead == West),
-          y: 3'd2 + (lookahead == North) - (lookahead == South),
+          x:       3'd1 - (lookahead == West),
+          y:       3'd2 + (lookahead == North) - (lookahead == South),
           port_id: lookahead >= Eject ? lookahead - Eject : 2'd0
       };
       default: //Eject
