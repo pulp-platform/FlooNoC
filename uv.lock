@@ -18,7 +18,7 @@ wheels = [
 [[package]]
 name = "astli"
 version = "0.1.1"
-source = { git = "https://github.com/fischeti/astli?rev=de6f53070dbffaa91f582f40fda478dafa1ffbdc#de6f53070dbffaa91f582f40fda478dafa1ffbdc" }
+source = { git = "https://github.com/fischeti/astli?rev=0757c528bc650ef01ea54c116817ce5f47e472dc#0757c528bc650ef01ea54c116817ce5f47e472dc" }
 
 [[package]]
 name = "attrs"
@@ -374,7 +374,7 @@ provides-extras = ["viz"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "astli", git = "https://github.com/fischeti/astli?rev=de6f53070dbffaa91f582f40fda478dafa1ffbdc" },
+    { name = "astli", git = "https://github.com/fischeti/astli?rev=0757c528bc650ef01ea54c116817ce5f47e472dc" },
     { name = "jsonschema" },
     { name = "mkdocstrings-python", specifier = ">=2.0.1" },
     { name = "prek", specifier = ">=0.4.11" },

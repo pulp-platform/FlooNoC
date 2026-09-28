@@ -69,7 +69,7 @@ explicit = true
 
 [tool.uv.sources]
 # TODO: Switch to the PyPI release once `astli` v0.2.0 is out.
-astli = { git = "https://github.com/fischeti/astli", rev = "de6f53070dbffaa91f582f40fda478dafa1ffbdc" }
+astli = { git = "https://github.com/fischeti/astli", rev = "0757c528bc650ef01ea54c116817ce5f47e472dc" }
 
 [tool.pytest.ini_options]
 testpaths = ["floogen/tests"]
