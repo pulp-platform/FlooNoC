@@ -1614,25 +1614,25 @@ module floo_nw_chimney
   ////////////////////////////
 
   assign axi_narrow_meta_buf_req_in = '{
-      aw: axi_narrow_unpack_aw,
+      aw:       axi_narrow_unpack_aw,
       aw_valid: axi_valid_in[NarrowAw],
-      w: axi_narrow_unpack_w,
-      w_valid: axi_valid_in[NarrowW],
-      b_ready: floo_rsp_arb_gnt_out[NarrowB],
-      ar: axi_narrow_unpack_ar,
+      w:        axi_narrow_unpack_w,
+      w_valid:  axi_valid_in[NarrowW],
+      b_ready:  floo_rsp_arb_gnt_out[NarrowB],
+      ar:       axi_narrow_unpack_ar,
       ar_valid: axi_valid_in[NarrowAr],
-      r_ready: floo_rsp_arb_gnt_out[NarrowR]
+      r_ready:  floo_rsp_arb_gnt_out[NarrowR]
   };
 
   assign axi_wide_meta_buf_req_in = '{
-      aw: axi_wide_unpack_aw,
+      aw:       axi_wide_unpack_aw,
       aw_valid: axi_valid_in[WideAw],
-      w: axi_wide_unpack_w,
-      w_valid: axi_valid_in[WideW],
-      b_ready: floo_rsp_arb_gnt_out[WideB],
-      ar: axi_wide_unpack_ar,
+      w:        axi_wide_unpack_w,
+      w_valid:  axi_valid_in[WideW],
+      b_ready:  floo_rsp_arb_gnt_out[WideB],
+      ar:       axi_wide_unpack_ar,
       ar_valid: axi_valid_in[WideAr],
-      r_ready: floo_wide_arb_gnt_out[WideR]
+      r_ready:  floo_wide_arb_gnt_out[WideR]
   };
 
   assign narrow_b_rob_valid_in      = axi_valid_in[NarrowB] && !is_atop_b_rsp;
@@ -1667,7 +1667,7 @@ module floo_nw_chimney
 
   assign narrow_aw_buf_hdr_in = '{id: axi_narrow_unpack_aw.id, hdr: floo_req_unpack_generic.hdr};
   assign narrow_ar_buf_hdr_in = '{
-      id: (is_atop && atop_has_r_rsp) ? axi_narrow_unpack_aw.id : axi_narrow_unpack_ar.id,
+      id:  (is_atop && atop_has_r_rsp) ? axi_narrow_unpack_aw.id : axi_narrow_unpack_ar.id,
       hdr: floo_req_unpack_generic.hdr
   };
   assign wide_aw_buf_hdr_in   = '{id: axi_wide_unpack_aw.id, hdr: floo_wide_unpack_generic_wr.hdr};

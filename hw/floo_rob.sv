@@ -198,7 +198,7 @@ module floo_rob #(
     assign rob_meta  = '{id: rsp_i.id, user: rsp_i.user, last: rsp_i.last, resp: rsp_i.resp};
     assign rsp_o     = (rob_state_q == RoBRead) ? '{
                            data: rob_rdata,
-                           id: rob_meta_q[rob_addr_q].id,
+                           id:   rob_meta_q[rob_addr_q].id,
                            user: rob_meta_q[rob_addr_q].user,
                            last: rob_meta_q[rob_addr_q].last,
                            resp: rob_meta_q[rob_addr_q].resp

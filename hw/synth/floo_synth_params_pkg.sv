@@ -16,11 +16,11 @@ package floo_synth_params_pkg;
 
   // Default route config for testing
   localparam floo_pkg::route_cfg_t RouteCfg = '{
-      RouteAlgo: floo_pkg::XYRouting,
-      UseIdTable: 0,
+      RouteAlgo:     floo_pkg::XYRouting,
+      UseIdTable:    0,
       XYAddrOffsetX: 16,
       XYAddrOffsetY: 20,
-      default: '0 // Potentially enable Multicast features
+      default:       '0 // Potentially enable Multicast features
   };
 
   // Common chimney parameters
@@ -29,18 +29,18 @@ package floo_synth_params_pkg;
 
   // Default chimney config for testing
   localparam floo_pkg::chimney_cfg_t ChimneyCfg = '{
-      EnSbrPort: 1'b1,
-      EnMgrPort: 1'b1,
-      MaxTxns: 32,
+      EnSbrPort:    1'b1,
+      EnMgrPort:    1'b1,
+      MaxTxns:      32,
       MaxUniqueIds: 1,
       MaxTxnsPerId: 32,
-      BRoBType: floo_pkg::NoRoB,
-      BRoBSize: 0,
-      RRoBType: floo_pkg::NoRoB,
-      RRoBSize: 0,
-      CutAx: 1'b0,
-      CutOup: 1'b0,
-      CutRsp: 1'b0
+      BRoBType:     floo_pkg::NoRoB,
+      BRoBSize:     0,
+      RRoBType:     floo_pkg::NoRoB,
+      RRoBSize:     0,
+      CutAx:        1'b0,
+      CutOup:       1'b0,
+      CutRsp:       1'b0
   };
 
   typedef logic [1:0] x_bits_t;
@@ -66,10 +66,10 @@ package floo_synth_axi_pkg;
 
   // Axi chimney parameters
   localparam floo_pkg::axi_cfg_t AxiCfg = '{
-      AddrWidth: 32,
-      DataWidth: 64,
-      UserWidth: 1,
-      InIdWidth: 3,
+      AddrWidth:  32,
+      DataWidth:  64,
+      UserWidth:  1,
+      InIdWidth:  3,
       OutIdWidth: 3
   };
 
@@ -85,19 +85,19 @@ package floo_synth_nw_pkg;
   import floo_synth_params_pkg::*;
 
   localparam floo_pkg::axi_cfg_t AxiCfgN = '{
-      AddrWidth: 48,
-      DataWidth: 64,
-      UserWidth: 5,
-      InIdWidth: 4,
+      AddrWidth:  48,
+      DataWidth:  64,
+      UserWidth:  5,
+      InIdWidth:  4,
       OutIdWidth: 2
   };
 
   // AXI nw_chimney parameters
   localparam floo_pkg::axi_cfg_t AxiCfgW = '{
-      AddrWidth: 48,
-      DataWidth: 512,
-      UserWidth: 1,
-      InIdWidth: 3,
+      AddrWidth:  48,
+      DataWidth:  512,
+      UserWidth:  1,
+      InIdWidth:  3,
       OutIdWidth: 1
   };
 
@@ -194,43 +194,43 @@ package floo_synth_collective_pkg;
   // TODO (lleone): Script this with Python
 
   localparam floo_pkg::collect_op_fe_cfg_t CollectiveOpCfg = '{
-      EnNarrowMulticast: 1'b1,
-      EnWideMulticast: 1'b1,
-      EnLsbAnd: 1'b1,
+      EnNarrowMulticast:    1'b1,
+      EnWideMulticast:      1'b1,
+      EnLsbAnd:             1'b1,
       EnNarrowSeqReduction: 1'b1,
-      EnWideSeqReduction: 1'b1
+      EnWideSeqReduction:   1'b1
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t MulticastOpCfg = '{
-      EnNarrowMulticast: 1'b1,
-      EnWideMulticast: 1'b1,
-      EnLsbAnd: 1'b0,
+      EnNarrowMulticast:    1'b1,
+      EnWideMulticast:      1'b1,
+      EnLsbAnd:             1'b0,
       EnNarrowSeqReduction: 1'b0,
-      EnWideSeqReduction: 1'b0
+      EnWideSeqReduction:   1'b0
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t ParallelOpCfg = '{
-      EnNarrowMulticast: 1'b1,
-      EnWideMulticast: 1'b1,
-      EnLsbAnd: 1'b1,
+      EnNarrowMulticast:    1'b1,
+      EnWideMulticast:      1'b1,
+      EnLsbAnd:             1'b1,
       EnNarrowSeqReduction: 1'b0,
-      EnWideSeqReduction: 1'b0
+      EnWideSeqReduction:   1'b0
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t NarrSequentialOpCfg = '{
-      EnNarrowMulticast: 1'b1,
-      EnWideMulticast: 1'b1,
-      EnLsbAnd: 1'b1,
+      EnNarrowMulticast:    1'b1,
+      EnWideMulticast:      1'b1,
+      EnLsbAnd:             1'b1,
       EnNarrowSeqReduction: 1'b1,
-      EnWideSeqReduction: 1'b0
+      EnWideSeqReduction:   1'b0
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t WideSequentialOpCfg = '{
-      EnNarrowMulticast: 1'b1,
-      EnWideMulticast: 1'b1,
-      EnLsbAnd: 1'b1,
+      EnNarrowMulticast:    1'b1,
+      EnWideMulticast:      1'b1,
+      EnLsbAnd:             1'b1,
       EnNarrowSeqReduction: 1'b1,
-      EnWideSeqReduction: 1'b1
+      EnWideSeqReduction:   1'b1
   };
 
   localparam floo_pkg::collect_op_fe_cfg_t CollectOpCfgList[6] = '{
@@ -290,16 +290,16 @@ package floo_synth_collective_pkg;
   } collective_wide_user_t;
 
   localparam floo_pkg::route_cfg_t CollectRouteCfg = '{
-      RouteAlgo: floo_pkg::XYRouting,
-      UseIdTable: 1,
+      RouteAlgo:     floo_pkg::XYRouting,
+      UseIdTable:    1,
       XYAddrOffsetX: 16,
       XYAddrOffsetY: 20,
       CollectiveCfg: '{
-          OpCfg: CollectOpCfgList[CollectNone],
+          OpCfg:      CollectOpCfgList[CollectNone],
           NarrRedCfg: NarrowReductionCfg,
           WideRedCfg: WideReductionCfg
       },
-      default: '0
+      default:       '0
   };
 
 endpackage
