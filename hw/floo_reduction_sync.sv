@@ -27,21 +27,27 @@ module floo_reduction_sync import floo_pkg::*;
 );
 
   logic [NumRoutes-1:0]  filtered_valid_in;
+  logic [NumRoutes-1:0]  filtered_route_mask;
 
-
-  logic [NumRoutes-1:0] filtered_route_mask;
-  // The incoming mask is combinatorial. The valid is used to make sure the mask used in the following logic
-  // is actually from a valid flit.
-  assign filtered_route_mask = in_route_mask_i & {NumRoutes{valid_i[sel_i]}};
-
-
-  // Filter valids from the expected input sources.
-  for (genvar in = 0; in < NumRoutes; in++) begin : gen_valid
-    // Only valid from same reduction streams are propagated
-    assign filtered_valid_in[in] =  valid_i[in] && valid_i[sel_i] &&
-                          (data_i[in].hdr.dst_id == data_i[sel_i].hdr.dst_id) &&
-                          (data_i[in].hdr.collective_mask == data_i[sel_i].hdr.collective_mask);
-
+  // Keep this filter in a single process that samples the selected input once. The same logic,
+  // written as parallel continuous assignments that each re-read `valid_i[sel_i]` and
+  // `data_i[sel_i]`, stalls the reduction under QuestaSim's default optimization, with no
+  // error or assertion to show it.
+  always_comb begin : proc_filter
+    logic  sel_valid;
+    flit_t sel_flit;
+    sel_valid = valid_i[sel_i];
+    sel_flit  = data_i[sel_i];
+    // The incoming mask is combinatorial. The valid is used to make sure the mask used in the
+    // following logic is actually from a valid flit.
+    filtered_route_mask = in_route_mask_i & {NumRoutes{sel_valid}};
+    // Filter valids from the expected input sources.
+    for (int unsigned in = 0; in < NumRoutes; in++) begin
+      // Only valid from same reduction streams are propagated
+      filtered_valid_in[in] = valid_i[in] && sel_valid &&
+                              (data_i[in].hdr.dst_id == sel_flit.hdr.dst_id) &&
+                              (data_i[in].hdr.collective_mask == sel_flit.hdr.collective_mask);
+    end
   end
 
   cc_stream_join_dynamic #(
