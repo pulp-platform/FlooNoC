@@ -6,6 +6,8 @@
 // - Tim Fischer <fischeti@iis.ee.ethz.ch>
 // - Michael Rogenmoser <michaero@iis.ee.ethz.ch>
 
+`include "floo_noc/typedef.svh"
+
 /// Currently only contains useful functions and some constants and typedefs
 package floo_pkg;
 
@@ -153,30 +155,20 @@ package floo_pkg;
     Phys = 2'd2
   } wide_rw_decouple_e;
 
-  /// List of supported collective operations in the NoC
-  /// These are "micro" collective operations. For example an AXI
-  /// multicast is split into a generic multicast + reduction
-  /// of the B responses (CollectB).
-  /// The internal micro operations must be in the MSB to make sure
-  /// the user will never issue those
-  typedef enum logic [3:0] {
-    Unicast   = 4'b0000,  // Unicast operation
-    Multicast = 4'b0001,  // Multicast communication
-    LsbAnd    = 4'b0010,  // AND Connect the LSB of the payload
-    FpAdd     = 4'b0011,  // FP Addition
-    FpMul     = 4'b0100,  // FP Multiplication
-    FpMin     = 4'b0101,  // FP Min
-    FpMax     = 4'b0110,  // FP Max
-    IntAdd     = 4'b0111,  // Atomic Add (signed)
-    IntMul     = 4'b1000,  // (Non-) Atomic (signed)
-    IntMinS   = 4'b1001,  // Atomic Min (signed)
-    IntMinU   = 4'b1010,  // Atomic Min (unsigned)
-    IntMaxS   = 4'b1011,  // Atomic Max (signed)
-    IntMaxU   = 4'b1100,  // Atomic Max (unsigned)
-    SelectAW  = 4'b1101,  // Select first incoming AW flit for a parallel reduction
-    CollectB  = 4'b1110,  // Collect B responses for AXI transmission
-    SeqAW     = 4'b1111   // Select the first incoming flit AW from a sequential reduction
-  } collect_op_e;
+  /// `Unicast`/`Multicast`/`LsbAnd`/`SelectAW`/`CollectB`/`SeqAW` are the fixed, reserved
+  /// structural opcodes the NoC needs to support collective.
+  localparam int unsigned NumReservedCollectOps = 6;
+
+  /// Names of the reserved collective opcodes, compared against the project `collect_op_t`
+  /// vector. The NoC is agnostic to any other opcode (opaque, offloaded to the functional unit).
+  typedef enum logic [$clog2(NumReservedCollectOps)-1:0] {
+    Unicast   = 'd0,
+    Multicast = 'd1,
+    LsbAnd    = 'd2,
+    SelectAW  = 'd3,
+    CollectB  = 'd4,
+    SeqAW     = 'd5
+  } collect_reserved_op_e;
 
   /// The types of AXI channels in narrow-wide AXI network interfaces
   typedef enum logic [3:0] {
@@ -221,22 +213,14 @@ package floo_pkg;
   /// In this context collective operations are macro
   /// operations, i.e. multicast, reduction etc...
   /// The user does not have to care about the hidden
-  /// transfers required to implement these macro collective.
+  /// transfers required to implement these macro collective in FlooNoC.
   /// This is the type the top-level user can set [Frontend]
   typedef struct packed {
-    bit EnNarrowMulticast;  /// Enable multicast transaction support on the narrow router
-    bit EnWideMulticast;    /// Enable multicast transaction support on the wide router
-    bit EnLsbAnd;           /// Enable LSB and operation support
-    bit EnFpAdd;            /// Enable FP addition support
-    bit EnFpMul;            /// Enable FP multiplier support
-    bit EnFpMin;            /// Enable FP minimum calculation support
-    bit EnFpMax;            /// Enable FP maximum calculationn support
-    bit EnIntAdd;            /// Enable INT addition support
-    bit EnIntMul;            /// Enable INT multiplier support
-    bit EnIntMinS;          /// Enable INT signed minimum calculation support
-    bit EnIntMinU;          /// Enable INT unsigned minimum calculation support
-    bit EnIntMaxS;          /// Enable INT signed maximum calculation support
-    bit EnIntMaxU;          /// Enable INT unsigned maximum calculation support
+    bit EnNarrowMulticast;    /// Enable multicast transaction support on the narrow router
+    bit EnWideMulticast;      /// Enable multicast transaction support on the wide router
+    bit EnLsbAnd;             /// Enable LSB and operation support
+    bit EnNarrowSeqReduction; /// Enable narrow (ALU) sequential reduction support
+    bit EnWideSeqReduction;   /// Enable wide (FPU) sequential reduction support
   } collect_op_fe_cfg_t;
 
   /// Collective micro operations to support in the NoC
@@ -248,23 +232,13 @@ package floo_pkg;
   /// but EnLsbAnd = false. This level of granularity is hidden to the
   /// top-level user, and it's used internally by the NoC [Backend]
   typedef struct packed {
-    bit EnMulticast;  // Multicast communication
-    bit EnLsbAnd;     // AND Connect the LSB of the payload
-    bit EnFpAdd;      // FP Addition
-    bit EnFpMul;      // FP Multiplication
-    bit EnFpMin;      // FP Min
-    bit EnFpMax;      // FP Max
-    bit EnIntAdd;      // Atomic Add (signed)
-    bit EnIntMul;      // (Non-) Atomic (signed)
-    bit EnIntMinS;    // Atomic Min (signed)
-    bit EnIntMinU;    // Atomic Min (unsigned)
-    bit EnIntMaxS;    // Atomic Max (signed)
-    bit EnIntMaxU;    // Atomic Max (unsigned)
-    bit EnSelectAW;   // Select first incoming AW flit
-    bit EnCollectB;   // Collect B responses for AXI transmission
+    bit EnMulticast;          // Multicast communication
+    bit EnLsbAnd;             // AND Connect the LSB of the payload
+    bit EnNarrowSeqReduction; // Narrow (ALU) sequential reduction
+    bit EnWideSeqReduction;   // Wide (FPU) sequential reduction
+    bit EnSelectAW;           // Select first incoming AW flit
+    bit EnCollectB;           // Collect B responses for AXI transmission
   } collect_op_be_cfg_t;
-
-  typedef logic [3:0] collect_op_t;
 
   /// Configuration for the offload reduction logic
   typedef struct packed {
@@ -549,9 +523,7 @@ package floo_pkg;
 
   /// Calculates if the NoC needs support for Narrow sequential reduction
   function automatic bit en_narrow_seq_reduction(collect_op_fe_cfg_t cfg);
-    return (cfg.EnIntAdd | cfg.EnIntMul | cfg.EnIntMinS |
-            cfg.EnIntMinU | cfg.EnIntMaxS | cfg.EnIntMaxU
-            );
+    return cfg.EnNarrowSeqReduction;
   endfunction
 
   /// Calculates if the NoC needs support for Narrow Sequential reduction
@@ -564,9 +536,7 @@ package floo_pkg;
   /// there is no need to separate between parallel and sequential for the
   /// wide because only wide sequential is supported
   function automatic bit en_wide_reduction(collect_op_fe_cfg_t cfg);
-    return (cfg.EnFpAdd | cfg.EnFpMul |
-            cfg.EnFpMin | cfg.EnFpMax
-            );
+    return cfg.EnWideSeqReduction;
   endfunction
 
   /// Calculate if narrow collective support is enabled
@@ -587,10 +557,7 @@ package floo_pkg;
   /// Helper functions to calculate which micro transaction are supported
   /// and which type of hardware support is required
   function automatic bit en_sequential_support(collect_op_be_cfg_t cfg);
-    return (cfg.EnFpAdd | cfg.EnFpMul | cfg.EnFpMin | cfg.EnFpMax |
-            cfg.EnIntAdd | cfg.EnIntMul | cfg.EnIntMinS | cfg.EnIntMinU |
-            cfg.EnIntMaxS | cfg.EnIntMaxU
-            );
+    return (cfg.EnNarrowSeqReduction | cfg.EnWideSeqReduction);
   endfunction
 
   function automatic bit en_parallel_support(collect_op_be_cfg_t cfg);
@@ -599,37 +566,6 @@ package floo_pkg;
 
   function automatic bit en_multicast_support(collect_op_be_cfg_t cfg);
     return (cfg.EnMulticast);
-  endfunction
-
-  /// Helper functions to translate internal opcodes in macro transactions
-  /// Evaluate if the incoming operation is a multicast operation
-  function automatic bit is_multicast_op(collect_op_e op);
-    return (op == Multicast);
-  endfunction
-
-  /// Evaluate if the incoming operation is a reduction operation
-  function automatic bit is_reduction_op(collect_op_e op);
-    case (op)
-      FpAdd, FpMul, FpMin, FpMax, LsbAnd, SelectAW, SeqAW,
-      IntAdd, IntMul, IntMinS, IntMinU, IntMaxS,
-      IntMaxU: return 1'b1;
-      default: return 1'b0;
-    endcase
-  endfunction
-
-  /// Evaluate if the incoming operation is a parallel reduction
-  function automatic bit is_parallel_reduction_op(collect_op_e op);
-    return (op == LsbAnd || op == CollectB || op == SelectAW);
-  endfunction
-
-  /// Evaluate if the incoming operation is a sequential reduction
-  function automatic bit is_seq_reduction_op(collect_op_e op);
-    case (op)
-      FpAdd, FpMul, FpMin, FpMax, SeqAW,
-      IntAdd, IntMul, IntMinS, IntMinU, IntMaxS,
-      IntMaxU: return 1'b1;
-      default: return 1'b0;
-    endcase
   endfunction
 
   /// Helper function to map frontend collective ops to backend config for NW routers.
@@ -642,15 +578,10 @@ package floo_pkg;
       FlooReq: begin
         /// - FP operations are not supported on the request link
         /// - CollectB is not supported on the request link
-        be.EnMulticast = fe_ops.EnNarrowMulticast;
-        be.EnLsbAnd    = fe_ops.EnLsbAnd;
-        be.EnIntAdd     = fe_ops.EnIntAdd;
-        be.EnIntMul     = fe_ops.EnIntMul;
-        be.EnIntMinS   = fe_ops.EnIntMinS;
-        be.EnIntMinU   = fe_ops.EnIntMinU;
-        be.EnIntMaxS   = fe_ops.EnIntMaxS;
-        be.EnIntMaxU   = fe_ops.EnIntMaxU;
-        be.EnSelectAW  = fe_ops.EnLsbAnd;
+        be.EnMulticast          = fe_ops.EnNarrowMulticast;
+        be.EnLsbAnd             = fe_ops.EnLsbAnd;
+        be.EnNarrowSeqReduction = fe_ops.EnNarrowSeqReduction;
+        be.EnSelectAW           = fe_ops.EnLsbAnd;
       end
       /// - Arithmetic reductions are not supported on the response link
       /// - Multicast necessary only to route reduction responses back
@@ -662,11 +593,8 @@ package floo_pkg;
       /// - ALU operations are not supported on the wide link
       /// - CollectB is not supported on the wide link
       FlooWide: begin
-        be.EnMulticast = fe_ops.EnWideMulticast;
-        be.EnFpAdd     = fe_ops.EnFpAdd;
-        be.EnFpMul     = fe_ops.EnFpMul;
-        be.EnFpMin     = fe_ops.EnFpMin;
-        be.EnFpMax     = fe_ops.EnFpMax;
+        be.EnMulticast        = fe_ops.EnWideMulticast;
+        be.EnWideSeqReduction = fe_ops.EnWideSeqReduction;
       end
       default: be = '0;
     endcase

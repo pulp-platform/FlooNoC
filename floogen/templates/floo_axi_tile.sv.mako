@@ -83,6 +83,9 @@ module floo_${name}_tile
     .OutFifoDepth( 2                  ),
     .id_t        ( id_t               ),
     .hdr_t       ( hdr_t              ),
+% if noc.routing.collective.en_collective:
+    .collect_op_t ( collect_op_t       ),
+% endif
     .floo_req_t  ( floo_req_t         ),
     .floo_rsp_t  ( floo_rsp_t         )
   ) i_router (
@@ -105,6 +108,9 @@ module floo_${name}_tile
     .id_t         ( id_t                                      ),
     .rob_idx_t    ( rob_idx_t                                 ),
     .hdr_t        ( hdr_t                                     ),
+% if noc.routing.collective.en_collective:
+    .collect_op_t ( collect_op_t                              ),
+% endif
     .sam_rule_t   ( sam_rule_t                                ),
     .Sam          ( Sam                                       ),
     .axi_in_req_t ( ${in_prot.type_name()}_req_t              ),

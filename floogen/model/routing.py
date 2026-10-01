@@ -97,40 +97,18 @@ class VcImpl(ConfigEnum):
         return self.value
 
 
-class NarrowReductionOp(ConfigEnum):
-    """Integer ALU reduction operations available on the narrow router."""
-
-    Add = "Add"
-    Mul = "Mul"
-    MinS = "MinS"
-    MinU = "MinU"
-    MaxS = "MaxS"
-    MaxU = "MaxU"
-
-
-class WideReductionOp(ConfigEnum):
-    """Floating-point reduction operations available on the wide router."""
-
-    Add = "Add"
-    Mul = "Mul"
-    Min = "Min"
-    Max = "Max"
-
-
 class ReductionCfg(ConfigModel):
     """Base reduction hardware configuration shared by narrow and wide channels."""
 
+    num_ops: int
     rd_pipeline_depth: int = 0
     cut_offload_intf: bool = False
 
-    @model_validator(mode="before")
+    @field_validator("num_ops")
     @classmethod
-    def _coerce_input(cls, v):
-        """Coerce bool / list → dict so Pydantic can build the model normally."""
-        if v is True:
-            return {}
-        if isinstance(v, list):
-            return {"ops": v}
+    def _validate_num_ops(cls, v):
+        if v <= 0:
+            raise ValueError(f"num_ops must be > 0, got {v}")
         return v
 
     def get_reduction_cfg(self) -> dict:
@@ -144,34 +122,31 @@ class ReductionCfg(ConfigModel):
 class NarrowReductionCfg(ReductionCfg):
     """Reduction configuration for the narrow link."""
 
-    ops: list[NarrowReductionOp] = Field(default_factory=lambda: list(NarrowReductionOp))
-
 
 class WideReductionCfg(ReductionCfg):
     """Reduction configuration for the wide link."""
-
-    ops: list[WideReductionOp] = Field(default_factory=lambda: list(WideReductionOp))
 
 
 class CollectiveCfg(ConfigModel):
     """User-facing collective operation configuration.
 
-    The five high-level knobs map to ``collective_cfg_t`` in `floo_pkg`.
+    The high-level knobs map to ``collective_cfg_t`` in `floo_pkg`. The narrow/wide
+    reduction config only needs a plain op count.
 
     Attributes:
         en_narrow_multicast (bool): Enables multicast on the narrow link (`OpCfg.EnNarrowMulticast`).
         en_wide_multicast (bool): Enables multicast on the wide link (`OpCfg.EnWideMulticast`).
         en_barrier (bool): Enables barrier synchronization (`OpCfg.EnLsbAnd`).
-        en_narrow_reduction (Optional[NarrowReductionCfg]): Configuration for integer ALU reduction operations available on the narrow router (`OpCfg.EnA_{Add,Mul,MinS,MinU,MaxS,MaxU}`).
-        en_wide_reduction (Optional[WideReductionCfg]): Configuration for floating-point reduction operations available on the wide router (`OpCfg.EnF_{Add,Mul,Min,Max}`).
+        en_narrow_reduction (Optional[NarrowReductionCfg]): Configuration for the narrow router's sequential reduction ops (`OpCfg.EnNarrowSeqReduction`).
+        en_wide_reduction (Optional[WideReductionCfg]): Configuration for the wide router's sequential reduction ops (`OpCfg.EnWideSeqReduction`).
 
     !!! tip "Reduction Configuration Options"
         For ``en_narrow_reduction`` and ``en_wide_reduction``, the following YAML values are supported:
 
         - **`false` / omitted**: Disabled (default)
-        - **`true`**: All operations enabled, default hardware configuration
-        - **`[Add, Mul, ...]`**: Only the listed operations enabled, default hardware configuration
-        - **`{ops: [...], rd_pipeline_depth: N, cut_offload_intf: true}`**: Full per-channel control
+        - **`{num_ops: N, rd_pipeline_depth: N, cut_offload_intf: true}`**: Enabled with N ops
+
+        `num_ops` is required and must be >= 1 whenever the block is present.
     """
 
     en_narrow_multicast: bool = False
@@ -188,15 +163,15 @@ class CollectiveCfg(ConfigModel):
             return None
         return v
 
-    def _narrow_ops(self) -> list[NarrowReductionOp]:
-        if self.en_narrow_reduction is None:
-            return []
-        return self.en_narrow_reduction.ops
+    @property
+    def num_narrow_seq_ops(self) -> int:
+        """Number of declared narrow sequential-reduction ops (`NumNarrowSeqOps`)."""
+        return self.en_narrow_reduction.num_ops if self.en_narrow_reduction else 0
 
-    def _wide_ops(self) -> list[WideReductionOp]:
-        if self.en_wide_reduction is None:
-            return []
-        return self.en_wide_reduction.ops
+    @property
+    def num_wide_seq_ops(self) -> int:
+        """Number of declared wide sequential-reduction ops (`NumWideSeqOps`)."""
+        return self.en_wide_reduction.num_ops if self.en_wide_reduction else 0
 
     @property
     def en_multicast(self) -> bool:
@@ -213,22 +188,12 @@ class CollectiveCfg(ConfigModel):
 
     def _get_collective_op(self) -> dict:
         """Return a dict representing ``collect_op_fe_cfg_t`` for sv_struct_render."""
-        narrow = self._narrow_ops()
-        wide = self._wide_ops()
         return {
             "EnNarrowMulticast": bool_to_sv(self.en_narrow_multicast),
             "EnWideMulticast": bool_to_sv(self.en_wide_multicast),
             "EnLsbAnd": bool_to_sv(self.en_barrier),
-            "EnFpAdd": bool_to_sv(WideReductionOp.Add in wide),
-            "EnFpMul": bool_to_sv(WideReductionOp.Mul in wide),
-            "EnFpMin": bool_to_sv(WideReductionOp.Min in wide),
-            "EnFpMax": bool_to_sv(WideReductionOp.Max in wide),
-            "EnIntAdd": bool_to_sv(NarrowReductionOp.Add in narrow),
-            "EnIntMul": bool_to_sv(NarrowReductionOp.Mul in narrow),
-            "EnIntMinS": bool_to_sv(NarrowReductionOp.MinS in narrow),
-            "EnIntMinU": bool_to_sv(NarrowReductionOp.MinU in narrow),
-            "EnIntMaxS": bool_to_sv(NarrowReductionOp.MaxS in narrow),
-            "EnIntMaxU": bool_to_sv(NarrowReductionOp.MaxU in narrow),
+            "EnNarrowSeqReduction": bool_to_sv(self.num_narrow_seq_ops > 0),
+            "EnWideSeqReduction": bool_to_sv(self.num_wide_seq_ops > 0),
         }
 
     @property
@@ -249,10 +214,16 @@ class CollectiveCfg(ConfigModel):
         s = ""
         if self.en_narrow_reduction is not None:
             s += sv_typedef("floo_narrow_red_data_t", dtype=f"logic [{cfg_n}.DataWidth-1:0]")
-            s += "`FLOO_RED_TYPEDEF_REQ_RSP_LINK(narrow, floo_narrow_red_data_t, narrow_req, narrow_rsp)\n\n"
+            s += (
+                "`FLOO_RED_TYPEDEF_REQ_RSP_LINK(narrow, floo_narrow_red_data_t, narrow_req, "
+                "narrow_rsp, collect_op_t)\n\n"
+            )
         if self.en_wide_reduction is not None:
             s += sv_typedef("floo_wide_red_data_t", dtype=f"logic [{cfg_w}.DataWidth-1:0]")
-            s += "`FLOO_RED_TYPEDEF_REQ_RSP_LINK(wide, floo_wide_red_data_t, wide_req, wide_rsp)\n"
+            s += (
+                "`FLOO_RED_TYPEDEF_REQ_RSP_LINK(wide, floo_wide_red_data_t, wide_req, wide_rsp, "
+                "collect_op_t)\n"
+            )
         return s
 
 
@@ -1078,6 +1049,16 @@ class Routing(RoutingDesc):
                 pass
         if self.num_vc_id_bits > 0:
             string += sv_typedef("vc_id_t", array_size=self.num_vc_id_bits)
+        return string
+
+    def render_collect_op_params(self) -> str:
+        """Render the opcode counts and the `collect_op_t` vector type."""
+        string = sv_param_decl("NumNarrowSeqOps", self.collective.num_narrow_seq_ops)
+        string += sv_param_decl("NumWideSeqOps", self.collective.num_wide_seq_ops)
+        string += sv_param_decl(
+            "NumCollectOps", "floo_pkg::NumReservedCollectOps + NumNarrowSeqOps + NumWideSeqOps"
+        )
+        string += "typedef logic [$clog2(NumCollectOps)-1:0] collect_op_t;\n"
         return string
 
     def render_hdr_typedef(self, network_type) -> str:
