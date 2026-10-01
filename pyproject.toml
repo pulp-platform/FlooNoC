@@ -49,6 +49,7 @@ dev = [
     "reuse[charset-normalizer]>=6.2.0",
     "prek>=0.4.11",
     "typos>=1.48.0",
+    "astli>=0.2.0",
 ]
 
 [build-system]

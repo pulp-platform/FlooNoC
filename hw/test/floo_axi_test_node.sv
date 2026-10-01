@@ -8,25 +8,25 @@
 
 /// A AXI4 Bus Master-Slave Node for generating random AXI transactions
 module floo_axi_test_node #(
-  parameter floo_pkg::axi_cfg_t AxiCfg = '{default:0},
-  parameter type mst_req_t = logic,
-  parameter type mst_rsp_t = logic,
-  parameter type slv_req_t = logic,
-  parameter type slv_rsp_t = logic,
+  parameter floo_pkg::axi_cfg_t AxiCfg = '{default: 0},
+  parameter type         mst_req_t      = logic,
+  parameter type         mst_rsp_t      = logic,
+  parameter type         slv_req_t      = logic,
+  parameter type         slv_rsp_t      = logic,
   // TB Parameters
-  parameter time ApplTime = 2ns,
-  parameter time TestTime = 8ns,
-  parameter bit          Atops = 1'b0,
+  parameter time         ApplTime       = 2ns,
+  parameter time         TestTime       = 8ns,
+  parameter bit          Atops          = 1'b0,
   parameter int unsigned AxiMaxBurstLen = 128,
-  parameter int unsigned NumAddrRegions  = 0,
-  parameter type rule_t = logic,
+  parameter int unsigned NumAddrRegions = 0,
+  parameter type         rule_t         = logic,
   parameter rule_t [NumAddrRegions-1:0] AddrRegions = '0,
-  parameter int unsigned NumReads = 0,
-  parameter int unsigned NumWrites = 0,
-  parameter bit EnMultiCast = 0
+  parameter int unsigned NumReads    = 0,
+  parameter int unsigned NumWrites   = 0,
+  parameter bit          EnMultiCast = 0
 ) (
-  input  logic clk_i,
-  input  logic rst_ni,
+  input logic clk_i,
+  input logic rst_ni,
 
   output mst_req_t mst_port_req_o,
   input  mst_rsp_t mst_port_rsp_i,
@@ -38,10 +38,10 @@ module floo_axi_test_node #(
 );
 
   AXI_BUS_DV #(
-    .AXI_ADDR_WIDTH ( AxiCfg.AddrWidth  ),
-    .AXI_DATA_WIDTH ( AxiCfg.DataWidth  ),
-    .AXI_ID_WIDTH   ( AxiCfg.OutIdWidth ),
-    .AXI_USER_WIDTH ( AxiCfg.UserWidth  )
+    .AXI_ADDR_WIDTH(AxiCfg.AddrWidth),
+    .AXI_DATA_WIDTH(AxiCfg.DataWidth),
+    .AXI_ID_WIDTH  (AxiCfg.OutIdWidth),
+    .AXI_USER_WIDTH(AxiCfg.UserWidth)
   ) master_dv (clk_i);
 
   `AXI_ASSIGN_TO_REQ(mst_port_req_o, master_dv)
@@ -74,10 +74,10 @@ module floo_axi_test_node #(
   ) axi_rand_master_t;
 
   AXI_BUS_DV #(
-    .AXI_ADDR_WIDTH ( AxiCfg.AddrWidth  ),
-    .AXI_DATA_WIDTH ( AxiCfg.DataWidth  ),
-    .AXI_ID_WIDTH   ( AxiCfg.OutIdWidth ),
-    .AXI_USER_WIDTH ( AxiCfg.UserWidth  )
+    .AXI_ADDR_WIDTH(AxiCfg.AddrWidth),
+    .AXI_DATA_WIDTH(AxiCfg.DataWidth),
+    .AXI_ID_WIDTH  (AxiCfg.OutIdWidth),
+    .AXI_USER_WIDTH(AxiCfg.UserWidth)
   ) slave_dv (clk_i);
 
   `AXI_ASSIGN_FROM_REQ(slave_dv, slv_port_req_i)
@@ -97,30 +97,27 @@ module floo_axi_test_node #(
   // traffic generator master
   axi_rand_master_t axi_rand_master;
   initial begin
-    axi_rand_master = new( master_dv);
-    end_of_sim = 1'b0;
+    axi_rand_master = new(master_dv);
+    end_of_sim      = 1'b0;
 
     for (int i = 0; i < NumAddrRegions; i++) begin
-      axi_rand_master.add_memory_region(AddrRegions[i].start_addr,
-                                        AddrRegions[i].end_addr,
+      axi_rand_master.add_memory_region(AddrRegions[i].start_addr, AddrRegions[i].end_addr,
                                         axi_pkg::DEVICE_NONBUFFERABLE);
     end
     // if(EnMultiCast) begin
     //   axi_rand_master.set_multicast_probability(50);
     // end
     axi_rand_master.reset();
-    @(posedge rst_ni)
-    axi_rand_master.run(NumReads, NumWrites);
+    @(posedge rst_ni) axi_rand_master.run(NumReads, NumWrites);
     end_of_sim = 1'b1;
   end
 
   // axi slave
   axi_rand_slave_t axi_rand_slave;
   initial begin
-    axi_rand_slave = new( slave_dv );
+    axi_rand_slave = new(slave_dv);
     axi_rand_slave.reset();
-    @(posedge rst_ni)
-    axi_rand_slave.run();
+    @(posedge rst_ni) axi_rand_slave.run();
   end
 
 endmodule

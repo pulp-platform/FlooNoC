@@ -9,38 +9,39 @@
 `include "common_cells/registers.svh"
 
 /// A virtual channel arbiter
-module floo_vc_arbiter import floo_pkg::*;
+module floo_vc_arbiter
+  import floo_pkg::*;
 #(
-  parameter int unsigned NumVirtChannels  = 1,
-  parameter type         flit_t           = logic,
-  parameter int unsigned NumPhysChannels  = 1,
-  parameter vc_impl_e    VcImpl           = VcNaive,
-  parameter int unsigned NumCredits       = 3
+  parameter int unsigned NumVirtChannels = 1,
+  parameter type         flit_t          = logic,
+  parameter int unsigned NumPhysChannels = 1,
+  parameter vc_impl_e    VcImpl          = VcNaive,
+  parameter int unsigned NumCredits      = 3
 ) (
-  input  logic                        clk_i,
-  input  logic                        rst_ni,
+  input  logic clk_i,
+  input  logic rst_ni,
   /// Ports towards the virtual channels
-  input  logic  [NumVirtChannels-1:0] valid_i,
-  output logic  [NumVirtChannels-1:0] ready_o,
+  input  logic [NumVirtChannels-1:0]  valid_i,
+  output logic [NumVirtChannels-1:0]  ready_o,
   input  flit_t [NumVirtChannels-1:0] data_i,
   /// Ports towards the physical channels
-  input  logic  [NumVirtChannels-1:0] ready_i,
-  output logic  [NumVirtChannels-1:0] valid_o,
+  input  logic [NumVirtChannels-1:0]  ready_i,
+  output logic [NumVirtChannels-1:0]  valid_o,
   output flit_t [NumPhysChannels-1:0] data_o,
-  input  logic  [NumVirtChannels-1:0] credit_i
+  input  logic [NumVirtChannels-1:0]  credit_i
 );
 
-if (NumVirtChannels == NumPhysChannels) begin : gen_virt_eq_phys
-  assign valid_o = valid_i;
-  assign ready_o = ready_i;
-  assign data_o  = data_i;
-end else if (NumPhysChannels == 1) begin : gen_single_phys
+  if (NumVirtChannels == NumPhysChannels) begin : gen_virt_eq_phys
+    assign valid_o = valid_i;
+    assign ready_o = ready_i;
+    assign data_o  = data_i;
+  end else if (NumPhysChannels == 1) begin : gen_single_phys
 
     typedef logic [$clog2(NumVirtChannels)-1:0] arb_idx_t;
     arb_idx_t vc_arb_idx;
 
     logic [NumVirtChannels-1:0] vc_arb_req_in;
-    logic                       vc_arb_req_out, vc_arb_gnt_in;
+    logic vc_arb_req_out, vc_arb_gnt_in;
 
     // Signals to support credit based arbitration
     logic [NumVirtChannels-1:0] credit_handshake, credit_left;
@@ -52,7 +53,7 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
     // Lock and mask update logic //
     ////////////////////////////////
 
-    if (VcImpl == VcPreemptValid) begin: gen_preempt_valid_mask
+    if (VcImpl == VcPreemptValid) begin : gen_preempt_valid_mask
       always_comb begin
         mask_d = mask_q;
         // If we have a valid request but no grant, and the
@@ -60,8 +61,8 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
         // A more sophisticated arbitration mechanism would be needed for more VCs.
         if (vc_arb_req_out) begin
           if (!vc_arb_gnt_in) begin
-            if (ready_i[~vc_arb_idx] && valid_i[~vc_arb_idx]) begin: gen_valid_mask
-                mask_d = ~(1'b1 << vc_arb_idx);
+            if (ready_i[~vc_arb_idx] && valid_i[~vc_arb_idx]) begin : gen_valid_mask
+              mask_d = ~(1'b1 << vc_arb_idx);
             end
           end else begin
             mask_d = '1;
@@ -101,46 +102,46 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
 
     // One-hot encoding of the arbitration winning channel
     always_comb begin
-      valid_o = '0;
+      valid_o             = '0;
       valid_o[vc_arb_idx] = vc_arb_req_out;
     end
 
     cc_rr_arb_tree #(
-      .NumIn      ( NumVirtChannels ),
-      .data_t   ( flit_t          ),
-      .AxiVldRdy  ( 1'b0            ), // fischeti: Don't think that applies
-      .LockIn     ( 1'b0            )
+      .NumIn    (NumVirtChannels),
+      .data_t   (flit_t),
+      .AxiVldRdy(1'b0), // fischeti: Don't think that applies
+      .LockIn   (1'b0)
     ) i_rr_vc_arbiter (
-      .clk_i    ( clk_i             ),
-      .rst_ni   ( rst_ni            ),
-      .clr_i    ( 1'b0              ),
-      .rr_i     ( '0                ),
-      .req_i    ( vc_arb_req_in     ),
-      .gnt_o    ( ready_o           ),
-      .data_i   ( data_i            ),
-      .req_o    ( vc_arb_req_out    ),
-      .gnt_i    ( vc_arb_gnt_in     ),
-      .data_o   ( data_o            ),
-      .idx_o    ( vc_arb_idx        )
+      .clk_i (clk_i),
+      .rst_ni(rst_ni),
+      .clr_i (1'b0),
+      .rr_i  ('0),
+      .req_i (vc_arb_req_in),
+      .gnt_o (ready_o),
+      .data_i(data_i),
+      .req_o (vc_arb_req_out),
+      .gnt_i (vc_arb_gnt_in),
+      .data_o(data_o),
+      .idx_o (vc_arb_idx)
     );
 
-  if (VcImpl == VcCredit) begin: gen_credit
-    for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_vc_credits
-      cc_credit_counter #(
-        .NumCredits(NumCredits)
-      ) i_vc_credit_counter (
-        .clk_i            ( clk_i                     ),
-        .rst_ni           ( rst_ni                    ),
-        .credit_o         ( /* unused */              ),
-        .credit_give_i    ( credit_i[v]               ),
-        .credit_take_i    ( credit_handshake[v]       ),
-        .credit_init_i    ( 1'b0                      ),
-        .credit_left_o    ( credit_left[v]            ),
-        .credit_crit_o    ( /* unused */              ),
-        .credit_full_o    ( /* unused */              )
-      );
+    if (VcImpl == VcCredit) begin : gen_credit
+      for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_vc_credits
+        cc_credit_counter #(
+          .NumCredits(NumCredits)
+        ) i_vc_credit_counter (
+          .clk_i        (clk_i),
+          .rst_ni       (rst_ni),
+          .credit_o     ( /* unused */),
+          .credit_give_i(credit_i[v]),
+          .credit_take_i(credit_handshake[v]),
+          .credit_init_i(1'b0),
+          .credit_left_o(credit_left[v]),
+          .credit_crit_o( /* unused */),
+          .credit_full_o( /* unused */)
+        );
+      end
     end
-  end
 
   end else begin : gen_odd_phys
     $fatal(1, "unimplemented!");
@@ -154,9 +155,9 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
   ////////////////
 
   // Only one VC can access the physical link at a time
-    if (NumVirtChannels != NumPhysChannels) begin: gen_onehot_assert
-      `ASSERT(OneHotOutputValid, $onehot0(valid_o))
-    end
+  if (NumVirtChannels != NumPhysChannels) begin : gen_onehot_assert
+    `ASSERT(OneHotOutputValid, $onehot0(valid_o))
+  end
 
   // Currently only supports two virtual channels
   `ASSERT_INIT(SupportedNumVirtChannels, (VcImpl == floo_pkg::VcNaive) || (NumVirtChannels <= 2))

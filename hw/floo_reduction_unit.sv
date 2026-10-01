@@ -17,44 +17,43 @@
 `include "floo_noc/typedef.svh"
 `include "axi/typedef.svh"
 
-
 module floo_reduction_unit
   import floo_pkg::*;
-  #(
-    parameter int unsigned NumInputs  = 0,
-    parameter int unsigned NumOutputs = 0,
-    parameter type flit_t             = logic,
-    parameter type hdr_t              = logic,
-    parameter type id_t               = logic,
-    parameter type reduction_data_t   = logic,
-    parameter type collect_op_t       = logic,
-    /// Parameters for the reduction configuration
-    parameter reduction_cfg_t RedCfg               = '0,
-    /// Axi Configuration
-    parameter floo_pkg::axi_cfg_t AxiCfg            = '0
-  )(
-    input   logic                                     clk_i,
-    input   logic                                     rst_ni,
-    input   id_t                                      xy_id_i,
-    input   logic   [NumInputs-1:0]                   valid_i,
-    output  logic   [NumInputs-1:0]                   ready_o,
-    input   flit_t  [NumInputs-1:0]                   data_i,
-    output  logic   [NumOutputs-1:0]                  valid_o,
-    input   logic   [NumOutputs-1:0]                  ready_i,
-    output  flit_t  [NumOutputs-1:0]                  data_o,
-    /// One-hot mask to route result to the output
-    input   logic   [NumInputs-1:0][NumOutputs-1:0]   routed_out_mask_i,
-    /// One-hot mask to indicate expected inputs
-    input   logic   [NumInputs-1:0][NumInputs-1:0]    in_mask_i,
-    output  logic                                     operands_valid_o,
-    input   logic                                     operands_ready_i,
-    output  reduction_data_t                          operand1_o,
-    output  reduction_data_t                          operand2_o,
-    output  collect_op_t                              operation_o,
-    input   logic                                     result_valid_i,
-    output  logic                                     result_ready_o,
-    input   reduction_data_t                          result_i
-  );
+#(
+  parameter int unsigned    NumInputs        = 0,
+  parameter int unsigned    NumOutputs       = 0,
+  parameter type            flit_t           = logic,
+  parameter type            hdr_t            = logic,
+  parameter type            id_t             = logic,
+  parameter type            reduction_data_t = logic,
+  parameter type            collect_op_t     = logic,
+  /// Parameters for the reduction configuration
+  parameter reduction_cfg_t RedCfg           = '0,
+  /// Axi Configuration
+  parameter floo_pkg::axi_cfg_t AxiCfg = '0
+) (
+  input  logic clk_i,
+  input  logic rst_ni,
+  input  id_t  xy_id_i,
+  input  logic [NumInputs-1:0]   valid_i,
+  output logic [NumInputs-1:0]   ready_o,
+  input  flit_t [NumInputs-1:0]  data_i,
+  output logic [NumOutputs-1:0]  valid_o,
+  input  logic [NumOutputs-1:0]  ready_i,
+  output flit_t [NumOutputs-1:0] data_o,
+  /// One-hot mask to route result to the output
+  input  logic [NumInputs-1:0][NumOutputs-1:0] routed_out_mask_i,
+  /// One-hot mask to indicate expected inputs
+  input  logic [NumInputs-1:0][NumInputs-1:0]  in_mask_i,
+  output logic            operands_valid_o,
+  input  logic            operands_ready_i,
+  output reduction_data_t operand1_o,
+  output reduction_data_t operand2_o,
+  output collect_op_t     operation_o,
+  input  logic            result_valid_i,
+  output logic            result_ready_o,
+  input  reduction_data_t result_i
+);
 
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi, AxiCfg)
   `FLOO_TYPEDEF_AXI_CHAN_ALL(axi, req, rsp, axi_in, AxiCfg, hdr_t)
@@ -69,8 +68,8 @@ module floo_reduction_unit
   } red_intsr_t;
 
   // Select signals for the input data
-  input_sel_t operand1_sel;
-  input_sel_t operand2_sel;
+  input_sel_t  operand1_sel;
+  input_sel_t  operand2_sel;
   collect_op_t incoming_op;
 
   logic [NumInputs-1:0] mask_operand1;
@@ -80,45 +79,45 @@ module floo_reduction_unit
   flit_t operand1_flit, operand2_flit;
 
   // Signals towards multiple functional units
-  logic       operands_valid_out;
-  logic       operands_ready_in;
+  logic operands_valid_out;
+  logic operands_ready_in;
 
   // Operand stream after the fork: one branch stores the metadata, the other goes to the
   // functional units
-  logic       fu_operands_valid;
-  logic       fu_operands_ready;
-  logic       meta_operands_valid;
-  logic       meta_flit_ready, meta_route_ready;
-  logic       meta_flit_valid, meta_route_valid;
+  logic fu_operands_valid;
+  logic fu_operands_ready;
+  logic meta_operands_valid;
+  logic meta_flit_ready, meta_route_ready;
+  logic meta_flit_valid, meta_route_valid;
 
   // Signals towards the offload interface
-  logic       offload_operands_valid_out;
-  logic       offload_operands_ready_in;
+  logic             offload_operands_valid_out;
+  logic             offload_operands_ready_in;
   red_intsr_t       instr_out, instr_out_cut;
   floo_axi_w_flit_t w_flit_operand1, w_flit_operand2;
   floo_axi_w_flit_t w_flit_result;
 
   // Signals towards selectAW unit
-  logic       aw_valid_out;
-  logic       aw_ready_in;
-  flit_t      aw_out;
+  logic  aw_valid_out;
+  logic  aw_ready_in;
+  flit_t aw_out;
 
   // Signals from the response offload interface
-  reduction_data_t      result_data_in;
-  logic                 result_valid_in;
-  logic                 result_ready_out;
-  flit_t                result_flit_in;
+  reduction_data_t result_data_in;
+  logic            result_valid_in;
+  logic            result_ready_out;
+  flit_t           result_flit_in;
 
   // Output flit after the mux
-  flit_t                result_flit_out;
-  logic                 result_flit_valid_out;
-  logic                 result_flit_ready_in;
-  logic                 result_mux_sel;
+  flit_t result_flit_out;
+  logic  result_flit_valid_out;
+  logic  result_flit_ready_in;
+  logic  result_mux_sel;
 
   // Metadata for latency tolerant controller
-  flit_t                  metadata_flit_out;
-  logic [NumOutputs-1:0]  metadata_route_out_dir;
-  out_select_t            out_select;
+  flit_t metadata_flit_out;
+  logic [NumOutputs-1:0] metadata_route_out_dir;
+  out_select_t           out_select;
 
   ///------------------------///
   /// Outgoing operands flow ///
@@ -126,43 +125,42 @@ module floo_reduction_unit
 
   // Trailing zero counter to find the first valid operand (index of first set bit)
   cc_lzc #(
-    .Width ( NumInputs                  ),
-    .Mode  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
+    .Width(NumInputs),
+    .Mode (cc_pkg::LZC_TRAILING_ZERO_CNT)
   ) i_lzc_opn1 (
-    .in_i     ( valid_i       ),
-    .cnt_o    ( operand1_sel  ),
-    .empty_o  (               )
+    .in_i   (valid_i),
+    .cnt_o  (operand1_sel),
+    .empty_o()
   );
 
   floo_reduction_sync #(
-    .NumRoutes          ( NumInputs ),
-    .arb_idx_t          ( input_sel_t ),
-    .flit_t             ( flit_t    )
+    .NumRoutes(NumInputs),
+    .arb_idx_t(input_sel_t),
+    .flit_t   (flit_t)
   ) i_reduction_sync (
-    .sel_i            ( operand1_sel            ),
-    .data_i           ( data_i                  ),
-    .valid_i          ( valid_i                 ),
-    .ready_o          ( ready_o                 ),
-    .in_route_mask_i  ( in_mask_i[operand1_sel] ),
-    .valid_o          ( operands_valid_out      ),
-    .ready_i          ( operands_ready_in       )
+    .sel_i          (operand1_sel),
+    .data_i         (data_i),
+    .valid_i        (valid_i),
+    .ready_o        (ready_o),
+    .in_route_mask_i(in_mask_i[operand1_sel]),
+    .valid_o        (operands_valid_out),
+    .ready_i        (operands_ready_in)
   );
 
   // The first operand is always the one selected from the cc_lzc module
   assign operand1_flit = data_i[operand1_sel];
-  assign incoming_op = data_i[operand1_sel].hdr.collective_op;
-
+  assign incoming_op   = data_i[operand1_sel].hdr.collective_op;
 
   assign mask_operand1 = {NumInputs'(1)} << operand1_sel;
   assign mask_operand2 = in_mask_i[operand1_sel] & ~mask_operand1;
   // This zero counter is used to select the second operand looking at the input mask
   cc_lzc #(
-    .Width ( NumInputs                  ),
-    .Mode  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
+    .Width(NumInputs),
+    .Mode (cc_pkg::LZC_TRAILING_ZERO_CNT)
   ) i_lzc_opn2 (
-    .in_i     ( mask_operand2 ),
-    .cnt_o    ( operand2_sel  ),
-    .empty_o  (               )
+    .in_i   (mask_operand2),
+    .cnt_o  (operand2_sel),
+    .empty_o()
   );
 
   assign operand2_flit = data_i[operand2_sel];
@@ -172,37 +170,36 @@ module floo_reduction_unit
   // To avoid a combinational loop due to the FallThrough, we use a stream fork which decouples the
   // two paths.
   cc_stream_fork #(
-    .NumOup ( 2 )
+    .NumOup(2)
   ) i_operands_fork (
     .clk_i,
     .rst_ni,
-    .clr_i    ( 1'b0                                                        ),
-    .valid_i  ( operands_valid_out                                          ),
-    .ready_o  ( operands_ready_in                                           ),
-    .valid_o  ( {fu_operands_valid, meta_operands_valid}                    ),
-    .ready_i  ( {fu_operands_ready, meta_flit_ready & meta_route_ready}     )
+    .clr_i  (1'b0),
+    .valid_i(operands_valid_out),
+    .ready_o(operands_ready_in),
+    .valid_o({fu_operands_valid, meta_operands_valid}),
+    .ready_i({fu_operands_ready, meta_flit_ready & meta_route_ready})
   );
 
   // Stream demux to arbitrate between different functional units:
   // - Output 1: Offload unit
   // - Output 2: SelectAW unit
   cc_stream_demux #(
-    .NumOup ( 2 )
+    .NumOup(2)
   ) i_operands_demux (
-    .inp_valid_i   ( fu_operands_valid      ),
-    .inp_ready_o   ( fu_operands_ready      ),
-    .oup_sel_i     ( incoming_op == SeqAW   ),
-    .oup_valid_o   ( {aw_valid_out, offload_operands_valid_out} ),
-    .oup_ready_i   ( {aw_ready_in, offload_operands_ready_in}   )
+    .inp_valid_i(fu_operands_valid),
+    .inp_ready_o(fu_operands_ready),
+    .oup_sel_i  (incoming_op == SeqAW),
+    .oup_valid_o({aw_valid_out, offload_operands_valid_out}),
+    .oup_ready_i({aw_ready_in, offload_operands_ready_in})
   );
-
 
   assign w_flit_operand1 = floo_axi_w_flit_t'(operand1_flit);
   assign w_flit_operand2 = floo_axi_w_flit_t'(operand2_flit);
 
   assign instr_out.operand1 = w_flit_operand1.payload.data;
   assign instr_out.operand2 = w_flit_operand2.payload.data;
-  assign instr_out.op = operand2_flit.hdr.collective_op;
+  assign instr_out.op       = operand2_flit.hdr.collective_op;
 
   // For the select AW we don't need any operations except for assigning one of
   assign aw_out = operand1_flit;
@@ -210,97 +207,95 @@ module floo_reduction_unit
   // Metadata of the reductions in flight (first operand flit + output direction), kept until
   // the result comes back. Both queues have the same depth and push/pop: always in lockstep.
   cc_stream_fifo #(
-      .FallThrough ( 1'b1                        ),
-      .data_t      ( flit_t                      ),
-      .Depth       ( RedCfg.RdPipelineDepth + 2  )
+    .FallThrough(1'b1),
+    .data_t     (flit_t),
+    .Depth      (RedCfg.RdPipelineDepth + 2)
   ) i_fifo_flit (
-      .clk_i,
-      .rst_ni,
-      .clr_i    ( 1'b0                ),
-      .flush_i  ( 1'b0                ),
-      .usage_o  (                     ),
-      // Store the flit of the first operand
-      .data_i   ( operand1_flit       ),
-      .valid_i  ( meta_operands_valid ),
-      .ready_o  ( meta_flit_ready     ),
-      .data_o   ( metadata_flit_out   ),
-      .valid_o  ( meta_flit_valid     ),
-      // Pop on result handshake
-      .ready_i  ( result_flit_valid_out & result_flit_ready_in )
+    .clk_i,
+    .rst_ni,
+    .clr_i  (1'b0),
+    .flush_i(1'b0),
+    .usage_o(),
+    // Store the flit of the first operand
+    .data_i (operand1_flit),
+    .valid_i(meta_operands_valid),
+    .ready_o(meta_flit_ready),
+    .data_o (metadata_flit_out),
+    .valid_o(meta_flit_valid),
+    // Pop on result handshake
+    .ready_i(result_flit_valid_out & result_flit_ready_in)
   );
 
   // Fifo to store the output direction of the element during the FPU reduction
   cc_stream_fifo #(
-      .FallThrough ( 1'b1                        ),
-      .DataWidth   ( NumOutputs                  ),
-      .Depth       ( RedCfg.RdPipelineDepth + 2  )
+    .FallThrough(1'b1),
+    .DataWidth  (NumOutputs),
+    .Depth      (RedCfg.RdPipelineDepth + 2)
   ) i_fifo_route_dir (
-      .clk_i,
-      .rst_ni,
-      .clr_i    ( 1'b0                    ),
-      .flush_i  ( 1'b0                    ),
-      .usage_o  (                         ),
-      // Store the route out of the first operand
-      .data_i   ( routed_out_mask_i[operand1_sel] ),
-      .valid_i  ( meta_operands_valid     ),
-      .ready_o  ( meta_route_ready        ),
-      .data_o   ( metadata_route_out_dir  ),
-      .valid_o  ( meta_route_valid        ),
-      // Pop on result handshake
-      .ready_i  ( result_flit_valid_out & result_flit_ready_in )
+    .clk_i,
+    .rst_ni,
+    .clr_i  (1'b0),
+    .flush_i(1'b0),
+    .usage_o(),
+    // Store the route out of the first operand
+    .data_i (routed_out_mask_i[operand1_sel]),
+    .valid_i(meta_operands_valid),
+    .ready_o(meta_route_ready),
+    .data_o (metadata_route_out_dir),
+    .valid_o(meta_route_valid),
+    // Pop on result handshake
+    .ready_i(result_flit_valid_out & result_flit_ready_in)
   );
 
   // TODO (lleone): Create a REQ/RSP struct for the following interface
   // and replace all the spill registers with just one for REQ and one for RSP
   cc_spill_register #(
-        .data_t (red_intsr_t),
-        .Bypass (!RedCfg.CutOffloadIntf)
+    .data_t(red_intsr_t),
+    .Bypass(!RedCfg.CutOffloadIntf)
   ) i_offload_cut_req (
-        .clk_i,
-        .rst_ni,
-        .clr_i    (1'b0),
-        .data_i   (instr_out),
-        .valid_i  (offload_operands_valid_out),
-        .ready_o  (offload_operands_ready_in),
-        .data_o   (instr_out_cut),
-        .valid_o  (operands_valid_o),
-        .ready_i  (operands_ready_i)
+    .clk_i,
+    .rst_ni,
+    .clr_i  (1'b0),
+    .data_i (instr_out),
+    .valid_i(offload_operands_valid_out),
+    .ready_o(offload_operands_ready_in),
+    .data_o (instr_out_cut),
+    .valid_o(operands_valid_o),
+    .ready_i(operands_ready_i)
   );
 
   // TODO(lleone): When uniforming the offload interface, get rid of this part,
   // since the cut will be of the type of the interface
   assign operation_o = instr_out_cut.op;
-  assign operand1_o = instr_out_cut.operand1;
-  assign operand2_o = instr_out_cut.operand2;
-
+  assign operand1_o  = instr_out_cut.operand1;
+  assign operand2_o  = instr_out_cut.operand2;
 
   ///-------------------------///
   /// Incoming responses flow ///
   ///-------------------------///
 
   cc_spill_register #(
-        .data_t (reduction_data_t),
-        .Bypass (!RedCfg.CutOffloadIntf)
+    .data_t(reduction_data_t),
+    .Bypass(!RedCfg.CutOffloadIntf)
   ) i_offload_cut_rsp (
-        .clk_i,
-        .rst_ni,
-        .clr_i    (1'b0),
-        .data_i   (result_i),
-        .valid_i  (result_valid_i),
-        .ready_o  (result_ready_o),
-        .data_o   (result_data_in),
-        .valid_o  (result_valid_in),
-        .ready_i  (result_ready_out)
+    .clk_i,
+    .rst_ni,
+    .clr_i  (1'b0),
+    .data_i (result_i),
+    .valid_i(result_valid_i),
+    .ready_o(result_ready_o),
+    .data_o (result_data_in),
+    .valid_o(result_valid_in),
+    .ready_i(result_ready_out)
   );
 
   // Apply the result from the offload unit to the stored flit
-  always_comb begin: gen_result_flit
+  always_comb begin : gen_result_flit
     w_flit_result = floo_axi_w_flit_t'(metadata_flit_out);
     w_flit_result.payload.data = result_data_in;
   end
 
   assign result_flit_in = flit_t'(w_flit_result);
-
 
   ///-------------------------///
   ///  Output responses flow  ///
@@ -308,49 +303,45 @@ module floo_reduction_unit
 
   assign result_mux_sel = metadata_flit_out.hdr.collective_op == SeqAW;
   cc_stream_mux #(
-    .data_t   ( flit_t ),
-    .NumInp   ( 2 )
+    .data_t(flit_t),
+    .NumInp(2)
   ) i_result_mux (
-    .inp_data_i   ( {aw_out, result_flit_in}        ),
-    .inp_valid_i  ( {aw_valid_out, result_valid_in} ),
-    .inp_ready_o  ( {aw_ready_in, result_ready_out} ),
-    .inp_sel_i    ( result_mux_sel                  ),
-    .oup_data_o   ( result_flit_out                 ),
-    .oup_valid_o  ( result_flit_valid_out           ),
-    .oup_ready_i  ( result_flit_ready_in            )
+    .inp_data_i ({aw_out, result_flit_in}),
+    .inp_valid_i({aw_valid_out, result_valid_in}),
+    .inp_ready_o({aw_ready_in, result_ready_out}),
+    .inp_sel_i  (result_mux_sel),
+    .oup_data_o (result_flit_out),
+    .oup_valid_o(result_flit_valid_out),
+    .oup_ready_i(result_flit_ready_in)
   );
 
   // Output destination cc_lzc
   cc_lzc #(
-    .Width ( NumOutputs                 ),
-    .Mode  ( cc_pkg::LZC_TRAILING_ZERO_CNT )
+    .Width(NumOutputs),
+    .Mode (cc_pkg::LZC_TRAILING_ZERO_CNT)
   ) i_lzc_result_out (
-    .in_i     ( metadata_route_out_dir  ),
-    .cnt_o    ( out_select       ),
-    .empty_o  (                  )
+    .in_i   (metadata_route_out_dir),
+    .cnt_o  (out_select),
+    .empty_o()
   );
 
   cc_stream_demux #(
-    .NumOup ( NumOutputs )
+    .NumOup(NumOutputs)
   ) i_result_demux (
-    .inp_valid_i   ( result_flit_valid_out  ),
-    .inp_ready_o   ( result_flit_ready_in   ),
-    .oup_sel_i     ( out_select             ),
-    .oup_valid_o   ( valid_o                ),
-    .oup_ready_i   ( ready_i                )
+    .inp_valid_i(result_flit_valid_out),
+    .inp_ready_o(result_flit_ready_in),
+    .oup_sel_i  (out_select),
+    .oup_valid_o(valid_o),
+    .oup_ready_i(ready_i)
   );
   assign data_o = {NumOutputs{result_flit_out}};
 
   // The functional unit may accept an operand set before its metadata is stored (queue full),
   // which is safe only because results come back in order: the head must exist for every result
-  `ASSERT(ResultWithoutMetadata,
-          result_flit_valid_out |-> (meta_flit_valid && meta_route_valid),
-          clk_i, !rst_ni,
-          "A result arrived with no reduction metadata stored")
+  `ASSERT(ResultWithoutMetadata, result_flit_valid_out |-> (meta_flit_valid && meta_route_valid),
+          clk_i, !rst_ni, "A result arrived with no reduction metadata stored")
 
-  `ASSERT(ReductionFrom2MoreInputs,
-          !(|valid_i) || ($countones(in_mask_i[operand1_sel]) == 0) ||
-          ($countones(in_mask_i[operand1_sel]) == 2),
-         clk_i, !rst_ni,
-         "Incoming sequential reduction from more than 2 inputs is not supported")
+  `ASSERT(ReductionFrom2MoreInputs, !(|valid_i) || ($countones(in_mask_i[operand1_sel]) == 0) ||
+                                    ($countones(in_mask_i[operand1_sel]) == 2), clk_i, !rst_ni,
+          "Incoming sequential reduction from more than 2 inputs is not supported")
 endmodule

@@ -20,50 +20,50 @@ package floo_test_pkg;
   localparam int unsigned NumY = 4;
 
   // Router parameters
-  localparam int unsigned NumRoutes = 5;
-  localparam int unsigned ChannelFifoDepth  = 2;
-  localparam int unsigned OutputFifoDepth   = 2;
+  localparam int unsigned NumRoutes        = 5;
+  localparam int unsigned ChannelFifoDepth = 2;
+  localparam int unsigned OutputFifoDepth  = 2;
 
   // Default route config for testing
   localparam floo_pkg::route_cfg_t RouteCfg = '{
-    RouteAlgo: floo_pkg::XYRouting,
-    UseIdTable: 0,
-    XYAddrOffsetX: 16,
-    XYAddrOffsetY: 20,
-    IdAddrOffset: 0,
-    NumSamRules: 1,
-    NumRoutes: 1,
-    CollectiveCfg: floo_pkg::CollectiveDefaultCfg
+      RouteAlgo:     floo_pkg::XYRouting,
+      UseIdTable:    0,
+      XYAddrOffsetX: 16,
+      XYAddrOffsetY: 20,
+      IdAddrOffset:  0,
+      NumSamRules:   1,
+      NumRoutes:     1,
+      CollectiveCfg: floo_pkg::CollectiveDefaultCfg
   };
 
   // Common chimney parameters
-  localparam bit AtopSupport = 1'b1;
+  localparam bit          AtopSupport   = 1'b1;
   localparam int unsigned MaxAtomicTxns = 4;
 
   // Axi chimney parameters
   localparam floo_pkg::axi_cfg_t AxiCfg = '{
-    AddrWidth: 32,
-    DataWidth: 64,
-    UserWidth: 1,
-    InIdWidth: 3,
-    OutIdWidth: 3
+      AddrWidth:  32,
+      DataWidth:  64,
+      UserWidth:  1,
+      InIdWidth:  3,
+      OutIdWidth: 3
   };
 
   localparam floo_pkg::axi_cfg_t AxiCfgN = '{
-    AddrWidth: 48,
-    DataWidth: 64,
-    UserWidth: 5,
-    InIdWidth: 4,
-    OutIdWidth: 2
+      AddrWidth:  48,
+      DataWidth:  64,
+      UserWidth:  5,
+      InIdWidth:  4,
+      OutIdWidth: 2
   };
 
   // AXI nw_chimney parameters
   localparam floo_pkg::axi_cfg_t AxiCfgW = '{
-    AddrWidth: 48,
-    DataWidth: 512,
-    UserWidth: 1,
-    InIdWidth: 3,
-    OutIdWidth: 1
+      AddrWidth:  48,
+      DataWidth:  512,
+      UserWidth:  1,
+      InIdWidth:  3,
+      OutIdWidth: 1
   };
 
   // Default chimney config for testing

@@ -21,18 +21,18 @@ module floo_credit_counter #(
   /// Number of bits to address the virtual channels
   parameter int unsigned VCIdxWidth    = cf_math_pkg::idx_width(NumVC),
   /// Number of bits to index the virtual channel FIFO
-  parameter int unsigned VCDepthWidth  = $clog2(VCDepth+1)
+  parameter int unsigned VCDepthWidth  = $clog2(VCDepth + 1)
 ) (
-  input logic                     clk_i,
-  input logic                     rst_ni,
+  input  logic clk_i,
+  input  logic rst_ni,
   // Credit refill
-  input logic                     credit_valid_i,
-  input logic [VCIdxWidthMax-1:0] credit_id_i,
+  input  logic credit_valid_i,
+  input  logic [VCIdxWidthMax-1:0] credit_id_i,
   /// Credit consumption
-  input logic                     consume_credit_valid_i,
-  input logic [VCIdxWidthMax-1:0] consume_credit_id_i,
+  input  logic consume_credit_valid_i,
+  input  logic [VCIdxWidthMax-1:0] consume_credit_id_i,
   /// Credit status
-  output logic  [NumVC-1:0]       vc_not_full_o
+  output logic [NumVC-1:0]         vc_not_full_o
 );
 
   logic [NumVC-1:0][VCDepthWidth-1:0] credit_cnt_d, credit_cnt_q;
@@ -41,11 +41,11 @@ module floo_credit_counter #(
 
     logic consume_credit, refill_credit;
     assign consume_credit = consume_credit_valid_i && (consume_credit_id_i == vc[VCIdxWidth-1:0]);
-    assign refill_credit = credit_valid_i && (credit_id_i == vc[VCIdxWidth-1:0]);
+    assign refill_credit  = credit_valid_i && (credit_id_i == vc[VCIdxWidth-1:0]);
 
     always_comb begin
       credit_cnt_d[vc] = credit_cnt_q[vc];
-      if(refill_credit && !consume_credit) begin
+      if (refill_credit && !consume_credit) begin
         credit_cnt_d[vc] = credit_cnt_q[vc] + 1;
       end else if (!refill_credit && consume_credit) begin
         credit_cnt_d[vc] = credit_cnt_q[vc] - 1;

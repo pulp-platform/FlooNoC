@@ -12,7 +12,7 @@
 package floo_pkg;
 
   /// Currently Supported Routing Algorithms
-  typedef enum logic[2:0] {
+  typedef enum logic [2:0] {
     /// `IdTable` routing uses a table of routing rules to determine to
     /// which output port a packet should be routed, based on the
     /// destination ID encoded in the header of the flit. Every router
@@ -54,8 +54,10 @@ package floo_pkg;
   /// True for any dimension-ordered routing algorithm (`XYRouting`,
   /// `YXRouting`, or one of the mirrored variants).
   function automatic bit is_dor_algo(route_algo_e algo);
-    return algo == XYRouting || algo == YXRouting ||
-           algo == XYRoutingMirrored || algo == YXRoutingMirrored;
+    return algo == XYRouting ||
+           algo == YXRouting ||
+           algo == XYRoutingMirrored ||
+           algo == YXRoutingMirrored;
   endfunction
 
   /// Concrete routing algorithm used by request-like paths for a possibly mirrored algorithm.
@@ -63,7 +65,7 @@ package floo_pkg;
     unique case (algo)
       XYRoutingMirrored: return XYRouting;
       YXRoutingMirrored: return YXRouting;
-      default:           return algo;
+      default: return algo;
     endcase
   endfunction
 
@@ -72,7 +74,7 @@ package floo_pkg;
     unique case (algo)
       XYRoutingMirrored: return YXRouting;
       YXRoutingMirrored: return XYRouting;
-      default:           return algo;
+      default: return algo;
     endcase
   endfunction
 
@@ -80,7 +82,7 @@ package floo_pkg;
   /// multi-directional arrays. If a router has more than one local
   /// port, the additional ports can be defined as `Eject+p`, where `p`
   /// is the local port index
-  typedef enum logic[2:0] {
+  typedef enum logic [2:0] {
     North = 3'd0, // y increasing
     East  = 3'd1, // x increasing
     South = 3'd2, // y decreasing
@@ -113,28 +115,28 @@ package floo_pkg;
 
   /// The types of AXI channels in single AXI network interfaces
   typedef enum logic [2:0] {
-    AxiAw = 3'd0,
-    AxiW = 3'd1,
-    AxiAr = 3'd2,
-    AxiB = 3'd3,
-    AxiR = 3'd4,
+    AxiAw          = 3'd0,
+    AxiW           = 3'd1,
+    AxiAr          = 3'd2,
+    AxiB           = 3'd3,
+    AxiR           = 3'd4,
     NumAxiChannels = 3'd5
   } axi_ch_e;
 
   /// Virtual channel implementation types
-  typedef enum logic[1:0] {
+  typedef enum logic [1:0] {
     /// The naive implementation  placed the valid and the data on the physical link
     /// if the downstream subordinate is ready. However this will create an in2out
     /// path that span over the entire cluster tile, possibly limiting clock frequency.
-    VcNaive = 2'd0,
+    VcNaive        = 2'd0,
     /// The credit based approach allows to cut the in2out path.
     /// However, to support maximum transmission bandwidth, the subordinate input FIFO
     /// must be able to store at least 3 flits, increasing significantly the router area.
-    VcCredit = 2'd1,
+    VcCredit       = 2'd1,
     /// The preemptive valid approach allows to cut the in2out path.
     /// This does not require the subordiante input FIFO to be larger than 2 flits,
     /// while still supporting maximum transmission bandwidth.
-    VcPreemptValid  = 2'd2
+    VcPreemptValid = 2'd2
   } vc_impl_e;
 
   /// Virtual channel index association for read and write channels
@@ -144,13 +146,13 @@ package floo_pkg;
   } vc_e;
 
   /// Implementation of the read/write wide scheme
-  typedef enum logic[1:0] {
+  typedef enum logic [1:0] {
     /// Share same wide link for read and write channels
     /// this create a coupling between read and write transfers
     None = 2'd0,
     /// Decouple read and write transfers, using vc_e implementation
     /// Write transactions are always assigned to VC0, while Read to VC1
-    Vc = 2'd1,
+    Vc   = 2'd1,
     /// Decouple read and write transfers, using separate wide links
     Phys = 2'd2
   } wide_rw_decouple_e;
@@ -172,25 +174,25 @@ package floo_pkg;
 
   /// The types of AXI channels in narrow-wide AXI network interfaces
   typedef enum logic [3:0] {
-    NarrowAw = 4'd0,
-    NarrowW = 4'd1,
-    NarrowAr = 4'd2,
-    WideAr = 4'd3,
-    NarrowB = 4'd4,
-    NarrowR = 4'd5,
-    WideB = 4'd6,
-    WideAw = 4'd7,
-    WideW = 4'd8,
-    WideR = 4'd9,
+    NarrowAw         = 4'd0,
+    NarrowW          = 4'd1,
+    NarrowAr         = 4'd2,
+    WideAr           = 4'd3,
+    NarrowB          = 4'd4,
+    NarrowR          = 4'd5,
+    WideB            = 4'd6,
+    WideAw           = 4'd7,
+    WideW            = 4'd8,
+    WideR            = 4'd9,
     NumNWAxiChannels = 4'd10
   } nw_ch_e;
 
   /// The link types in the Floo network
   typedef enum logic [1:0] {
     /// Request link of `AR, AW, W` type
-    FlooReq = 2'd0,
+    FlooReq  = 2'd0,
     /// Response link of `R, B` type
-    FlooRsp = 2'd1,
+    FlooRsp  = 2'd1,
     /// Additional wide link for narrow-wide AXI interfaces
     FlooWide = 2'd2
   } floo_chan_e;
@@ -245,14 +247,14 @@ package floo_pkg;
     /// pipeline depth of the offload unit
     int unsigned RdPipelineDepth;
     /// Cut offload interface
-    bit CutOffloadIntf;
+    bit          CutOffloadIntf;
   } reduction_cfg_t;
 
   /// Configuration to specify how extensive collective support is enabled
   typedef struct packed {
     collect_op_fe_cfg_t OpCfg;
-    reduction_cfg_t  NarrRedCfg;
-    reduction_cfg_t  WideRedCfg;
+    reduction_cfg_t     NarrRedCfg;
+    reduction_cfg_t     WideRedCfg;
   } collective_cfg_t;
 
   /// Configuration to pass routing information to the routers
@@ -262,7 +264,7 @@ package floo_pkg;
     route_algo_e RouteAlgo;
     /// Whether to calculate the destination ID based based on
     /// the system address map or with XY offset values.
-    bit UseIdTable;
+    bit          UseIdTable;
     /// The offset of the X coordinate in request address,
     /// if `!UseIdTable && RouteAlgo == XYRouting`
     int unsigned XYAddrOffsetX;
@@ -286,10 +288,10 @@ package floo_pkg;
   typedef struct packed {
     /// Whether an AXI subordinate is attached to the network interfaces
     /// (e.g. a DRAM memory)
-    bit EnSbrPort;
+    bit          EnSbrPort;
     /// Whether an AXI manager is attached to the network interfaces
     /// (e.g. a host core)
-    bit EnMgrPort;
+    bit          EnMgrPort;
     /// The number of both incoming and outgoing transactions that can be
     /// handled by the network interface.
     int unsigned MaxTxns;
@@ -305,72 +307,65 @@ package floo_pkg;
     /// `RoBType == NormalRoB`.
     int unsigned MaxTxnsPerId;
     /// The type of Reorder Buffer (RoB) that is used for B responses.
-    rob_type_e BRoBType;
+    rob_type_e   BRoBType;
     /// The depth of the RoB for B responses. Only used if `BRoBType != NoRoB`.
     int unsigned BRoBSize;
     /// The type of Reorder Buffer (RoB) that is used for R responses.
-    rob_type_e RRoBType;
+    rob_type_e   RRoBType;
     /// The depth of the RoB for R responses. Only used if `RRoBType != NoRoB`.
     int unsigned RRoBSize;
     /// Whether to buffer incoming AXI requests at the network interface,
     /// to ease timing closure.
-    bit CutAx;
+    bit          CutAx;
     /// Whether to buffer incoming links at the network interface,
-    bit CutRsp;
+    bit          CutRsp;
     /// Whether to buffer outgoing links at the network interface,
     /// to break timing paths from arbiter grant logic to output ports.
-    bit CutOup;
+    bit          CutOup;
   } chimney_cfg_t;
 
   /// Default macro collective operations supported in the NoC - all disabled
-  localparam collect_op_fe_cfg_t CollectiveOpDefaultCfg = '{
-    default: '0
-  };
+  localparam collect_op_fe_cfg_t CollectiveOpDefaultCfg = '{default: '0};
 
   /// Default micro collective operations supported in the NoC - all disabled
-  localparam collect_op_be_cfg_t CollectiveSupportDefaultCfg = '{
-    default: '0
-  };
+  localparam collect_op_be_cfg_t CollectiveSupportDefaultCfg = '{default: '0};
 
   /// The default configuration for the narrow offload reduction unit
-  localparam reduction_cfg_t RedDefaultCfg = '{
-    RdPipelineDepth: 5,
-    CutOffloadIntf: 1'b1
-  };
+  localparam reduction_cfg_t RedDefaultCfg = '{RdPipelineDepth: 5, CutOffloadIntf: 1'b1};
 
   /// The default configuration for collective operations
   localparam collective_cfg_t CollectiveDefaultCfg = '{
-    OpCfg:  CollectiveOpDefaultCfg,
-    NarrRedCfg: RedDefaultCfg,
-    WideRedCfg: RedDefaultCfg
+      OpCfg:      CollectiveOpDefaultCfg,
+      NarrRedCfg: RedDefaultCfg,
+      WideRedCfg: RedDefaultCfg
   };
 
   /// The default configuration for the network interface
   localparam chimney_cfg_t ChimneyDefaultCfg = '{
-    EnSbrPort: 1'b1,
-    EnMgrPort: 1'b1,
-    MaxTxns: 32,
-    MaxUniqueIds: 1,
-    MaxTxnsPerId: 32,
-    BRoBType: NoRoB,
-    BRoBSize: 0,
-    RRoBType: NoRoB,
-    RRoBSize: 0,
-    CutAx: 1'b0,
-    CutOup: 1'b0,
-    CutRsp: 1'b0
+      EnSbrPort:    1'b1,
+      EnMgrPort:    1'b1,
+      MaxTxns:      32,
+      MaxUniqueIds: 1,
+      MaxTxnsPerId: 32,
+      BRoBType:     NoRoB,
+      BRoBSize:     0,
+      RRoBType:     NoRoB,
+      RRoBSize:     0,
+      CutAx:        1'b0,
+      CutOup:       1'b0,
+      CutRsp:       1'b0
   };
 
   /// The default configuration for routing
   localparam route_cfg_t RouteDefaultCfg = '{
-    RouteAlgo: XYRouting,
-    UseIdTable: 1'b0,
-    XYAddrOffsetX: 0,
-    XYAddrOffsetY: 0,
-    IdAddrOffset: 0,
-    NumSamRules: 0,
-    NumRoutes: 0,
-    CollectiveCfg: CollectiveDefaultCfg
+      RouteAlgo:     XYRouting,
+      UseIdTable:    1'b0,
+      XYAddrOffsetX: 0,
+      XYAddrOffsetY: 0,
+      IdAddrOffset:  0,
+      NumSamRules:   0,
+      NumRoutes:     0,
+      CollectiveCfg: CollectiveDefaultCfg
   };
 
   /// The AXI channel to link mapping in a single-AXI network interface
@@ -396,11 +391,11 @@ package floo_pkg;
   /// Swaps the direction of the AXI interface config
   function automatic axi_cfg_t axi_cfg_swap_iw(axi_cfg_t cfg);
     return '{
-      AddrWidth: cfg.AddrWidth,
-      DataWidth: cfg.DataWidth,
-      UserWidth: cfg.UserWidth,
-      InIdWidth: cfg.OutIdWidth,
-      OutIdWidth: cfg.InIdWidth
+        AddrWidth:  cfg.AddrWidth,
+        DataWidth:  cfg.DataWidth,
+        UserWidth:  cfg.UserWidth,
+        InIdWidth:  cfg.OutIdWidth,
+        OutIdWidth: cfg.InIdWidth
     };
   endfunction
 
@@ -426,11 +421,11 @@ package floo_pkg;
   /// and wide AXI subordinate interfaces.
   function automatic axi_cfg_t axi_join_cfg(axi_cfg_t cfg_n, axi_cfg_t cfg_w);
     return '{
-      AddrWidth: cfg_n.AddrWidth,
-      DataWidth: max(cfg_n.DataWidth, cfg_w.DataWidth),
-      UserWidth: max(cfg_n.UserWidth, cfg_w.UserWidth),
-      InIdWidth: 0, // Not used in `nw_join`
-      OutIdWidth: max(cfg_n.OutIdWidth, cfg_w.OutIdWidth) + 1 // for the AXI mux
+        AddrWidth:  cfg_n.AddrWidth,
+        DataWidth:  max(cfg_n.DataWidth, cfg_w.DataWidth),
+        UserWidth:  max(cfg_n.UserWidth, cfg_w.UserWidth),
+        InIdWidth:  0,                                          // Not used in `nw_join`
+        OutIdWidth: max(cfg_n.OutIdWidth, cfg_w.OutIdWidth) + 1 // for the AXI mux
     };
   endfunction
 
@@ -480,7 +475,10 @@ package floo_pkg;
   /// Calculates the maximum payload bits required for a link, based on the narrow-wide AXI
   /// channel mapping
   function automatic int unsigned get_max_nw_payload_bits(
-    axi_cfg_t cfg_n, axi_cfg_t cfg_w, floo_chan_e ch);
+    axi_cfg_t cfg_n,
+    axi_cfg_t cfg_w,
+    floo_chan_e ch
+  );
     int unsigned max_payload_bits = 0;
     for (int unsigned i = 0; i < NumNWAxiChannels; i++) begin
       if (nw_chan_mapping(nw_ch_e'(i)) == ch) begin
@@ -495,17 +493,15 @@ package floo_pkg;
   /// Calculates the number of unused (i.e. reserved) bits in a link for a specific
   /// AXI channel payload in a single-AXI config
   function automatic int unsigned get_axi_rsvd_bits(axi_cfg_t cfg, axi_ch_e ch);
-    return get_max_axi_payload_bits(cfg, axi_chan_mapping(ch)) -
-                                    get_axi_chan_width(cfg, ch);
+    return get_max_axi_payload_bits(cfg, axi_chan_mapping(ch)) - get_axi_chan_width(cfg, ch);
   endfunction
 
   /// Calculates the number of unused (i.e. reserved) bits in a link for a specific
   /// AXI channel payload in a narrow-wide AXI config
   function automatic int unsigned get_nw_rsvd_bits(axi_cfg_t cfg_n, axi_cfg_t cfg_w, nw_ch_e ch);
     return get_max_nw_payload_bits(cfg_n, cfg_w, nw_chan_mapping(ch)) -
-                                   get_nw_chan_width(cfg_n, cfg_w, ch);
+           get_nw_chan_width(cfg_n, cfg_w, ch);
   endfunction
-
 
   /**********************************************************
    *         Collective Communication Support               *
@@ -528,8 +524,7 @@ package floo_pkg;
 
   /// Calculates if the NoC needs support for Narrow Sequential reduction
   function automatic bit en_narrow_reduction(collect_op_fe_cfg_t cfg);
-    return (en_narrow_seq_reduction(cfg) | cfg.EnLsbAnd
-            );
+    return (en_narrow_seq_reduction(cfg) | cfg.EnLsbAnd);
   endfunction
 
   /// Calculates if the NoC needs support for Wide Sequential reduction
