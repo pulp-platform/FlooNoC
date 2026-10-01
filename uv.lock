@@ -16,6 +16,21 @@ wheels = [
 ]
 
 [[package]]
+name = "astli"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/08/26/ca3c6f8004a5974e7b10d530da40e11cf3e9985c24729a8718627436eaf1/astli-0.2.0.tar.gz", hash = "sha256:809417af699c7af62c004ae159e6406d938e6f997a9b9e360fc63d19c37a3dce", size = 192889, upload-time = "2026-09-28T08:44:12.59Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f1/31/916543278d9e7440b8ee91edc2d1131da9ba4f18d68c3a838c551a6b0c08/astli-0.2.0-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:079d607b359c840abb7203d5192e48585f0e779ab6e07df455f411b0018f29bd", size = 1141248, upload-time = "2026-09-28T08:44:04.144Z" },
+    { url = "https://files.pythonhosted.org/packages/cc/03/9bba51f10eaea2b8b54bf2ecf1df0ac3ec6f32c381cf1caa09dd08c1653b/astli-0.2.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:ea53eccdec7fcd3f765406c3038b378d5de18aab5724f734c38598fae53578d1", size = 1101600, upload-time = "2026-09-28T08:44:05.835Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/01/811cfd0f3133bea80b4bad80b213183b9b339a603f452c76e2e13ff6ec7e/astli-0.2.0-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:48b114ba7460166cd4f83491d7e4a30fe70f4be5485eed286025f67e677f6831", size = 1187812, upload-time = "2026-09-28T08:44:06.975Z" },
+    { url = "https://files.pythonhosted.org/packages/49/97/b6b14006f5a2511532ad89ffd509f04ae99d9ea384b4c2478923407277ea/astli-0.2.0-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:d7842c113c9ca051d11f513c636d4db58a5f46eeb3480ee8352900be429c10eb", size = 1218463, upload-time = "2026-09-28T08:44:08.022Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/18/b38f05265129e7bc0f142b6093836756c00ea0b8cd619c17263f9a7e9372/astli-0.2.0-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:cd8507c0767596a8212e59b054f151db4441730799cbc1b06098e6784c423e1a", size = 1242205, upload-time = "2026-09-28T08:44:09.224Z" },
+    { url = "https://files.pythonhosted.org/packages/b2/f5/834aabaa2b85c8874f10f9a35724f185c50454f8f3c09a6c5a488a9fcd51/astli-0.2.0-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:c5fb6167fd619c8cddbe3ac0876792c96f95f8c597c760b42e6c89eae1740f2b", size = 1282728, upload-time = "2026-09-28T08:44:10.309Z" },
+    { url = "https://files.pythonhosted.org/packages/77/3b/d57cb105a68dc4c090a6450bef4ad4491af8f7134d39e4cd0c9192c0b521/astli-0.2.0-py3-none-win_amd64.whl", hash = "sha256:feea6573f065eac2af76adf56b59c5e54fce49a631e3bef3e7c3058af7c13cf4", size = 1016169, upload-time = "2026-09-28T08:44:11.359Z" },
+]
+
+[[package]]
 name = "attrs"
 version = "26.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -331,6 +346,7 @@ name = "floogen"
 version = "0.9.0"
 source = { editable = "." }
 dependencies = [
+    { name = "astli" },
     { name = "mako" },
     { name = "networkx", version = "3.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -358,6 +374,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "astli", specifier = ">=0.2.0" },
     { name = "mako" },
     { name = "matplotlib", marker = "extra == 'viz'" },
     { name = "networkx" },
