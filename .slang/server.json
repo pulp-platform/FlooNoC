@@ -1,0 +1,10 @@
+{
+  "build": "floo_noc.f",
+  "flags": "-f floo_noc.f --top tb_floo_nw_mesh --top tb_floo_axi_mesh --timescale 1ns/1ps",
+  "index": [
+    {
+      "dirs": ["hw", ".bender/git/checkouts", "generated"],
+      "excludeDirs": ["pulp-platform"]
+    }
+  ]
+}
