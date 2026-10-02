@@ -671,14 +671,13 @@ module floo_nw_chimney
       `AXI_SET_AW_STRUCT(axi_narrow_out_req_o.aw, axi_narrow_aw_queue_out);
       axi_narrow_meta_buf_rsp_in = axi_narrow_out_rsp_i;
       axi_narrow_meta_buf_rsp_in.aw_ready = narrow_aw_out_queue_ready;
-      // Mask the AW Channel
+      // Multicasts/reductions have their mask cleared.
       user_aw = axi_narrow_out_req_o.aw.user;
-      user_aw.collective_mask = '0;
+      user_aw.collective_mask = (user_aw.collective_op == Unicast) ? user_aw.collective_mask : '0;
       user_aw.collective_op = Unicast;
       axi_narrow_out_req_o.aw.user = user_aw;
-      // Mask the W Channel
       user_w = axi_narrow_out_req_o.w.user;
-      user_w.collective_mask = '0;
+      user_w.collective_mask = (user_w.collective_op == Unicast) ? user_w.collective_mask : '0;
       user_w.collective_op = Unicast;
       axi_narrow_out_req_o.w.user = user_w;
     end
@@ -703,14 +702,13 @@ module floo_nw_chimney
       `AXI_SET_AW_STRUCT(axi_wide_out_req_o.aw, axi_wide_aw_queue_out);
       axi_wide_meta_buf_rsp_in = axi_wide_out_rsp_i;
       axi_wide_meta_buf_rsp_in.aw_ready = wide_aw_out_queue_ready;
-      // Mask the AW Channel
+      // Multicasts/reductions have their mask cleared.
       user_aw = axi_wide_out_req_o.aw.user;
-      user_aw.collective_mask = '0;
+      user_aw.collective_mask = (user_aw.collective_op == Unicast) ? user_aw.collective_mask : '0;
       user_aw.collective_op = Unicast;
       axi_wide_out_req_o.aw.user = user_aw;
-      // Mask the W Channel
       user_w = axi_wide_out_req_o.w.user;
-      user_w.collective_mask = '0;
+      user_w.collective_mask = (user_w.collective_op == Unicast) ? user_w.collective_mask : '0;
       user_w.collective_op = Unicast;
       axi_wide_out_req_o.w.user = user_w;
     end

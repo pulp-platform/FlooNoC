@@ -422,12 +422,26 @@ package floo_pkg;
     return (a < b) ? a : b;
   endfunction
 
-  /// Returns the AXI config the resulting AXI config when joining a narrow
-  /// and wide AXI subordinate interfaces.
-  function automatic axi_cfg_t axi_join_cfg(axi_cfg_t cfg_n, axi_cfg_t cfg_w);
+  /// Returns the resulting AXI config when joining a narrow and a wide AXI
+  /// subordinate interface, where the joined data width is the maximum of the
+  /// two.
+  function automatic axi_cfg_t axi_join_cfg_max(axi_cfg_t cfg_n, axi_cfg_t cfg_w);
     return '{
       AddrWidth: cfg_n.AddrWidth,
       DataWidth: max(cfg_n.DataWidth, cfg_w.DataWidth),
+      UserWidth: max(cfg_n.UserWidth, cfg_w.UserWidth),
+      InIdWidth: 0, // Not used in `nw_join`
+      OutIdWidth: max(cfg_n.OutIdWidth, cfg_w.OutIdWidth) + 1 // for the AXI mux
+    };
+  endfunction
+
+  /// Returns the resulting AXI config when joining a narrow and a wide AXI
+  /// subordinate interface, where the joined data width is the minimum of the
+  /// two.
+  function automatic axi_cfg_t axi_join_cfg_min(axi_cfg_t cfg_n, axi_cfg_t cfg_w);
+    return '{
+      AddrWidth: cfg_n.AddrWidth,
+      DataWidth: min(cfg_n.DataWidth, cfg_w.DataWidth),
       UserWidth: max(cfg_n.UserWidth, cfg_w.UserWidth),
       InIdWidth: 0, // Not used in `nw_join`
       OutIdWidth: max(cfg_n.OutIdWidth, cfg_w.OutIdWidth) + 1 // for the AXI mux

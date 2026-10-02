@@ -38,7 +38,11 @@ module floo_router
   /// Configuration parameters for special network topologies
   /// Disables Y->X connections in XYRouting
   parameter bit          XYRouteOpt           = 1'b1,
-  /// Disables loopback connections
+  /// Disable loopback connections.
+  /// For collective transactions, NoLoopback tells the router not to expect
+  /// packets on the loopback route; these should be filtered within the
+  /// endpoint. An assertion is triggered if any loopback packet is received,
+  /// unicast or collective alike.
   parameter bit          NoLoopback           = 1'b1,
   /// Select VC implementation
   parameter floo_pkg::vc_impl_e VcImpl        = floo_pkg::VcNaive,
@@ -379,17 +383,17 @@ module floo_router
         // Handshake received in current cycle
         assign current_handshakes[in][v] = masked_valid_transposed[in][v] &
                                            masked_ready_transposed[in][v];
-        // Handhsake received in previous cycles
+        // Handshake received in previous cycles
         assign past_handshakes_d[in][v] = (cross_ready[in][v] & cross_valid[in][v]) ? '0 :
                                             (past_handshakes_q[in][v] | current_handshakes[in][v]);
         // History of handshake received (past + present)
         assign all_handshakes[in][v] = past_handshakes_q[in][v] | current_handshakes[in][v];
 
-        // Handshake are excepeted on all selected routes except the loopback
+        // Handshakes are expected on all selected routes except the loopback
         assign ignore_routes[in][v] = NoLoopback ? (1 << in) : '0;
         assign expected_handshakes[in][v] = route_mask[in][v] & ~ignore_routes[in][v];
 
-        // Send ready upstream only when all expected downstream handhsalkes have been received
+        // Send ready upstream only when all expected downstream handshakes have been received
         assign cross_ready[in][v] = &(all_handshakes[in][v] | ~expected_handshakes[in][v]);
       end
     end
@@ -543,8 +547,7 @@ module floo_router
   if (NoLoopback) begin: gen_no_loopback_assert
     for (genvar in = 0; in < NumInput; in++) begin : gen_input
       for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt
-        `ASSERT(NoLoopback, !(in_valid[in][v] && route_mask[in][v][in] &&
-                            (in_data[in][v].hdr.collective_op == Unicast)))
+        `ASSERT(NoLoopback, !(in_valid[in][v] && route_mask[in][v][in]))
       end
     end
   end
@@ -562,7 +565,5 @@ module floo_router
               (RouteAlgo != XYRouting && RouteAlgo != YXRouting)))
   // We only support symmetrical configuration for the FP reduction
   `ASSERT_INIT(NoSymConfig, !(EnSequentialReduction && (NumInput != NumOutput)))
-  // We can not support collective without loopback active
-  `ASSERT_INIT(SupportLoopback, !(EnCollective && NoLoopback))
 
 endmodule
