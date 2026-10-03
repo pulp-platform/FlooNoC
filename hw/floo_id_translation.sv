@@ -71,15 +71,23 @@ module floo_id_translation #(
       assign mask_addr_y_o = '0;
       assign id_o = idx_out;
     end
-  end else if (RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin : gen_xy_offset
-    assign id_o.port_id = '0; // Not supported at the moment
-    assign id_o.x = addr_i[RouteCfg.XYAddrOffsetX +: $bits(id_o.x)];
-    assign id_o.y = addr_i[RouteCfg.XYAddrOffsetY +: $bits(id_o.y)];
-  end else if (RouteCfg.RouteAlgo == floo_pkg::IdTable) begin : gen_id_offset
-    assign id_o = addr_i[RouteCfg.IdAddrOffset +: $bits(id_o)];
-  end else begin: gen_unsupported_routing
-    $fatal(1, "Routing algorithm %0s only supports table-based address translation",
-        RouteCfg.RouteAlgo);
-  end
+  end else case (RouteCfg.RouteAlgo)
+    floo_pkg::XYRouting: begin : gen_xy_offset
+      assign id_o.port_id = '0; // Not supported at the moment
+      assign id_o.x = addr_i[RouteCfg.XYAddrOffsetX +: $bits(id_o.x)];
+      assign id_o.y = addr_i[RouteCfg.XYAddrOffsetY +: $bits(id_o.y)];
+      assign mask_addr_x_o = '0;
+      assign mask_addr_y_o = '0;
+    end
+    floo_pkg::IdTable: begin : gen_id_offset
+      assign id_o = addr_i[RouteCfg.IdAddrOffset +: $bits(id_o)];
+      assign mask_addr_x_o = '0;
+      assign mask_addr_y_o = '0;
+    end
+    default: begin : gen_unsupported_routing
+      $fatal(1, "Routing algorithm %0s only supports table-based address translation",
+          RouteCfg.RouteAlgo.name());
+    end
+  endcase
 
 endmodule

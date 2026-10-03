@@ -288,12 +288,17 @@ module floo_nw_chimney
   logic floo_wide_in_valid;
   logic floo_wide_out_ready;
 
-  if (EnDecoupledRW) begin : gen_vc_demux
-    assign floo_wide_in_wr_valid = floo_wide_i.valid[Write];
-    assign floo_wide_in_rd_valid = floo_wide_i.valid[Read];
-    assign floo_wide_o.ready[Write] = floo_wide_out_wr_ready;
-    assign floo_wide_o.ready[Read] = floo_wide_out_rd_ready;
-    if (NumWidePhysChannels == 1) begin : gen_single_phys_ch
+  case (WideRwDecouple)
+    floo_pkg::None: begin : gen_no_vc_demux
+      assign floo_wide_in = floo_wide_i.wide;
+      assign floo_wide_in_valid = floo_wide_i.valid;
+      assign floo_wide_o.ready = floo_wide_out_ready;
+    end
+    floo_pkg::Vc: begin : gen_single_phys_ch
+      assign floo_wide_in_wr_valid = floo_wide_i.valid[Write];
+      assign floo_wide_in_rd_valid = floo_wide_i.valid[Read];
+      assign floo_wide_o.ready[Write] = floo_wide_out_wr_ready;
+      assign floo_wide_o.ready[Read] = floo_wide_out_rd_ready;
       // Connect the single physical channel to both read and write
       // the valid and ready coming from the VCs will be used to know if the data can be used
       assign floo_wide_in_wr = floo_wide_i.wide;
@@ -306,18 +311,19 @@ module floo_nw_chimney
       end else begin: gen_no_credit_support
         assign floo_wide_o.credit = '0;
       end
-
-    end else if (NumWidePhysChannels == 2) begin : gen_dual_phys_ch
+    end
+    floo_pkg::Phys: begin : gen_dual_phys_ch
+      assign floo_wide_in_wr_valid = floo_wide_i.valid[Write];
+      assign floo_wide_in_rd_valid = floo_wide_i.valid[Read];
+      assign floo_wide_o.ready[Write] = floo_wide_out_wr_ready;
+      assign floo_wide_o.ready[Read] = floo_wide_out_rd_ready;
       assign floo_wide_in_wr = floo_wide_i.wide[Write];
       assign floo_wide_in_rd = floo_wide_i.wide[Read];
-    end else begin: gen_illegal_cfg
-      $fatal(1, "NW CHIMNEY: Unsupported number of wide physical channels");
     end
-  end else begin : gen_no_vc_demux
-    assign floo_wide_in = floo_wide_i.wide;
-    assign floo_wide_in_valid = floo_wide_i.valid;
-    assign floo_wide_o.ready = floo_wide_out_ready;
-  end
+    default: begin : gen_illegal_rw_decouple
+      $fatal(1, "NW CHIMNEY: Unsupported wide R/W decoupling mode");
+    end
+  endcase
 
   ///////////////////////
   //  Spill registers  //
@@ -991,45 +997,48 @@ module floo_nw_chimney
 
   for (genvar ch = 0; ch < NumNWAxiChannels; ch++) begin : gen_route
     localparam nw_ch_e Ch = nw_ch_e'(ch);
-    if (Ch == NarrowAw || Ch == NarrowAr ||
-        Ch == WideAw || Ch == WideAr) begin : gen_req_route
+    case (Ch)
+      NarrowAw, NarrowAr, WideAw, WideAr: begin : gen_req_route
+        logic axi_req_valid;
+        assign axi_req_valid = (Ch == NarrowAw) ? axi_narrow_aw_queue_valid_out :
+                               (Ch == NarrowAr) ? axi_narrow_ar_queue_valid_out :
+                               (Ch == WideAw)   ? axi_wide_aw_queue_valid_out
+                                                : axi_wide_ar_queue_valid_out;
 
-      logic axi_req_valid;
-      assign axi_req_valid = (Ch == NarrowAw)? axi_narrow_aw_queue_valid_out :
-                             (Ch == NarrowAr)? axi_narrow_ar_queue_valid_out :
-                             (Ch == WideAw)?   axi_wide_aw_queue_valid_out :
-                             (Ch == WideAr)?   axi_wide_ar_queue_valid_out : 1'b0;
-
-      // Translate the address from AXI requests to a destination ID
-      floo_id_translation #(
-        .RouteCfg   (RouteCfg),
-        .Sam        (Sam),
-        .sam_idx_t  (sam_idx_t),
-        .id_t       (id_t),
-        .addr_t     (axi_addr_t),
-        .addr_rule_t(sam_rule_t),
-        .mask_sel_t (mask_sel_t)
-      ) i_floo_id_translation (
-        .clk_i,
-        .rst_ni,
-        .valid_i       (axi_req_valid),
-        .addr_i        (axi_req_addr[ch]),
-        .id_o          (id_out[ch]),
-        .mask_addr_x_o (x_mask_sel[ch]),
-        .mask_addr_y_o (y_mask_sel[ch])
-      );
-    end else if ((Ch == NarrowB || Ch == NarrowR ||
-                  Ch == WideB || Ch == WideR)) begin : gen_rsp_route
-      // For responses, the `src_id` from the request is used to route back
-      // the responses.
-      assign id_out[ch] = axi_rsp_src_id[ch];
-    end else if (Ch == NarrowW) begin : gen_w_narrow_route
-      // The destination ID of Narrow W's is the previous Narrow AW's ID
-      assign id_out[ch] = narrow_aw_id_q;
-    end else if (Ch == WideW) begin : gen_w_wode_route
-      // The destination ID of Wide W's is the previous Wide AW's ID
-      assign id_out[ch] = wide_aw_id_q;
-    end
+        // Translate the address from AXI requests to a destination ID
+        floo_id_translation #(
+          .RouteCfg   (RouteCfg),
+          .Sam        (Sam),
+          .sam_idx_t  (sam_idx_t),
+          .id_t       (id_t),
+          .addr_t     (axi_addr_t),
+          .addr_rule_t(sam_rule_t),
+          .mask_sel_t (mask_sel_t)
+        ) i_floo_id_translation (
+          .clk_i,
+          .rst_ni,
+          .valid_i       (axi_req_valid),
+          .addr_i        (axi_req_addr[ch]),
+          .id_o          (id_out[ch]),
+          .mask_addr_x_o (x_mask_sel[ch]),
+          .mask_addr_y_o (y_mask_sel[ch])
+        );
+      end
+      NarrowB, NarrowR, WideB, WideR: begin : gen_rsp_route
+        // For responses, the `src_id` from the request is used to route back
+        // the responses.
+        assign id_out[ch] = axi_rsp_src_id[ch];
+      end
+      NarrowW: begin : gen_w_narrow_route
+        // The destination ID of Narrow W's is the previous Narrow AW's ID
+        assign id_out[ch] = narrow_aw_id_q;
+      end
+      WideW: begin : gen_w_wode_route
+        // The destination ID of Wide W's is the previous Wide AW's ID
+        assign id_out[ch] = wide_aw_id_q;
+      end
+      default: ;
+    endcase
 
     // The actual `dst_id` depends on the routing algorithm
     if (RouteCfg.RouteAlgo == floo_pkg::SourceRouting) begin: gen_dst_srcroute
@@ -1048,32 +1057,31 @@ module floo_nw_chimney
 
   if (en_collective(CollectOpCfg)) begin : gen_mask_collective
     localparam int unsigned AddrWidth = $bits(axi_addr_t);
-    axi_addr_t [NumNWAxiChannels-1:0] x_addr_mask;
-    axi_addr_t [NumNWAxiChannels-1:0] y_addr_mask;
 
     for (genvar ch = 0; ch < NumNWAxiChannels; ch++) begin : gen_id_mask
       localparam nw_ch_e Ch = nw_ch_e'(ch);
-      if ((en_narrow_collective(CollectOpCfg) && Ch == NarrowAw) ||
-          (en_wide_collective(CollectOpCfg) && Ch == WideAw)) begin : gen_req_id_mask
-        // Evaluate the ID Mask according to the info read from the SAM through the flooo_id_translation module
-        if (RouteCfg.UseIdTable &&
-            floo_pkg::is_dor_algo(RouteCfg.RouteAlgo)) begin: gen_collecttive_idtable
-          assign x_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel[ch].len))
-                                    << x_mask_sel[ch].offset);
-          assign y_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel[ch].len))
-                                    << y_mask_sel[ch].offset);
-          assign mask_id[ch].x = (axi_req_user[ch] & x_addr_mask[ch]) >> x_mask_sel[ch].offset;
-          assign mask_id[ch].y = (axi_req_user[ch] & y_addr_mask[ch]) >> y_mask_sel[ch].offset;
-          assign mask_id[ch].port_id = '0;
-        end else if (floo_pkg::is_dor_algo(RouteCfg.RouteAlgo)) begin: gen_collective_noidtable
-          assign mask_id[ch].x = axi_req_user[ch][RouteCfg.XYAddrOffsetX +: $bits(id_out[ch].x)];
-          assign mask_id[ch].y = axi_req_user[ch][RouteCfg.XYAddrOffsetY +: $bits(id_out[ch].y)];
-          assign mask_id[ch].port_id = '0;
-        end else begin: gen_collective_nosupported
-          assign mask_id[ch] = '0; // We don't support multicast for other routing algorithms
-        end
-      end else begin: gen_no_collective_mask
+      localparam bit EnMask = (Ch == NarrowAw && en_narrow_collective(CollectOpCfg)) ||
+                              (Ch == WideAw   && en_wide_collective(CollectOpCfg));
+
+      if (!EnMask) begin : gen_no_collective_mask
         assign mask_id[ch] = '0;
+      end else if (!floo_pkg::is_dor_algo(RouteCfg.RouteAlgo)) begin : gen_collective_nosupported
+        assign mask_id[ch] = '0; // We don't support multicast for other routing algorithms
+      end else if (RouteCfg.UseIdTable) begin : gen_collective_idtable
+        // Evaluate the ID Mask according to the info read from the SAM through the
+        // `floo_id_translation` module
+        axi_addr_t x_addr_mask, y_addr_mask;
+        assign x_addr_mask = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel[ch].len))
+                              << x_mask_sel[ch].offset);
+        assign y_addr_mask = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel[ch].len))
+                              << y_mask_sel[ch].offset);
+        assign mask_id[ch].x = (axi_req_user[ch] & x_addr_mask) >> x_mask_sel[ch].offset;
+        assign mask_id[ch].y = (axi_req_user[ch] & y_addr_mask) >> y_mask_sel[ch].offset;
+        assign mask_id[ch].port_id = '0;
+      end else begin : gen_collective_noidtable
+        assign mask_id[ch].x = axi_req_user[ch][RouteCfg.XYAddrOffsetX +: $bits(id_out[ch].x)];
+        assign mask_id[ch].y = axi_req_user[ch][RouteCfg.XYAddrOffsetY +: $bits(id_out[ch].y)];
+        assign mask_id[ch].port_id = '0;
       end
     end
 
@@ -1449,68 +1457,72 @@ module floo_nw_chimney
     assign floo_rsp_o.credit = '0;
   end
 
-  if (NumWidePhysChannels == 1) begin: gen_wide_out_wrmh
-    floo_wide_generic_flit_t floo_wide_arb_data;
-    logic floo_wide_arb_valid, floo_wide_arb_ready;
+  case (NumWidePhysChannels)
+    1: begin : gen_wide_out_wrmh
+      floo_wide_generic_flit_t floo_wide_arb_data;
+      logic floo_wide_arb_valid, floo_wide_arb_ready;
 
-    floo_wormhole_arbiter #(
-      .NumRoutes  ( 3                         ),
-      .flit_t     ( floo_wide_generic_flit_t  )
-    ) i_wide_wormhole_arbiter (
-      .clk_i,
-      .rst_ni,
-      .valid_i  ( floo_wide_arb_req_in   ),
-      .data_i   ( floo_wide_arb_in       ),
-      .ready_o  ( floo_wide_arb_gnt_out  ),
-      .data_o   ( floo_wide_arb_data     ),
-      .ready_i  ( floo_wide_arb_ready    ),
-      .valid_o  ( floo_wide_arb_valid    )
-    );
+      floo_wormhole_arbiter #(
+        .NumRoutes  ( 3                         ),
+        .flit_t     ( floo_wide_generic_flit_t  )
+      ) i_wide_wormhole_arbiter (
+        .clk_i,
+        .rst_ni,
+        .valid_i  ( floo_wide_arb_req_in   ),
+        .data_i   ( floo_wide_arb_in       ),
+        .ready_o  ( floo_wide_arb_gnt_out  ),
+        .data_o   ( floo_wide_arb_data     ),
+        .ready_i  ( floo_wide_arb_ready    ),
+        .valid_o  ( floo_wide_arb_valid    )
+      );
 
-    cc_spill_register #(
-      .data_t     ( floo_wide_chan_t    ),
-      .Bypass( !ChimneyCfgW.CutOup )
-    ) i_wide_out_cut (
-      .clk_i,
-      .rst_ni,
-      .clr_i(1'b0),
-      .valid_i ( floo_wide_arb_valid                   ),
-      .ready_o ( floo_wide_arb_ready                   ),
-      .data_i  ( floo_wide_chan_t'(floo_wide_arb_data) ),
-      .valid_o ( floo_wide_req_arb_valid_out           ),
-      .ready_i ( floo_wide_req_arb_gnt_in              ),
-      .data_o  ( floo_wide_o.wide                      )
-    );
+      cc_spill_register #(
+        .data_t     ( floo_wide_chan_t    ),
+        .Bypass( !ChimneyCfgW.CutOup )
+      ) i_wide_out_cut (
+        .clk_i,
+        .rst_ni,
+        .clr_i(1'b0),
+        .valid_i ( floo_wide_arb_valid                   ),
+        .ready_o ( floo_wide_arb_ready                   ),
+        .data_i  ( floo_wide_chan_t'(floo_wide_arb_data) ),
+        .valid_o ( floo_wide_req_arb_valid_out           ),
+        .ready_i ( floo_wide_req_arb_gnt_in              ),
+        .data_o  ( floo_wide_o.wide                      )
+      );
 
-    // Mux the ready of the read and write channels to the ACK/NACK protocol
-    // Demux the valid signals based on the channel type
-    // AW/W -> Virtual Channel 0
-    // R -> Virtual Channel 1
-    // TODO(lleone): check if this really solve DEADLOCK!!!!
-    if (EnDecoupledRW) begin: gen_vc_rw_ack
-      assign floo_wide_o.valid[Write] = (floo_wide_o.wide[0].generic.hdr.axi_ch != WideR) ?
-                                         floo_wide_req_arb_valid_out : 1'b0;
-      assign floo_wide_o.valid[Read] = (floo_wide_o.wide[0].generic.hdr.axi_ch == WideR) ?
-                                         floo_wide_req_arb_valid_out : 1'b0;
-      assign floo_wide_req_arb_gnt_in = (floo_wide_o.wide[0].generic.hdr.axi_ch != WideR) ?
-                                        floo_wide_i.ready[Write] : floo_wide_i.ready[Read];
-    end else begin: gen_no_vc_rw_ack
-      assign floo_wide_o.valid = floo_wide_req_arb_valid_out;
-      assign floo_wide_req_arb_gnt_in = floo_wide_i.ready;
+      // Mux the ready of the read and write channels to the ACK/NACK protocol
+      // Demux the valid signals based on the channel type
+      // AW/W -> Virtual Channel 0
+      // R -> Virtual Channel 1
+      // TODO(lleone): check if this really solve DEADLOCK!!!!
+      if (EnDecoupledRW) begin: gen_vc_rw_ack
+        assign floo_wide_o.valid[Write] = (floo_wide_o.wide[0].generic.hdr.axi_ch != WideR) ?
+                                           floo_wide_req_arb_valid_out : 1'b0;
+        assign floo_wide_o.valid[Read] = (floo_wide_o.wide[0].generic.hdr.axi_ch == WideR) ?
+                                           floo_wide_req_arb_valid_out : 1'b0;
+        assign floo_wide_req_arb_gnt_in = (floo_wide_o.wide[0].generic.hdr.axi_ch != WideR) ?
+                                          floo_wide_i.ready[Write] : floo_wide_i.ready[Read];
+      end else begin: gen_no_vc_rw_ack
+        assign floo_wide_o.valid = floo_wide_req_arb_valid_out;
+        assign floo_wide_req_arb_gnt_in = floo_wide_i.ready;
+      end
     end
-  end else if (NumWidePhysChannels == 2) begin: gen_wide_phys_ch
-    // Connect write channel
-    assign floo_wide_o.wide[0] = floo_wide_arb_in[WideW];
-    assign floo_wide_o.valid[0] = floo_wide_arb_req_in[WideW];
-    assign floo_wide_arb_gnt_out[WideW] = floo_wide_i.ready[0];
+    2: begin : gen_wide_phys_ch
+      // Connect write channel
+      assign floo_wide_o.wide[0] = floo_wide_arb_in[WideW];
+      assign floo_wide_o.valid[0] = floo_wide_arb_req_in[WideW];
+      assign floo_wide_arb_gnt_out[WideW] = floo_wide_i.ready[0];
 
-    // Connect read channel
-    assign floo_wide_o.wide[1] = floo_wide_arb_in[WideR];
-    assign floo_wide_o.valid[1] = floo_wide_arb_req_in[WideR];
-    assign floo_wide_arb_gnt_out[WideR] = floo_wide_i.ready[1];
-  end else begin: gen_illegal_cfg
-    $fatal(1, "NW CHIMNEY: Unsupported number of wide physical channels");
-  end
+      // Connect read channel
+      assign floo_wide_o.wide[1] = floo_wide_arb_in[WideR];
+      assign floo_wide_o.valid[1] = floo_wide_arb_req_in[WideR];
+      assign floo_wide_arb_gnt_out[WideR] = floo_wide_i.ready[1];
+    end
+    default: begin : gen_illegal_cfg
+      $fatal(1, "NW CHIMNEY: Unsupported number of wide physical channels");
+    end
+  endcase
 
   ////////////////////
   // FLIT UNPACKER  //

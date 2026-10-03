@@ -188,7 +188,6 @@ module floo_axi_chimney
   id_t  [NumAxiChannels-1:0] mcast_mask;
   id_t  axi_aw_mask_q;
   id_t [NumAxiChannels-1:0] id_out;
-  id_t [NumAxiChannels-1:0] mask_id;
 
   meta_buf_t aw_out_hdr_in, aw_out_hdr_out;
   meta_buf_t ar_out_hdr_in, ar_out_hdr_out;
@@ -489,38 +488,42 @@ module floo_axi_chimney
   for (genvar ch = 0; ch < NumAxiChannels; ch++) begin : gen_route
     localparam axi_ch_e Ch = axi_ch_e'(ch);
 
-    if (Ch == AxiAw || Ch == AxiAr) begin : gen_req_route
+    case (Ch)
+      AxiAw, AxiAr: begin : gen_req_route
+        logic axi_req_valid;
+        assign axi_req_valid = (Ch == AxiAw) ? axi_aw_queue_valid_out
+                                             : axi_ar_queue_valid_out;
 
-      logic axi_req_valid;
-      assign axi_req_valid = (Ch == AxiAw)? axi_aw_queue_valid_out :
-                              (Ch == AxiAr)? axi_ar_queue_valid_out : 1'b0;
-
-      // Translate the address from AXI requests to a destination ID
-      floo_id_translation #(
-        .RouteCfg   (RouteCfg),
-        .Sam        (Sam),
-        .sam_idx_t  (sam_idx_t),
-        .id_t       (id_t),
-        .addr_t     (axi_addr_t),
-        .addr_rule_t(sam_rule_t),
-        .mask_sel_t (mask_sel_t)
-      ) i_floo_id_translation (
-        .clk_i,
-        .rst_ni,
-        .valid_i       (axi_req_valid),
-        .addr_i        (axi_req_addr[ch]),
-        .id_o          (id_out[ch]),
-        .mask_addr_x_o (x_mask_sel[ch]),
-        .mask_addr_y_o (y_mask_sel[ch])
-      );
-    end else if ((Ch == AxiB || Ch == AxiR)) begin : gen_rsp_route
-      // For responses, the `src_id` from the request is used to route back
-      // the responses.
-      assign id_out[ch] = axi_rsp_src_id[ch];
-    end else if (Ch == AxiW) begin : gen_w_route
-      // The destination ID of W's is the previous AW's ID
-      assign id_out[ch] = axi_aw_id_q;
-    end
+        // Translate the address from AXI requests to a destination ID
+        floo_id_translation #(
+          .RouteCfg   (RouteCfg),
+          .Sam        (Sam),
+          .sam_idx_t  (sam_idx_t),
+          .id_t       (id_t),
+          .addr_t     (axi_addr_t),
+          .addr_rule_t(sam_rule_t),
+          .mask_sel_t (mask_sel_t)
+        ) i_floo_id_translation (
+          .clk_i,
+          .rst_ni,
+          .valid_i       (axi_req_valid),
+          .addr_i        (axi_req_addr[ch]),
+          .id_o          (id_out[ch]),
+          .mask_addr_x_o (x_mask_sel[ch]),
+          .mask_addr_y_o (y_mask_sel[ch])
+        );
+      end
+      AxiB, AxiR: begin : gen_rsp_route
+        // For responses, the `src_id` from the request is used to route back
+        // the responses.
+        assign id_out[ch] = axi_rsp_src_id[ch];
+      end
+      AxiW: begin : gen_w_route
+        // The destination ID of W's is the previous AW's ID
+        assign id_out[ch] = axi_aw_id_q;
+      end
+      default: ;
+    endcase
 
     // The actual `dst_id` depends on the routing algorithm
     if (RouteCfg.RouteAlgo == floo_pkg::SourceRouting) begin : gen_dst_srcroute
@@ -537,33 +540,29 @@ module floo_axi_chimney
 
   if (en_narrow_collective(CollectOpCfg)) begin : gen_mcast
     localparam int unsigned AddrWidth = $bits(axi_addr_t);
-    axi_addr_t [NumAxiChannels-1:0] x_addr_mask;
-    axi_addr_t [NumAxiChannels-1:0] y_addr_mask;
+    id_t aw_mask_id;
 
-    for (genvar ch = 0; ch < NumAxiChannels; ch++) begin : gen_mcast_id_mask
-      localparam axi_ch_e Ch = axi_ch_e'(ch);
-      if (Ch == AxiAw) begin : gen_req_mcast_id_mask
-        // Evaluate the ID Mask according to the info read from the SAM through the flooo_id_translation module
-        if (RouteCfg.UseIdTable &&
-            RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin: gen_mcast_idtable
-          assign x_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel[ch].len))
-                                    << x_mask_sel[ch].offset);
-          assign y_addr_mask[ch] = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel[ch].len))
-                                    << y_mask_sel[ch].offset);
-          assign mask_id[ch].x = (axi_req_user[ch] & x_addr_mask[ch]) >> x_mask_sel[ch].offset;
-          assign mask_id[ch].y = (axi_req_user[ch] & y_addr_mask[ch]) >> y_mask_sel[ch].offset;
-          assign mask_id[ch].port_id = '0;
-        end else if (RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin: gen_mcast_noidtable
-          assign mask_id[ch].x = axi_req_user[ch][RouteCfg.XYAddrOffsetX +: $bits(id_out[ch].x)];
-          assign mask_id[ch].y = axi_req_user[ch][RouteCfg.XYAddrOffsetY +: $bits(id_out[ch].y)];
-          assign mask_id[ch].port_id = '0;
-        end else begin: gen_mcast_nosupported
-          assign mask_id[ch] = '0; // We don't support multicast for other routing algorithms
-        end
-      end
+    // Evaluate the ID Mask of AWs according to the info read from the SAM
+    // through the `floo_id_translation` module
+    if (RouteCfg.UseIdTable &&
+        RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin : gen_mcast_idtable
+      axi_addr_t x_addr_mask, y_addr_mask;
+      assign x_addr_mask = (({AddrWidth{1'b1}} >> (AddrWidth - x_mask_sel[AxiAw].len))
+                            << x_mask_sel[AxiAw].offset);
+      assign y_addr_mask = (({AddrWidth{1'b1}} >> (AddrWidth - y_mask_sel[AxiAw].len))
+                            << y_mask_sel[AxiAw].offset);
+      assign aw_mask_id.x = (axi_req_user[AxiAw] & x_addr_mask) >> x_mask_sel[AxiAw].offset;
+      assign aw_mask_id.y = (axi_req_user[AxiAw] & y_addr_mask) >> y_mask_sel[AxiAw].offset;
+      assign aw_mask_id.port_id = '0;
+    end else if (RouteCfg.RouteAlgo == floo_pkg::XYRouting) begin : gen_mcast_noidtable
+      assign aw_mask_id.x = axi_req_user[AxiAw][RouteCfg.XYAddrOffsetX +: $bits(aw_mask_id.x)];
+      assign aw_mask_id.y = axi_req_user[AxiAw][RouteCfg.XYAddrOffsetY +: $bits(aw_mask_id.y)];
+      assign aw_mask_id.port_id = '0;
+    end else begin : gen_mcast_nosupported
+      assign aw_mask_id = '0; // We don't support multicast for other routing algorithms
     end
 
-    assign mcast_mask[AxiAw] = mask_id[AxiAw];
+    assign mcast_mask[AxiAw] = aw_mask_id;
     assign mcast_mask[AxiAr] = '0;
     assign mcast_mask[AxiW]  = axi_aw_mask_q;
     assign mcast_mask[AxiR]  = ar_out_hdr_out.hdr.collective_mask;
