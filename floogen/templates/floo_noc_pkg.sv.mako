@@ -72,12 +72,10 @@ package floo_${name}_noc_pkg;
   ${noc.routing.render_vc_impl()}
 
 % for prot in noc.protocols:
-  % if not noc.routing.en_collective:
-    ${prot.render_typedefs()}
-  % else:
+  % if noc.routing.en_collective:
     ${prot.render_typedefs(prefix="collective")}
-    ${prot.render_typedefs(ignored_user_fields=["collective_mask", "collective_op"])}
   % endif
+  ${prot.render_typedefs()}
 % endfor
 
   ${noc.routing.render_hdr_typedef(network_type=noc.network_type)}

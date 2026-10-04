@@ -91,10 +91,12 @@ module floo_nw_chimney
   /// SRAM configuration type `tc_sram_impl` in RoB
   /// Only used if technology-dependent SRAM is used
   parameter type sram_cfg_t                             = logic,
-  /// Struct for the narrow user field in AXI
-  parameter type user_narrow_struct_t                   = logic,
-  /// Struct for the wide user field in AXI
-  parameter type user_wide_struct_t                     = logic
+  /// Struct for the narrow user field in AXI.
+  /// Transported as-is in the flit payload, hence it must be `AxiCfgN.UserWidth` wide.
+  parameter type user_narrow_struct_t                   = logic [AxiCfgN.UserWidth-1:0],
+  /// Struct for the wide user field in AXI.
+  /// Transported as-is in the flit payload, hence it must be `AxiCfgW.UserWidth` wide.
+  parameter type user_wide_struct_t                     = logic [AxiCfgW.UserWidth-1:0]
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -132,12 +134,12 @@ module floo_nw_chimney
   typedef logic [AxiCfgN.AddrWidth-1:0] axi_addr_t;
   typedef logic [AxiCfgN.InIdWidth-1:0] axi_narrow_in_id_t;
   typedef logic [AxiCfgN.OutIdWidth-1:0] axi_narrow_out_id_t;
-  typedef logic [AxiCfgN.UserWidth-1:0] axi_narrow_user_t;
+  typedef user_narrow_struct_t axi_narrow_user_t;
   typedef logic [AxiCfgN.DataWidth-1:0] axi_narrow_data_t;
   typedef logic [AxiCfgN.DataWidth/8-1:0] axi_narrow_strb_t;
   typedef logic [AxiCfgW.InIdWidth-1:0] axi_wide_in_id_t;
   typedef logic [AxiCfgW.OutIdWidth-1:0] axi_wide_out_id_t;
-  typedef logic [AxiCfgW.UserWidth-1:0] axi_wide_user_t;
+  typedef user_wide_struct_t axi_wide_user_t;
   typedef logic [AxiCfgW.DataWidth-1:0] axi_wide_data_t;
   typedef logic [AxiCfgW.DataWidth/8-1:0] axi_wide_strb_t;
 
@@ -324,8 +326,10 @@ module floo_nw_chimney
   ///////////////////////
 
   if (ChimneyCfgN.EnMgrPort) begin : gen_narrow_sbr_port
-    // We cast the incoming AXI types to the ones that are actually transported
-    // If multicast is enabled, the bits holding the mask are dropped.
+    // We cast the incoming AXI types to the ones that are actually transported.
+    // The `user` field, collective mask included, is carried over as-is: a unicast
+    // transaction does not carry its mask in the flit header, so the payload is the
+    // only thing that preserves it end-to-end.
     `AXI_ASSIGN_REQ_STRUCT(axi_narrow_req_in, axi_narrow_in_req_i)
     `AXI_ASSIGN_RESP_STRUCT(axi_narrow_in_rsp_o, axi_narrow_rsp_out)
 
@@ -433,8 +437,9 @@ module floo_nw_chimney
   end
 
   if (ChimneyCfgW.EnMgrPort) begin : gen_wide_sbr_port
-    // We cast the incoming AXI types to the ones that are actually transported
-    // If multicast is enabled, the bits holding the mask are dropped.
+    // We cast the incoming AXI types to the ones that are actually transported.
+    // The `user` field, collective mask included, is carried over as-is (see the
+    // narrow port above).
     `AXI_ASSIGN_REQ_STRUCT(axi_wide_req_in, axi_wide_in_req_i)
     `AXI_ASSIGN_RESP_STRUCT(axi_wide_in_rsp_o, axi_wide_rsp_out)
 
@@ -1797,6 +1802,11 @@ module floo_nw_chimney
 
   // Check that the Address Width of the narrow and Wide interfaces are the same
   `ASSERT_INIT(AddrWidthMatch, AxiCfgN.AddrWidth == AxiCfgW.AddrWidth)
+
+  // The user structs are transported verbatim in the flit payload, whose reserved bits
+  // are sized from `UserWidth`. A mismatch silently truncates the user field.
+  `ASSERT_INIT(NarrowUserWidthMatch, $bits(user_narrow_struct_t) == AxiCfgN.UserWidth)
+  `ASSERT_INIT(WideUserWidthMatch, $bits(user_wide_struct_t) == AxiCfgW.UserWidth)
 
   // `CutRsp` of the narrow and wide config must be the same
   `ASSERT_INIT(CutRspMatch, ChimneyCfgN.CutRsp == ChimneyCfgW.CutRsp)
