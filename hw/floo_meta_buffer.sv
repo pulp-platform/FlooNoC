@@ -256,7 +256,7 @@ module floo_meta_buffer #(
     assign axi_addr = (in_mask != '0) ?
                       (in_addr & ~(x_addr_mask | y_addr_mask))
                        | ((out.x << x_mask_sel.offset) | (out.y << y_mask_sel.offset))
-                    : in_addr;
+                      : in_addr;
   end else begin : gen_no_mcast
     assign axi_addr = axi_req_i.aw.addr;
   end

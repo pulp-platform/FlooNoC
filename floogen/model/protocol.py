@@ -101,9 +101,6 @@ class AXI4(ProtocolDesc):
             case int(v):
                 fields["UserWidth"] = v
             case dict(d):
-                # Every user field is transported in the flit payload, collective ones
-                # included: the collective mask of a *unicast* transaction is not carried
-                # in the flit header, so dropping it here would lose it in transit.
                 fields["UserWidth"] = max(sum(d.values()), 1)
 
         return sv_param_decl(name, sv_struct_render(fields), dtype="axi_cfg_t")

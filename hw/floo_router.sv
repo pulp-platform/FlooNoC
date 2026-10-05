@@ -40,7 +40,7 @@ module floo_router
   parameter bit          XYRouteOpt           = 1'b1,
   /// Disable loopback connections.
   /// For collective transactions, NoLoopback tells the router not to expect
-  /// packets on the loopback route; these should be filtered within the
+  /// packets on the loopback route; these are supposed to be filtered by the
   /// endpoint. An assertion is triggered if any loopback packet is received,
   /// unicast or collective alike.
   parameter bit          NoLoopback           = 1'b1,

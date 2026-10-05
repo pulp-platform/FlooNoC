@@ -327,9 +327,6 @@ module floo_nw_chimney
 
   if (ChimneyCfgN.EnMgrPort) begin : gen_narrow_sbr_port
     // We cast the incoming AXI types to the ones that are actually transported.
-    // The `user` field, collective mask included, is carried over as-is: a unicast
-    // transaction does not carry its mask in the flit header, so the payload is the
-    // only thing that preserves it end-to-end.
     `AXI_ASSIGN_REQ_STRUCT(axi_narrow_req_in, axi_narrow_in_req_i)
     `AXI_ASSIGN_RESP_STRUCT(axi_narrow_in_rsp_o, axi_narrow_rsp_out)
 
@@ -438,8 +435,6 @@ module floo_nw_chimney
 
   if (ChimneyCfgW.EnMgrPort) begin : gen_wide_sbr_port
     // We cast the incoming AXI types to the ones that are actually transported.
-    // The `user` field, collective mask included, is carried over as-is (see the
-    // narrow port above).
     `AXI_ASSIGN_REQ_STRUCT(axi_wide_req_in, axi_wide_in_req_i)
     `AXI_ASSIGN_RESP_STRUCT(axi_wide_in_rsp_o, axi_wide_rsp_out)
 
@@ -676,11 +671,12 @@ module floo_nw_chimney
       `AXI_SET_AW_STRUCT(axi_narrow_out_req_o.aw, axi_narrow_aw_queue_out);
       axi_narrow_meta_buf_rsp_in = axi_narrow_out_rsp_i;
       axi_narrow_meta_buf_rsp_in.aw_ready = narrow_aw_out_queue_ready;
-      // Multicasts/reductions have their mask cleared.
+      // Collectives which have been handled have their mask resolved (cleared).
       user_aw = axi_narrow_out_req_o.aw.user;
       user_aw.collective_mask = (user_aw.collective_op == Unicast) ? user_aw.collective_mask : '0;
       user_aw.collective_op = Unicast;
       axi_narrow_out_req_o.aw.user = user_aw;
+      // Collectives which have been handled have their mask resolved (cleared).
       user_w = axi_narrow_out_req_o.w.user;
       user_w.collective_mask = (user_w.collective_op == Unicast) ? user_w.collective_mask : '0;
       user_w.collective_op = Unicast;
@@ -707,11 +703,12 @@ module floo_nw_chimney
       `AXI_SET_AW_STRUCT(axi_wide_out_req_o.aw, axi_wide_aw_queue_out);
       axi_wide_meta_buf_rsp_in = axi_wide_out_rsp_i;
       axi_wide_meta_buf_rsp_in.aw_ready = wide_aw_out_queue_ready;
-      // Multicasts/reductions have their mask cleared.
+      // Collectives which have been handled have their mask resolved (cleared).
       user_aw = axi_wide_out_req_o.aw.user;
       user_aw.collective_mask = (user_aw.collective_op == Unicast) ? user_aw.collective_mask : '0;
       user_aw.collective_op = Unicast;
       axi_wide_out_req_o.aw.user = user_aw;
+      // Collectives which have been handled have their mask resolved (cleared).
       user_w = axi_wide_out_req_o.w.user;
       user_w.collective_mask = (user_w.collective_op == Unicast) ? user_w.collective_mask : '0;
       user_w.collective_op = Unicast;
