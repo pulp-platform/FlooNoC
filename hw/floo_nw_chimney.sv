@@ -91,10 +91,12 @@ module floo_nw_chimney
   /// SRAM configuration type `tc_sram_impl` in RoB
   /// Only used if technology-dependent SRAM is used
   parameter type sram_cfg_t                             = logic,
-  /// Struct for the narrow user field in AXI
-  parameter type user_narrow_struct_t                   = logic,
-  /// Struct for the wide user field in AXI
-  parameter type user_wide_struct_t                     = logic
+  /// Struct for the narrow user field in AXI.
+  /// Transported as-is in the flit payload, hence it must be `AxiCfgN.UserWidth` wide.
+  parameter type user_narrow_struct_t                   = logic [AxiCfgN.UserWidth-1:0],
+  /// Struct for the wide user field in AXI.
+  /// Transported as-is in the flit payload, hence it must be `AxiCfgW.UserWidth` wide.
+  parameter type user_wide_struct_t                     = logic [AxiCfgW.UserWidth-1:0]
 ) (
   input  logic clk_i,
   input  logic rst_ni,
@@ -132,12 +134,12 @@ module floo_nw_chimney
   typedef logic [AxiCfgN.AddrWidth-1:0] axi_addr_t;
   typedef logic [AxiCfgN.InIdWidth-1:0] axi_narrow_in_id_t;
   typedef logic [AxiCfgN.OutIdWidth-1:0] axi_narrow_out_id_t;
-  typedef logic [AxiCfgN.UserWidth-1:0] axi_narrow_user_t;
+  typedef user_narrow_struct_t axi_narrow_user_t;
   typedef logic [AxiCfgN.DataWidth-1:0] axi_narrow_data_t;
   typedef logic [AxiCfgN.DataWidth/8-1:0] axi_narrow_strb_t;
   typedef logic [AxiCfgW.InIdWidth-1:0] axi_wide_in_id_t;
   typedef logic [AxiCfgW.OutIdWidth-1:0] axi_wide_out_id_t;
-  typedef logic [AxiCfgW.UserWidth-1:0] axi_wide_user_t;
+  typedef user_wide_struct_t axi_wide_user_t;
   typedef logic [AxiCfgW.DataWidth-1:0] axi_wide_data_t;
   typedef logic [AxiCfgW.DataWidth/8-1:0] axi_wide_strb_t;
 
@@ -324,8 +326,7 @@ module floo_nw_chimney
   ///////////////////////
 
   if (ChimneyCfgN.EnMgrPort) begin : gen_narrow_sbr_port
-    // We cast the incoming AXI types to the ones that are actually transported
-    // If multicast is enabled, the bits holding the mask are dropped.
+    // We cast the incoming AXI types to the ones that are actually transported.
     `AXI_ASSIGN_REQ_STRUCT(axi_narrow_req_in, axi_narrow_in_req_i)
     `AXI_ASSIGN_RESP_STRUCT(axi_narrow_in_rsp_o, axi_narrow_rsp_out)
 
@@ -433,8 +434,7 @@ module floo_nw_chimney
   end
 
   if (ChimneyCfgW.EnMgrPort) begin : gen_wide_sbr_port
-    // We cast the incoming AXI types to the ones that are actually transported
-    // If multicast is enabled, the bits holding the mask are dropped.
+    // We cast the incoming AXI types to the ones that are actually transported.
     `AXI_ASSIGN_REQ_STRUCT(axi_wide_req_in, axi_wide_in_req_i)
     `AXI_ASSIGN_RESP_STRUCT(axi_wide_in_rsp_o, axi_wide_rsp_out)
 
@@ -671,14 +671,14 @@ module floo_nw_chimney
       `AXI_SET_AW_STRUCT(axi_narrow_out_req_o.aw, axi_narrow_aw_queue_out);
       axi_narrow_meta_buf_rsp_in = axi_narrow_out_rsp_i;
       axi_narrow_meta_buf_rsp_in.aw_ready = narrow_aw_out_queue_ready;
-      // Mask the AW Channel
+      // Collectives which have been handled have their mask resolved (cleared).
       user_aw = axi_narrow_out_req_o.aw.user;
-      user_aw.collective_mask = '0;
+      user_aw.collective_mask = (user_aw.collective_op == Unicast) ? user_aw.collective_mask : '0;
       user_aw.collective_op = Unicast;
       axi_narrow_out_req_o.aw.user = user_aw;
-      // Mask the W Channel
+      // Collectives which have been handled have their mask resolved (cleared).
       user_w = axi_narrow_out_req_o.w.user;
-      user_w.collective_mask = '0;
+      user_w.collective_mask = (user_w.collective_op == Unicast) ? user_w.collective_mask : '0;
       user_w.collective_op = Unicast;
       axi_narrow_out_req_o.w.user = user_w;
     end
@@ -703,14 +703,14 @@ module floo_nw_chimney
       `AXI_SET_AW_STRUCT(axi_wide_out_req_o.aw, axi_wide_aw_queue_out);
       axi_wide_meta_buf_rsp_in = axi_wide_out_rsp_i;
       axi_wide_meta_buf_rsp_in.aw_ready = wide_aw_out_queue_ready;
-      // Mask the AW Channel
+      // Collectives which have been handled have their mask resolved (cleared).
       user_aw = axi_wide_out_req_o.aw.user;
-      user_aw.collective_mask = '0;
+      user_aw.collective_mask = (user_aw.collective_op == Unicast) ? user_aw.collective_mask : '0;
       user_aw.collective_op = Unicast;
       axi_wide_out_req_o.aw.user = user_aw;
-      // Mask the W Channel
+      // Collectives which have been handled have their mask resolved (cleared).
       user_w = axi_wide_out_req_o.w.user;
-      user_w.collective_mask = '0;
+      user_w.collective_mask = (user_w.collective_op == Unicast) ? user_w.collective_mask : '0;
       user_w.collective_op = Unicast;
       axi_wide_out_req_o.w.user = user_w;
     end
@@ -1800,6 +1800,11 @@ module floo_nw_chimney
   // Check that the Address Width of the narrow and Wide interfaces are the same
   `ASSERT_INIT(AddrWidthMatch, AxiCfgN.AddrWidth == AxiCfgW.AddrWidth)
 
+  // The user structs are transported verbatim in the flit payload, whose reserved bits
+  // are sized from `UserWidth`. A mismatch silently truncates the user field.
+  `ASSERT_INIT(NarrowUserWidthMatch, $bits(user_narrow_struct_t) == AxiCfgN.UserWidth)
+  `ASSERT_INIT(WideUserWidthMatch, $bits(user_wide_struct_t) == AxiCfgW.UserWidth)
+
   // `CutRsp` of the narrow and wide config must be the same
   `ASSERT_INIT(CutRspMatch, ChimneyCfgN.CutRsp == ChimneyCfgW.CutRsp)
 
@@ -1851,6 +1856,33 @@ module floo_nw_chimney
                            (floo_req_unpack_generic.hdr.axi_ch == WideAr)))
   `ASSERT(NoWideSbrPortWRequest,  ChimneyCfgW.EnSbrPort || !(floo_wide_in_valid &&
                            (floo_wide_unpack_generic_wr.hdr.axi_ch == WideW)))
+
+  // Without collective support enabled, the Network Interface would silently treat a collective
+  // flit as a unicast one, so no collective flit must ever be ejected into it
+  if (!en_narrow_collective(CollectOpCfg)) begin : gen_no_narrow_collective_check
+    `ASSERT(NoNarrowCollectiveReq,
+      !(floo_req_in_valid && (floo_req_unpack_generic.hdr.collective_op != floo_pkg::Unicast)),
+      clk_i, !rst_ni,
+      $sformatf("Unsupported collective request ejected, dest: %h", axi_narrow_unpack_aw.addr))
+  end
+  if (!en_collective(CollectOpCfg)) begin : gen_no_collective_rsp_check
+    `ASSERT(NoCollectiveRsp,
+      !(floo_rsp_in_valid && (floo_rsp_unpack_generic.hdr.collective_op != floo_pkg::Unicast)),
+      clk_i, !rst_ni,
+      $sformatf("Unsupported collective response ejected, channel: %0d",
+        floo_rsp_unpack_generic.hdr.axi_ch))
+  end
+  if (!en_wide_collective(CollectOpCfg)) begin : gen_no_wide_collective_check
+    `ASSERT(NoWideCollectiveWr,
+      !(floo_wide_in_wr_valid_q && (floo_wide_unpack_generic_wr.hdr.collective_op != floo_pkg::Unicast)),
+      clk_i, !rst_ni,
+      $sformatf("Unsupported collective wide write ejected, dest: %h", axi_wide_unpack_aw.addr))
+    `ASSERT(NoWideCollectiveRd,
+      !(floo_wide_in_rd_valid_q && (floo_wide_unpack_generic_rd.hdr.collective_op != floo_pkg::Unicast)),
+      clk_i, !rst_ni,
+      $sformatf("Unsupported collective wide read ejected, channel: %0d",
+        floo_wide_unpack_generic_rd.hdr.axi_ch))
+  end
 
   // We do not support reduction with ROB Buffer
   `ASSERT_INIT(NoRobReduction,
