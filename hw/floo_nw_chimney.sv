@@ -1857,6 +1857,33 @@ module floo_nw_chimney
   `ASSERT(NoWideSbrPortWRequest,  ChimneyCfgW.EnSbrPort || !(floo_wide_in_valid &&
                            (floo_wide_unpack_generic_wr.hdr.axi_ch == WideW)))
 
+  // Without collective support enabled, the Network Interface would silently treat a collective
+  // flit as a unicast one, so no collective flit must ever be ejected into it
+  if (!en_narrow_collective(CollectOpCfg)) begin : gen_no_narrow_collective_check
+    `ASSERT(NoNarrowCollectiveReq,
+      !(floo_req_in_valid && (floo_req_unpack_generic.hdr.collective_op != floo_pkg::Unicast)),
+      clk_i, !rst_ni,
+      $sformatf("Unsupported collective request ejected, dest: %h", axi_narrow_unpack_aw.addr))
+  end
+  if (!en_collective(CollectOpCfg)) begin : gen_no_collective_rsp_check
+    `ASSERT(NoCollectiveRsp,
+      !(floo_rsp_in_valid && (floo_rsp_unpack_generic.hdr.collective_op != floo_pkg::Unicast)),
+      clk_i, !rst_ni,
+      $sformatf("Unsupported collective response ejected, channel: %0d",
+        floo_rsp_unpack_generic.hdr.axi_ch))
+  end
+  if (!en_wide_collective(CollectOpCfg)) begin : gen_no_wide_collective_check
+    `ASSERT(NoWideCollectiveWr,
+      !(floo_wide_in_wr_valid_q && (floo_wide_unpack_generic_wr.hdr.collective_op != floo_pkg::Unicast)),
+      clk_i, !rst_ni,
+      $sformatf("Unsupported collective wide write ejected, dest: %h", axi_wide_unpack_aw.addr))
+    `ASSERT(NoWideCollectiveRd,
+      !(floo_wide_in_rd_valid_q && (floo_wide_unpack_generic_rd.hdr.collective_op != floo_pkg::Unicast)),
+      clk_i, !rst_ni,
+      $sformatf("Unsupported collective wide read ejected, channel: %0d",
+        floo_wide_unpack_generic_rd.hdr.axi_ch))
+  end
+
   // We do not support reduction with ROB Buffer
   `ASSERT_INIT(NoRobReduction,
               !(en_wide_reduction(CollectOpCfg) | en_narrow_reduction(CollectOpCfg)) ||
