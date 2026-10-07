@@ -51,16 +51,16 @@
 // For `SourceRouting`:
 // `FLOO_TYPEDEF_HDR_T(hdr_t, route_t, id_t, floo_pkg::axi_ch_e, logic)
 `define FLOO_TYPEDEF_HDR_T(hdr_t, dst_t, src_t, ch_t, rob_idx_t, mask_t=logic, collect_op_t=logic) \
-  typedef struct packed {                                         \
-    logic rob_req;                                                \
-    rob_idx_t rob_idx;                                            \
-    dst_t dst_id;                                                 \
-    mask_t collective_mask;                                       \
-    src_t src_id;                                                 \
-    logic last;                                                   \
-    logic atop;                                                   \
-    ch_t axi_ch;                                                  \
-    collect_op_t collective_op;                                   \
+  typedef struct packed {                                                                          \
+    logic rob_req;                                                                                 \
+    rob_idx_t rob_idx;                                                                             \
+    dst_t dst_id;                                                                                  \
+    mask_t collective_mask;                                                                        \
+    src_t src_id;                                                                                  \
+    logic last;                                                                                    \
+    logic atop;                                                                                    \
+    ch_t axi_ch;                                                                                   \
+    collect_op_t collective_op;                                                                    \
   } hdr_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -75,11 +75,11 @@
 // Usage Example:
 // `FLOO_TYPEDEF_HDR_T(hdr_t, ...)
 // `FLOO_TYPEDEF_FLIT_T(my_payload, hdr_t, my_payload_t, 13)
-`define FLOO_TYPEDEF_FLIT_T(name, hdr_t, payload_t, rsvd_bits)  \
-  typedef struct packed {                                       \
-    hdr_t hdr;                                                  \
-    payload_t payload;                                          \
-    logic [rsvd_bits-1:0] rsvd;                                 \
+`define FLOO_TYPEDEF_FLIT_T(name, hdr_t, payload_t, rsvd_bits) \
+  typedef struct packed {                                      \
+    hdr_t hdr;                                                 \
+    payload_t payload;                                         \
+    logic [rsvd_bits-1:0] rsvd;                                \
   } floo_``name``_flit_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -118,14 +118,14 @@
 //  OutIdWidth: 2
 // };
 // `FLOO_TYPEDEF_AXI_FROM_CFG(axi, AxiCfg)
-`define FLOO_TYPEDEF_AXI_FROM_CFG(name, cfg)                                                                                                                        \
-  typedef logic [cfg.AddrWidth-1:0] ``name``_addr_t;                                                                                                                \
-  typedef logic [cc_pkg::iomsb(cfg.InIdWidth):0] ``name``_in_id_t;                                                                                                  \
-  typedef logic [cc_pkg::iomsb(cfg.OutIdWidth):0] ``name``_out_id_t;                                                                                                \
-  typedef logic [cc_pkg::iomsb(cfg.UserWidth):0] ``name``_user_t;                                                                                                   \
-  typedef logic [cfg.DataWidth-1:0] ``name``_data_t;                                                                                                                \
-  typedef logic [cfg.DataWidth/8-1:0] ``name``_strb_t;                                                                                                              \
-  `AXI_TYPEDEF_ALL_CT(``name``_in, ``name``_in_req_t, ``name``_in_rsp_t, ``name``_addr_t, ``name``_in_id_t, ``name``_data_t, ``name``_strb_t, ``name``_user_t)      \
+`define FLOO_TYPEDEF_AXI_FROM_CFG(name, cfg)                                                                                                                   \
+  typedef logic [cfg.AddrWidth-1:0] ``name``_addr_t;                                                                                                           \
+  typedef logic [cc_pkg::iomsb(cfg.InIdWidth):0] ``name``_in_id_t;                                                                                             \
+  typedef logic [cc_pkg::iomsb(cfg.OutIdWidth):0] ``name``_out_id_t;                                                                                           \
+  typedef logic [cc_pkg::iomsb(cfg.UserWidth):0] ``name``_user_t;                                                                                              \
+  typedef logic [cfg.DataWidth-1:0] ``name``_data_t;                                                                                                           \
+  typedef logic [cfg.DataWidth/8-1:0] ``name``_strb_t;                                                                                                         \
+  `AXI_TYPEDEF_ALL_CT(``name``_in, ``name``_in_req_t, ``name``_in_rsp_t, ``name``_addr_t, ``name``_in_id_t, ``name``_data_t, ``name``_strb_t, ``name``_user_t) \
   `AXI_TYPEDEF_ALL_CT(``name``_out, ``name``_out_req_t, ``name``_out_rsp_t, ``name``_addr_t, ``name``_out_id_t, ``name``_data_t, ``name``_strb_t, ``name``_user_t)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -199,45 +199,45 @@
 // `FLOO_TYPEDEF_AXI_FROM_CFG(my_axi_narrow, AxiCfgN)
 // `FLOO_TYPEDEF_AXI_FROM_CFG(my_axi_wide, AxiCfgW)
 // `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, my_axi_narrow_in, my_axi_wide_in, AxiCfgN, AxiCfgW, hdr_t)
-`define FLOO_TYPEDEF_NW_CHAN_ALL(name, req, rsp, wide, axi_narrow_name, axi_wide_name, cfg_n, cfg_w, hdr_t)  \
-  `AXI_TYPEDEF_ALL(__``name``_narrow, logic [cfg_n.AddrWidth-1:0], logic [cfg_n.InIdWidth-1:0], logic [cfg_n.DataWidth-1:0], logic [cfg_n.DataWidth/8-1:0], logic [cfg_n.UserWidth-1:0])  \
-  `AXI_TYPEDEF_ALL(__``name``_wide, logic [cfg_w.AddrWidth-1:0], logic [cfg_w.InIdWidth-1:0], logic [cfg_w.DataWidth-1:0], logic [cfg_w.DataWidth/8-1:0], logic [cfg_w.UserWidth-1:0])    \
-  `FLOO_TYPEDEF_FLIT_T(``name``_narrow_aw, hdr_t, ``axi_narrow_name``_aw_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::NarrowAw))                                            \
-  `FLOO_TYPEDEF_FLIT_T(``name``_narrow_w, hdr_t, ``axi_narrow_name``_w_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::NarrowW))                                               \
-  `FLOO_TYPEDEF_FLIT_T(``name``_narrow_ar, hdr_t, ``axi_narrow_name``_ar_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::NarrowAr))                                            \
-  `FLOO_TYPEDEF_FLIT_T(``name``_wide_ar, hdr_t, ``axi_wide_name``_ar_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::WideAr))                                                  \
-  `FLOO_TYPEDEF_GENERIC_FLIT_T(req, hdr_t, logic [floo_pkg::get_max_nw_payload_bits(cfg_n, cfg_w, floo_pkg::FlooReq)-1:0])                                                                \
-                                                                                                                                                                                          \
-  `FLOO_TYPEDEF_FLIT_T(``name``_narrow_b, hdr_t, ``axi_narrow_name``_b_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::NarrowB))                                               \
-  `FLOO_TYPEDEF_FLIT_T(``name``_narrow_r, hdr_t, ``axi_narrow_name``_r_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::NarrowR))                                               \
-  `FLOO_TYPEDEF_FLIT_T(``name``_wide_b, hdr_t, ``axi_wide_name``_b_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::WideB))                                                     \
-  `FLOO_TYPEDEF_GENERIC_FLIT_T(rsp, hdr_t, logic [floo_pkg::get_max_nw_payload_bits(cfg_n, cfg_w, floo_pkg::FlooRsp)-1:0])                                                                \
-                                                                                                                                                                                          \
-  `FLOO_TYPEDEF_FLIT_T(``name``_wide_aw, hdr_t, ``axi_wide_name``_aw_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::WideAw))                                                  \
-  `FLOO_TYPEDEF_FLIT_T(``name``_wide_w, hdr_t, ``axi_wide_name``_w_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::WideW))                                                     \
-  `FLOO_TYPEDEF_FLIT_T(``name``_wide_r, hdr_t, ``axi_wide_name``_r_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::WideR))                                                     \
-  `FLOO_TYPEDEF_GENERIC_FLIT_T(wide, hdr_t, logic [floo_pkg::get_max_nw_payload_bits(cfg_n, cfg_w, floo_pkg::FlooWide)-1:0])                                                              \
-                                                                                                                                                                                          \
-  typedef union packed {                                                                                                                                                                  \
-    floo_``name``_narrow_aw_flit_t narrow_aw;                                                                                                                                             \
-    floo_``name``_narrow_w_flit_t narrow_w;                                                                                                                                               \
-    floo_``name``_narrow_ar_flit_t narrow_ar;                                                                                                                                             \
-    floo_``name``_wide_ar_flit_t wide_ar;                                                                                                                                                 \
-    floo_``req``_generic_flit_t generic;                                                                                                                                                  \
-  } floo_``req``_chan_t;                                                                                                                                                                  \
-                                                                                                                                                                                          \
-  typedef union packed {                                                                                                                                                                  \
-    floo_``name``_narrow_b_flit_t narrow_b;                                                                                                                                               \
-    floo_``name``_narrow_r_flit_t narrow_r;                                                                                                                                               \
-    floo_``name``_wide_b_flit_t wide_b;                                                                                                                                                   \
-    floo_``rsp``_generic_flit_t generic;                                                                                                                                                  \
-  } floo_``rsp``_chan_t;                                                                                                                                                                  \
-                                                                                                                                                                                          \
-  typedef union packed {                                                                                                                                                                  \
-    floo_``name``_wide_aw_flit_t wide_aw;                                                                                                                                                 \
-    floo_``name``_wide_w_flit_t wide_w;                                                                                                                                                   \
-    floo_``name``_wide_r_flit_t wide_r;                                                                                                                                                   \
-    floo_``wide``_generic_flit_t generic;                                                                                                                                                 \
+`define FLOO_TYPEDEF_NW_CHAN_ALL(name, req, rsp, wide, axi_narrow_name, axi_wide_name, cfg_n, cfg_w, hdr_t)                                                                              \
+  `AXI_TYPEDEF_ALL(__``name``_narrow, logic [cfg_n.AddrWidth-1:0], logic [cfg_n.InIdWidth-1:0], logic [cfg_n.DataWidth-1:0], logic [cfg_n.DataWidth/8-1:0], logic [cfg_n.UserWidth-1:0]) \
+  `AXI_TYPEDEF_ALL(__``name``_wide, logic [cfg_w.AddrWidth-1:0], logic [cfg_w.InIdWidth-1:0], logic [cfg_w.DataWidth-1:0], logic [cfg_w.DataWidth/8-1:0], logic [cfg_w.UserWidth-1:0])   \
+  `FLOO_TYPEDEF_FLIT_T(``name``_narrow_aw, hdr_t, ``axi_narrow_name``_aw_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::NarrowAw))                                           \
+  `FLOO_TYPEDEF_FLIT_T(``name``_narrow_w, hdr_t, ``axi_narrow_name``_w_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::NarrowW))                                              \
+  `FLOO_TYPEDEF_FLIT_T(``name``_narrow_ar, hdr_t, ``axi_narrow_name``_ar_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::NarrowAr))                                           \
+  `FLOO_TYPEDEF_FLIT_T(``name``_wide_ar, hdr_t, ``axi_wide_name``_ar_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::WideAr))                                                 \
+  `FLOO_TYPEDEF_GENERIC_FLIT_T(req, hdr_t, logic [floo_pkg::get_max_nw_payload_bits(cfg_n, cfg_w, floo_pkg::FlooReq)-1:0])                                                               \
+                                                                                                                                                                                         \
+  `FLOO_TYPEDEF_FLIT_T(``name``_narrow_b, hdr_t, ``axi_narrow_name``_b_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::NarrowB))                                              \
+  `FLOO_TYPEDEF_FLIT_T(``name``_narrow_r, hdr_t, ``axi_narrow_name``_r_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::NarrowR))                                              \
+  `FLOO_TYPEDEF_FLIT_T(``name``_wide_b, hdr_t, ``axi_wide_name``_b_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::WideB))                                                    \
+  `FLOO_TYPEDEF_GENERIC_FLIT_T(rsp, hdr_t, logic [floo_pkg::get_max_nw_payload_bits(cfg_n, cfg_w, floo_pkg::FlooRsp)-1:0])                                                               \
+                                                                                                                                                                                         \
+  `FLOO_TYPEDEF_FLIT_T(``name``_wide_aw, hdr_t, ``axi_wide_name``_aw_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::WideAw))                                                 \
+  `FLOO_TYPEDEF_FLIT_T(``name``_wide_w, hdr_t, ``axi_wide_name``_w_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::WideW))                                                    \
+  `FLOO_TYPEDEF_FLIT_T(``name``_wide_r, hdr_t, ``axi_wide_name``_r_chan_t, floo_pkg::get_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::WideR))                                                    \
+  `FLOO_TYPEDEF_GENERIC_FLIT_T(wide, hdr_t, logic [floo_pkg::get_max_nw_payload_bits(cfg_n, cfg_w, floo_pkg::FlooWide)-1:0])                                                             \
+                                                                                                                                                                                         \
+  typedef union packed {                                                                                                                                                                 \
+    floo_``name``_narrow_aw_flit_t narrow_aw;                                                                                                                                            \
+    floo_``name``_narrow_w_flit_t narrow_w;                                                                                                                                              \
+    floo_``name``_narrow_ar_flit_t narrow_ar;                                                                                                                                            \
+    floo_``name``_wide_ar_flit_t wide_ar;                                                                                                                                                \
+    floo_``req``_generic_flit_t generic;                                                                                                                                                 \
+  } floo_``req``_chan_t;                                                                                                                                                                 \
+                                                                                                                                                                                         \
+  typedef union packed {                                                                                                                                                                 \
+    floo_``name``_narrow_b_flit_t narrow_b;                                                                                                                                              \
+    floo_``name``_narrow_r_flit_t narrow_r;                                                                                                                                              \
+    floo_``name``_wide_b_flit_t wide_b;                                                                                                                                                  \
+    floo_``rsp``_generic_flit_t generic;                                                                                                                                                 \
+  } floo_``rsp``_chan_t;                                                                                                                                                                 \
+                                                                                                                                                                                         \
+  typedef union packed {                                                                                                                                                                 \
+    floo_``name``_wide_aw_flit_t wide_aw;                                                                                                                                                \
+    floo_``name``_wide_w_flit_t wide_w;                                                                                                                                                  \
+    floo_``name``_wide_r_flit_t wide_r;                                                                                                                                                  \
+    floo_``wide``_generic_flit_t generic;                                                                                                                                                \
   } floo_``wide``_chan_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -253,11 +253,11 @@
 // `FLOO_TYPEDEF_AXI_FROM_CFG(my_axi, AxiCfg)
 // `FLOO_TYPEDEF_AXI_CHAN_ALL(my_axi, req, rsp, my_axi_in, AxiCfg, hdr_t)
 // FLOO_TYPEDEF_LINK_T(req, my_axi)
-`define FLOO_TYPEDEF_LINK_T(name, chan_name)  \
-  typedef struct packed {                     \
-    logic valid;                              \
-    logic ready;                              \
-    floo_``chan_name``_chan_t ``chan_name``;  \
+`define FLOO_TYPEDEF_LINK_T(name, chan_name) \
+  typedef struct packed {                    \
+    logic valid;                             \
+    logic ready;                             \
+    floo_``chan_name``_chan_t ``chan_name``; \
   } floo_``name``_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -279,12 +279,12 @@
 // `FLOO_TYPEDEF_AXI_CHAN_ALL(my_axi, req, rsp, my_axi_in, AxiCfg, hdr_t)
 // FLOO_TYPEDEF_VIRT_CHAN_LINK_T(req, my_axi, 1, 1)
 //
-`define FLOO_TYPEDEF_VIRT_CHAN_LINK_T(name, chan_name, vc_num, phy_num)   \
-  typedef struct packed {                                        \
-    logic [vc_num-1:0] valid;                                    \
-    logic [vc_num-1:0] ready;                                    \
-    logic [vc_num-1:0] credit;                                 \
-    floo_``chan_name``_chan_t [phy_num-1:0] ``chan_name``;       \
+`define FLOO_TYPEDEF_VIRT_CHAN_LINK_T(name, chan_name, vc_num, phy_num) \
+  typedef struct packed {                                               \
+    logic [vc_num-1:0] valid;                                           \
+    logic [vc_num-1:0] ready;                                           \
+    logic [vc_num-1:0] credit;                                          \
+    floo_``chan_name``_chan_t [phy_num-1:0] ``chan_name``;              \
   } floo_``name``_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -332,7 +332,7 @@
   `FLOO_TYPEDEF_LINK_T(rsp, rsp_chan)                                           \
   `FLOO_TYPEDEF_LINK_T(wide, wide_chan)
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Defines the all the link types with ready-valid handshaking interface
 // for a narrow-wide AXI interface configuration which implements a simple
 // virtual channeling.
@@ -354,9 +354,9 @@
 // `FLOO_TYPEDEF_AXI_FROM_CFG(my_wide_axi, AxiCfgW)
 // `FLOO_TYPEDEF_NW_CHAN_ALL(axi, my_req, my_rsp, my_wide, my_axi_narrow_in, my_axi_wide_in, AxiCfgN, AxiCfgW, hdr_t)
 // `FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, my_req, my_rsp, my_wide, 1, 2)
-`define FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req_chan, rsp_chan, wide_chan, wide_virt_chan, wide_phys_chan)  \
-  `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(req, req_chan, 1, 1)                                                            \
-  `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(rsp, rsp_chan, 1, 1)                                                                        \
+`define FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req_chan, rsp_chan, wide_chan, wide_virt_chan, wide_phys_chan) \
+  `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(req, req_chan, 1, 1)                                                                     \
+  `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(rsp, rsp_chan, 1, 1)                                                                     \
   `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(wide, wide_chan, wide_virt_chan, wide_phys_chan)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -373,18 +373,18 @@
 //
 // Usage Example:
 // `FLOO_COLLECT_OP_HELPERS(collect_op_t)
-`define FLOO_COLLECT_OP_HELPERS(collect_op_t_name)                                              \
-  function automatic bit is_multicast_op(collect_op_t_name op);                                 \
-    return (op == Multicast);                                                                   \
-  endfunction                                                                                   \
-  function automatic bit is_parallel_reduction_op(collect_op_t_name op);                        \
-    return (op == LsbAnd) || (op == CollectB) || (op == SelectAW);                              \
-  endfunction                                                                                   \
-  function automatic bit is_seq_reduction_op(collect_op_t_name op);                             \
-    return (op == SeqAW) || (op >= NumReservedCollectOps);                                      \
-  endfunction                                                                                   \
-  function automatic bit is_reduction_op(collect_op_t_name op);                                 \
-    return (op == LsbAnd) || (op == SelectAW) || is_seq_reduction_op(op);                       \
+`define FLOO_COLLECT_OP_HELPERS(collect_op_t_name)                        \
+  function automatic bit is_multicast_op(collect_op_t_name op);           \
+    return (op == Multicast);                                             \
+  endfunction                                                             \
+  function automatic bit is_parallel_reduction_op(collect_op_t_name op);  \
+    return (op == LsbAnd) || (op == CollectB) || (op == SelectAW);        \
+  endfunction                                                             \
+  function automatic bit is_seq_reduction_op(collect_op_t_name op);       \
+    return (op == SeqAW) || (op >= NumReservedCollectOps);                \
+  endfunction                                                             \
+  function automatic bit is_reduction_op(collect_op_t_name op);           \
+    return (op == LsbAnd) || (op == SelectAW) || is_seq_reduction_op(op); \
   endfunction
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -395,10 +395,10 @@
 // - data_t:        Operand data type
 // - collect_op_t:   Type of the collective opcode (logic vector)
 `define FLOO_RED_TYPEDEF_REQ_CHAN_T(name, data_t, collect_op_t) \
-  typedef struct packed {                          \
-    collect_op_t  op;                                     \
-    data_t   operand1;                               \
-    data_t   operand2;                               \
+  typedef struct packed {                                       \
+    collect_op_t  op;                                           \
+    data_t   operand1;                                          \
+    data_t   operand2;                                          \
   } red_``name``_req_chan_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -408,8 +408,8 @@
 // - name:   Suffix/prefix used to build the type name
 // - data_t: Result data type
 `define FLOO_RED_TYPEDEF_RSP_CHAN_T(name, data_t) \
-  typedef struct packed {                   \
-    data_t result;                          \
+  typedef struct packed {                         \
+    data_t result;                                \
   } red_``name``_rsp_chan_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -419,10 +419,10 @@
 // - name:      Link type base name (e.g. wide_req)
 // - chan_name: Channel base name used
 `define FLOO_RED_TYPEDEF_REQ_LINK_T(name, chan_name) \
-  typedef struct packed {                       \
-    logic                    valid;             \
-    logic                    ready;             \
-    red_``chan_name``_req_chan_t req;           \
+  typedef struct packed {                            \
+    logic                    valid;                  \
+    logic                    ready;                  \
+    red_``chan_name``_req_chan_t req;                \
   } red_``name``_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -432,10 +432,10 @@
 // - name:      Link type base name (e.g. wide_rsp)
 // - chan_name: Channel base name
 `define FLOO_RED_TYPEDEF_RSP_LINK_T(name, chan_name) \
-  typedef struct packed {                       \
-    logic                    valid;             \
-    logic                    ready;             \
-    red_``chan_name``_rsp_chan_t rsp;           \
+  typedef struct packed {                            \
+    logic                    valid;                  \
+    logic                    ready;                  \
+    red_``chan_name``_rsp_chan_t rsp;                \
   } red_``name``_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -463,8 +463,8 @@
 // Example:
 // `FLOO_RED_TYPEDEF_REQ_RSP_LINK(wide, data_t, wide_req, wide_rsp, collect_op_t)
 `define FLOO_RED_TYPEDEF_REQ_RSP_LINK(name, data_t, req_link, rsp_link, collect_op_t) \
-  `FLOO_RED_TYPEDEF_REQ_RSP_CHAN_ALL(name, data_t, collect_op_t)                          \
-  `FLOO_RED_TYPEDEF_REQ_LINK_T(req_link, name)                                    \
+  `FLOO_RED_TYPEDEF_REQ_RSP_CHAN_ALL(name, data_t, collect_op_t)                      \
+  `FLOO_RED_TYPEDEF_REQ_LINK_T(req_link, name)                                        \
   `FLOO_RED_TYPEDEF_RSP_LINK_T(rsp_link, name)
 
 `endif // FLOO_NOC_TYPEDEF_SVH_

@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.11'",
@@ -13,6 +13,21 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ee/67/531ea369ba64dcff5ec9c3402f9f51bf748cec26dde048a2f973a4eea7f5/annotated_types-0.7.0.tar.gz", hash = "sha256:aff07c09a53a08bc8cfccb9c85b05f1aa9a2a6f23728d790723543408344ce89", size = 16081, upload-time = "2024-05-20T21:33:25.928Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl", hash = "sha256:1f02e8b43a8fbbc3f3e0d4f0f4bfc8131bcb4eebe8849b8e5c773f3a1c582a53", size = 13643, upload-time = "2024-05-20T21:33:24.1Z" },
+]
+
+[[package]]
+name = "astli"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/db/cb/e8d933ec08a1e90d542afbaa7aa04d1a5180c0bdb58ffc3689ab40d1e6cc/astli-0.3.0.tar.gz", hash = "sha256:b07fff8af8ebdbf67a3e8d06d786fae2919d6613426d045edf56760f38ce6c3c", size = 285991, upload-time = "2026-10-07T12:27:56.244Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c8/37/4bdcb6c7e119b892b897b0f0656486e4931083253c9924ff0373ce51d2fe/astli-0.3.0-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:f4ed0256414ffe77bcb5c486493e92cf9e7affdc45d0cdb724d35712fe5f4471", size = 2173395, upload-time = "2026-10-07T12:27:47.197Z" },
+    { url = "https://files.pythonhosted.org/packages/47/2c/7f1c74658066d87f7ae7e59901d64f568a4d668c0ba6370a4e241d754a05/astli-0.3.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:f135c1a8d5a894142ff551f1d2d9affea332455a60ea6b529d605a6f108766f1", size = 2072557, upload-time = "2026-10-07T12:27:48.501Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/cd/d58aa5cd35df3ae30eb07ac1ac12e42b2119d667764a987ce82bcc34831b/astli-0.3.0-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:acca4dc6468145fa59c63ea4efc44f5d971d97ef747e9b6fca5e54c1d8210eeb", size = 2220877, upload-time = "2026-10-07T12:27:49.951Z" },
+    { url = "https://files.pythonhosted.org/packages/21/31/59d0b5f2c8dd30c1ea5b525801337969e4f6d923ddb2d517ef7b9b76e1e3/astli-0.3.0-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:cd349f1ad9589eeeb1e889015b32a347a737ae8b7929db660102727ed25651ad", size = 2307643, upload-time = "2026-10-07T12:27:51.3Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/15/295d919c5aca0498c759982d3ea882ae26d0e7f6d3561c22d2f39fff574f/astli-0.3.0-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:023b7d893e2333e8e2da4c5bf96b1136395f8f96009640b64ff9db9f40327865", size = 2277455, upload-time = "2026-10-07T12:27:52.508Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/c4/eaeda75c77f20815b848a7575b01834c965e3c9575170a864ee23252098c/astli-0.3.0-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:1304c6ce5cd5652a15a3f518b85c65756e32fbd0a4bf7ff07305b9f44a7e78e8", size = 2394229, upload-time = "2026-10-07T12:27:53.66Z" },
+    { url = "https://files.pythonhosted.org/packages/2d/f3/87309e96a6e3602cc0d574f3d6f04a97e742d3f1173e2b957dce82ca4971/astli-0.3.0-py3-none-win_amd64.whl", hash = "sha256:398730d62f73962bcecc0191c99c561eb94bf55afbcdbddeb30c01581a6923a3", size = 1999568, upload-time = "2026-10-07T12:27:54.933Z" },
 ]
 
 [[package]]
@@ -345,6 +360,7 @@ viz = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "astli" },
     { name = "jsonschema" },
     { name = "mkdocstrings-python" },
     { name = "prek" },
@@ -368,6 +384,7 @@ provides-extras = ["viz"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "astli", specifier = ">=0.3.0" },
     { name = "jsonschema" },
     { name = "mkdocstrings-python", specifier = ">=2.0.1" },
     { name = "prek", specifier = ">=0.4.11" },

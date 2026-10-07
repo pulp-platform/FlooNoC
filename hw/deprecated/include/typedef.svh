@@ -27,19 +27,19 @@
 //
 // For `SourceRouting`:
 // `FLOO_TYPEDEF_HDR_T(hdr_t, route_t, id_t, floo_pkg::axi_ch_e, logic)
-`define FLOO_TYPEDEF_VC_HDR_T(hdr_t, dst_t, src_t, ch_t, rob_idx_t, vc_id_t, mask_t = logic, collect_op_t = logic)  \
-  typedef struct packed {                                                     \
-    logic rob_req;                                                            \
-    rob_idx_t rob_idx;                                                        \
-    dst_t dst_id;                                                             \
-    mask_t collective_mask;                                                   \
-    src_t src_id;                                                             \
-    logic last;                                                               \
-    logic atop;                                                               \
-    ch_t axi_ch;                                                              \
-    collect_op_t collective_op;                                               \
-    vc_id_t vc_id;                                                            \
-    floo_pkg::route_direction_e lookahead;                                    \
+`define FLOO_TYPEDEF_VC_HDR_T(hdr_t, dst_t, src_t, ch_t, rob_idx_t, vc_id_t, mask_t = logic, collect_op_t = logic) \
+  typedef struct packed {                                                                                          \
+    logic rob_req;                                                                                                 \
+    rob_idx_t rob_idx;                                                                                             \
+    dst_t dst_id;                                                                                                  \
+    mask_t collective_mask;                                                                                        \
+    src_t src_id;                                                                                                  \
+    logic last;                                                                                                    \
+    logic atop;                                                                                                    \
+    ch_t axi_ch;                                                                                                   \
+    collect_op_t collective_op;                                                                                    \
+    vc_id_t vc_id;                                                                                                 \
+    floo_pkg::route_direction_e lookahead;                                                                         \
   } hdr_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -58,15 +58,15 @@
 // `FLOO_TYPEDEF_AXI_FROM_CFG(my_axi, AxiCfg)
 // `FLOO_TYPEDEF_AXI_CHAN_ALL(my_axi, req, rsp, my_axi_in, AxiCfg, hdr_t)
 // FLOO_TYPEDEF_LINK_T(vc_req, my_axi)
-`define FLOO_TYPEDEF_VC_LINK_T(name, chan_name, vc_id_t)  \
-  typedef struct packed {                                 \
-    logic valid;                                          \
-    logic credit_v;                                       \
-    vc_id_t credit_id;                                    \
-    floo_``chan_name``_chan_t ``chan_name``;              \
+`define FLOO_TYPEDEF_VC_LINK_T(name, chan_name, vc_id_t) \
+  typedef struct packed {                                \
+    logic valid;                                         \
+    logic credit_v;                                      \
+    vc_id_t credit_id;                                   \
+    floo_``chan_name``_chan_t ``chan_name``;             \
   } floo_``name``_t;
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Defines the all the link types with credit-based flow control interface
 // for a single AXI interface configuration
 //

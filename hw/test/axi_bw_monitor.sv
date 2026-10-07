@@ -7,35 +7,35 @@
 
 /// A AXI4 Bus Monitor for measuring the throughput and latency of the AXI4 Bus
 module axi_bw_monitor #(
-  parameter type req_t     = logic,
-  parameter type rsp_t    = logic,
+  parameter type         req_t      = logic,
+  parameter type         rsp_t      = logic,
   parameter int unsigned AxiIdWidth = 4,
-  parameter int unsigned NumAxiIds = 2**AxiIdWidth,
-  parameter string Name = ""
+  parameter int unsigned NumAxiIds  = 2 ** AxiIdWidth,
+  parameter string       Name       = ""
 ) (
-  input logic clk_i,
-  input logic en_i,
-  input logic end_of_sim_i,
-  input req_t req_i,
-  input rsp_t rsp_i,
+  input  logic        clk_i,
+  input  logic        en_i,
+  input  logic        end_of_sim_i,
+  input  req_t        req_i,
+  input  rsp_t        rsp_i,
   output logic [31:0] ar_in_flight_o,
   output logic [31:0] aw_in_flight_o
 );
 
   int unsigned cycle_cnt;
 
-  int unsigned ar_outstanding [NumAxiIds][$];
-  int unsigned aw_outstanding [NumAxiIds][$];
-  int unsigned read_latency [$];
-  int unsigned write_latency [$];
-  real read_latency_mean;
-  real write_latency_mean;
-  real read_latency_stddev;
-  real write_latency_stddev;
-  real read_bw;
-  real write_bw;
-  real read_util;
-  real write_util;
+  int unsigned ar_outstanding[NumAxiIds][$];
+  int unsigned aw_outstanding[NumAxiIds][$];
+  int unsigned read_latency[$];
+  int unsigned write_latency[$];
+  real         read_latency_mean;
+  real         write_latency_mean;
+  real         read_latency_stddev;
+  real         write_latency_stddev;
+  real         read_bw;
+  real         write_bw;
+  real         read_util;
+  real         write_util;
   int unsigned ar_cnt;
   int unsigned aw_cnt;
   int unsigned w_cnt;
@@ -43,11 +43,10 @@ module axi_bw_monitor #(
 
   int unsigned prev_r_last;
 
-
   initial begin
     cycle_cnt = 0;
     @(posedge en_i);
-    while(!end_of_sim_i) begin
+    while (!end_of_sim_i) begin
       @(posedge clk_i);
       cycle_cnt++;
     end
@@ -63,21 +62,21 @@ module axi_bw_monitor #(
   end
 
   initial begin
-    ar_cnt = 0;
-    aw_cnt = 0;
-    w_cnt = 0;
-    r_cnt = 0;
+    ar_cnt            = 0;
+    aw_cnt            = 0;
+    w_cnt             = 0;
+    r_cnt             = 0;
     read_latency_mean = 0;
-    write_latency_mean = 0;
-    read_latency_stddev = 0;
+    write_latency_mean   = 0;
+    read_latency_stddev  = 0;
     write_latency_stddev = 0;
-    read_bw = 0;
-    write_bw = 0;
-    read_util = 0;
-    write_util = 0;
+    read_bw     = 0;
+    write_bw    = 0;
+    read_util   = 0;
+    write_util  = 0;
     prev_r_last = 1;
     @(posedge en_i);
-    while(!end_of_sim_i) begin
+    while (!end_of_sim_i) begin
       @(posedge clk_i);
       if (req_i.ar_valid && rsp_i.ar_ready) begin
         ar_outstanding[req_i.ar.id].push_back(cycle_cnt);
@@ -138,9 +137,9 @@ module axi_bw_monitor #(
     end
 
     // Calculate the BW and utilization
-    read_bw = real'(r_cnt) * $bits(rsp_i.r.data) / real'(cycle_cnt);
-    write_bw = real'(w_cnt) * $bits(req_i.w.data) / real'(cycle_cnt);
-    read_util = real'(r_cnt) * 100 / real'(cycle_cnt);
+    read_bw    = real'(r_cnt) * $bits(rsp_i.r.data) / real'(cycle_cnt);
+    write_bw   = real'(w_cnt) * $bits(req_i.w.data) / real'(cycle_cnt);
+    read_util  = real'(r_cnt) * 100 / real'(cycle_cnt);
     write_util = real'(w_cnt) * 100 / real'(cycle_cnt);
 
     $display("[Monitor %s][Read] Latency: %0.2f +- %0.2f, BW: %0.2f Bits/cycle, Util: %0.2f%%",
