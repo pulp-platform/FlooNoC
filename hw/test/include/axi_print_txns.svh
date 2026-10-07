@@ -4,7 +4,7 @@
 //
 // Author: Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-// astli-fmt: skip
+(* astli_fmt_skip *)
 function automatic void print_aw (
   input aw_chan_t aw_expected,
   input aw_chan_t aw_received
@@ -28,7 +28,7 @@ function automatic void print_aw (
   // verilog_lint: waive-stop line-length
 endfunction
 
-// astli-fmt: skip
+(* astli_fmt_skip *)
 function automatic void print_ar (
   input ar_chan_t ar_expected,
   input ar_chan_t ar_received
@@ -51,7 +51,7 @@ function automatic void print_ar (
   // verilog_lint: waive-stop line-length
 endfunction
 
-// astli-fmt: skip
+(* astli_fmt_skip *)
 function automatic void print_w (
   input w_chan_t w_expected,
   input w_chan_t w_received
@@ -67,7 +67,7 @@ function automatic void print_w (
   // verilog_lint: waive-stop line-length
 endfunction
 
-// astli-fmt: skip
+(* astli_fmt_skip *)
 function automatic void print_b (
   input b_chan_t b_expected,
   input b_chan_t b_received
@@ -82,7 +82,7 @@ function automatic void print_b (
   // verilog_lint: waive-stop line-length
 endfunction
 
-// astli-fmt: skip
+(* astli_fmt_skip *)
 function automatic void print_r (
   input r_chan_t r_expected,
   input r_chan_t r_received

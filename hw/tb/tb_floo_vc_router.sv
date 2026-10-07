@@ -315,8 +315,9 @@ module tb_floo_vc_router;
     // to the same vc does not work due to buffer size
     for (vc_id_t vc_out_batch = 0; vc_out_batch < num_vc_out; vc_out_batch += 2) begin
       for (vc_id_t vc_in = 0; vc_in < num_vc_in; vc_in++) begin
-        for (vc_id_t vc_out = vc_out_batch; vc_out < vc_out_batch + 2 &&
-                                            vc_out < num_vc_out; vc_out++) begin
+        for (vc_id_t vc_out = vc_out_batch;
+             vc_out < vc_out_batch + 2 && vc_out < num_vc_out;
+             vc_out++) begin
           get_direction_from_vc(next_in_port, vc_out, expected_lookahead);
           //input
           randomize_flit();
@@ -485,19 +486,13 @@ module tb_floo_vc_router;
       forever free_credits();
     join_none
 
-    for (int in_port = 0; in_port < NumPorts; in_port++) for (int out_port = 0; out_port <
-                                                                                NumPorts; out_port++) if (in_port !=
-                                                                                                          out_port &&
-                                                                                                          !((in_port ==
-                                                                                                             North ||
-                                                                                                             in_port ==
-                                                                                                             South) &&
-                                                                                                            (out_port ==
-                                                                                                             East ||
-                                                                                                             out_port ==
-                                                                                                             West))) test_connection(
-        in_port, out_port
-    );
+    for (int in_port = 0; in_port < NumPorts; in_port++) for (
+        int out_port = 0;
+        out_port < NumPorts;
+        out_port++
+    ) if (in_port != out_port &&
+          !((in_port == North || in_port == South) &&
+            (out_port == East || out_port == West))) test_connection(in_port, out_port);
 
     $finish;
 
