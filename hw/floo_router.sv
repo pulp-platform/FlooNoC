@@ -340,7 +340,6 @@ module floo_router
   logic [NumOutput-1:0][NumVirtChannels-1:0][NumInput-1:0] masked_valid, masked_ready;
   logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] masked_valid_transposed;
   logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] masked_ready_transposed;
-  logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] past_handshakes_q, past_handshakes_d;
   logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] current_handshakes, all_handshakes;
   logic [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] ignore_routes, expected_handshakes;
 
@@ -348,6 +347,10 @@ module floo_router
 
   for (genvar in = 0; in < NumInput; in++) begin : gen_hs_input
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_hs_virt
+      // Routes that have not yet completed the handshake of the flit currently being sent
+      // (all of them, unless a multicast flit is partially acknowledged)
+      logic [NumOutput-1:0] pending_routes;
+
       for (genvar out = 0; out < NumOutput; out++) begin : gen_hs_output
         // In case of loopback connections (to itself) and Y->X connections in XYRouting,
         // we tie the handshake & data signals to 0, to optimize them away during synthesis
@@ -363,12 +366,13 @@ module floo_router
         end else begin : gen_conn
           assign masked_ready_transposed[in][v][out] = masked_ready[out][v][in];
           assign masked_valid[out][v][in]     = cross_valid[in][v] & route_mask[in][v][out] &
-                                                (!EnMultiCast || ~past_handshakes_q[in][v][out]);
+                                                pending_routes[out];
           assign masked_data[out][v][in]      = in_routed_data[in][v];
         end
         assign masked_valid_transposed[in][v][out] = masked_valid[out][v][in];
       end
       if (!EnMultiCast) begin : gen_unicast
+        assign pending_routes = '1;
         assign cross_ready[in][v] = |(masked_ready_transposed[in][v] & route_mask[in][v]);
       end else begin : gen_multicast
         // In the case of multicast transactions, each destination can assert the ready signal
@@ -376,14 +380,18 @@ module floo_router
         // the upstream sender is only acknowledged when all selected downstream destinations
         // have successfully completed their handshake (valid & ready).
         //
+        logic [NumOutput-1:0] past_handshakes_q, past_handshakes_d;
+
         // Handshake received in current cycle
         assign current_handshakes[in][v] = masked_valid_transposed[in][v] &
                                            masked_ready_transposed[in][v];
         // Handhsake received in previous cycles
-        assign past_handshakes_d[in][v] = (cross_ready[in][v] & cross_valid[in][v]) ? '0 :
-                                            (past_handshakes_q[in][v] | current_handshakes[in][v]);
+        assign past_handshakes_d = (cross_ready[in][v] & cross_valid[in][v]) ? '0 :
+                                   (past_handshakes_q | current_handshakes[in][v]);
+        `FF(past_handshakes_q, past_handshakes_d, '0)
+        assign pending_routes = ~past_handshakes_q;
         // History of handshake received (past + present)
-        assign all_handshakes[in][v] = past_handshakes_q[in][v] | current_handshakes[in][v];
+        assign all_handshakes[in][v] = past_handshakes_q | current_handshakes[in][v];
 
         // Handshake are excepeted on all selected routes except the loopback
         assign ignore_routes[in][v] = NoLoopback ? (1 << in) : '0;
@@ -394,9 +402,6 @@ module floo_router
       end
     end
   end
-
-  // TODO (lleone): Move the following FF inside the multicast
-  `FF(past_handshakes_q, past_handshakes_d, '0)
 
   // We merge the data from the reduction module as an additional input of our output arbiter.
   logic [NumOutput-1:0][NumVirtChannels-1:0][LocalNumInputs-1:0] merged_valid, merged_ready;
