@@ -442,7 +442,10 @@ package floo_pkg;
       AxiB: return axi_pkg::b_width(cfg.InIdWidth, cfg.UserWidth);
       AxiAr: return axi_pkg::ar_width(cfg.AddrWidth, cfg.InIdWidth, cfg.UserWidth);
       AxiR: return axi_pkg::r_width(cfg.DataWidth, cfg.InIdWidth, cfg.UserWidth);
-      default: $error("Invalid AXI channel");
+      default: begin
+        $error("Invalid AXI channel");
+        return 0;
+      end
     endcase
   endfunction
 
@@ -459,7 +462,10 @@ package floo_pkg;
       WideR: return axi_pkg::r_width(cfg_w.DataWidth, cfg_w.InIdWidth, cfg_w.UserWidth);
       WideAr: return axi_pkg::ar_width(cfg_w.AddrWidth, cfg_w.InIdWidth, cfg_w.UserWidth);
       WideB: return axi_pkg::b_width(cfg_w.InIdWidth, cfg_w.UserWidth);
-      default: $error("Invalid AXI channel");
+      default: begin
+        $error("Invalid AXI channel");
+        return 0;
+      end
     endcase
   endfunction
 
