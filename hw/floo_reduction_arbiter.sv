@@ -160,14 +160,19 @@ module floo_reduction_arbiter import floo_pkg::*;
     end
   end
 
+  // Opcodes as wide as `collect_op_t`, so that the case labels match the selector width
+  localparam collect_op_t SelectAWOp = collect_op_t'(SelectAW);
+  localparam collect_op_t LsbAndOp   = collect_op_t'(LsbAnd);
+  localparam collect_op_t CollectBOp = collect_op_t'(CollectB);
+
   // Select which parallel operation to output
   always_comb begin
     // Assign initial value
     data_o = '0;
     case ({incoming_red_op, 1'b1})
-      {SelectAW, CollectOpCfg.EnLsbAnd}:  data_o = data_forward_flit;
-      {LsbAnd,   CollectOpCfg.EnLsbAnd}:  data_o = data_LSBAnd;
-      {CollectB, 1'b1}:                   data_o = data_collectB;
+      {SelectAWOp, CollectOpCfg.EnLsbAnd}:  data_o = data_forward_flit;
+      {LsbAndOp,   CollectOpCfg.EnLsbAnd}:  data_o = data_LSBAnd;
+      {CollectBOp, 1'b1}:                   data_o = data_collectB;
       default:;
     endcase
   end
