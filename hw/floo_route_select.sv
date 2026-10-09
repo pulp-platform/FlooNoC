@@ -219,15 +219,13 @@ module floo_route_select
     `FFL(route_sel_q, route_sel, ~locked_route_q, '0)
     `FFL(route_sel_id_q, route_sel_id, ~locked_route_q, '0)
 
-    // synopsys translate_off
-    // pragma translate_off
-    always @(posedge clk_i) begin
-      if (ready_i && valid_i && locked_route_q &&
-              ((route_sel_id_q != route_sel_id) || (route_sel_q != route_sel)))
-        $warning("Mismatch in route selection!");
-    end
-    // pragma translate_on
-    // synopsys translate_on
+    `ifndef TARGET_SYNTHESIS
+      always @(posedge clk_i) begin
+        if (ready_i && valid_i && locked_route_q &&
+                ((route_sel_id_q != route_sel_id) || (route_sel_q != route_sel)))
+          $warning("Mismatch in route selection!");
+      end
+    `endif
   end else begin : gen_no_lock
     assign route_sel_o = route_sel;
     assign route_sel_id_o = route_sel_id;

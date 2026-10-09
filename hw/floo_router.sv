@@ -369,7 +369,7 @@ module floo_router
         assign masked_valid_transposed[in][v][out] = masked_valid[out][v][in];
       end
       if (!EnMultiCast) begin : gen_unicast
-        // No multicast: the handshake history is not used (see `masked_valid` above)
+        // Drive zero when multicast is not supported
         assign past_handshakes_q[in][v] = '0;
         assign cross_ready[in][v] = |(masked_ready_transposed[in][v] & route_mask[in][v]);
       end else begin : gen_multicast
