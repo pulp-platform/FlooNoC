@@ -177,6 +177,8 @@ module floo_nw_router
       assign floo_wide_o[i].credit = wide_credit_out[i];
       assign wide_credit_in[i] = floo_wide_i[i].credit;
     end
+  end else begin: gen_no_credit_connections
+    assign wide_credit_in = '0;
   end
 
   floo_router #(
