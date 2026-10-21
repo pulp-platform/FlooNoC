@@ -33,6 +33,10 @@
 ///    node ID for whichever response is currently on `sbr_rsp_i`, derived
 ///    from the response payload itself (not tracked locally).
 ///
+/// Both ports may be enabled together: the manager injects requests and
+/// ejects responses, the subordinate ejects requests and injects responses,
+/// so the two never share a link direction and need no arbitration.
+///
 module floo_tcdm_chimney
   import floo_pkg::*;
 #(
@@ -252,7 +256,5 @@ module floo_tcdm_chimney
 
   `ASSERT(MgrOrSbr, EnMgrPort || EnSbrPort, clk_i, !rst_ni,
       "At least one of EnMgrPort or EnSbrPort must be enabled.")
-  `ASSERT(NotBothPorts, !(EnMgrPort && EnSbrPort), clk_i, !rst_ni,
-      "Enabling both EnMgrPort and EnSbrPort is not supported.")
 
 endmodule
