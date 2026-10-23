@@ -187,7 +187,7 @@ module floo_rob #(
   // TODO: make this prettier
   if (OnlyMetaData) begin : gen_b_rsp
     assign rob_meta = rsp_i;
-    assign rsp_o = (rob_state_q == RoBRead)? rob_meta_q[rob_addr] : rsp_i;
+    assign rsp_o = (rob_state_q == RoBRead)? rob_meta_q[rob_addr_q] : rsp_i;
     // B responses are not burst, so they are always the last beat
     assign is_last_rsp_in_rob = 1'b1;
   end else begin : gen_r_rsp
