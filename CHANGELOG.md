@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 #### Hardware
 
-- Rename `credit_init_i` to `clr_i` on the credit counter of `floo_vc_arbiter`, as in common_cells v2. Before, Verilator stopped on every design with a router.
+- Rename `credit_init_i` to `clr_i` on the credit counter of `floo_vc_arbiter`, as in common_cells v2. Before, Verilator stopped on every design with a router. (https://github.com/pulp-platform/FlooNoC/pull/245)
 
 ## [0.9.0] - 2026-09-26
 
