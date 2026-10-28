@@ -134,7 +134,7 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
         .credit_o         ( /* unused */              ),
         .credit_give_i    ( credit_i[v]               ),
         .credit_take_i    ( credit_handshake[v]       ),
-        .credit_init_i    ( 1'b0                      ),
+        .clr_i            ( 1'b0                      ),
         .credit_left_o    ( credit_left[v]            ),
         .credit_crit_o    ( /* unused */              ),
         .credit_full_o    ( /* unused */              )
