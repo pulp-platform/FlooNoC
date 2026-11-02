@@ -369,6 +369,8 @@ module floo_router
         assign masked_valid_transposed[in][v][out] = masked_valid[out][v][in];
       end
       if (!EnMultiCast) begin : gen_unicast
+        // Drive zero when multicast is not supported
+        assign past_handshakes_q[in][v] = '0;
         assign cross_ready[in][v] = |(masked_ready_transposed[in][v] & route_mask[in][v]);
       end else begin : gen_multicast
         // In the case of multicast transactions, each destination can assert the ready signal
@@ -382,6 +384,7 @@ module floo_router
         // Handhsake received in previous cycles
         assign past_handshakes_d[in][v] = (cross_ready[in][v] & cross_valid[in][v]) ? '0 :
                                             (past_handshakes_q[in][v] | current_handshakes[in][v]);
+        `FF(past_handshakes_q[in][v], past_handshakes_d[in][v], '0)
         // History of handshake received (past + present)
         assign all_handshakes[in][v] = past_handshakes_q[in][v] | current_handshakes[in][v];
 
@@ -394,9 +397,6 @@ module floo_router
       end
     end
   end
-
-  // TODO (lleone): Move the following FF inside the multicast
-  `FF(past_handshakes_q, past_handshakes_d, '0)
 
   // We merge the data from the reduction module as an additional input of our output arbiter.
   logic [NumOutput-1:0][NumVirtChannels-1:0][LocalNumInputs-1:0] merged_valid, merged_ready;
