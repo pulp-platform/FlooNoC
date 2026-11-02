@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ## [Unreleased]
 
+### Changed
+
+#### FlooGen
+
+- The minimum supported Python version is now `3.11`, since Python `3.10` reached its end of life and `pillow` fixes its open security issues only in releases for Python `3.11` and newer. (https://github.com/pulp-platform/FlooNoC/pull/244)
+
 ### Fixed
 
 #### Hardware

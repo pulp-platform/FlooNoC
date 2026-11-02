@@ -9,10 +9,10 @@ description = "A Network Generator for FlooNoC"
 readme = "docs/floogen/overview.md"
 license = "Apache-2.0"
 license-files = ["LICENSE-APACHE"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [{ name = "Tim Fischer", email = "fischeti@iis.ee.ethz.ch" }]
 classifiers = [
-  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
   "Operating System :: OS Independent",
   "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
   "Development Status :: 4 - Beta",
