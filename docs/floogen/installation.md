@@ -4,7 +4,7 @@ _FlooGen_ is distributed as a standard Python package available on PyPI. It prov
 
 ## Prerequisites
 
-- **Python**: Version 3.10 or higher.
+- **Python**: Version 3.11 or higher.
 - **Git**: To clone the repository (only required for source installation).
 
 ---

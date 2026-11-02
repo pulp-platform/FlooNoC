@@ -46,9 +46,9 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -e . && pip install --group dev
 ```
 
-_FlooGen_ supports **Python 3.10 and newer**, and CI generates a network on every version
-from 3.10 to 3.14. Please do not use syntax or standard-library APIs that were added after
-3.10.
+_FlooGen_ supports **Python 3.11 and newer**, and CI generates a network on every version
+from 3.11 to 3.14. Please do not use syntax or standard-library APIs that were added after
+3.11.
 
 ### Hardware
 
@@ -219,7 +219,7 @@ Target the `main` branch and fill in the pull request template. Then watch the c
 | -------- | -------------- |
 | `lint` | Verible over `hw/`, the `prek` hooks (`ruff`, `ty`, `typos`, whitespace, YAML/TOML) and REUSE compliance |
 | `slang` | Elaborates all eight generated example networks |
-| `floogen` | `pytest` under both `pip` and `uv`, plus generation on Python 3.10–3.14 |
+| `floogen` | `pytest` under both `pip` and `uv`, plus generation on Python 3.11–3.14 |
 | `gitlab-ci` | Mirrors to the internal GitLab and runs the RTL simulation regression |
 | `docs` | Builds and deploys the documentation (on `main` only) |
 
