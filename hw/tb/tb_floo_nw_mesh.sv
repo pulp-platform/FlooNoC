@@ -69,7 +69,7 @@ module tb_floo_nw_mesh;
   //   HBM Model   //
   ///////////////////
 
-  localparam axi_cfg_t AxiCfgJoin = floo_pkg::axi_join_cfg(AxiCfgN, AxiCfgW);
+  localparam axi_cfg_t AxiCfgJoin = floo_pkg::axi_join_cfg_max(AxiCfgN, AxiCfgW);
   typedef logic [AxiCfgJoin.OutIdWidth-1:0] hbm_id_t;
   typedef logic [AxiCfgJoin.UserWidth-1:0] hbm_user_t;
 

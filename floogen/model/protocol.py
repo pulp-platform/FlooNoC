@@ -60,10 +60,8 @@ class AXI4(ProtocolDesc):
         """Return the full name of the protocol."""
         return "_".join(filter(None, [prefix, self.type_prefix, self.name]))
 
-    def render_typedefs(self, prefix="", ignored_user_fields=None) -> str:
+    def render_typedefs(self, prefix="") -> str:
         """Render the typedefs of the protocol."""
-        if ignored_user_fields is None:
-            ignored_user_fields = []
         name_t = self.type_name() if prefix == "" else f"{prefix}_{self.type_name()}"
         string = sv_typedef(name_t + "_addr_t", array_size=self.addr_width)
         string += sv_typedef(name_t + "_data_t", array_size=self.data_width)
@@ -74,9 +72,7 @@ class AXI4(ProtocolDesc):
             case int(v):
                 string += sv_typedef(name_t + "_user_t", array_size=v)
             case dict(d):
-                fields = {
-                    k: f"logic [{v - 1}:0]" for k, v in d.items() if k not in ignored_user_fields
-                }
+                fields = {k: f"logic [{v - 1}:0]" for k, v in d.items()}
                 if fields:
                     string += sv_struct_typedef(name_t + "_user_t", fields)
                 else:
@@ -105,9 +101,7 @@ class AXI4(ProtocolDesc):
             case int(v):
                 fields["UserWidth"] = v
             case dict(d):
-                _collective_fields = {"collective_mask", "collective_op"}
-                user_w = sum(v for k, v in d.items() if k not in _collective_fields)
-                fields["UserWidth"] = max(user_w, 1)
+                fields["UserWidth"] = max(sum(d.values()), 1)
 
         return sv_param_decl(name, sv_struct_render(fields), dtype="axi_cfg_t")
 

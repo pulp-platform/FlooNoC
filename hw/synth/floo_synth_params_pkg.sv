@@ -57,6 +57,15 @@ package floo_synth_params_pkg;
       floo_pkg::NumReservedCollectOps + NumNarrowSeqOps + NumWideSeqOps;
   typedef logic [$clog2(NumCollectOps)-1:0] collect_op_t;
 
+  // Width of the AXI user fields carried by the endpoints (see `endpoint_axi_pkg`):
+  // collective mask (address) + collective op, plus the atomic ID on the narrow link.
+  // The chimney transports the user fields as-is, so these must match the AXI configs.
+  localparam int unsigned SynthAddrWidth = 48;
+  localparam int unsigned SynthAtomicIdWidth = 5;
+  localparam int unsigned NarrowUserWidthCfg =
+      SynthAddrWidth + $bits(collect_op_t) + SynthAtomicIdWidth;
+  localparam int unsigned WideUserWidthCfg = SynthAddrWidth + $bits(collect_op_t);
+
 endpackage
 
 package floo_synth_axi_pkg;
@@ -84,18 +93,18 @@ package floo_synth_nw_pkg;
   import floo_synth_params_pkg::*;
 
   localparam floo_pkg::axi_cfg_t AxiCfgN = '{
-    AddrWidth: 48,
+    AddrWidth: SynthAddrWidth,
     DataWidth: 64,
-    UserWidth: 5,
+    UserWidth: NarrowUserWidthCfg,
     InIdWidth: 4,
     OutIdWidth: 2
   };
 
   // AXI nw_chimney parameters
   localparam floo_pkg::axi_cfg_t AxiCfgW = '{
-    AddrWidth: 48,
+    AddrWidth: SynthAddrWidth,
     DataWidth: 512,
-    UserWidth: 1,
+    UserWidth: WideUserWidthCfg,
     InIdWidth: 3,
     OutIdWidth: 1
   };
