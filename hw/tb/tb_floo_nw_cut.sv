@@ -8,8 +8,10 @@
 `include "floo_noc/typedef.svh"
 
 /// Self-checking testbench of `floo_nw_cut`: random flits with random backpressure in both
-/// directions on the req, rsp and both wide virtual channels (2 virtual and 2 physical channels).
-/// Every flit must arrive exactly once, in order, on its own channel.
+/// directions on the req, rsp and wide channels. Every flit must arrive exactly once, in order,
+/// on its own virtual channel. `WideMode` selects the wide link: 0 = `None` (1 virtual, 1 physical
+/// channel), 1 = `Vc` (2 virtual channels on 1 shared physical channel, uses the arbiter of
+/// `floo_cut`), 2 = `Phys` (2 virtual and 2 physical channels, two parallel paths).
 module tb_floo_nw_cut;
 
   import floo_pkg::*;
@@ -21,12 +23,18 @@ module tb_floo_nw_cut;
   localparam int unsigned ValidProb = 50;
   localparam int unsigned ReadyProb = 50;
 
-  // Four channels per direction: req, rsp, wide VC0, wide VC1
-  localparam int unsigned NumChan = 4;
+  parameter int unsigned WideMode = 2;
+  localparam wide_rw_decouple_e WideRwDecouple = wide_rw_decouple_e'(WideMode);
+  localparam int unsigned NumWidePhys = (WideRwDecouple == Phys) ? 2 : 1;
+  localparam int unsigned NumWideVirt = (WideRwDecouple == None) ? 1 : 2;
+  // All virtual channels of the wide link share one data bus
+  localparam bit SharedWideBus = (NumWideVirt != NumWidePhys);
+
+  // Channels per direction: req, rsp, then one per wide virtual channel
   localparam int unsigned ChReq = 0;
   localparam int unsigned ChRsp = 1;
-  localparam int unsigned ChWide0 = 2;
-  localparam int unsigned ChWide1 = 3;
+  localparam int unsigned ChWide = 2;
+  localparam int unsigned NumChan = ChWide + NumWideVirt;
 
   logic clk, rst_n;
 
@@ -38,7 +46,7 @@ module tb_floo_nw_cut;
   `FLOO_TYPEDEF_AXI_FROM_CFG(axi_wide, floo_test_pkg::AxiCfgW)
   `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow_in, axi_wide_in,
       floo_test_pkg::AxiCfgN, floo_test_pkg::AxiCfgW, hdr_t)
-  `FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req, rsp, wide, 2, 2)
+  `FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req, rsp, wide, NumWideVirt, NumWidePhys)
 
   // Index 0 is side A, index 1 is side B
   floo_req_t  [1:0] req_i,  req_o;
@@ -57,7 +65,7 @@ module tb_floo_nw_cut;
     .AxiCfgN       ( floo_test_pkg::AxiCfgN ),
     .AxiCfgW       ( floo_test_pkg::AxiCfgW ),
     .NumCuts       ( NumCuts                ),
-    .WideRwDecouple( Phys                   ),
+    .WideRwDecouple( WideRwDecouple         ),
     .VcImpl        ( VcNaive                ),
     .hdr_t         ( hdr_t                  ),
     .floo_req_t    ( floo_req_t             ),
@@ -86,92 +94,49 @@ module tb_floo_nw_cut;
   bits_t exp_q [2][NumChan][$];
   int unsigned num_sent [2][NumChan];
   int unsigned num_recv [2][NumChan];
+  bit fired [2][NumChan];
   int unsigned num_err = 0;
 
   function automatic bit roll(int unsigned prob);
     return ($urandom_range(99) < prob);
   endfunction
 
-  // Source `s` offers flits that are received by side `1-s`. Signals change 1 ns after the clock
-  // edge, a handshake is sampled at the falling edge.
-  for (genvar s = 0; s < 2; s++) begin : gen_side
-    for (genvar c = 0; c < NumChan; c++) begin : gen_chan
-      bit fired;
-      // Source
-      initial begin
-        fired = 1'b0;
-        num_sent[s][c] = 0;
-        num_recv[s][c] = 0;
-        case (c)
-          ChReq:   req_i[s].valid = 1'b0;
-          ChRsp:   rsp_i[s].valid = 1'b0;
-          ChWide0: wide_i[s].valid[0] = 1'b0;
-          ChWide1: wide_i[s].valid[1] = 1'b0;
-        endcase
-        wait (rst_n);
-        forever begin
-          @(posedge clk);
-          #1ns;
-          if (fired) begin
-            case (c)
-              ChReq:   req_i[s].valid = 1'b0;
-              ChRsp:   rsp_i[s].valid = 1'b0;
-              ChWide0: wide_i[s].valid[0] = 1'b0;
-              ChWide1: wide_i[s].valid[1] = 1'b0;
-            endcase
-            fired = 1'b0;
-          end
-          if (!is_valid(s, c) && num_sent[s][c] < NumFlits && roll(ValidProb)) begin
-            offer(s, c);
-            num_sent[s][c]++;
-          end
-        end
-      end
-      // Handshake sampling of the source
-      always @(negedge clk) begin
-        if (rst_n && is_valid(s, c) && src_ready(s, c)) fired = 1'b1;
-      end
-      // Sink: side `1-s` accepts, driven through the ready of its own link
-      initial begin
-        req_i[1-s].ready = 1'b0;
-        rsp_i[1-s].ready = 1'b0;
-        wide_i[1-s].ready = '0;
-        forever begin
-          @(posedge clk);
-          #1ns;
-          set_ready(1-s, c, roll(ReadyProb));
-        end
-      end
-      always @(negedge clk) begin
-        if (rst_n && sink_valid(1-s, c) && sink_ready(1-s, c)) check(s, c);
-      end
-    end
-  end
+  // Physical wide channel used by a channel index
+  function automatic int unsigned wide_phys(int c);
+    return (NumWidePhys == 1) ? 0 : c - ChWide;
+  endfunction
 
   function automatic bit is_valid(int s, int c);
     case (c)
       ChReq:   return req_i[s].valid;
       ChRsp:   return rsp_i[s].valid;
-      ChWide0: return wide_i[s].valid[0];
-      default: return wide_i[s].valid[1];
+      default: return wide_i[s].valid[c-ChWide];
     endcase
   endfunction
 
+  function automatic void set_valid(int s, int c, bit val);
+    case (c)
+      ChReq:   req_i[s].valid = val;
+      ChRsp:   rsp_i[s].valid = val;
+      default: wide_i[s].valid[c-ChWide] = val;
+    endcase
+  endfunction
+
+  // Ready seen by the source of side `s`
   function automatic bit src_ready(int s, int c);
     case (c)
       ChReq:   return req_o[s].ready;
       ChRsp:   return rsp_o[s].ready;
-      ChWide0: return wide_o[s].ready[0];
-      default: return wide_o[s].ready[1];
+      default: return wide_o[s].ready[c-ChWide];
     endcase
   endfunction
 
+  // Valid and ready of the sink of side `r`
   function automatic bit sink_valid(int r, int c);
     case (c)
       ChReq:   return req_o[r].valid;
       ChRsp:   return rsp_o[r].valid;
-      ChWide0: return wide_o[r].valid[0];
-      default: return wide_o[r].valid[1];
+      default: return wide_o[r].valid[c-ChWide];
     endcase
   endfunction
 
@@ -179,8 +144,7 @@ module tb_floo_nw_cut;
     case (c)
       ChReq:   return req_i[r].ready;
       ChRsp:   return rsp_i[r].ready;
-      ChWide0: return wide_i[r].ready[0];
-      default: return wide_i[r].ready[1];
+      default: return wide_i[r].ready[c-ChWide];
     endcase
   endfunction
 
@@ -188,8 +152,7 @@ module tb_floo_nw_cut;
     case (c)
       ChReq:   req_i[r].ready = rdy;
       ChRsp:   rsp_i[r].ready = rdy;
-      ChWide0: wide_i[r].ready[0] = rdy;
-      default: wide_i[r].ready[1] = rdy;
+      default: wide_i[r].ready[c-ChWide] = rdy;
     endcase
   endfunction
 
@@ -204,35 +167,27 @@ module tb_floo_nw_cut;
     case (c)
       ChReq: begin
         req_i[s].req = rq;
-        req_i[s].valid = 1'b1;
         exp_q[s][c].push_back(bits_t'(rq));
       end
       ChRsp: begin
         rsp_i[s].rsp = rs;
-        rsp_i[s].valid = 1'b1;
         exp_q[s][c].push_back(bits_t'(rs));
       end
-      ChWide0: begin
-        wide_i[s].wide[0] = wd;
-        wide_i[s].valid[0] = 1'b1;
-        exp_q[s][c].push_back(bits_t'(wd));
-      end
       default: begin
-        wide_i[s].wide[1] = wd;
-        wide_i[s].valid[1] = 1'b1;
+        wide_i[s].wide[wide_phys(c)] = wd;
         exp_q[s][c].push_back(bits_t'(wd));
       end
     endcase
+    set_valid(s, c, 1'b1);
   endfunction
 
-  // Compare a received flit with the oldest expected flit of the same source and channel
+  // Compare a flit received by side `1-s` with the oldest expected flit of source `s`
   function automatic void check(int s, int c);
     bits_t got, exp;
     case (c)
       ChReq:   got = bits_t'(req_o[1-s].req);
       ChRsp:   got = bits_t'(rsp_o[1-s].rsp);
-      ChWide0: got = bits_t'(wide_o[1-s].wide[0]);
-      default: got = bits_t'(wide_o[1-s].wide[1]);
+      default: got = bits_t'(wide_o[1-s].wide[wide_phys(c)]);
     endcase
     if (exp_q[s][c].size() == 0) begin
       $error("Unexpected flit: side %0d -> %0d, channel %0d", s, 1-s, c);
@@ -246,6 +201,67 @@ module tb_floo_nw_cut;
     end
     num_recv[s][c]++;
   endfunction
+
+  // Signals change 1 ns after the clock edge, a handshake is sampled at the falling edge.
+  for (genvar s = 0; s < 2; s++) begin : gen_side
+    // Source of side `s`. On a shared wide bus only one virtual channel may be valid at a time,
+    // like the output of a router.
+    initial begin
+      bit bus_busy;
+      for (int c = 0; c < NumChan; c++) begin
+        fired[s][c] = 1'b0;
+        num_sent[s][c] = 0;
+        num_recv[s][c] = 0;
+      end
+      req_i[s].valid = 1'b0;
+      rsp_i[s].valid = 1'b0;
+      wide_i[s].valid = '0;
+      wait (rst_n);
+      forever begin
+        @(posedge clk);
+        #1ns;
+        bus_busy = 1'b0;
+        for (int c = 0; c < NumChan; c++) begin
+          if (fired[s][c]) begin
+            set_valid(s, c, 1'b0);
+            fired[s][c] = 1'b0;
+          end
+          if (c >= ChWide && is_valid(s, c)) bus_busy = 1'b1;
+        end
+        for (int c = 0; c < NumChan; c++) begin
+          if (!is_valid(s, c) && num_sent[s][c] < NumFlits && roll(ValidProb) &&
+              !(SharedWideBus && c >= ChWide && bus_busy)) begin
+            offer(s, c);
+            num_sent[s][c]++;
+            if (c >= ChWide) bus_busy = 1'b1;
+          end
+        end
+      end
+    end
+    // Sink of side `s`, receives the flits of side `1-s`
+    initial begin
+      req_i[s].ready = 1'b0;
+      rsp_i[s].ready = 1'b0;
+      wide_i[s].ready = '0;
+      forever begin
+        @(posedge clk);
+        #1ns;
+        for (int c = 0; c < NumChan; c++) set_ready(s, c, roll(ReadyProb));
+      end
+    end
+    always @(negedge clk) begin
+      if (rst_n) begin
+        for (int c = 0; c < NumChan; c++) begin
+          if (is_valid(s, c) && src_ready(s, c)) fired[s][c] = 1'b1;
+          if (sink_valid(s, c) && sink_ready(s, c)) check(1-s, c);
+        end
+        if (SharedWideBus && !$onehot0(wide_o[s].valid)) begin
+          $error("More than one virtual channel valid on the shared wide bus of side %0d", s);
+          num_err++;
+        end
+      end
+    end
+  end
 
   // End of test
   initial begin
@@ -267,8 +283,12 @@ module tb_floo_nw_cut;
                  NumFlits);
           num_err++;
         end
-    if (num_err == 0) $display("tb_floo_nw_cut: PASSED (%0d flits per channel and direction)", NumFlits);
-    else $fatal(1, "tb_floo_nw_cut: FAILED with %0d errors", num_err);
+    if (num_err == 0) begin
+      $display("tb_floo_nw_cut: PASSED (WideMode %0d, %0d flits per channel and direction)",
+               WideMode, NumFlits);
+    end else begin
+      $fatal(1, "tb_floo_nw_cut: FAILED with %0d errors", num_err);
+    end
     $finish;
   end
 

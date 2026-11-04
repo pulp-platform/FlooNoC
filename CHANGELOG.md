@@ -16,8 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 #### Hardware
 
-- `floo_cut` forwarded only one physical channel when `NumPhysChannels > 1`. Virtual channel `v` now uses physical channel `v` (as in `floo_router`), so a link with one physical channel per virtual channel gets fully parallel paths. Other physical-channel counts are rejected at elaboration.
-
+- `floo_cut` forwarded only one physical channel when `NumPhysChannels > 1`. It now supports `NumPhysChannels == NumVirtChannels` (one spill register and data bus per virtual channel, fully parallel paths) and one shared physical channel with `VcNaive` (spill registers followed by a `floo_vc_arbiter`). Other configurations are rejected by an assertion.
 - Rename `credit_init_i` to `clr_i` on the credit counter of `floo_vc_arbiter`, as in common_cells v2. Before, Verilator stopped on every design with a router. (https://github.com/pulp-platform/FlooNoC/pull/245)
 
 ## [0.9.0] - 2026-09-26

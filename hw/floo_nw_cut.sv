@@ -6,11 +6,13 @@
 
 `include "axi/typedef.svh"
 `include "floo_noc/typedef.svh"
+`include "common_cells/assertions.svh"
 
 /// Spill register cuts on a narrow-wide link, in both directions.
 /// Side A and side B are the two endpoints of the link: `floo_*_a_i` is what A drives and
 /// `floo_*_a_o` is what A receives. Each virtual channel gets its own spill register; with
 /// `WideRwDecouple == Phys` the two wide virtual channels are two parallel paths.
+/// `WideRwDecouple == Vc` (shared physical channel) needs `VcImpl == VcNaive`, see `floo_cut`.
 module floo_nw_cut
   import floo_pkg::*;
 #(
@@ -53,10 +55,6 @@ module floo_nw_cut
 
   localparam int unsigned NumWidePhysChannels = (WideRwDecouple == Phys) ? 2 : 1;
   localparam int unsigned NumWideVirtChannels = (WideRwDecouple == None) ? 1 : 2;
-
-  if (VcImpl == VcCredit) begin : gen_credit_unsupported
-    $fatal(1, "floo_nw_cut: credit-based virtual channels are not supported");
-  end
 
   typedef logic [AxiCfgN.AddrWidth-1:0] axi_addr_t;
   typedef logic [AxiCfgN.InIdWidth-1:0] axi_narrow_in_id_t;
@@ -158,6 +156,7 @@ module floo_nw_cut
     .NumVirtChannels(NumWideVirtChannels),
     .NumPhysChannels(NumWidePhysChannels),
     .NumCuts        (NumCuts),
+    .VcImpl         (VcImpl),
     .flit_t         (floo_wide_chan_t)
   ) i_wide_cut (
     .clk_i,
@@ -169,5 +168,14 @@ module floo_nw_cut
     .ready_i(wide_ready_in),
     .data_o (wide_data_out)
   );
+
+  ////////////////
+  // Assertions //
+  ////////////////
+
+  // The credit field of the links is not carried through the cut. Wide virtual channels on a
+  // shared physical channel are checked in `floo_cut`.
+  `ASSERT_INIT(NoCreditVc, VcImpl != VcCredit,
+      "floo_nw_cut: credit-based virtual channels are not supported")
 
 endmodule

@@ -4,15 +4,22 @@
 //
 // Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-/// Spill registers to cut timing paths.
-/// Each virtual channel has its own spill register. With one physical channel, the virtual
-/// channels are arbitrated onto it after every cut. With one physical channel per virtual channel,
-/// virtual channel `v` uses physical channel `v` and the paths are fully parallel.
-module floo_cut #(
+`include "common_cells/assertions.svh"
+
+/// Spill registers to cut timing paths. Every virtual channel gets its own spill register.
+/// Supported configurations:
+/// - `NumPhysChannels == NumVirtChannels`: each virtual channel has its own valid, ready and data
+///   bus, so the paths are fully parallel.
+/// - `NumPhysChannels == 1` with `VcImpl == VcNaive`: the virtual channels share one data bus and
+///   a `floo_vc_arbiter` after each cut picks the stored flit that drives it.
+module floo_cut
+  import floo_pkg::*;
+#(
   parameter int unsigned  NumChannels     = 32'd2, // 2 for bi-directional channels
   parameter int unsigned  NumVirtChannels = 32'd1,
   parameter int unsigned  NumPhysChannels = 32'd1,
   parameter int unsigned  NumCuts         = 32'd1,
+  parameter vc_impl_e     VcImpl          = VcNaive,
   parameter type          flit_t          = logic
 ) (
   input  logic clk_i,
@@ -27,10 +34,6 @@ module floo_cut #(
   output flit_t[NumChannels-1:0][NumPhysChannels-1:0] data_o
 );
 
-  if (NumPhysChannels != 1 && NumPhysChannels != NumVirtChannels) begin : gen_odd_phys
-    $fatal(1, "floo_cut: NumPhysChannels must be 1 or equal to NumVirtChannels");
-  end
-
   if (NumCuts == 0) begin : gen_no_cuts
     // Degenerate case
     assign valid_o = valid_i;
@@ -38,10 +41,8 @@ module floo_cut #(
     assign data_o  = data_i;
   end else begin : gen_floo_cuts
 
-    flit_t  [NumChannels-1:0][NumCuts:0][NumPhysChannels-1:0] data;
-    flit_t  [NumChannels-1:0][NumCuts-1:0][NumVirtChannels-1:0] data_virt;
-    logic   [NumChannels-1:0][NumCuts:0][NumVirtChannels-1:0] valid, ready;
-    logic   [NumChannels-1:0][NumCuts-1:0][NumVirtChannels-1:0] valid_virt, ready_virt;
+    flit_t [NumChannels-1:0][NumCuts:0][NumPhysChannels-1:0] data;
+    logic  [NumChannels-1:0][NumCuts:0][NumVirtChannels-1:0] valid, ready;
 
     for (genvar n = 0; n < NumChannels; n++) begin : gen_channel
 
@@ -56,45 +57,79 @@ module floo_cut #(
 
       for (genvar c = 0; c < NumCuts; c++) begin : gen_cut
 
-        for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt
-          // Same virtual-to-physical channel mapping as `floo_router`
-          localparam int unsigned PhysIdx = (NumPhysChannels == 1) ? 0 : v;
+        if (NumPhysChannels == NumVirtChannels) begin : gen_parallel
+          for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt
+            cc_spill_register #(
+              .data_t  ( flit_t ),
+              .Bypass  ( 1'b0   )
+            ) i_floo_spill_reg (
+              .clk_i   ( clk_i                ),
+              .rst_ni  ( rst_ni               ),
+              .clr_i   ( 1'b0                 ),
+              .valid_i ( valid[n][c][v]       ),
+              .ready_o ( ready[n][c][v]       ),
+              .data_i  ( data[n][c][v]        ),
+              .valid_o ( valid[n][c+1][v]     ),
+              .ready_i ( ready[n][c+1][v]     ),
+              .data_o  ( data[n][c+1][v]      )
+            );
+          end
+        end else begin : gen_arbitrated
+          flit_t [NumVirtChannels-1:0] data_virt;
+          logic  [NumVirtChannels-1:0] valid_virt, ready_virt;
 
-          cc_spill_register #(
-            .data_t       ( flit_t ),
-            .Bypass  ( 1'b0   )
-          ) i_floo_spill_reg (
-            .clk_i   ( clk_i                ),
-            .rst_ni  ( rst_ni               ),
-            .clr_i   ( 1'b0                 ),
-            .valid_i ( valid[n][c][v]       ),
-            .ready_o ( ready[n][c][v]       ),
-            .data_i  ( data[n][c][PhysIdx]  ),
-            .valid_o ( valid_virt[n][c][v]  ),
-            .ready_i ( ready_virt[n][c][v]  ),
-            .data_o  ( data_virt[n][c][v]   )
+          for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt
+            cc_spill_register #(
+              .data_t  ( flit_t ),
+              .Bypass  ( 1'b0   )
+            ) i_floo_spill_reg (
+              .clk_i   ( clk_i                ),
+              .rst_ni  ( rst_ni               ),
+              .clr_i   ( 1'b0                 ),
+              .valid_i ( valid[n][c][v]       ),
+              .ready_o ( ready[n][c][v]       ),
+              .data_i  ( data[n][c][0]        ),
+              .valid_o ( valid_virt[v]        ),
+              .ready_i ( ready_virt[v]        ),
+              .data_o  ( data_virt[v]         )
+            );
+          end
+
+          floo_vc_arbiter #(
+            .NumVirtChannels ( NumVirtChannels ),
+            .NumPhysChannels ( NumPhysChannels ),
+            .VcImpl          ( VcImpl          ),
+            .flit_t          ( flit_t          )
+          ) i_floo_vc_arbiter (
+            .clk_i      ( clk_i             ),
+            .rst_ni     ( rst_ni            ),
+            .valid_i    ( valid_virt        ),
+            .ready_o    ( ready_virt        ),
+            .data_i     ( data_virt         ),
+            .data_o     ( data[n][c+1]      ),
+            .valid_o    ( valid[n][c+1]     ),
+            .ready_i    ( ready[n][c+1]     ),
+            .credit_i   ( '0                )
           );
         end
 
-        // TODO(fischeti): Is an arbiter necessary here?
-        floo_vc_arbiter #(
-          .NumVirtChannels(NumVirtChannels),
-          .NumPhysChannels(NumPhysChannels),
-          .flit_t(flit_t)
-        ) i_floo_vc_arbiter (
-          .clk_i      ( clk_i             ),
-          .rst_ni     ( rst_ni            ),
-          .valid_i    ( valid_virt[n][c]  ),
-          .ready_o    ( ready_virt[n][c]  ),
-          .data_i     ( data_virt[n][c]   ),
-          .data_o     ( data[n][c+1]      ),
-          .valid_o    ( valid[n][c+1]     ),
-          .ready_i    ( ready[n][c+1]     ),
-          .credit_i   ( '0                )
-        );
       end
 
     end
   end
+
+  ////////////////
+  // Assertions //
+  ////////////////
+
+  // Other configurations are not supported. Supporting one shared physical channel with another
+  // `VcImpl` needs:
+  // - `VcPreemptValid`: nothing in the cut itself (its valid has no combinational dependency on
+  //   the downstream ready, unlike `VcNaive`), but a test for the withdrawn valid.
+  // - `VcCredit`: the credits must also pass through the cut and the receiver FIFO must be
+  //   deeper to cover the added round trip.
+  `ASSERT_INIT(SupportedVcConfig,
+      (NumPhysChannels == NumVirtChannels) || (NumPhysChannels == 1 && VcImpl == VcNaive),
+      "floo_cut: only NumPhysChannels == NumVirtChannels or one physical channel with VcNaive")
 
 endmodule
