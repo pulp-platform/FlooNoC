@@ -4,7 +4,10 @@
 //
 // Tim Fischer <fischeti@iis.ee.ethz.ch>
 
-/// Spill registers to cut timing paths
+/// Spill registers to cut timing paths.
+/// Each virtual channel has its own spill register. With one physical channel, the virtual
+/// channels are arbitrated onto it after every cut. With one physical channel per virtual channel,
+/// virtual channel `v` uses physical channel `v` and the paths are fully parallel.
 module floo_cut #(
   parameter int unsigned  NumChannels     = 32'd2, // 2 for bi-directional channels
   parameter int unsigned  NumVirtChannels = 32'd1,
@@ -24,6 +27,10 @@ module floo_cut #(
   output flit_t[NumChannels-1:0][NumPhysChannels-1:0] data_o
 );
 
+  if (NumPhysChannels != 1 && NumPhysChannels != NumVirtChannels) begin : gen_odd_phys
+    $fatal(1, "floo_cut: NumPhysChannels must be 1 or equal to NumVirtChannels");
+  end
+
   if (NumCuts == 0) begin : gen_no_cuts
     // Degenerate case
     assign valid_o = valid_i;
@@ -31,7 +38,7 @@ module floo_cut #(
     assign data_o  = data_i;
   end else begin : gen_floo_cuts
 
-    flit_t  [NumChannels-1:0][NumCuts:0] data;
+    flit_t  [NumChannels-1:0][NumCuts:0][NumPhysChannels-1:0] data;
     flit_t  [NumChannels-1:0][NumCuts-1:0][NumVirtChannels-1:0] data_virt;
     logic   [NumChannels-1:0][NumCuts:0][NumVirtChannels-1:0] valid, ready;
     logic   [NumChannels-1:0][NumCuts-1:0][NumVirtChannels-1:0] valid_virt, ready_virt;
@@ -50,6 +57,9 @@ module floo_cut #(
       for (genvar c = 0; c < NumCuts; c++) begin : gen_cut
 
         for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt
+          // Same virtual-to-physical channel mapping as `floo_router`
+          localparam int unsigned PhysIdx = (NumPhysChannels == 1) ? 0 : v;
+
           cc_spill_register #(
             .data_t       ( flit_t ),
             .Bypass  ( 1'b0   )
@@ -59,7 +69,7 @@ module floo_cut #(
             .clr_i   ( 1'b0                 ),
             .valid_i ( valid[n][c][v]       ),
             .ready_o ( ready[n][c][v]       ),
-            .data_i  ( data[n][c]           ),
+            .data_i  ( data[n][c][PhysIdx]  ),
             .valid_o ( valid_virt[n][c][v]  ),
             .ready_i ( ready_virt[n][c][v]  ),
             .data_o  ( data_virt[n][c][v]   )
