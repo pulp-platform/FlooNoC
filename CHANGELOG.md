@@ -6,10 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ## [Unreleased]
 
+### Added
+
+#### Hardware
+
+- Add `floo_nw_cut`, spill register cuts for both directions of a narrow-wide link (`floo_req_t`, `floo_rsp_t`, `floo_wide_t`) built from `floo_cut`, with a `tb_floo_nw_cut` testbench. Credit-based virtual channels are not supported.
+
 ### Fixed
 
 #### Hardware
 
+- `floo_cut` forwarded only one physical channel when `NumPhysChannels > 1`. It now supports `NumPhysChannels == NumVirtChannels` (one spill register and data bus per virtual channel, fully parallel paths) and one shared physical channel with `VcNaive` (spill registers followed by a `floo_vc_arbiter`). Other configurations are rejected by an assertion.
 - Rename `credit_init_i` to `clr_i` on the credit counter of `floo_vc_arbiter`, as in common_cells v2. Before, Verilator stopped on every design with a router. (https://github.com/pulp-platform/FlooNoC/pull/245)
 
 ## [0.9.0] - 2026-09-26
