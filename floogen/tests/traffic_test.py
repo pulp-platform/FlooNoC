@@ -134,6 +134,52 @@ def test_example_traffic_files_parse(name):
     assert all(f.start_time == 0 and f.qos == 0 for f in traffic.traffic_flows)
 
 
+def test_job_string_starts_with_release_cycle_and_qos():
+    assert _gen_job_str(64, 0x10, 0x20, release_cycle=100, qos=7) == (
+        "100\n7\n64\n0x10\n0x20\n0\n0\n256\n256\n0\n0\n0\n"
+    )
+
+
+def test_traffic_cfg_jobs(tmp_path):
+    """Jobs carry the flow's start time and QoS, and their transfers follow `rw`."""
+    network = _network()
+    addr_map = _xy_addr_map(network)
+    cfg = _write_traffic_cfg(
+        tmp_path / "traffic.yml",
+        [
+            _flow(
+                name="w",
+                initiator=[0, 1],
+                endpoint=[2, 3],
+                start_time=500,
+                qos=9,
+                narrow_burst={"number": 1, "length": 2},
+                wide_burst={"number": 2, "length": 4},
+            ),
+            _flow(name="r", initiator=[3, 3], endpoint=[-1, 0], rw="read"),
+        ],
+    )
+    gen_traffic_cfg(cfg, network, "t", tmp_path / "jobs")
+
+    local, ext = addr_map[(0, 1)], addr_map[(2, 3)]
+    # Wide DMA of node (0, 1): two 4-beat bursts of 512 bits.
+    assert (
+        _jobs(tmp_path / "jobs" / "t_1.txt")
+        == [["500", "9", "256", hex(local), hex(ext), "0", "0", "256", "256", "0", "0", "0"]] * 2
+    )
+    # Narrow DMA of node (0, 1): one 2-beat burst of 64 bits.
+    assert _jobs(tmp_path / "jobs" / "t_101.txt") == [
+        ["500", "9", "16", hex(local), hex(ext), "0", "0", "256", "256", "0", "0", "0"]
+    ]
+
+    # A read flow copies from the endpoint into the initiator, with the defaults.
+    local, ext = addr_map[(3, 3)], addr_map[(-1, 0)]
+    assert _jobs(tmp_path / "jobs" / "t_15.txt") == [
+        ["0", "0", "64", hex(ext), hex(local), "0", "0", "256", "256", "0", "0", "0"]
+    ]
+    assert _jobs(tmp_path / "jobs" / "t_115.txt") == []
+
+
 def test_traffic_cfg_idle_dmas_get_files_without_jobs(tmp_path):
     """Every DMA of a node without a flow gets a job file without jobs, replacing stale ones."""
     network = _network()
@@ -178,3 +224,22 @@ def test_traffic_cfg_rejects_two_flows_on_one_initiator(tmp_path):
     cfg = _write_traffic_cfg(tmp_path / "traffic.yml", [_flow(name="a"), _flow(name="b")])
     with pytest.raises(ValueError, match="'a' and 'b' share initiator"):
         gen_traffic_cfg(cfg, network, "t", tmp_path / "jobs")
+
+
+def test_builtin_traffic_jobs_have_default_release_and_qos(tmp_path):
+    """Built-in patterns release all jobs at cycle 0 with QoS 0."""
+    gen_traffic_builtin(
+        "uniform",
+        _network(),
+        "mesh",
+        tmp_path,
+        num_narrow_bursts=2,
+        narrow_burst_length=1,
+        num_wide_bursts=3,
+        wide_burst_length=1,
+        traffic_rw="read",
+    )
+    for idx in [*range(16), *range(100, 116)]:
+        jobs = _jobs(tmp_path / f"mesh_{idx}.txt")
+        assert len(jobs) == (3 if idx < 100 else 2)
+        assert all(job[:2] == ["0", "0"] for job in jobs)

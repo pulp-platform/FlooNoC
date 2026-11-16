@@ -271,6 +271,8 @@ def _gen_job_str(
     src_addr: int,
     dst_addr: int,
     *,
+    release_cycle: int = 0,
+    qos: int = 0,
     max_src_burst_size: int = 256,
     max_dst_burst_size: int = 256,
     r_aw_decouple: bool = False,
@@ -279,6 +281,8 @@ def _gen_job_str(
 ) -> str:
     """Generate the job-file representation of a single job."""
     return (
+        f"{int(release_cycle)}\n"
+        f"{int(qos)}\n"
         f"{int(length)}\n"
         f"{hex(src_addr)}\n"
         f"{hex(dst_addr)}\n"
@@ -340,6 +344,7 @@ def gen_traffic_cfg(
         assert local_addr is not None and ext_addr is not None  # checked above
         src_addr = ext_addr if flow.rw == "read" else local_addr
         dst_addr = local_addr if flow.rw == "read" else ext_addr
+        start, qos = flow.start_time, flow.qos
 
         wide_jobs = ""
         for burst in flow.wide_burst:
@@ -351,7 +356,8 @@ def gen_traffic_cfg(
                 )
                 continue
             wide_length = burst.length * burst.data_width // 8
-            wide_jobs += _gen_job_str(wide_length, src_addr, dst_addr) * burst.number
+            job = _gen_job_str(wide_length, src_addr, dst_addr, release_cycle=start, qos=qos)
+            wide_jobs += job * burst.number
 
         narrow_jobs = ""
         for burst in flow.narrow_burst:
@@ -363,7 +369,8 @@ def gen_traffic_cfg(
                 )
                 continue
             narrow_length = burst.length * burst.data_width // 8
-            narrow_jobs += _gen_job_str(narrow_length, src_addr, dst_addr) * burst.number
+            job = _gen_job_str(narrow_length, src_addr, dst_addr, release_cycle=start, qos=qos)
+            narrow_jobs += job * burst.number
 
         x, y = flow.initiator[0], flow.initiator[1]
         idx = x * floonoc_num_y + y

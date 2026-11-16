@@ -31,6 +31,8 @@ task automatic read_jobs (
     // until not end of file
     while (! $feof(job_file)) begin
         now = new();
+        void'($fscanf(job_file, "%d\n", now.release_cycle));
+        void'($fscanf(job_file, "%d\n", now.qos));
         void'($fscanf(job_file, "%d\n", now.length));
         void'($fscanf(job_file, "0x%x\n", now.src_addr));
         void'($fscanf(job_file, "0x%x\n", now.dst_addr));

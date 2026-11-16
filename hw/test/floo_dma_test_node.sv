@@ -346,9 +346,23 @@ module floo_dma_test_node  #(
   // DMA Job Queue
   //--------------------------------------
   // job type definition
-  typedef idma_test::idma_job #(
+  class tb_dma_job_t extends idma_test::idma_job #(
       .AddrWidth   ( AxiCfg.AddrWidth )
-  ) tb_dma_job_t;
+  );
+    int unsigned   release_cycle;
+    axi_pkg::qos_t qos;
+
+    function new ();
+      super.new();
+      release_cycle = '0;
+      qos           = '0;
+    endfunction
+
+    function string pprint ();
+      return {$sformatf("\n release_cycle:  %0d\n qos:            %0d", release_cycle, qos),
+              super.pprint()};
+    endfunction
+  endclass : tb_dma_job_t
 
   // request and response queues
   tb_dma_job_t req_jobs [$];
