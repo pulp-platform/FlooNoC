@@ -7,18 +7,35 @@
 from pathlib import Path
 
 import pytest
+import ruamel.yaml
 from pydantic import ValidationError
 
 from floogen.config_parser import parse_config
 from floogen.model.network import Network
 from floogen.model.traffic import (
+    Traffic,
     TrafficStream,
+    _gen_job_str,
     _xy_addr_map,
     gen_traffic_builtin,
+    gen_traffic_cfg,
     parse_traffic_cfg,
 )
 
 EXAMPLES_DIR = Path(__file__).resolve().parents[1] / "examples"
+
+# Number of lines of a job, as written by the generator (one value per line), so that it
+# follows the job file format.
+JOB_LINES = _gen_job_str(0, 0, 0).count("\n")
+
+
+def _network(name: str = "nw_mesh_xy") -> Network:
+    network = parse_config(Network, EXAMPLES_DIR / f"{name}.yml")
+    assert network is not None
+    network.create_network()
+    network.compile_network()
+    network.gen_routing_info()
+    return network
 
 
 def _flow(**kwargs) -> dict:
@@ -35,14 +52,24 @@ def _flow(**kwargs) -> dict:
     return flow
 
 
+def _write_traffic_cfg(path: Path, flows: list[dict]) -> Path:
+    """Write a traffic configuration file with the given flow descriptions."""
+    with open(path, "w", encoding="utf-8") as f:
+        ruamel.yaml.YAML(typ="safe").dump({"traffic_flows": flows}, f)
+    return path
+
+
+def _jobs(path: Path) -> list[list[str]]:
+    """Split a job file without error descriptions into its jobs."""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    assert len(lines) % JOB_LINES == 0
+    return [lines[i : i + JOB_LINES] for i in range(0, len(lines), JOB_LINES)]
+
+
 @pytest.mark.parametrize("route_algo", ["xy", "yx", "id", "src"])
 def test_builtin_traffic_uses_mesh_coordinates_for_all_routing_algorithms(tmp_path, route_algo):
     """Built-in traffic uses topology coordinates rather than routing IDs."""
-    network = parse_config(Network, EXAMPLES_DIR / f"nw_mesh_{route_algo}.yml")
-    assert network is not None
-    network.create_network()
-    network.compile_network()
-    network.gen_routing_info()
+    network = _network(f"nw_mesh_{route_algo}")
 
     addr_map = _xy_addr_map(network)
     assert addr_map[(0, 0)] == 0
@@ -60,8 +87,8 @@ def test_builtin_traffic_uses_mesh_coordinates_for_all_routing_algorithms(tmp_pa
         traffic_rw="write",
     )
 
-    assert (tmp_path / "mesh_0.txt").read_text()
-    assert (tmp_path / "mesh_100.txt").read_text()
+    assert _jobs(tmp_path / "mesh_0.txt")
+    assert _jobs(tmp_path / "mesh_100.txt")
 
 
 def test_traffic_stream_defaults():
@@ -93,8 +120,61 @@ def test_traffic_stream_accepts_boundary_values(field, value):
     assert getattr(TrafficStream.model_validate(_flow(**{field: value})), field) == value
 
 
+def test_traffic_rejects_two_flows_on_one_initiator():
+    """Only one flow per initiator is supported, since each DMA runs a single job file."""
+    flows = [_flow(name="first"), _flow(name="second", endpoint=[2, 2])]
+    with pytest.raises(ValidationError, match="'first' and 'second' share initiator"):
+        Traffic.model_validate({"traffic_flows": flows})
+
+
 @pytest.mark.parametrize("name", ["nw_mesh_xy", "axi_mesh_xy"])
 def test_example_traffic_files_parse(name):
     """The example traffic files have no `start_time`/`qos` and keep their defaults."""
     traffic = parse_traffic_cfg(EXAMPLES_DIR / "traffic" / f"{name}.yml")
     assert all(f.start_time == 0 and f.qos == 0 for f in traffic.traffic_flows)
+
+
+def test_traffic_cfg_idle_dmas_get_files_without_jobs(tmp_path):
+    """Every DMA of a node without a flow gets a job file without jobs, replacing stale ones."""
+    network = _network()
+    outdir = tmp_path / "jobs"
+    outdir.mkdir()
+    (outdir / "t_5.txt").write_text("stale jobs from an earlier run\n", encoding="utf-8")
+    cfg = _write_traffic_cfg(
+        tmp_path / "traffic.yml",
+        [_flow(narrow_burst={"number": 1, "length": 1})],
+    )
+    gen_traffic_cfg(cfg, network, "t", outdir)
+
+    assert len(_jobs(outdir / "t_0.txt")) == 1
+    assert len(_jobs(outdir / "t_100.txt")) == 1
+    for idx in range(1, 16):
+        assert _jobs(outdir / f"t_{idx}.txt") == []
+        assert _jobs(outdir / f"t_{idx + 100}.txt") == []
+    assert len(list(outdir.glob("t_*.txt"))) == 32
+
+
+@pytest.mark.parametrize(
+    "initiator, endpoint, error",
+    [
+        ([-1, 0], [1, 1], r"initiator \[-1, 0\] is outside the 4x4 mesh"),
+        ([4, 0], [1, 1], r"initiator \[4, 0\] is outside the 4x4 mesh"),
+        ([0, 0], [7, 7], r"no network interface at endpoint \[7, 7\]"),
+    ],
+)
+def test_traffic_cfg_rejects_flows_that_cannot_run(tmp_path, initiator, endpoint, error):
+    """A flow that cannot run is an error, and no job file is written."""
+    network = _network()
+    cfg = _write_traffic_cfg(
+        tmp_path / "traffic.yml", [_flow(name="bad", initiator=initiator, endpoint=endpoint)]
+    )
+    with pytest.raises(ValueError, match=error):
+        gen_traffic_cfg(cfg, network, "t", tmp_path / "jobs")
+    assert not (tmp_path / "jobs").exists()
+
+
+def test_traffic_cfg_rejects_two_flows_on_one_initiator(tmp_path):
+    network = _network()
+    cfg = _write_traffic_cfg(tmp_path / "traffic.yml", [_flow(name="a"), _flow(name="b")])
+    with pytest.raises(ValueError, match="'a' and 'b' share initiator"):
+        gen_traffic_cfg(cfg, network, "t", tmp_path / "jobs")

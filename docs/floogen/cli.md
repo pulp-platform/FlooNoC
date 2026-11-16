@@ -218,7 +218,7 @@ floogen traffic -c <config_file> --traffic-type <pattern> --traffic-rw <read|wri
   * `--narrow-burst-length <n>` / `--wide-burst-length <n>`: Narrow/wide burst length in beats (defaults: `1` / `16`). Only used with `--traffic-type`.
 
 !!! note
-    The emitted files are named `<traffic_name>_<idx>.txt` for wide traffic and `<traffic_name>_<idx+100>.txt` for narrow traffic, where `idx = x * num_y + y` is the linear index of the initiator node at mesh coordinate `(x, y)`. For a network without a wide protocol (e.g. a single-AXI mesh), wide bursts are skipped and only the narrow job files carry transfers.
+    The emitted files are named `<traffic_name>_<idx>.txt` for wide traffic and `<traffic_name>_<idx+100>.txt` for narrow traffic, where `idx = x * num_y + y` is the linear index of the initiator node at mesh coordinate `(x, y)`. For a network without a wide protocol (e.g. a single-AXI mesh), wide bursts are skipped and only the narrow job files carry transfers. With `--traffic-cfg`, every DMA of the mesh gets a job file: the DMAs of nodes without a flow get one without jobs and stay idle.
 
 -----
 

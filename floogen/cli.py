@@ -461,9 +461,18 @@ def main():
             handle_query(network, args.query)
         case "traffic":
             if args.traffic_cfg:
-                gen_traffic_cfg(
-                    args.traffic_cfg, network, traffic_name, traffic_outdir, verbose=args.verbose
-                )
+                try:
+                    gen_traffic_cfg(
+                        args.traffic_cfg,
+                        network,
+                        traffic_name,
+                        traffic_outdir,
+                        verbose=args.verbose,
+                    )
+                except ValueError as e:
+                    # An invalid traffic configuration, reported without a traceback.
+                    print(f"floogen: {e}", file=sys.stderr)
+                    return 1
             else:
                 gen_traffic_builtin(
                     args.traffic_type,
