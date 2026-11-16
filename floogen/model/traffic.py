@@ -17,7 +17,7 @@ import random
 from pathlib import Path
 
 import ruamel.yaml
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 
 from floogen.model.config import ConfigModel, OneOrMany
 from floogen.model.network import Network
@@ -43,6 +43,12 @@ MESH_TRAFFIC_TYPES = [
 
 # Seeded for reproducibility of the `uniform` traffic pattern.
 random.seed(42)
+
+# Maximum AXI4 QoS level (4-bit AxQOS).
+AXI_QOS_MAX = 15
+
+# Maximum release cycle: the DMA test node stores it as a 32-bit `int unsigned`.
+RELEASE_CYCLE_MAX = 2**32 - 1
 
 
 def _log(verbose: bool, msg: str):
@@ -77,6 +83,11 @@ class TrafficStream(ConfigModel):
         rw (str): `"read"` or `"write"` transaction.
         narrow_burst (List[Burst]): Narrow bursts to generate for this flow.
         wide_burst (List[Burst]): Wide bursts to generate for this flow.
+        start_time (int): Clock cycle, counted from the start of the simulation, at which the
+            initiator DMAs release the jobs of this flow. All jobs are released at this cycle
+            and run back to back. Defaults to 0.
+        qos (int): AXI4 QoS level (AxQOS, 0-15) of the AR and AW requests of this flow.
+            Defaults to 0.
     """
 
     name: str
@@ -85,6 +96,8 @@ class TrafficStream(ConfigModel):
     rw: str
     narrow_burst: OneOrMany[Burst]
     wide_burst: OneOrMany[Burst]
+    start_time: int = Field(default=0, ge=0, le=RELEASE_CYCLE_MAX)
+    qos: int = Field(default=0, ge=0, le=AXI_QOS_MAX)
 
     # Resolved using FlooNoC model
     initiator_addr: int | None = None
@@ -215,6 +228,8 @@ def print_traffic_model(traffic_model: Traffic):
         print(f"    Initiator : {flow.initiator}  addr={init_addr_str}")
         print(f"    Endpoint  : {flow.endpoint}  addr={ep_addr_str}")
         print(f"    R/W       : {flow.rw}")
+        print(f"    Start time: {flow.start_time} cycles")
+        print(f"    QoS       : {flow.qos}")
         narrow_str = (
             ", ".join(
                 f"(num={b.number}, len={b.length}, dw={b.data_width})" for b in flow.narrow_burst
