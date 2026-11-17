@@ -122,14 +122,18 @@ run-traffic-cfg:
     matrix:
       - DUT: [axi_mesh, nw_mesh]
         ROUTE_ALGO: [xy]
+      # Flows with release cycles (`start_time`), AXI QoS levels (`qos`), and idle nodes
+      - DUT: [axi_mesh, nw_mesh]
+        ROUTE_ALGO: [xy]
+        TRAFFIC_SUFFIX: [_qos]
   script:
     - |
       uv run --locked floogen traffic \
         --config floogen/examples/${DUT}_${ROUTE_ALGO}.yml \
-        --traffic-cfg floogen/examples/traffic/${DUT}_${ROUTE_ALGO}.yml \
-        --traffic-name ${DUT}_${ROUTE_ALGO} \
+        --traffic-cfg floogen/examples/traffic/${DUT}_${ROUTE_ALGO}${TRAFFIC_SUFFIX}.yml \
+        --traffic-name ${DUT}_${ROUTE_ALGO}${TRAFFIC_SUFFIX} \
         -o generated/jobs
-    - make run-vsim-batch TB_DUT=tb_floo_${DUT} WORK=work_${DUT}_${ROUTE_ALGO} TRAFFIC_NAME=${DUT}_${ROUTE_ALGO} | tee vsim.log 2>&1
+    - make run-vsim-batch TB_DUT=tb_floo_${DUT} WORK=work_${DUT}_${ROUTE_ALGO} TRAFFIC_NAME=${DUT}_${ROUTE_ALGO}${TRAFFIC_SUFFIX} | tee vsim.log 2>&1
     - 'grep "Errors: 0," vsim.log'
 
 ###################

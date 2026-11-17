@@ -17,7 +17,7 @@ import random
 from pathlib import Path
 
 import ruamel.yaml
-from pydantic import ValidationError
+from pydantic import Field, ValidationError, model_validator
 
 from floogen.model.config import ConfigModel, OneOrMany
 from floogen.model.network import Network
@@ -43,6 +43,12 @@ MESH_TRAFFIC_TYPES = [
 
 # Seeded for reproducibility of the `uniform` traffic pattern.
 random.seed(42)
+
+# Maximum AXI4 QoS level (4-bit AxQOS).
+AXI_QOS_MAX = 15
+
+# Maximum release cycle: the DMA test node stores it as a 32-bit `int unsigned`.
+RELEASE_CYCLE_MAX = 2**32 - 1
 
 
 def _log(verbose: bool, msg: str):
@@ -71,12 +77,18 @@ class TrafficStream(ConfigModel):
     """Traffic stream between an initiator and an endpoint.
 
     Attributes:
-        name (str): Name of the traffic flow, used to identify the emitted job files.
+        name (str): Name of the traffic flow, used to refer to it in error messages and in
+            the `--verbose` output. Job file names do not depend on it.
         initiator (List[int]): XY coordinates of the initiator node.
         endpoint (List[int]): XY coordinates of the endpoint node.
         rw (str): `"read"` or `"write"` transaction.
         narrow_burst (List[Burst]): Narrow bursts to generate for this flow.
         wide_burst (List[Burst]): Wide bursts to generate for this flow.
+        start_time (int): Clock cycle, counted from the start of the simulation, at which the
+            initiator DMAs release the jobs of this flow. All jobs are released at this cycle
+            and run back to back. Defaults to 0.
+        qos (int): AXI4 QoS level (AxQOS, 0-15) of the AR and AW requests of this flow.
+            Defaults to 0.
     """
 
     name: str
@@ -85,6 +97,8 @@ class TrafficStream(ConfigModel):
     rw: str
     narrow_burst: OneOrMany[Burst]
     wide_burst: OneOrMany[Burst]
+    start_time: int = Field(default=0, ge=0, le=RELEASE_CYCLE_MAX)
+    qos: int = Field(default=0, ge=0, le=AXI_QOS_MAX)
 
     # Resolved using FlooNoC model
     initiator_addr: int | None = None
@@ -95,6 +109,24 @@ class Traffic(ConfigModel):
     """Traffic class describing how different traffic streams interact in the FlooNoC system."""
 
     traffic_flows: list[TrafficStream]
+
+    @model_validator(mode="after")
+    def _one_flow_per_initiator(self):
+        """Reject traffic flows that share an initiator.
+
+        The testbench runs one job file per DMA. A second flow on the same initiator
+        would overwrite the first one's jobs and never run.
+        """
+        seen: dict[tuple[int, ...], str] = {}
+        for flow in self.traffic_flows:
+            init = tuple(flow.initiator)
+            if init in seen:
+                raise ValueError(
+                    f"Flows '{seen[init]}' and '{flow.name}' share initiator {list(init)}: "
+                    "only one flow per initiator is supported"
+                )
+            seen[init] = flow.name
+        return self
 
 
 def parse_traffic_cfg(cfg: Path) -> Traffic:
@@ -215,6 +247,8 @@ def print_traffic_model(traffic_model: Traffic):
         print(f"    Initiator : {flow.initiator}  addr={init_addr_str}")
         print(f"    Endpoint  : {flow.endpoint}  addr={ep_addr_str}")
         print(f"    R/W       : {flow.rw}")
+        print(f"    Start time: {flow.start_time} cycles")
+        print(f"    QoS       : {flow.qos}")
         narrow_str = (
             ", ".join(
                 f"(num={b.number}, len={b.length}, dw={b.data_width})" for b in flow.narrow_burst
@@ -237,6 +271,8 @@ def _gen_job_str(
     src_addr: int,
     dst_addr: int,
     *,
+    release_cycle: int = 0,
+    qos: int = 0,
     max_src_burst_size: int = 256,
     max_dst_burst_size: int = 256,
     r_aw_decouple: bool = False,
@@ -245,6 +281,8 @@ def _gen_job_str(
 ) -> str:
     """Generate the job-file representation of a single job."""
     return (
+        f"{int(release_cycle)}\n"
+        f"{int(qos)}\n"
         f"{int(length)}\n"
         f"{hex(src_addr)}\n"
         f"{hex(dst_addr)}\n"
@@ -259,7 +297,10 @@ def _gen_job_str(
 
 
 def _emit_jobs(jobs: str, outdir: Path, filename: str, idx: int):
-    """Emit jobs to a job file."""
+    """Emit jobs to a job file.
+
+    An empty `jobs` string gives an empty file: the DMA reading it stays idle.
+    """
     outdir.mkdir(parents=True, exist_ok=True)
     (outdir / f"{filename}_{idx}.txt").write_text(jobs, encoding="utf-8")
 
@@ -276,15 +317,34 @@ def gen_traffic_cfg(
     traffic_model = resolve_traffic_model(traffic_model, network, verbose=verbose)
     if verbose:
         print_traffic_model(traffic_model)
-    _, floonoc_num_y = _mesh_dims(network)
+    floonoc_num_x, floonoc_num_y = _mesh_dims(network)
+
+    # Check every flow before writing any job file, so an error leaves no partial output.
+    for flow in traffic_model.traffic_flows:
+        x, y = flow.initiator[0], flow.initiator[1]
+        if not (0 <= x < floonoc_num_x and 0 <= y < floonoc_num_y):
+            raise ValueError(
+                f"Flow '{flow.name}': initiator {flow.initiator} is outside the "
+                f"{floonoc_num_x}x{floonoc_num_y} mesh, so no testbench node would run it"
+            )
+        missing = [
+            f"{role} {coord}"
+            for role, coord, addr in (
+                ("initiator", flow.initiator, flow.initiator_addr),
+                ("endpoint", flow.endpoint, flow.endpoint_addr),
+            )
+            if addr is None
+        ]
+        if missing:
+            raise ValueError(f"Flow '{flow.name}': no network interface at {' and '.join(missing)}")
+
     for flow in traffic_model.traffic_flows:
         local_addr = flow.initiator_addr
         ext_addr = flow.endpoint_addr
-        if local_addr is None or ext_addr is None:
-            _log(verbose, f"Warning: Skipping flow '{flow.name}' due to unresolved addresses")
-            continue
+        assert local_addr is not None and ext_addr is not None  # checked above
         src_addr = ext_addr if flow.rw == "read" else local_addr
         dst_addr = local_addr if flow.rw == "read" else ext_addr
+        start, qos = flow.start_time, flow.qos
 
         wide_jobs = ""
         for burst in flow.wide_burst:
@@ -296,7 +356,8 @@ def gen_traffic_cfg(
                 )
                 continue
             wide_length = burst.length * burst.data_width // 8
-            wide_jobs += _gen_job_str(wide_length, src_addr, dst_addr) * burst.number
+            job = _gen_job_str(wide_length, src_addr, dst_addr, release_cycle=start, qos=qos)
+            wide_jobs += job * burst.number
 
         narrow_jobs = ""
         for burst in flow.narrow_burst:
@@ -308,7 +369,8 @@ def gen_traffic_cfg(
                 )
                 continue
             narrow_length = burst.length * burst.data_width // 8
-            narrow_jobs += _gen_job_str(narrow_length, src_addr, dst_addr) * burst.number
+            job = _gen_job_str(narrow_length, src_addr, dst_addr, release_cycle=start, qos=qos)
+            narrow_jobs += job * burst.number
 
         x, y = flow.initiator[0], flow.initiator[1]
         idx = x * floonoc_num_y + y
@@ -316,6 +378,19 @@ def gen_traffic_cfg(
         _log(verbose, f"Emitted wide job with index {idx} (x: {x}, y: {y})")
         _emit_jobs(narrow_jobs, outdir, filename, idx + 100)
         _log(verbose, f"Emitted narrow job with index {idx + 100} (x: {x}, y: {y})")
+
+    # The testbench opens a job file for every DMA. Nodes without a flow get job files without
+    # jobs, so their DMAs stay idle. This also replaces stale files from an earlier run.
+    active = {(flow.initiator[0], flow.initiator[1]) for flow in traffic_model.traffic_flows}
+    for x in range(floonoc_num_x):
+        for y in range(floonoc_num_y):
+            if (x, y) not in active:
+                idx = x * floonoc_num_y + y
+                _emit_jobs("", outdir, filename, idx)
+                _emit_jobs("", outdir, filename, idx + 100)
+                _log(
+                    verbose, f"Emitted idle jobs with index {idx} and {idx + 100} (x: {x}, y: {y})"
+                )
 
 
 def gen_traffic_builtin(
