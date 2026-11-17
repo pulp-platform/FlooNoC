@@ -396,6 +396,15 @@ module floo_dma_test_node  #(
   end
 
   //--------------------------------------
+  // Simulation Counter
+  //--------------------------------------
+  logic        started_q;
+  logic [31:0] cycle_q;
+
+  `FF(started_q, started_q | start, 1'b0)
+  `FFL(cycle_q, cycle_q + 1, started_q | start, '0)
+
+  //--------------------------------------
   // Launch Transfers
   //--------------------------------------
 
@@ -431,6 +440,8 @@ module floo_dma_test_node  #(
       // run all requests in queue
       for (int req_idx = 0; req_idx < req_jobs.size(); req_idx++) begin
         automatic tb_dma_job_t now = req_jobs[req_idx];
+        // Release the job once the start period expires
+        wait (cycle_q >= now.release_cycle);
         // Inject delay based on injection ratio
         // Compute whether to inject in the next cycle based on the injection ratio
         while (!($urandom_range(0, 100) < (injection_ratio * 100))) begin
@@ -439,7 +450,14 @@ module floo_dma_test_node  #(
           @(posedge clk_i);
         end
         // print job to terminal
-        if (EnableDebug) $display("[DMA%0d]%s", JobId, now.pprint());
+        if (EnableDebug) begin
+          $display("[DMA%0d]%s", JobId, now.pprint());
+          $display("[DMA%0d] Job %0d: release cycle %0d, launched in cycle %0d, QoS %0d",
+                   JobId, req_idx, now.release_cycle, cycle_q, now.qos);
+        end
+        // assign QoS priority level
+        idma_dv.req.opt.src.qos <= #TA now.qos;
+        idma_dv.req.opt.dst.qos <= #TA now.qos;
         // launch DUT
         drv.launch_tf(
                       now.length,
@@ -494,5 +512,47 @@ initial begin
     @(posedge clk_i);
   end
 end
+
+  //--------------------------------------
+  // Checks AXI4 transactions
+  //--------------------------------------
+  initial begin : proc_check_ni_requests
+    automatic longint unsigned first_release = 0;
+    automatic logic [15:0]     job_qos       = '0;
+    automatic logic [31:0]     cycle;
+    automatic axi_xbar_req_t   ni_req;
+
+    // jobs are read at time 0, before reset is released
+    wait (rst_ni);
+    foreach (req_jobs[i]) begin
+      if (i == 0 || req_jobs[i].release_cycle < first_release)
+        first_release = req_jobs[i].release_cycle;
+      job_qos[req_jobs[i].qos] = 1'b1;
+    end
+
+    forever begin
+      @(posedge clk_i);
+      #(TT);
+      if (!(start || started_q)) continue;
+      cycle  = cycle_q;
+      ni_req = xbar_out_req[1];
+      if (!(ni_req.aw_valid || ni_req.ar_valid)) continue;
+
+      if (req_jobs.size() == 0) begin
+        $error("[DMA%0d] AW/AR towards the NI in cycle %0d, but the DMA has no jobs",
+               JobId, cycle);
+      end else begin
+        if (cycle < first_release)
+          $error("[DMA%0d] AW/AR towards the NI in cycle %0d, before the release cycle %0d",
+                 JobId, cycle, first_release);
+        if (ni_req.aw_valid && !job_qos[ni_req.aw.qos])
+          $error("[DMA%0d] AW towards the NI in cycle %0d with QoS %0d, used by no job",
+                 JobId, cycle, ni_req.aw.qos);
+        if (ni_req.ar_valid && !job_qos[ni_req.ar.qos])
+          $error("[DMA%0d] AR towards the NI in cycle %0d with QoS %0d, used by no job",
+                 JobId, cycle, ni_req.ar.qos);
+      end
+    end
+  end
 
 endmodule
