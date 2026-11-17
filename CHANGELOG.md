@@ -21,10 +21,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 - Add a `help` command, to print the general help message (`floogen help`) or the help message of a specific command (`floogen help <command>`).
 - Configuration files can declare parameters in a top-level `params` block and reference them anywhere else in the file as `${...}`, with arithmetic, bit operations and comparisons supported inside the braces. Every command that reads a configuration accepts `-P NAME=VALUE` to override a declared parameter, so a single configuration can be generated for several mesh sizes or address maps without being edited. Parameters are resolved before validation and inlined into the generated output; they are additionally emitted as `localparam`s in the generated package. See the [parameter documentation](docs/floogen/params.md).
 - Address ranges accept an `rdl_params` field, binding parameters on the SystemRDL component named by `rdl_name` (e.g. `cluster_regs #(.NumCores(4)) cluster @0x10000000;`). Values are resolved at generation time - typically from a configuration parameter - so the generated addrmap has no parameters of its own left to override. See the [endpoint documentation](docs/floogen/endpoints.md#systemrdl-parameters).
+- New `floogen traffic` command, generating the DMA job files of the mesh testbenches from the network model. This way, the same traffic adapts to the topology, address map, and data widths of any configuration. The traffic comes either from a traffic configuration file (`--traffic-cfg`) or from a built-in mesh pattern (`--traffic-type`, `--traffic-rw`). Examples are in `floogen/examples/traffic`. See the [traffic configuration format](docs/floonoc/getting_started.md#traffic-configuration-file). (https://github.com/pulp-platform/FlooNoC/pull/182)
 
 ### Changed
 
 #### Hardware
+- `tb_floo_axi_mesh`, `tb_floo_nw_mesh` and `floo_dma_test_node` run the job files of `floogen traffic`, selected with `make run-vsim TRAFFIC_NAME=<name> TRAFFIC_OUTDIR=<dir>` (previously `JOB_NAME`/`JOB_DIR`). The Makefile adds the `nw_mesh`/`axi_mesh` Bender targets from `TB_DUT`. (https://github.com/pulp-platform/FlooNoC/pull/182)
 - Refactor collective support to make the NoC agnostic of the collective operations: chimneys, routers and the reduction units now accept a generic `collect_op_t` parameter type (an opcode vector) instead of the fixed `collect_op_e` enum. Eventaul opcodes are treated transparently by the NoC.
 
 - Add `XYRoutingMirrored` and `YXRoutingMirrored` algorithms to support mixed `req/rsp` algorithms.
@@ -44,6 +46,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 #### FlooGen
 - An `xy_id_offset` given as a plain value (e.g. `xy_id_offset: 5`) was silently discarded, and a misspelled coordinate key (e.g. `X` instead of `x`) silently left that axis at 0. Both are now validation errors, and the `SimpleId` form of `xy_id_offset` is usable again.
+
+### Removed
+- `util/gen_jobs.py` and the `make jobs` target, replaced by `floogen traffic`, together with `util/measurements.sh` and the `tb_floo_dma_chimney` testbench. (https://github.com/pulp-platform/FlooNoC/pull/182)
 
 ## [0.8.4] - 2026-06-30
 
