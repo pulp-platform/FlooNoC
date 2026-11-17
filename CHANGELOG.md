@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 
 ## [Unreleased]
 
+### Added
+
+#### FlooGen
+- Traffic flows accept an optional `start_time` field, the clock cycle at which the initiator DMAs release the jobs, and an optional `qos`, the AXI4 QoS level field (4-bits) of their AR and AW requests. Both default to `0`. See the [traffic configuration documentation](docs/floonoc/getting_started.md#traffic-configuration-file).
+- New example traffic configurations `nw_mesh_xy_qos.yml` and `axi_mesh_xy_qos.yml`, with staggered release cycles, different QoS levels and idle nodes, run in CI.
+
+#### Hardware
+- The DMA test node releases each job at its release cycle and sets the QoS level of its AR and AW requests from the job file. It checks that its requests towards the network interface do not start before the release cycle of its first job and carry the QoS level of its jobs, and that a DMA without jobs sends no request.
+
+### Changed
+
+#### FlooGen
+- Each job in a job file starts with its release cycle and its QoS level. Job files written by an older `floogen traffic` must be regenerated, and job files written by `floogen traffic` need the updated DMA test node.
+- `floogen traffic --traffic-cfg` rejects a traffic configuration with more than one flow per initiator, or with a flow whose initiator is outside the mesh or has no network interface at its initiator or endpoint, instead of skipping that flow. It also writes job files without jobs for the DMAs of the nodes without a flow, so that they stay idle.
+
 ### Fixed
 
 #### Hardware

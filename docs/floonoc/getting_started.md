@@ -175,6 +175,8 @@ traffic_flows:
     initiator: [0, 0]
     endpoint: [1, 0]
     rw: write
+    start_time: 1000
+    qos: 4
     narrow_burst:
       number: 4
       length: 8
@@ -193,6 +195,8 @@ Each traffic flow accepts the following fields:
 | `rw` | `read` \| `write` | Direction of the transfer. `write` moves data from the `initiator` to the `endpoint`; `read` moves data from the `endpoint` to the `initiator`. |
 | `narrow_burst` | burst | Transfers issued over the *narrow* NoC. |
 | `wide_burst` | burst | Transfers issued over the *wide* NoC. |
+| `start_time` | int | Optional, defaults to `0`. Clock cycle at which the initiator DMAs release the jobs of this flow, counted from the start of the simulation (cycle 0 is the cycle in which the DMAs are started). All jobs of the flow are released at this cycle and run back to back. |
+| `qos` | int | Optional, defaults to `0`. AXI4 QoS level (`AxQOS`, 0-15) of the AR and AW requests of this flow. |
 
 Both `narrow_burst` and `wide_burst` take a *burst* descriptor with two fields:
 
@@ -204,11 +208,13 @@ Both `narrow_burst` and `wide_burst` take a *burst* descriptor with two fields:
 !!! note
     The `narrow`/`wide` data widths are resolved from the FlooNoC configuration, so only the `number` and `length` need to be specified per flow. If the network has no *wide* protocol (e.g. a single-AXI mesh), any `wide_burst` entries are skipped with a warning and only the narrow transfers are used.
 
+Each node runs at most one flow: a second flow with the same `initiator` is an error, and so is a flow that cannot run, i.e., whose `initiator` lies outside the mesh, or with no network interface at its `initiator` or `endpoint`. The DMAs of nodes without a flow stay idle.
+
 Reference traffic configuration examples for the mesh testbenches can be found under [`floogen/examples/traffic/`](https://github.com/pulp-platform/FlooNoC/tree/main/floogen/examples/traffic/).
 
 #### Built-in Mesh Traffic Patterns
 
-Alternatively, `floogen traffic` also supports generating a handful of built-in, mesh-wide traffic patterns that onlyrequire a FlooNoC configuration file:
+Alternatively, `floogen traffic` also supports generating a handful of built-in, mesh-wide traffic patterns that only require a FlooNoC configuration file:
 
 ```bash
 floogen traffic -c <floonoc_config>.yml --traffic-type <traffic_type> --traffic-rw <read_or_write> -o <outdir>
@@ -232,7 +238,7 @@ Currently supported traffic types are:
 | `hotspot_boundary` | Traffic goes to a single hotspot node on the boundary. |
 | `matmul` | Each node performs a blocked matrix-multiplication-like access pattern to HBM. |
 
-The number and length of the generated bursts can be tuned with the `--num-narrow-bursts`, `--num-wide-bursts`, `--narrow-burst-length` and `--wide-burst-length` options (see `floogen traffic --help`).
+The number and length of the generated bursts can be tuned with the `--num-narrow-bursts`, `--num-wide-bursts`, `--narrow-burst-length` and `--wide-burst-length` options (see `floogen traffic --help`). Built-in patterns release all jobs at cycle 0 with QoS 0.
 
 ### Running Mesh Testbenches
 
