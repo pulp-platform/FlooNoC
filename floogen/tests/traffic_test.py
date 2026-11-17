@@ -134,6 +134,25 @@ def test_example_traffic_files_parse(name):
     assert all(f.start_time == 0 and f.qos == 0 for f in traffic.traffic_flows)
 
 
+@pytest.mark.parametrize("name", ["nw_mesh_xy_qos", "axi_mesh_xy_qos"])
+def test_example_qos_traffic_files(tmp_path, name):
+    """The QoS example traffic files have release cycle and QoS level."""
+    network_name = name.removesuffix("_qos")
+    cfg = EXAMPLES_DIR / "traffic" / f"{name}.yml"
+    gen_traffic_cfg(cfg, _network(network_name), "t", tmp_path)
+
+    num_y = 4
+    flows = parse_traffic_cfg(cfg).traffic_flows
+    assert len({f.start_time for f in flows}) > 1 and len({f.qos for f in flows}) > 1
+    for flow in flows:
+        idx = flow.initiator[0] * num_y + flow.initiator[1]
+        jobs = _jobs(tmp_path / f"t_{idx}.txt") + _jobs(tmp_path / f"t_{idx + 100}.txt")
+        assert jobs
+        assert all(job[:2] == [str(flow.start_time), str(flow.qos)] for job in jobs)
+    # Some nodes have no flow: their DMAs stay idle.
+    assert len(flows) < 16
+
+
 def test_job_string_starts_with_release_cycle_and_qos():
     assert _gen_job_str(64, 0x10, 0x20, release_cycle=100, qos=7) == (
         "100\n7\n64\n0x10\n0x20\n0\n0\n256\n256\n0\n0\n0\n"
