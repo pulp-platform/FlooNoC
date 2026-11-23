@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 #### Hardware
 
 - Rename `credit_init_i` to `clr_i` on the credit counter of `floo_vc_arbiter`, as in common_cells v2. Before, Verilator stopped on every design with a router. (https://github.com/pulp-platform/FlooNoC/pull/245)
+- `floo_output_arbiter` keeps its output on one packet from the first flit to the last when parallel reductions are enabled. Before, a unicast flit could leave between the AW and the W of a parallel reduction, and the next router sent it to the AW's port. (https://github.com/pulp-platform/FlooNoC/pull/254)
 
 ## [0.9.0] - 2026-09-26
 

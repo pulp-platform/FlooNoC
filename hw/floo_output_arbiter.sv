@@ -11,6 +11,7 @@
 // These ports cannot be reduced!
 
 `include "common_cells/assertions.svh"
+`include "common_cells/registers.svh"
 `include "floo_noc/typedef.svh"
 
 module floo_output_arbiter import floo_pkg::*;
@@ -126,6 +127,33 @@ module floo_output_arbiter import floo_pkg::*;
       .data_o    ( reduce_data_out  )
     );
 
+    // A packet keeps the output from its first flit to its last. The next router locks the
+    // route of its input on the first flit of a packet (`floo_route_select`), so a flit of the
+    // other stream sent in between would follow that route to the wrong port.
+    logic hold_q, hold_d;           // the output carries an unfinished packet
+    logic hold_red_q, hold_red_d;   // that packet comes from the reduction arbiter
+    logic reduce_valid_arb, unicast_valid_arb, reduce_ready_arb, unicast_ready_arb;
+
+    // Mask both valid and ready of the stream that waits: the arbiter can grant an input
+    // whose valid is low (`AxiVldRdy`), and that stream would then hand over a flit that is
+    // never sent.
+    assign reduce_valid_arb  = reduce_valid_out  & ~(hold_q & ~hold_red_q);
+    assign unicast_valid_arb = unicast_valid_out & ~(hold_q &  hold_red_q);
+    assign reduce_ready_in   = reduce_ready_arb  & ~(hold_q & ~hold_red_q);
+    assign unicast_ready_in  = unicast_ready_arb & ~(hold_q &  hold_red_q);
+
+    always_comb begin : proc_hold
+      hold_d     = hold_q;
+      hold_red_d = hold_red_q;
+      if (valid_o && ready_i) begin
+        hold_d     = !data_o.hdr.last;
+        hold_red_d = reduce_valid_arb && reduce_ready_in;
+      end
+    end
+
+    `FF(hold_q, hold_d, 1'b0)
+    `FF(hold_red_q, hold_red_d, 1'b0)
+
     // Arbitrate between wormhole and reduction arbiter
     // Reductions have higher priority than unicasts (index 0)
     cc_stream_arbiter #(
@@ -137,8 +165,8 @@ module floo_output_arbiter import floo_pkg::*;
       .rst_ni,
       .clr_i      (1'b0),
       .inp_data_i ({unicast_data_out, reduce_data_out}),
-      .inp_valid_i({unicast_valid_out, reduce_valid_out}),
-      .inp_ready_o({unicast_ready_in, reduce_ready_in}),
+      .inp_valid_i({unicast_valid_arb, reduce_valid_arb}),
+      .inp_ready_o({unicast_ready_arb, reduce_ready_arb}),
       .oup_data_o (data_o),
       .oup_valid_o(valid_o),
       .oup_ready_i(ready_i)
