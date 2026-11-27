@@ -175,6 +175,31 @@ clean-spyglass:
 	rm -f spyglass/sg_shell_command.log
 	rm -f spyglass/set_top.tcl
 
+###############
+# Slang (LSP) #
+###############
+
+# Testbenches whose sources are kept in the file list, everything not
+# reachable from them (e.g. testbenches of dependencies) is trimmed by bender.
+SLANG_TOPS ?= tb_floo_axi_chimney tb_floo_nw_chimney tb_floo_router tb_floo_rob
+SLANG_TOPS += tb_floo_rob_multicast tb_floo_axi_mesh tb_floo_nw_mesh
+
+.PHONY: slang-flist clean-slang
+
+# The mesh testbenches depend on generated sources, which are only
+# generated if they do not exist yet, to not overwrite custom ones.
+generated/floo_%_noc.sv:
+	uv run floogen rtl -c floogen/examples/$*_xy.yml -o generated
+
+floo_noc.f: Bender.yml Bender.lock generated/floo_axi_mesh_noc.sv generated/floo_nw_mesh_noc.sv
+	$(BENDER) script flist-plus $(BENDER_FLAGS) -t axi_mesh -t nw_mesh $(addprefix --top ,$(SLANG_TOPS)) > $@.tmp
+	mv $@.tmp $@
+
+slang-flist: floo_noc.f
+
+clean-slang:
+	rm -f floo_noc.f
+
 ###################
 # Physical Design #
 ###################
@@ -202,6 +227,6 @@ update-pd-commit:
 .PHONY: all clean build
 
 all: compile-vsim run-sim-batch
-clean: clean-vsim clean-spyglass clean-vcs
+clean: clean-vsim clean-spyglass clean-vcs clean-slang
 build: compile-vsim
 run: run-vsim
